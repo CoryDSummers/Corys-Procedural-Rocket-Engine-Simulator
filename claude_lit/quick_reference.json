@@ -1,0 +1,150 @@
+{
+  "design_decisions": {
+    "choosing_cycle": {
+      "question": "Which engine cycle should I use?",
+      "quick_check": "Pressure-fed (tiny, short duration) → Gas generator (medium bipropellant) → Tap-off (small-medium) → Expander (LOX/LH2) → Staged combustion (large LOX engines). Pump discharge ~k·Pc varies by cycle; turbine PR sets stress.",
+      "cite": "[Sutton §6.6, §10], [SP-8107], [KBKhA], memory:claude_lit_turbopumps_cycles",
+      "see_also": ["claude_lit/topics/08-engine-cycles.md", "memory:claude_lit_gas_generators", "memory:claude_lit_turbopumps_cycles"]
+    },
+    "injector_pressure_drop": {
+      "question": "What injector pressure drop should I design for?",
+      "quick_check": "Normal bipropellant: 15–20 % of Pc (balance feed-system weight vs. stability/atomization). Staged combustion & small thrusters: 0.3–0.5 for injector stiffness. Low Δp minimizes pump power; high Δp enhances combustion stability.",
+      "cite": "[Huzel §4.5], [Sutton Table 8-1], memory:claude_lit_injectors_reference",
+      "table_ref": "Sutton Table 8-1 (real engines 0.15–0.5 range)"
+    },
+    "injector_type": {
+      "question": "What injector type is best?",
+      "quick_check": "Triplet (most common, eliminates β-vs-MR drift) → Quintuplet (higher perf) → Coaxial hollow-post (LOX/GH2, not for storable bipropellants). For pressure-fed monopropellants or low-Pc: simple showerhead acceptable. Highest element count → smallest droplets → best vaporization.",
+      "cite": "[Huzel §4.5], [Sutton §8.1], [Bazarov], memory:claude_lit_injectors_reference",
+      "see_also": ["claude_lit/topics/05-injectors.md"]
+    },
+    "cooling_method": {
+      "question": "How should I cool the chamber and nozzle?",
+      "quick_check": "Regenerative (medium–large bipropellant, high Pc). Film/transpiration (high local flux). Radiation (low flux, monopropellant, nozzle extensions ε > ~6–10). Ablative (low Pc < 250 psi, fuel-rich exhaust required; avoid 4–15 % duty pulsing). Higher Pc → higher heat flux → sets material/cooling limit.",
+      "cite": "[Huzel §4.4], [Sutton §8.2], memory:claude_lit_cooling_reference",
+      "heat_flux_note": "Only 0.5–5 % of total energy reaches walls. Peak at throat. Radiation 5–35 % of transferred heat."
+    },
+    "regenerative_coolant_choice": {
+      "question": "What coolant should I use for regenerative cooling?",
+      "quick_check": "LOX/RP-1: ΔT limit ~120 K (coking), Isp credit 0.1–1.5 %. LOX/LH2: ΔT limit ~500 K, higher credit. Real GH2/LOX needed ~7.5 % coolant flow by mass (304 SS, 2000 °R limit). Coolant-side ΔT is the constraint; regen absorbs heat and augments exhaust velocity.",
+      "cite": "[Sutton §8.2], [TN-Dump App. B], memory:claude_lit_cooling_reference"
+    },
+    "c_star_efficiency": {
+      "question": "What c* efficiency should I assume for this propellant pair?",
+      "quick_check": "Use real-engine calibrations from validate.py: LOX/RP-1 0.955, LOX/LH2 0.94, N2O4/MMH 0.90, Aerozine/NTO 0.9435, Hydrazine 0.80. Literature band 0.96–0.99 for good chambers. Reverse-solve new pairs against real engines in Engine_Configs/.",
+      "cite": "[Sutton §5.5], [CR-128318], memory:claude_lit_combustion_cstar",
+      "process": "Spot-check rule: find real engine with same propellant → solve for η_c* → add to validate.py SPOT_CHECKS"
+    },
+    "chamber_lstar": {
+      "question": "What L* (chamber length) should I use?",
+      "quick_check": "Typical L* 15–120 (corresponds to stay time 0.001–0.040 s). C* rises asymptotically with L*; beyond ~20–40, more L* only adds mass/cooled area. Design for 'essentially complete combustion' plateau; overly long chambers add waste mass.",
+      "cite": "[Huzel §4.3], [Sutton §8.2], memory:claude_lit_combustion_cstar",
+      "see_also": ["claude_lit/topics/04-chamber-sizing.md"]
+    },
+    "nozzle_bell_contour": {
+      "question": "Should I use a conical or bell nozzle?",
+      "quick_check": "Bell nozzles gain 8–15 % of Isp over conical (shorter, lighter, better thrust coefficient). Trade-off: more complex to machine/analyze. Modern engines use bell (Rao-parabolic or similar). Conical still used for simplicity/rapid-dev (e.g., small thrusters).",
+      "cite": "[Huzel §4.3], [Sutton §3.4 & §8.2], claude_lit/topics/02-nozzle-contour-design.md",
+      "reference_table": "Sutton Fig 3-14 (Rao θn/θe vs ε table, digitized in design.py)"
+    },
+    "radiation_cooling_transition": {
+      "question": "At what nozzle expansion ratio can I switch to radiation cooling?",
+      "quick_check": "Radiation cooling becomes viable beyond ε ~6–10 (nozzle exit area ratio). Low heat flux at high ε allows cheaper/simpler refractory materials (Mo-0.5Ti, 90Ta-10W). Pc must be < ~250 psi. Material must be refractory (good to 3500 °R).",
+      "cite": "[Sutton §8.2], [Huzel §4.4 p.121], memory:claude_lit_cooling_reference",
+      "design_constant": "cooling.py default: cooling_transition_eps 6.0 (conservative end of range)"
+    },
+    "materials_high_pressure": {
+      "question": "What materials work at high chamber pressure and heat flux?",
+      "quick_check": "Hot-gas side: Inconel 625, stainless 304/347 (thin-wall regen), Rene 41 (> 2000 psi). Turbine rotor (> 1000 K inlet): directional-solidified Ni-base superalloys. Pump housing/impeller: 7075-T73 aluminum or stainless 17-4PH. Avoid high-strength steel in LH2 (hydrogen embrittlement).",
+      "cite": "[Ch12-Materials], [Huzel §2.4–2.5], [SP-8120], memory:claude_lit_materials_reference"
+    },
+    "chamber_pressure_limit": {
+      "question": "What's the practical upper limit on chamber pressure?",
+      "quick_check": "Higher Pc → higher heat flux → sets material/cooling limit. Achievable Pc depends on cooling method and material choice. Regeneratively cooled bipropellants: 3000–5000 psia typical (F-1 ~2700, RS-25 ~3250, RD-180 ~3450). Pressure-fed: limited by tank pressure (< 500 psia typical).",
+      "cite": "[Sutton §8.2], [Huzel §4.4], memory:claude_lit_cooling_reference"
+    },
+    "gas_generator_fuel_ratio": {
+      "question": "What fuel-rich mixture ratio should my gas generator use?",
+      "quick_check": "GG mixture ratio 0.2–1.0 (fuel-rich). Higher MR = lower temperature (reduces hot-streak damage). UMR (uniform) gives consistent T everywhere; hot-core (lean center + rich annulus) gains c* but requires precise injector design. Both approaches used in real engines.",
+      "cite": "[SP-8081 Table I], [SP-8081 §1.2], memory:claude_lit_gas_generators"
+    },
+    "turbine_efficiency": {
+      "question": "What turbine efficiency can I assume?",
+      "quick_check": "Real GG & staged-combustion turbines: 46–70 %, most 55–66 % [SP-8107 Table III]. design.py uses GG_ETA_TURBINE = 0.62 (mid-band, conservative). Real RD-0110 & RD-0124 both ~55–66 % range.",
+      "cite": "[SP-8107 Tables I–III], [KBKhA], memory:claude_lit_turbopumps_cycles"
+    },
+    "spot_check_new_design": {
+      "question": "How do I validate a new engine design?",
+      "quick_check": "(1) Reverse-solve c* efficiency against a real engine with the same propellant + Pc + MR. (2) Cross-check Isp predicted vs real engine (should be within 1–2 %). (3) Check heat flux vs material thermal limits. (4) Check turbopump specific power vs real turbopumps (50 000–150 000 W/kg). (5) Run full validate.py suite to catch coefficient/constant inconsistencies.",
+      "cite": "CLAUDE.md convention #1 & #4, memory:claude_lit_combustion_cstar",
+      "process": "Add new propellant to SPOT_CHECKS in physics/validate.py; run full suite"
+    }
+  },
+  "quick_lookups": {
+    "propellant_c_star_efficiency": {
+      "LOX/RP-1": "0.955 [RD-111 anchor]",
+      "LOX/LH2": "0.94 [RL10A-3-3 anchor]",
+      "N2O4/MMH": "0.90 [Aestus]",
+      "Aerozine-50/NTO": "0.9435 [AJ10-137]",
+      "Hydrazine": "0.80 [MR-80B decomposition]",
+      "source": "physics/validate.py SPOT_CHECKS calibration"
+    },
+    "heat_flux_ranges": {
+      "high": "> 16 kW/cm² (large bipropellant throat)",
+      "medium_high": "0.3–16 kW/cm²",
+      "low": "< 0.3 kW/cm² (gas gen, nozzle extension, small thruster)",
+      "peak_location": "Always at nozzle throat; lowest near exit",
+      "source": "[Sutton §8.2], [Huzel §4.4]"
+    },
+    "turbopump_specific_power_range": {
+      "typical": "50 000–150 000 W/kg",
+      "advanced": "70 000–179 000 W/kg [SSME high-end]",
+      "source": "[SP-8107 Table I], memory:claude_lit_turbopumps_cycles"
+    },
+    "chamber_lstar_by_propellant": {
+      "typical_range": "15–120",
+      "stay_time_equiv": "0.001–0.040 s",
+      "asymptote": "Performance plateaus; excess L* adds waste mass",
+      "source": "[Huzel §4.3], [Sutton §8.2]"
+    },
+    "injection_pressure_drop_by_engine_type": {
+      "normal_bipropellant": "15–20 % Pc",
+      "small_thruster": "0.3–0.5 Δp/Pc",
+      "staged_combustion": "0.3–0.5 (stiffness critical)",
+      "source": "[Huzel §4.5], [Sutton Table 8-1], memory:claude_lit_injectors_reference"
+    },
+    "discharge_coefficient_Cd": {
+      "sharp_edge_over_2.5mm": "0.61",
+      "sharp_edge_under_2.5mm": "0.65",
+      "rounded_tube_LtoD_over_3": "0.88–0.90 (best)",
+      "conical_entrance": "0.70–0.82",
+      "rule": "Well-rounded entrance + smooth bore → high Cd → lower ΔP",
+      "source": "[Sutton Table 8-2], [Huzel §4.5]"
+    },
+    "combustion_stay_time": {
+      "range_s": "0.001–0.040 s",
+      "gg_specific": "2–10 ms [SP-8081]",
+      "calculation": "ts = Vc / (ṁ·V̄) where V̄ is mean specific volume",
+      "source": "[Huzel §4.3], [Sutton §8.2]"
+    },
+    "cooling_method_by_heat_flux": {
+      "high_flux": "Regenerative (turbopump-fed), with film/transpiration near injector/throat",
+      "medium_flux": "Regenerative alone",
+      "low_flux": "Radiation (ε > 6–10) or ablative (fuel-rich exhaust, Pc < 250 psi)",
+      "source": "[Sutton §8.2], [Huzel §4.4], memory:claude_lit_cooling_reference"
+    }
+  },
+  "literature_index": {
+    "note": "Each memory file below has cross-topic citations; cite specific pages from claude_lit/topics/ as needed.",
+    "memory_files": [
+      "claude_lit_combustion_cstar.md (c* efficiency, combustion completeness, Tc/γ/M anchors)",
+      "claude_lit_cooling_reference.md (method selection, heat-flux magnitudes, materials, regen credit)",
+      "claude_lit_injectors_reference.md (pressure-drop rule, Cd, impingement geometry, types)",
+      "claude_lit_turbopumps_cycles.md (cycle selection, pump discharge, turbine PR, specific power)",
+      "claude_lit_materials_reference.md (material by component, structural criteria, real alloy survey)",
+      "claude_lit_gas_generators.md (GG parameters, hot-streak control, real component data)"
+    ],
+    "topic_files": "claude_lit/topics/01-16.md (full derivations, charts, real engine data tables)",
+    "validation_reference": "engine_designer/physics/validate.py SPOT_CHECKS (real-engine spot-check anchors)"
+  }
+}

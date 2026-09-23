@@ -1,0 +1,166 @@
+# 07 — Dump cooling
+
+## Scope
+
+Dump cooling as a distinct cooling mode: the concept, the coolant-passage sizing method, the
+minimum coolant fraction, and the coolant-Isp recovery. Most content comes from one source —
+`[TN-Dump]` (NASA TN D-3532) — for propellant-fraction dump cooling. Since 2026-09-24, this
+file also covers the closely related but distinct **turbine-exhaust-gas film cooling** of a
+nozzle extension (`[SP-8120]`'s real F-1 case) — a different coolant medium (turbine exhaust,
+not propellant) but the same "secondary flow protects/cools an extension, then is ejected or
+reintroduced" architecture, directly relevant to `EngineDesign.dump_coolant_fraction`'s
+existing Vulcain-HM-60/J-2-anchored nozzle-extension dump cooling and to the planned
+turbine-exhaust-handling feature (see `OPEN_QUESTIONS.md`).
+
+## The concept
+
+`[TN-Dump §Introduction]`, `[Huzel §4.4 p.98]`, `[Sutton §8.2]`:
+
+- A fraction of one propellant (in practice, the fuel — hydrogen in a LOX/LH2 engine) is
+  routed through cooling passages in the chamber/nozzle wall, then **dumped overboard
+  through a convergent-divergent nozzle at the rear of the nozzle skirt** — not injected into
+  the chamber.
+- Key advantage: the **coolant jacket pressure drop is in *parallel* with the injector
+  pressure drop, not in series**. The propellant tanks can therefore be pressurised to a
+  lower value than for an equivalent regeneratively-cooled engine → lighter tanks, less
+  pressurant, or smaller pumps.
+- The heated coolant, expanded through its own C-D nozzle, **recovers some of its energy as
+  thrust**. Heated hydrogen gives a very reasonable theoretical Isp so it "detracts little
+  if any from the overall specific impulse."
+- Design objective (opposite to regenerative cooling): raise the coolant to the **highest
+  temperature the wall material allows, using the *minimum* coolant flow** — whereas regen
+  design fixes the coolant flow and *minimises* the jacket ΔP.
+- Status: `[Huzel]` "because of inherent problems, this method has only limited
+  application." `[Sutton]` mentions it only in passing.
+
+## Coolant-passage sizing method (`[TN-Dump]` Appendix B)
+
+An iterative axial march (11 increments), solving at each station for the local
+coolant-passage flow area that holds the flame-side wall temperature at the material limit
+(2000 °R for 304 SS here), using **real temperature-dependent coolant transport properties**
+because H2 density/Cp/viscosity change enormously as it heats down the passage:
+
+1. Local gas-side heat flux from Bartz-type / Dittus-Boelter `h_g` (`Nu_f = 0.023·Re_f^0.8·
+   Pr_f^0.4`, properties at film temperature `½(T_g,w,ad + T_w,g)`; recovery factor **0.88**).
+   See topic 06.
+2. Coolant-side `h_c` from the same Dittus-Boelter form for subcritical-pressure H2 gas/
+   vapor.
+3. Solve for the coolant velocity (hence passage area) that makes the coolant remove exactly
+   that flux while holding the wall at the limit.
+4. Advance one increment; update coolant thermodynamic state (temperature from the energy
+   balance `Q = ṁ_c·Cp·ΔT`, pressure from momentum + friction ΔP — both terms matter because
+   H2 density drops a lot along the passage).
+5. Repeat to the exit.
+
+Appendix C is the off-design version (other O/F and coolant flows, fixed geometry — can
+report a **burnout location** where the coolant cannot hold the wall below the limit).
+Appendix D is the spacer-helix geometry that turns the axial area schedule into a physical
+passage.
+
+## Key numbers (`[TN-Dump]`)
+
+Test article: 500 lbf, Pc 100 psig, GH2/LOX, O/F 5, LH2 coolant; two concentric 0.100-in
+304 SS shells, 0.10-in radial gap, 8 spiral passages, helix angle varied for locally-optimum
+coolant velocity; L\* 20 in, contraction ratio 3, ε 2.5.
+
+| Quantity | Value |
+|---|---|
+| Design coolant flow | 7 % of total propellant flow |
+| **Min satisfactory coolant flow (uncoated)** | **7.5 %** |
+| **Min satisfactory coolant flow (0.033-in Al2O3 coating)** | **6.9 %** |
+| Effect of Al2O3 coating | jacket ΔP down ~20–30 psi; coolant outlet temp down ~90–100 °R at fixed flow |
+| Over-cooled zones observed | first ~3 in from injector (finite combustion length); just downstream of throat |
+| Coolant inlet | ~57–85 °R, 90–150 psia |
+| Coolant outlet (304 SS wall) | see Fig 13/19 (chart) — a few hundred °R |
+| **Projected with Mo inner shell** | flame-side wall limit 3160 / 3560 °R → coolant outlet 1575 / 1900 °R → **theoretical dumped-H2 Isp 510 / 560 s** — equal to or above the main-chamber Isp |
+
+## Turbine-exhaust-gas film cooling of a nozzle extension — the real F-1 case
+`[SP-8120 §2.2.2/§3.2.2, full read 2026-09-24]`
+
+The single most valuable real-hardware precedent in this reference set for a turbine-exhaust
+film-cooled extension — "the only example of a film (gas)-cooled extension in production."
+**Real geometry**: the F-1's regeneratively cooled section extends to **area ratio 10:1**;
+the turbine-exhaust film-cooled extension continues from **10:1 to 16:1** — a real, exact
+expansion-ratio anchor for where turbine-exhaust film cooling picks up, directly relevant to
+any `regen_nozzle_end_eps`-style cutoff for a future turbine-exhaust-film mode. Construction:
+outer skin + inner **shingles** (overlapping, forming coolant slots) connected by Z-stringers,
+all **Hastelloy C**.
+
+**The core design problem and its real quantitative fix**: large separation between the main
+gas stream and coolant-gas stream, plus nonparallel injection, caused the main flow to detach
+and reattach downstream — destroying the film layer and burning out shingles at the
+reattachment point. Fix: concentrate **~25-30% of the total film-coolant (turbine-exhaust)
+flow at the attachment region**, leaving the rest for the remainder of the extension — a
+real, citable coolant-distribution split, **determined experimentally** since "no analytical
+technique available at the time would adequately predict the results." Real effectiveness
+rule: minimum stream mixing (best film use) occurs with coolant injected **parallel to the
+main gas stream, at the highest possible velocity, with the smallest gas-stream separation**.
+
+**Real materials/failure-mode detail**: ductile shingle/structural materials required to
+avoid low-cycle thermal fatigue — **Inconel 625, Hastelloy C, or 347 CRES**; the production
+F-1 uses a dimpled-sheet shingle design (limits deflection both directions without letting
+slots close or over-widen) after rigid shingles proved thermal-distortion-prone. Retaining
+bands specific to hot extensions get insulation + scalloped weld joints to cut band
+temperature/weight, and (design criterion) should be **overdesigned by 50%** during initial
+design to cover start-transient-side-load uncertainty — a real, quotable design-margin
+number.
+
+**Real overall performance contribution and structural load** `[SP-8120 §2.2.5.3 p.48-51]`:
+turbine-exhaust-gas thrust potential is typically **~0.5% of total engine thrust**
+(**16,000 lbf potential for the F-1** specifically) — large enough that supporting structure
+needs careful load analysis for large engines. A real safety-relevant finding: a
+**looped-tube turbine-exhaust configuration must not be used with noncryogenic (storable)
+propellants** — an experimental Atlas sustainer variant trapped RP-1 in exhaust-manifold
+pockets during fuel-rich cutoff, and LOX/RP-1 gel detonated at the start of the next test;
+cryogenic propellants (LH2) evaporate between runs and don't have this failure mode. Real
+Titan turbine-exhaust-impingement side loads on an ablative extension: **90±20 lbf axial,
+360±50 lbf lateral**, inducing a ~250 ft-lbf vehicle roll moment — a real dimensioned load
+case for any turbine-exhaust-impingement structural analysis.
+
+## Caveats
+
+- One tiny, low-Pc engine (the `[TN-Dump]` propellant-dump-cooling test article). The
+  *method* and *correlations* generalise; the coolant-fraction numbers (6.9–7.5 %) do not
+  scale to a full-size high-Pc engine.
+- The report notes its original transport-property data were later found incorrect and
+  re-fitted for data reduction (`[TN-Dump]` ref. 2, Svehla NASA SP-3011).
+- Dump cooling's real-world niche is narrow (pressure-fed LOX/LH2); most designs pick regen,
+  film, or radiation instead.
+- `[SP-8120]`'s F-1 turbine-exhaust film-cooling content is real-hardware precedent, not a
+  closed-form film-cooling-effectiveness formula — the 25-30% attachment-region split was
+  itself experimentally determined, not derived, and is specific to the F-1's own geometry
+  (large separation distance between main/coolant streams). Treat as a real anchor point and
+  design-driver narrative, not a directly portable design equation.
+
+## Implications for engine_designer
+
+- The tool's `README.md` lists dump cooling as a covered *cycle-adjacent concept* only in
+  the nozzle-extension material logic; there is **no dump-cooling model**. If one is added:
+  - It is a *feed-pressure* benefit, not a thrust cycle — model it as **jacket ΔP moving
+    from series (added to pump discharge / tank pressure) to parallel (only needs to exceed
+    ambient + its own nozzle back-pressure)**. This is the opposite of the current
+    `design.py` treatment where `JACKET_DP_PA` always adds to the feed budget.
+  - Credit a small coolant-Isp contribution, analogous to `engine_isp_with_gg_dump` in
+    `turbopump.py`: `Isp_engine = (1−x)·Isp_chamber + x·Isp_dump`, with the dump fraction
+    `x ≈ 0.07` and `Isp_dump` from a heated-H2 expansion (up to ~510–560 s for a
+    refractory-metal wall per `[TN-Dump Fig 1]`, i.e. `dump_isp_fraction` well above the
+    0.55 used for GG dump — dumped hot H2 is a much better exhaust than GG bleed).
+  - The `[TN-Dump]` recovery factor **0.88** and Dittus-Boelter `Nu = 0.023·Re^0.8·Pr^0.4`
+    are directly reusable in any coolant-channel model (topic 06 implications).
+- The "first ~3 in over-cooled" observation is independent empirical support for the
+  combustion-completeness curve in `combustion.py` (topic 03) — heat flux near the injector
+  is genuinely lower than a zero-length-combustion model predicts.
+- **The planned turbine-exhaust-handling feature** (`OPEN_QUESTIONS.md`, plan
+  `~/.claude/plans/floofy-dazzling-liskov.md`) now has real F-1 hardware data for its
+  "nozzle injection as extension film coolant" mode: the real eps=10→16 cutoff, the real
+  ~25-30%-at-attachment coolant-split finding, real materials (Hastelloy C/Inconel 625/
+  347 CRES), and the real ~0.5%-of-total-thrust turbine-exhaust performance contribution.
+  This resolves that plan's item (0) (SP-8120's Hot-Gas Manifold/§2.2.5.3 reading) and gives
+  a real F-1-specific number set that partially substitutes for item (b) (the separate
+  Rocketdyne F-1 Familiarization Training Manual, still not acquired) — the area ratio
+  where exhaust is injected (10:1, not the plan's estimated "~10") and GG-flow-fraction
+  context are now real-sourced. Report-only — no code changed; `design.GG_DUMP_ISP_FRACTION`
+  remains unmodified.
+- **A real, dimensioned turbine-exhaust structural load case** now exists (`[SP-8120]`'s
+  Titan 90±20/360±50 lbf side loads, ~250 ft-lbf roll moment) if a future feature ever adds
+  turbine-exhaust-manifold structural sizing — none exists in `mass_model.py` today.

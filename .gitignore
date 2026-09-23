@@ -1,0 +1,7 @@
+upstream/
+literature/
+v/
+__pycache__/
+*.pyc
+verify_output.log
+.claude/worktrees/

@@ -1,0 +1,193 @@
+"""
+Pure-numpy mesh-buffer, colormap, and camera-math helpers for the OpenGL 3D
+preview (gui/preview3d_gl.py). Deliberately has NO OpenGL/pyopengltk import
+at module scope so it can be unit-tested headlessly (this sandbox has no
+$DISPLAY and neither package is installed) - see __main__.py. All the data
+this package consumes/produces is the same convention already used by
+gui/preview3d.py's matplotlib renderer: physics/geometry3d.revolve_profile's
+(n_theta, n_stations) meshgrid output, and result["cooling"]["q_profile_w_m2"]
+index-aligned with result["profile_xs_m"]/result["profile_rs_m"].
+
+Was a single ~2700-line file (preview3d_gl_core.py); now a package split by
+geometry-operation kind (not by engine part - that's mesh_builder.py's own
+axis, one directory up) into:
+  - hardware_constants.py - cosmetic hardware-sizing constants (data only)
+  - profile_geometry.py   - 2D (x, r) profile offsetting/sampling/filleting
+  - mesh_primitives.py    - MeshBuffers + generic grid-to-buffer builders and
+                             small decorative hardware meshes built on them
+  - duct_meshes.py         - bent-tube/duct sweeps along a 3D centerline
+  - tube_bundle.py         - discrete cooling-tube/channel bundle meshes
+  - shell_mesh.py           - whole-piece solid-shell composition
+  - camera_color.py         - heat-flux colormap, bounds, orbit camera
+
+This __init__.py re-exports every public name from all of the above, so
+external code (gui/mesh_builder.py's ~100 call sites) keeps using the exact
+same `preview3d_gl_core.<name>` dotted-attribute style unchanged. See
+__main__.py for the combined self-test entry point
+(`python3 -m engine_designer.gui.preview3d_gl_core`).
+"""
+from .hardware_constants import (
+    VISUAL_CHANNEL_COUNT_MAX,
+    FLANGE_HALF_WIDTH_THROAT_DIA_MULT,
+    FLANGE_HEIGHT_THROAT_DIA_MULT,
+    RING_SPACING_THROAT_DIA_MULT,
+    RING_HALF_WIDTH_FACTOR,
+    RING_HEIGHT_FACTOR,
+    CHANNEL_OUTER_JACKET_M,
+    MANIFOLD_TUBE_R_THROAT_DIA_MULT,
+    DUCT_APPROACH_STANDOFF_BEND_RADIUS_MULT,
+    DUCT_STUB_LENGTH_BEND_RADIUS_MULT,
+    DUCT_BEND_RADIUS_TUBE_DIA_MULT,
+    MANIFOLD_RING_WALL_CLEARANCE_M,
+    FLANGE_HARDWARE_CLEARANCE_MARGIN_M,
+    TUBE_END_CAP_HALF_WIDTH_THROAT_DIA_MULT,
+    TUBE_COVER_PENETRATION_RING_FRACTION,
+    TUBE_COVER_PENETRATION_BAND_FRACTION,
+    TUBE_BRAZE_SEAM_FRAC,
+    HATBAND_SPACING_THROAT_DIA_MULT,
+    HATBAND_HALF_WIDTH_THROAT_DIA_MULT,
+    HATBAND_HEIGHT_THROAT_DIA_MULT,
+    HATBAND_CLEARANCE_THROAT_DIA_MULT,
+    HATBAND_SHELL_SLEEVE_THROAT_DIA_MULT,
+    HARDWARE_SPECULAR_STRENGTH,
+    HARDWARE_SHININESS,
+    BOLT_SPACING_THROAT_DIA_MULT,
+    BOLT_HEAD_RADIUS_THROAT_DIA_MULT,
+    BOLT_HEAD_LENGTH_THROAT_DIA_MULT,
+    BOLT_N_THETA_CYL,
+    BOLT_MIN_COUNT,
+    BOLT_MAX_COUNT,
+)
+from .profile_geometry import (
+    effective_offset_thickness_m,
+    sample_profile_segment,
+    manifold_clear_of_flange_x,
+    meridian_normals,
+    _dedupe_monotonic,
+    offset_profile,
+    fillet_polyline,
+    rotation_minimizing_frames,
+)
+from .mesh_primitives import (
+    MeshBuffers,
+    triangulate_grid,
+    mesh_from_grid,
+    revolve_to_buffers,
+    end_cap_ring,
+    _tube_end_disk,
+    manifold_ring_mesh,
+    tilted_flange_mesh,
+    revolve_closed_section,
+    bolt_ring_pieces,
+    grid_vertex_normals,
+)
+from .duct_meshes import (
+    _swept_tube_mesh_from_frames,
+    _frame_cylinder_mesh,
+    swept_tube_mesh,
+    bent_tube_duct_mesh,
+    pipe_flange_pieces,
+    RAY_RADIUS_TUBE_R_MULT,
+    RAY_N_THETA,
+    ray_mesh,
+)
+from .tube_bundle import (
+    visual_channel_count,
+    channel_modulated_grid,
+    _tube_geometry_profile,
+    tube_end_cap_disk,
+    tube_bundle_pieces,
+    _single_tube_mesh,
+    double_pass_tube_pieces,
+)
+from .shell_mesh import (
+    ShellMesh,
+    build_shell_mesh,
+    is_double_pass,
+)
+from .camera_color import (
+    heat_flux_colors,
+    compute_bounds,
+    CameraState,
+    GIZMO_AXIS_COLORS,
+    gizmo_axis_lines,
+    gizmo_rotation_matrix,
+    gizmo_projection_matrix,
+)
+
+__all__ = [
+    "VISUAL_CHANNEL_COUNT_MAX",
+    "FLANGE_HALF_WIDTH_THROAT_DIA_MULT",
+    "FLANGE_HEIGHT_THROAT_DIA_MULT",
+    "RING_SPACING_THROAT_DIA_MULT",
+    "RING_HALF_WIDTH_FACTOR",
+    "RING_HEIGHT_FACTOR",
+    "CHANNEL_OUTER_JACKET_M",
+    "MANIFOLD_TUBE_R_THROAT_DIA_MULT",
+    "DUCT_APPROACH_STANDOFF_BEND_RADIUS_MULT",
+    "DUCT_STUB_LENGTH_BEND_RADIUS_MULT",
+    "DUCT_BEND_RADIUS_TUBE_DIA_MULT",
+    "MANIFOLD_RING_WALL_CLEARANCE_M",
+    "FLANGE_HARDWARE_CLEARANCE_MARGIN_M",
+    "TUBE_END_CAP_HALF_WIDTH_THROAT_DIA_MULT",
+    "TUBE_COVER_PENETRATION_RING_FRACTION",
+    "TUBE_COVER_PENETRATION_BAND_FRACTION",
+    "TUBE_BRAZE_SEAM_FRAC",
+    "HATBAND_SPACING_THROAT_DIA_MULT",
+    "HATBAND_HALF_WIDTH_THROAT_DIA_MULT",
+    "HATBAND_HEIGHT_THROAT_DIA_MULT",
+    "HATBAND_CLEARANCE_THROAT_DIA_MULT",
+    "HATBAND_SHELL_SLEEVE_THROAT_DIA_MULT",
+    "HARDWARE_SPECULAR_STRENGTH",
+    "HARDWARE_SHININESS",
+    "BOLT_SPACING_THROAT_DIA_MULT",
+    "BOLT_HEAD_RADIUS_THROAT_DIA_MULT",
+    "BOLT_HEAD_LENGTH_THROAT_DIA_MULT",
+    "BOLT_N_THETA_CYL",
+    "BOLT_MIN_COUNT",
+    "BOLT_MAX_COUNT",
+    "effective_offset_thickness_m",
+    "sample_profile_segment",
+    "manifold_clear_of_flange_x",
+    "meridian_normals",
+    "_dedupe_monotonic",
+    "offset_profile",
+    "fillet_polyline",
+    "rotation_minimizing_frames",
+    "MeshBuffers",
+    "triangulate_grid",
+    "mesh_from_grid",
+    "revolve_to_buffers",
+    "end_cap_ring",
+    "_tube_end_disk",
+    "manifold_ring_mesh",
+    "tilted_flange_mesh",
+    "revolve_closed_section",
+    "bolt_ring_pieces",
+    "grid_vertex_normals",
+    "_swept_tube_mesh_from_frames",
+    "swept_tube_mesh",
+    "bent_tube_duct_mesh",
+    "_frame_cylinder_mesh",
+    "pipe_flange_pieces",
+    "RAY_RADIUS_TUBE_R_MULT",
+    "RAY_N_THETA",
+    "ray_mesh",
+    "visual_channel_count",
+    "channel_modulated_grid",
+    "_tube_geometry_profile",
+    "tube_end_cap_disk",
+    "tube_bundle_pieces",
+    "_single_tube_mesh",
+    "double_pass_tube_pieces",
+    "ShellMesh",
+    "build_shell_mesh",
+    "is_double_pass",
+    "heat_flux_colors",
+    "compute_bounds",
+    "CameraState",
+    "GIZMO_AXIS_COLORS",
+    "gizmo_axis_lines",
+    "gizmo_rotation_matrix",
+    "gizmo_projection_matrix",
+]
