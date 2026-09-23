@@ -1,0 +1,2904 @@
+{
+"bell_material_margin": {
+"assumed_wall_temp_k": {
+"__f__": "1693.7371637377819"
+},
+"margin_ratio": {
+"__f__": "0.974177124601044"
+},
+"max_service_temp_k": {
+"__f__": "1650.0"
+},
+"warning": "Niobium C-103 (radiative): computed wall temp 1694 K EXCEEDS its 1650 K max service temp (Tc 1545 K, radiative cooling). Marginal/unsuitable as designed."
+},
+"bell_wall_mass_kg": {
+"__f__": "785.4009824529982"
+},
+"body_wall_thickness_m": {
+"__nd__": [
+{
+"__f__": "0.004005499814894455"
+},
+{
+"__f__": "0.004005499814894455"
+},
+{
+"__f__": "0.003234757145563034"
+},
+{
+"__f__": "0.003214271924707085"
+},
+{
+"__f__": "0.003197294386702177"
+},
+{
+"__f__": "0.0031839537408638444"
+},
+{
+"__f__": "0.0031743515175622202"
+},
+{
+"__f__": "0.0031685607955146086"
+},
+{
+"__f__": "0.0017713772976214002"
+},
+{
+"__f__": "0.0016345352795264533"
+},
+{
+"__f__": "0.0015030575542033639"
+},
+{
+"__f__": "0.0013795474615487398"
+},
+{
+"__f__": "0.0012644062346107764"
+},
+{
+"__f__": "0.001157869237772366"
+},
+{
+"__f__": "0.001059999352744833"
+},
+{
+"__f__": "0.0005274362664006561"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+}
+]
+},
+"chamber_acoustics": {
+"long_1l_hz": {
+"__f__": "1098.6632229750496"
+},
+"rad_1r_hz": {
+"__f__": "3875.067810887596"
+},
+"sound_speed_ms": {
+"__f__": "1247.3146415311576"
+},
+"tang_1t_hz": {
+"__f__": "1874.0082036259685"
+}
+},
+"chamber_flow": {
+"injector_end_pressure_ratio": {
+"__f__": "1.0865193735108272"
+},
+"mach": {
+"__f__": "0.40367349477498893"
+},
+"pc_loss_fraction": {
+"__f__": "0.07962984887352775"
+}
+},
+"chamber_heat_flux_factor": {
+"__f__": "1.0"
+},
+"chamber_l_over_d": {
+"__f__": "1.4455226244355706"
+},
+"chamber_wall_mass_kg": {
+"__f__": "9.963671151547462"
+},
+"checklist": [
+{
+"category": "propellant/cycle",
+"detail": "OK",
+"name": "Mixture ratio within table range",
+"passed": true
+},
+{
+"category": "materials",
+"detail": "OK - ablative on Ablative Phenolic-Silica",
+"name": "Chamber cooling method compatible with material",
+"passed": true
+},
+{
+"category": "materials",
+"detail": "OK - radiative on Niobium C-103 (radiative)",
+"name": "Nozzle/bell cooling method compatible with material",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "OK - 0.68 MPa within the classic pressure-fed range",
+"name": "Pressure-fed chamber pressure plausibility",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "L* sufficient for a cylindrical section at this contraction ratio",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "Convergent half-angle within 20-45 deg",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - injector-end Pc ~1.087x nozzle Pc",
+"name": "Contraction ratio performance margin",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - 1.3 ms",
+"name": "Gas stay time within 1-40 ms",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - L/D 1.45",
+"name": "Chamber cylindrical L/D reasonable",
+"passed": true
+},
+{
+"category": "materials",
+"detail": "[nozzle extension] Niobium C-103 (radiative): computed wall temp 1694 K EXCEEDS its 1650 K max service temp (Tc 1545 K, radiative cooling). Marginal/unsuitable as designed.",
+"name": "Nozzle-extension material thermal margin",
+"passed": false
+},
+{
+"category": "cooling",
+"detail": "n/a - ablative cooling",
+"name": "Regen jacket coolant capacity",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - ablative cooling",
+"name": "Throat thermal-fatigue cycle life",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - no dump-cooled nozzle slice",
+"name": "Dump-cooled nozzle coolant capacity",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - no nozzle slot film",
+"name": "Nozzle film slot on the nozzle wall",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - no film cooling",
+"name": "Total film-coolant fraction plausible",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - t/r 0.00",
+"name": "Fuel manifold thin-wall approximation validity",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - t/r 0.00",
+"name": "Ox manifold thin-wall approximation validity",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK",
+"name": "Fuel manifold bore vs. chamber packaging",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK",
+"name": "Ox manifold bore vs. chamber packaging",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 10.1 m/s",
+"name": "Fuel manifold feed velocity vs. SP-8087 limit",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 8.0 m/s",
+"name": "Ox manifold feed velocity vs. SP-8087 limit",
+"passed": true
+},
+{
+"category": "materials",
+"detail": "OK - 1.87x margin (proxy (ablative), CR heat-flux factor 1.00x)",
+"name": "Chamber material thermal margin",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - needs the 'channels' regen model",
+"name": "Peak wall temperature along cooled length",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - t/r 0.00",
+"name": "Jacket inlet manifold thin-wall approximation validity",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 6.9 m/s (= 1.00 x local coolant-passage velocity)",
+"name": "Jacket inlet manifold velocity vs. SP-8087 limit",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK",
+"name": "Jacket inlet manifold bore vs. chamber packaging",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK - beta +1.8 deg",
+"name": "Injector resultant beta angle",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Impingement angle within 20-45 deg",
+"passed": true
+},
+{
+"category": "stability",
+"detail": "First tangential mode ~1874 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities (buzzing is most prevalent at this thrust class). Stiffen the injector, or plan on damping devices.",
+"name": "Combustion acoustic-mode margin",
+"passed": false
+},
+{
+"category": "stability",
+"detail": "n/a - no baffle",
+"name": "Baffle compartment count",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - only evaluated in \"channels\" regen mode with an active jacket",
+"name": "Jacket overpressure vs. channel-wall structural margin",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - only evaluated for tube_wall construction with an active jacket",
+"name": "Tube-wall longitudinal thermal buckling margin",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "n/a - no turbopump (pressure-fed)",
+"name": "Feed-system pump plausibility",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK - ~727 elements/m^2",
+"name": "Injector element crowding",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 0 kg",
+"name": "Manifold structural mass fraction",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 0 kg",
+"name": "Jacket manifold structural mass fraction",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - 1.00x completeness",
+"name": "Combustion completeness vs. L*/atomization",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK - stable at floor throttle",
+"name": "Injector stiffness at throttle floor",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Injector practical minimum throttle",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Injector type suitability for propellant pair",
+"passed": true
+},
+{
+"category": "ignition",
+"detail": "TEA-TEB pyrophoric slug is an unusual choice for Aerozine-50/NTO (typically used with LOX/RP-1).",
+"name": "Ignition system plausibility",
+"passed": false
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Injector type matches mono/bipropellant class",
+"passed": true
+},
+{
+"category": "propellant/cycle",
+"detail": "OK",
+"name": "Monopropellant requires pressure-fed cycle",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "Contraction ratio within typical range",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "L* within typical range",
+"passed": true
+},
+{
+"category": "nozzle/aero",
+"detail": "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.007) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage. sl Isp/thrust are nominal placeholders, not physical.",
+"name": "Sea-level nozzle flow attachment",
+"passed": false
+},
+{
+"category": "nozzle/aero",
+"detail": "OK",
+"name": "Expansion ratio validity",
+"passed": true
+},
+{
+"category": "gimbal",
+"detail": "OK - inherits host part's gimbal",
+"name": "Gimbal range plausibility",
+"passed": true
+}
+],
+"completeness_factor": {
+"__f__": "0.9980256852181593"
+},
+"computed_dry_mass_kg": {
+"__f__": "805.9635959002937"
+},
+"convergent_half_angle_deg": {
+"__f__": "30.0"
+},
+"cooling": {
+"bell_wall_temp_eps": {
+"__f__": "6.0"
+},
+"bell_wall_temp_k": {
+"__f__": "1693.7371637377819"
+},
+"chamber_cooling_method": "ablative",
+"chamber_cooling_rejected": null,
+"chamber_cooling_source": "explicit",
+"chamber_film_inject_area_ratio": {
+"__f__": "0.0"
+},
+"chamber_film_profile": {
+"__nd__": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+}
+]
+},
+"chamber_tube_jacket": false,
+"channel_dh_profile_m": null,
+"channel_height_profile_m": null,
+"channel_land_fraction": null,
+"channel_width_profile_m": null,
+"coolant_channel_dh_throat_m": null,
+"coolant_channels": null,
+"coolant_channels_down": null,
+"coolant_delta_t_k": {
+"__f__": "0.0"
+},
+"coolant_exit_t_k": null,
+"coolant_limit_k": null,
+"coolant_side_wall_t_throat_k": null,
+"coolant_turnaround_t_k": null,
+"coolant_velocity_profile_ms": null,
+"coolant_velocity_throat_ms": null,
+"cooled_length_eps": {
+"__f__": "6.0"
+},
+"dump_coolant_dt_k": {
+"__f__": "0.0"
+},
+"dump_coolant_fraction": {
+"__f__": "0.0"
+},
+"dump_isp_penalty_fraction": {
+"__f__": "0.0"
+},
+"dump_mdot_kgs": {
+"__f__": "0.0"
+},
+"film_cooled_length_eps": {
+"__f__": "6.0"
+},
+"film_cooling_fraction": {
+"__f__": "0.0"
+},
+"film_effectiveness_profile": {
+"__nd__": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+}
+]
+},
+"film_flux_factor": {
+"__f__": "1.0"
+},
+"film_flux_factor_effective": {
+"__f__": "1.0"
+},
+"film_temperature_k": {
+"__f__": "290.0"
+},
+"flange_bolt_count": 0,
+"flange_thickness_m": {
+"__f__": "0.0"
+},
+"flange_width_m": {
+"__f__": "0.0"
+},
+"h_g_throat_effective_w_m2k": null,
+"hatband_mass_kg": {
+"__f__": "0.0"
+},
+"hatbands": null,
+"hg_throat_w_m2k": {
+"__f__": "1541.9191649060085"
+},
+"hot_wall_thickness_m": {
+"__f__": "0.0015"
+},
+"jacket_dp_down_pa": null,
+"jacket_dp_pa": {
+"__f__": "0.0"
+},
+"jacket_inlet_velocity_ms": {
+"__f__": "6.923910927189856"
+},
+"nozzle_cooling_method": "radiative",
+"nozzle_cooling_rejected": null,
+"nozzle_cooling_source": "explicit",
+"nozzle_film_fraction": {
+"__f__": "0.0"
+},
+"nozzle_film_inject_eps": {
+"__f__": "10.0"
+},
+"nozzle_film_isp_penalty_fraction": {
+"__f__": "0.0"
+},
+"nozzle_film_profile": {
+"__nd__": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+}
+]
+},
+"peak_wall_margin_ratio": null,
+"peak_wall_temp_eps": null,
+"peak_wall_temp_k": null,
+"peak_wall_temp_zone": null,
+"q_chamber_avg_abs_w_m2": {
+"__f__": "1597690.2002393918"
+},
+"q_chamber_avg_anchor_w_m2": {
+"__f__": "1211515.9647847395"
+},
+"q_chamber_avg_w_m2": {
+"__f__": "1597690.2002393918"
+},
+"q_profile_abs_w_m2": {
+"__nd__": [
+{
+"__f__": "1251785.9471044042"
+},
+{
+"__f__": "2086309.9118406738"
+},
+{
+"__f__": "3065108.726428078"
+},
+{
+"__f__": "3100360.5580944438"
+},
+{
+"__f__": "3130056.55622786"
+},
+{
+"__f__": "3153702.7832273543"
+},
+{
+"__f__": "3170895.128041445"
+},
+{
+"__f__": "3181333.731099199"
+},
+{
+"__f__": "3184834.0351133607"
+},
+{
+"__f__": "3171161.1750714006"
+},
+{
+"__f__": "3130853.2380230012"
+},
+{
+"__f__": "3065959.5391785647"
+},
+{
+"__f__": "2979637.052320502"
+},
+{
+"__f__": "2875816.2789507303"
+},
+{
+"__f__": "2758824.3622814883"
+},
+{
+"__f__": "1713055.504528935"
+},
+{
+"__f__": "1183824.4792996843"
+},
+{
+"__f__": "876466.7933325603"
+},
+{
+"__f__": "680924.1867559324"
+},
+{
+"__f__": "548170.1611795679"
+},
+{
+"__f__": "453550.2256648043"
+},
+{
+"__f__": "383512.047074662"
+},
+{
+"__f__": "330079.4455524175"
+},
+{
+"__f__": "288296.81180281396"
+},
+{
+"__f__": "254946.5846271051"
+},
+{
+"__f__": "227861.9243973207"
+},
+{
+"__f__": "205537.91684526202"
+},
+{
+"__f__": "186901.46066695536"
+},
+{
+"__f__": "171169.7260333058"
+},
+{
+"__f__": "157760.15524860023"
+},
+{
+"__f__": "146231.55841038591"
+},
+{
+"__f__": "136244.56857538573"
+},
+{
+"__f__": "127534.48920465443"
+},
+{
+"__f__": "119892.27206655347"
+},
+{
+"__f__": "113150.9483917897"
+},
+{
+"__f__": "107175.790937729"
+},
+{
+"__f__": "101857.07485157323"
+},
+{
+"__f__": "97104.67855474145"
+},
+{
+"__f__": "92844.00699324273"
+},
+{
+"__f__": "89012.87832512555"
+},
+{
+"__f__": "85559.1214406216"
+},
+{
+"__f__": "82438.7040842704"
+},
+{
+"__f__": "79614.261346179"
+},
+{
+"__f__": "77053.92930574913"
+}
+]
+},
+"q_profile_w_m2": {
+"__nd__": [
+{
+"__f__": "1251785.9471044042"
+},
+{
+"__f__": "2086309.9118406738"
+},
+{
+"__f__": "3065108.726428078"
+},
+{
+"__f__": "3100360.5580944438"
+},
+{
+"__f__": "3130056.55622786"
+},
+{
+"__f__": "3153702.7832273543"
+},
+{
+"__f__": "3170895.128041445"
+},
+{
+"__f__": "3181333.731099199"
+},
+{
+"__f__": "3184834.0351133607"
+},
+{
+"__f__": "3171161.1750714006"
+},
+{
+"__f__": "3130853.2380230012"
+},
+{
+"__f__": "3065959.5391785647"
+},
+{
+"__f__": "2979637.052320502"
+},
+{
+"__f__": "2875816.2789507303"
+},
+{
+"__f__": "2758824.3622814883"
+},
+{
+"__f__": "1713055.504528935"
+},
+{
+"__f__": "1183824.4792996843"
+},
+{
+"__f__": "876466.7933325603"
+},
+{
+"__f__": "680924.1867559324"
+},
+{
+"__f__": "548170.1611795679"
+},
+{
+"__f__": "453550.2256648043"
+},
+{
+"__f__": "383512.047074662"
+},
+{
+"__f__": "330079.4455524175"
+},
+{
+"__f__": "288296.81180281396"
+},
+{
+"__f__": "254946.5846271051"
+},
+{
+"__f__": "227861.9243973207"
+},
+{
+"__f__": "205537.91684526202"
+},
+{
+"__f__": "186901.46066695536"
+},
+{
+"__f__": "171169.7260333058"
+},
+{
+"__f__": "157760.15524860023"
+},
+{
+"__f__": "146231.55841038591"
+},
+{
+"__f__": "136244.56857538573"
+},
+{
+"__f__": "127534.48920465443"
+},
+{
+"__f__": "119892.27206655347"
+},
+{
+"__f__": "113150.9483917897"
+},
+{
+"__f__": "107175.790937729"
+},
+{
+"__f__": "101857.07485157323"
+},
+{
+"__f__": "97104.67855474145"
+},
+{
+"__f__": "92844.00699324273"
+},
+{
+"__f__": "89012.87832512555"
+},
+{
+"__f__": "85559.1214406216"
+},
+{
+"__f__": "82438.7040842704"
+},
+{
+"__f__": "79614.261346179"
+},
+{
+"__f__": "77053.92930574913"
+}
+]
+},
+"q_throat_abs_w_m2": {
+"__f__": "3184834.0351133607"
+},
+"q_throat_w_m2": {
+"__f__": "3184834.0351133607"
+},
+"q_throat_wall_balance_w_m2": null,
+"regen_channel_model": "flat",
+"regen_circuit_style": "single_pass_upflow",
+"regen_cooled": false,
+"regen_isp_bonus_fraction": {
+"__f__": "0.0"
+},
+"regen_nozzle_end_eps": {
+"__f__": "0.0"
+},
+"regen_ok": true,
+"t_aw_chamber_k": {
+"__f__": "2754.0"
+},
+"t_aw_film_profile_k": {
+"__nd__": [
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+},
+{
+"__f__": "2754.0"
+}
+]
+},
+"t_wc_throat_k": null,
+"t_wg_profile_k": null,
+"t_wg_throat_k": null,
+"throat_fatigue_cycles": {
+"__f__": "2.7196107327828116"
+},
+"throat_thermal_stress_pa": {
+"__f__": "1706161090.2393007"
+},
+"through_wall_delta_t_k": {
+"__f__": "15924.170175566805"
+},
+"tube_hatband_count": 0,
+"tube_hatband_width_m": {
+"__f__": "0.0"
+},
+"tube_hatbands": false,
+"tube_hatbands_on_extension": false,
+"tube_split_eps": {
+"__f__": "0.0"
+},
+"tube_taper_ratio": {
+"__f__": "0.0"
+},
+"wall_construction": "milled_channel",
+"wall_heat_energy_fraction": {
+"__f__": "0.054058484828344945"
+},
+"wall_heat_total_w": {
+"__f__": "2263005.9206511653"
+}
+},
+"cooling_flow_topology": "single_pass_countercurrent",
+"cstar_ms": {
+"__f__": "1626.521906965645"
+},
+"cycle_result": {
+"cycle": "pressure_fed",
+"gg_dump_isp_fraction": {
+"__f__": "0.0"
+},
+"gg_flow_fraction": {
+"__f__": "0.0"
+},
+"gg_mdot_kgs": {
+"__f__": "0.0"
+},
+"has_turbopump": false,
+"required_tank_pressure_pa": {
+"__f__": "2332000.0"
+},
+"turbine_specific_work_j_kg": {
+"__f__": "0.0"
+},
+"turbopump": null
+},
+"eps_for_transition": {
+"__f__": "6.0"
+},
+"eta_cstar": {
+"__f__": "0.9416372340033333"
+},
+"ext_wall_thickness_m": {
+"__nd__": [
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+}
+]
+},
+"gamma": {
+"__f__": "1.223"
+},
+"geometry": {
+"chamber_area_m2": {
+"__f__": "0.12111640452894552"
+},
+"chamber_dia_m": {
+"__f__": "0.3926960602837701"
+},
+"chamber_length_m": {
+"__f__": "0.5676510396669043"
+},
+"chamber_volume_m3": {
+"__f__": "0.07569775283059095"
+},
+"cylindrical_volume_clamped": false,
+"exit_area_m2": {
+"__f__": "4.731109551911935"
+},
+"exit_dia_m": {
+"__f__": "2.4543503767735633"
+},
+"implied_lstar_m": {
+"__f__": "1.0"
+},
+"sizing_method": "lstar",
+"throat_area_m2": {
+"__f__": "0.07569775283059095"
+},
+"throat_dia_m": {
+"__f__": "0.3104534946678753"
+}
+},
+"hatband_mass_kg": {
+"__f__": "0.0"
+},
+"injector_dp_derived_pa": {
+"__f__": "1152000.0"
+},
+"injector_dp_fuel_pa": {
+"__f__": "1152000.0"
+},
+"injector_dp_nominal_pa": {
+"__f__": "118999.99999999999"
+},
+"injector_dp_ox_pa": {
+"__f__": "1152000.0"
+},
+"injector_dp_pa": {
+"__f__": "1152000.0"
+},
+"injector_geometry": {
+"beta_deg": {
+"__f__": "1.8076560633885608"
+},
+"cd": {
+"__f__": "0.65"
+},
+"impingement_angle_band_deg": [
+{
+"__f__": "20.0"
+},
+{
+"__f__": "45.0"
+}
+],
+"included_angle_deg": {
+"__f__": "30.0"
+},
+"momentum_ratio": {
+"__f__": "1.2670174952751574"
+},
+"n_elements": 88,
+"n_fuel_orifices": 77,
+"n_ox_orifices": 98,
+"note": "176 orifices in ~88 impinging pairs",
+"orifice_dia_mm": {
+"__f__": "2.6000000000000005"
+},
+"symmetric_pattern": false,
+"v_fuel_ms": {
+"__f__": "32.833011505469194"
+},
+"v_ox_ms": {
+"__f__": "26.0"
+}
+},
+"injector_plate_mass_kg": {
+"__f__": "10.32566868069765"
+},
+"injector_stiffness_ok_at_floor": true,
+"inputs": {
+"acoustic_cavities": false,
+"acoustic_cavity_count": 12,
+"apply_chamber_pressure_loss": false,
+"baffle_compartments": 5,
+"bearing_material_key": "cronidur_30",
+"bell_material_key": "niobium_c103",
+"bell_percent_length": {
+"__f__": "80.0"
+},
+"chamber_cooling_method": "ablative",
+"chamber_film_inject_area_ratio": {
+"__f__": "0.0"
+},
+"chamber_pressure_pa": {
+"__f__": "680000.0"
+},
+"chamber_residence_time_ms": {
+"__f__": "0.0"
+},
+"chamber_sizing_method": "lstar",
+"chamber_tube_jacket": false,
+"chamber_wall_fillet_r_over_rt": {
+"__f__": "0.0"
+},
+"config_name": "AJ10-137",
+"contraction_ratio": {
+"__f__": "1.6"
+},
+"controller_tech_key": "baseline",
+"convergent_half_angle_deg": {
+"__f__": "30.0"
+},
+"cooling_flow_topology": "single_pass_countercurrent",
+"cooling_transition_eps": {
+"__f__": "6.0"
+},
+"cost": {
+"__f__": "20.0"
+},
+"cycle": "pressure_fed",
+"dump_coolant_fraction": {
+"__f__": "0.0"
+},
+"enforce_suction_limit": false,
+"entry_cost": {
+"__f__": "10000.0"
+},
+"eta_pump_fuel": {
+"__f__": "0.0"
+},
+"eta_pump_ox": {
+"__f__": "0.0"
+},
+"expansion_ratio": {
+"__f__": "62.5"
+},
+"film_cooling_fraction": {
+"__f__": "0.0"
+},
+"flange_bolt_count": 0,
+"flange_thickness_m": {
+"__f__": "0.0"
+},
+"flange_width_m": {
+"__f__": "0.0"
+},
+"fuel_manifold_head_fraction": {
+"__f__": "0.04"
+},
+"fuel_manifold_taper_blend": {
+"__f__": "0.5"
+},
+"gimbal_mode": "inherit",
+"gimbal_range_deg": {
+"__f__": "6.0"
+},
+"gimbal_response_speed_deg_s": {
+"__f__": "0.0"
+},
+"host_model_engine_type": "",
+"host_model_reference_height_m": {
+"__f__": "0.0"
+},
+"ignition_system": "tea_teb",
+"ignitions": 1,
+"impingement_angle_deg": {
+"__f__": "30.0"
+},
+"injector_baffles": false,
+"injector_stiffness": "nominal",
+"injector_type": "impinging",
+"jacket_inlet_eps": {
+"__f__": "8.0"
+},
+"jacket_inlet_taper_blend": {
+"__f__": "0.5"
+},
+"jacket_inlet_velocity_mult": {
+"__f__": "1.0"
+},
+"lstar_m": {
+"__f__": "1.0"
+},
+"manifold_bypass_fraction": {
+"__f__": "0.3"
+},
+"material_key": "ablative_phenolic",
+"mixture_ratio": {
+"__f__": "1.6"
+},
+"new_part_description": "",
+"new_part_manufacturer": "Fictional",
+"new_part_name": "",
+"new_part_title": "",
+"nozzle_cooling_method": "radiative",
+"nozzle_film_fraction": {
+"__f__": "0.0"
+},
+"nozzle_film_inject_eps": {
+"__f__": "10.0"
+},
+"nozzle_half_angle_deg": {
+"__f__": "15.0"
+},
+"nozzle_type": "bell",
+"npsh_available_fuel_ft": {
+"__f__": "0.0"
+},
+"npsh_available_ox_ft": {
+"__f__": "0.0"
+},
+"orifice_type": "sharp_edged",
+"output_mode": "additional_config",
+"ox_manifold_head_fraction": {
+"__f__": "0.04"
+},
+"ox_manifold_taper_blend": {
+"__f__": "0.5"
+},
+"ox_preburner_tin_k": {
+"__f__": "0.0"
+},
+"plumbing_runs": [],
+"preburner_tin_k": {
+"__f__": "0.0"
+},
+"propellant_pair": "Aerozine-50/NTO",
+"pump_specific_power_w_kg": {
+"__f__": "36000.0"
+},
+"pump_stages_fuel": 0,
+"pump_stages_ox": 0,
+"regen_channel_aspect_ratio": {
+"__f__": "0.0"
+},
+"regen_channel_count": 0,
+"regen_channel_land_fraction": {
+"__f__": "0.0"
+},
+"regen_channel_model": "flat",
+"regen_circuit_style": "single_pass_upflow",
+"regen_coolant_velocity_ms": {
+"__f__": "0.0"
+},
+"regen_nozzle_end_eps": {
+"__f__": "0.0"
+},
+"target_vac_thrust_n": {
+"__f__": "97416.0"
+},
+"tech_node": "",
+"throttle_floor": {
+"__f__": "0.6"
+},
+"tube_hatband_count": 0,
+"tube_hatband_material": "inconel_718",
+"tube_hatband_shape": "auto",
+"tube_hatband_width_m": {
+"__f__": "0.0"
+},
+"tube_hatbands": false,
+"tube_hatbands_on_extension": false,
+"tube_split_eps": {
+"__f__": "0.0"
+},
+"turbine_staging": "auto",
+"turbopump_arrangement": "auto",
+"turbopump_material_key": "inconel_718",
+"turbopump_tech_key": "mature",
+"wall_construction": "milled_channel"
+},
+"isp_sl_chamber_s": {
+"__f__": "1.0"
+},
+"isp_sl_engine_s": {
+"__f__": "1.0"
+},
+"isp_vac_chamber_s": {
+"__f__": "313.8901116726008"
+},
+"isp_vac_engine_s": {
+"__f__": "313.8901116726008"
+},
+"jacket_combined_stress_pa": null,
+"jacket_hoop_stress_pa": null,
+"jacket_inlet_eps_effective": null,
+"jacket_local_gas_pressure_at_worst_station_pa": null,
+"jacket_manifold_mass_kg": {
+"__f__": "0.14835939131562093"
+},
+"jacket_manifold_result": {
+"jacket_inlet": {
+"attach_angular_position_deg": {
+"__f__": "0.0"
+},
+"attach_axial_station_m": {
+"__f__": "0.9833634373285937"
+},
+"attach_direction_xyz": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+"attach_radial_offset_m": {
+"__f__": "0.44593189086767315"
+},
+"design_feed_velocity_ms": {
+"__f__": "6.923910927189856"
+},
+"feed_pressure_pa": {
+"__f__": "1832000.0"
+},
+"feed_wall_thickness_m": {
+"__f__": "0.0001140119169650852"
+},
+"flow_radius_m": {
+"__f__": "0.017602314327967106"
+},
+"inlet_flow_radius_m": {
+"__f__": "0.017602314327967106"
+},
+"inner_diameter_m": {
+"__f__": "0.049786863303530667"
+},
+"major_radius_m": {
+"__f__": "0.44593189086767315"
+},
+"mass_kg": {
+"__f__": "0.14835939131562093"
+},
+"mdot_kgs": {
+"__f__": "12.171907265709912"
+},
+"min_flow_radius_m": {
+"__f__": "0.012446715825882667"
+},
+"outer_radius_m": {
+"__f__": "0.017682932927589195"
+},
+"ring_inlet_inner_diameter_m": {
+"__f__": "0.03520462865593421"
+},
+"taper_blend": {
+"__f__": "0.5"
+},
+"thin_wall_ratio": {
+"__f__": "0.004579999999999999"
+},
+"wall_thickness_m": {
+"__f__": "8.061859962208933e-05"
+}
+},
+"jacket_return": null,
+"total_mass_kg": {
+"__f__": "0.14835939131562093"
+}
+},
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": null,
+"jacket_pressure_at_worst_station_pa": null,
+"jacket_return_split_fraction": {
+"__f__": "0.5"
+},
+"jacket_structure_mass_kg": {
+"__f__": "0.0"
+},
+"jacket_thermal_stress_pa": null,
+"jacket_worst_station_eps": null,
+"line_loss_computed": {
+"fuel": null,
+"ox": null
+},
+"line_loss_fuel_pa": {
+"__f__": "500000.0"
+},
+"line_loss_ox_pa": {
+"__f__": "500000.0"
+},
+"line_loss_residual_pa": {
+"__f__": "0.0"
+},
+"line_loss_source": {
+"fuel": "flat",
+"ox": "flat"
+},
+"m_molar": {
+"__f__": "20.0"
+},
+"manifold_bypass_fraction": {
+"__f__": "0.3"
+},
+"manifold_mass_kg": {
+"__f__": "0.12491422373493738"
+},
+"manifold_result": {
+"fuel": {
+"attach_angular_position_deg": {
+"__f__": "0.0"
+},
+"attach_axial_station_m": {
+"__f__": "0.024639166719255503"
+},
+"attach_direction_xyz": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+"attach_radial_offset_m": {
+"__f__": "0.24062199987532906"
+},
+"design_feed_velocity_ms": {
+"__f__": "10.102465078605906"
+},
+"feed_pressure_pa": {
+"__f__": "1832000.0"
+},
+"feed_wall_thickness_m": {
+"__f__": "9.438702659046653e-05"
+},
+"flow_radius_m": {
+"__f__": "0.014572425012697348"
+},
+"inlet_flow_radius_m": {
+"__f__": "0.014572425012697348"
+},
+"inner_diameter_m": {
+"__f__": "0.041217042179243026"
+},
+"major_radius_m": {
+"__f__": "0.24062199987532906"
+},
+"mass_kg": {
+"__f__": "0.054866335795176864"
+},
+"mdot_kgs": {
+"__f__": "12.171907265709912"
+},
+"min_flow_radius_m": {
+"__f__": "0.010304260544810756"
+},
+"outer_radius_m": {
+"__f__": "0.014639166719255503"
+},
+"ring_inlet_inner_diameter_m": {
+"__f__": "0.029144850025394697"
+},
+"taper_blend": {
+"__f__": "0.5"
+},
+"thin_wall_ratio": {
+"__f__": "0.00458"
+},
+"wall_thickness_m": {
+"__f__": "6.674170655815385e-05"
+}
+},
+"ox": {
+"attach_angular_position_deg": {
+"__f__": "180.0"
+},
+"attach_axial_station_m": {
+"__f__": "0.06175645349388015"
+},
+"attach_direction_xyz": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "-1.0"
+},
+{
+"__f__": "1.2246467991473532e-16"
+}
+],
+"attach_radial_offset_m": {
+"__f__": "0.2424609532114427"
+},
+"design_feed_velocity_ms": {
+"__f__": "8.0"
+},
+"feed_pressure_pa": {
+"__f__": "1832000.0"
+},
+"feed_wall_thickness_m": {
+"__f__": "0.00010624380373926951"
+},
+"flow_radius_m": {
+"__f__": "0.016402994341286056"
+},
+"inlet_flow_radius_m": {
+"__f__": "0.016402994341286056"
+},
+"inner_diameter_m": {
+"__f__": "0.04639467412195175"
+},
+"major_radius_m": {
+"__f__": "0.2424609532114427"
+},
+"mass_kg": {
+"__f__": "0.07004788793976052"
+},
+"mdot_kgs": {
+"__f__": "19.475051625135862"
+},
+"min_flow_radius_m": {
+"__f__": "0.011598668530487938"
+},
+"outer_radius_m": {
+"__f__": "0.016478120055369146"
+},
+"ring_inlet_inner_diameter_m": {
+"__f__": "0.03280598868257211"
+},
+"taper_blend": {
+"__f__": "0.5"
+},
+"thin_wall_ratio": {
+"__f__": "0.00458"
+},
+"wall_thickness_m": {
+"__f__": "7.512571408309013e-05"
+}
+},
+"total_mass_kg": {
+"__f__": "0.12491422373493738"
+}
+},
+"material_margin": {
+"assumed_wall_temp_k": {
+"__f__": "1071.0"
+},
+"margin_ratio": {
+"__f__": "1.8674136321195145"
+},
+"max_service_temp_k": {
+"__f__": "2000.0"
+},
+"warning": null
+},
+"mdot_kgs": {
+"__f__": "31.646958890845774"
+},
+"nozzle_divergence_efficiency": {
+"__f__": "0.9951340343707852"
+},
+"nozzle_efficiency_vs_reference": {
+"__f__": "1.0"
+},
+"orifice_cd": {
+"__f__": "0.65"
+},
+"pc_feed_pa": {
+"__f__": "680000.0"
+},
+"pe_pa": {
+"__f__": "730.6897119746086"
+},
+"pe_pc": {
+"__f__": "0.0010745436940803068"
+},
+"plumbing_mass_kg": {
+"__f__": "0.0"
+},
+"plumbing_results": [],
+"plumbing_total_length_m": {
+"__f__": "0.0"
+},
+"profile_meta": {
+"convergent_length_m": {
+"__f__": "0.07122415109577346"
+},
+"divergent_length_m": {
+"__f__": "3.200452836082772"
+},
+"theta_e_deg": {
+"__f__": "8.0"
+},
+"theta_n_deg": {
+"__f__": "38.5"
+},
+"total_length_m": {
+"__f__": "3.83932802684545"
+}
+},
+"profile_rs_m": {
+"__nd__": [
+{
+"__f__": "0.19634803014188504"
+},
+{
+"__f__": "0.19634803014188504"
+},
+{
+"__f__": "0.15856652674328597"
+},
+{
+"__f__": "0.15756234925034732"
+},
+{
+"__f__": "0.15673011699520475"
+},
+{
+"__f__": "0.1560761637678355"
+},
+{
+"__f__": "0.15560546654716764"
+},
+{
+"__f__": "0.15532160762326513"
+},
+{
+"__f__": "0.15522674733393765"
+},
+{
+"__f__": "0.15559821383334801"
+},
+{
+"__f__": "0.15670795919223537"
+},
+{
+"__f__": "0.15854207930472627"
+},
+{
+"__f__": "0.16107759430429125"
+},
+{
+"__f__": "0.1642827364806935"
+},
+{
+"__f__": "0.16811734830067226"
+},
+{
+"__f__": "0.21907166439804496"
+},
+{
+"__f__": "0.2689949033359652"
+},
+{
+"__f__": "0.31788706511443293"
+},
+{
+"__f__": "0.36574814973344816"
+},
+{
+"__f__": "0.412578157193011"
+},
+{
+"__f__": "0.45837708749312145"
+},
+{
+"__f__": "0.5031449406337793"
+},
+{
+"__f__": "0.5468817166149849"
+},
+{
+"__f__": "0.5895874154367379"
+},
+{
+"__f__": "0.6312620370990385"
+},
+{
+"__f__": "0.6719055816018864"
+},
+{
+"__f__": "0.7115180489452821"
+},
+{
+"__f__": "0.7500994391292253"
+},
+{
+"__f__": "0.787649752153716"
+},
+{
+"__f__": "0.8241689880187542"
+},
+{
+"__f__": "0.8596571467243399"
+},
+{
+"__f__": "0.8941142282704733"
+},
+{
+"__f__": "0.9275402326571542"
+},
+{
+"__f__": "0.9599351598843826"
+},
+{
+"__f__": "0.9912990099521587"
+},
+{
+"__f__": "1.0216317828604824"
+},
+{
+"__f__": "1.0509334786093532"
+},
+{
+"__f__": "1.0792040971987718"
+},
+{
+"__f__": "1.106443638628738"
+},
+{
+"__f__": "1.1326521028992516"
+},
+{
+"__f__": "1.1578294900103128"
+},
+{
+"__f__": "1.1819757999619216"
+},
+{
+"__f__": "1.2050910327540778"
+},
+{
+"__f__": "1.2271751883867816"
+}
+]
+},
+"profile_xs_m": {
+"__nd__": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.5676510396669043"
+},
+{
+"__f__": "0.6264109643209174"
+},
+{
+"__f__": "0.6283399713371592"
+},
+{
+"__f__": "0.6303491577345688"
+},
+{
+"__f__": "0.6324232323914817"
+},
+{
+"__f__": "0.6345464103473984"
+},
+{
+"__f__": "0.6367025329360645"
+},
+{
+"__f__": "0.6388751907626777"
+},
+{
+"__f__": "0.645502062308537"
+},
+{
+"__f__": "0.6520459051461921"
+},
+{
+"__f__": "0.6584247308420753"
+},
+{
+"__f__": "0.6645586184781902"
+},
+{
+"__f__": "0.6703707159889475"
+},
+{
+"__f__": "0.6757882030480535"
+},
+{
+"__f__": "0.74202506149478"
+},
+{
+"__f__": "0.8113226857760935"
+},
+{
+"__f__": "0.883681075891994"
+},
+{
+"__f__": "0.9591002318424813"
+},
+{
+"__f__": "1.037580153627556"
+},
+{
+"__f__": "1.1191208412472176"
+},
+{
+"__f__": "1.2037222947014659"
+},
+{
+"__f__": "1.2913845139903017"
+},
+{
+"__f__": "1.3821074991137245"
+},
+{
+"__f__": "1.4758912500717338"
+},
+{
+"__f__": "1.5727357668643305"
+},
+{
+"__f__": "1.6726410494915143"
+},
+{
+"__f__": "1.7756070979532848"
+},
+{
+"__f__": "1.8816339122496424"
+},
+{
+"__f__": "1.9907214923805874"
+},
+{
+"__f__": "2.102869838346119"
+},
+{
+"__f__": "2.2180789501462375"
+},
+{
+"__f__": "2.3363488277809434"
+},
+{
+"__f__": "2.457679471250236"
+},
+{
+"__f__": "2.582070880554116"
+},
+{
+"__f__": "2.709523055692583"
+},
+{
+"__f__": "2.840035996665636"
+},
+{
+"__f__": "2.9736097034732776"
+},
+{
+"__f__": "3.110244176115505"
+},
+{
+"__f__": "3.24993941459232"
+},
+{
+"__f__": "3.392695418903722"
+},
+{
+"__f__": "3.538512189049711"
+},
+{
+"__f__": "3.6873897250302865"
+},
+{
+"__f__": "3.83932802684545"
+}
+]
+},
+"rated_burn_time_s": {
+"__f__": "26.703332099296368"
+},
+"required_time_s": {
+"__f__": "1.1578537368242436e-05"
+},
+"residence_time_s": {
+"__f__": "0.0005789268684121217"
+},
+"separated_at_100pct_sl": true,
+"separation_onset_throttle": null,
+"stability": {
+"advisory": "First tangential mode ~1874 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities (buzzing is most prevalent at this thrust class). Stiffen the injector, or plan on damping devices.",
+"aid_mass_kg": {
+"__f__": "0.0"
+},
+"baffle_compartments": 5,
+"baffles": false,
+"cavities": false,
+"cavity_count": 12,
+"effective_dp_over_pc": {
+"__f__": "0.175"
+},
+"injector_stiffness": "nominal",
+"modes": {
+"long_1l_hz": {
+"__f__": "1098.6632229750496"
+},
+"rad_1r_hz": {
+"__f__": "3875.067810887596"
+},
+"sound_speed_ms": {
+"__f__": "1247.3146415311576"
+},
+"tang_1t_hz": {
+"__f__": "1874.0082036259685"
+}
+},
+"resolution": null,
+"resolved": false
+},
+"stability_aid_mass_kg": {
+"__f__": "0.0"
+},
+"stay_time_s": {
+"__f__": "0.0012785989204148578"
+},
+"t_local_at_transition_k": {
+"__f__": "1545.2003885125362"
+},
+"tc_k": {
+"__f__": "3060.0"
+},
+"theta_e_deg": {
+"__f__": "8.0"
+},
+"theta_n_deg": {
+"__f__": "38.5"
+},
+"throttle_sweep": [
+{
+"dp_inj_over_pc": {
+"__f__": "1.016470588235294"
+},
+"dp_inj_pa": {
+"__f__": "414720.0"
+},
+"pc_pa": {
+"__f__": "408000.0"
+},
+"pe_over_pa": {
+"__f__": "0.00432680806498658"
+},
+"pe_pa": {
+"__f__": "438.4138271847652"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.6"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.0503529411764707"
+},
+"dp_inj_pa": {
+"__f__": "442828.80000000005"
+},
+"pc_pa": {
+"__f__": "421600.0"
+},
+"pe_over_pa": {
+"__f__": "0.004471035000486132"
+},
+"pe_pa": {
+"__f__": "453.02762142425735"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.62"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.0842352941176472"
+},
+"dp_inj_pa": {
+"__f__": "471859.2"
+},
+"pc_pa": {
+"__f__": "435200.0"
+},
+"pe_over_pa": {
+"__f__": "0.004615261935985685"
+},
+"pe_pa": {
+"__f__": "467.6414156637495"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.64"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.1181176470588237"
+},
+"dp_inj_pa": {
+"__f__": "501811.20000000007"
+},
+"pc_pa": {
+"__f__": "448800.0"
+},
+"pe_over_pa": {
+"__f__": "0.004759488871485237"
+},
+"pe_pa": {
+"__f__": "482.2552099032417"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.66"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.152"
+},
+"dp_inj_pa": {
+"__f__": "532684.8"
+},
+"pc_pa": {
+"__f__": "462400.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.004903715806984791"
+},
+"pe_pa": {
+"__f__": "496.8690041427339"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.68"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.1858823529411766"
+},
+"dp_inj_pa": {
+"__f__": "564480.0000000001"
+},
+"pc_pa": {
+"__f__": "476000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.005047942742484343"
+},
+"pe_pa": {
+"__f__": "511.48279838222606"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7000000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.2197647058823529"
+},
+"dp_inj_pa": {
+"__f__": "597196.8"
+},
+"pc_pa": {
+"__f__": "489600.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.005192169677983896"
+},
+"pe_pa": {
+"__f__": "526.0965926217183"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7200000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.2536470588235296"
+},
+"dp_inj_pa": {
+"__f__": "630835.2000000002"
+},
+"pc_pa": {
+"__f__": "503200.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.005336396613483448"
+},
+"pe_pa": {
+"__f__": "540.7103868612104"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7400000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.2875294117647063"
+},
+"dp_inj_pa": {
+"__f__": "665395.2000000003"
+},
+"pc_pa": {
+"__f__": "516800.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.005480623548983001"
+},
+"pe_pa": {
+"__f__": "555.3241811007026"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7600000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.3214117647058823"
+},
+"dp_inj_pa": {
+"__f__": "700876.8000000002"
+},
+"pc_pa": {
+"__f__": "530400.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.005624850484482555"
+},
+"pe_pa": {
+"__f__": "569.9379753401948"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7800000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.355294117647059"
+},
+"dp_inj_pa": {
+"__f__": "737280.0000000002"
+},
+"pc_pa": {
+"__f__": "544000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.0057690774199821064"
+},
+"pe_pa": {
+"__f__": "584.551769579687"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8000000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.3891764705882357"
+},
+"dp_inj_pa": {
+"__f__": "774604.8000000004"
+},
+"pc_pa": {
+"__f__": "557600.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.00591330435548166"
+},
+"pe_pa": {
+"__f__": "599.1655638191792"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8200000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.4230588235294122"
+},
+"dp_inj_pa": {
+"__f__": "812851.2000000004"
+},
+"pc_pa": {
+"__f__": "571200.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.006057531290981213"
+},
+"pe_pa": {
+"__f__": "613.7793580586714"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8400000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.4569411764705886"
+},
+"dp_inj_pa": {
+"__f__": "852019.2000000004"
+},
+"pc_pa": {
+"__f__": "584800.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.006201758226480765"
+},
+"pe_pa": {
+"__f__": "628.3931522981635"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8600000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.4908235294117653"
+},
+"dp_inj_pa": {
+"__f__": "892108.8000000005"
+},
+"pc_pa": {
+"__f__": "598400.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.006345985161980318"
+},
+"pe_pa": {
+"__f__": "643.0069465376557"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8800000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.5247058823529416"
+},
+"dp_inj_pa": {
+"__f__": "933120.0000000005"
+},
+"pc_pa": {
+"__f__": "612000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.00649021209747987"
+},
+"pe_pa": {
+"__f__": "657.6207407771478"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9000000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.5585882352941178"
+},
+"dp_inj_pa": {
+"__f__": "975052.8000000005"
+},
+"pc_pa": {
+"__f__": "625600.0000000002"
+},
+"pe_over_pa": {
+"__f__": "0.0066344390329794245"
+},
+"pe_pa": {
+"__f__": "672.2345350166402"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9200000000000003"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.5924705882352943"
+},
+"dp_inj_pa": {
+"__f__": "1017907.2000000005"
+},
+"pc_pa": {
+"__f__": "639200.0000000002"
+},
+"pe_over_pa": {
+"__f__": "0.006778665968478976"
+},
+"pe_pa": {
+"__f__": "686.8483292561323"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9400000000000003"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.626352941176471"
+},
+"dp_inj_pa": {
+"__f__": "1061683.2000000007"
+},
+"pc_pa": {
+"__f__": "652800.0000000002"
+},
+"pe_over_pa": {
+"__f__": "0.006922892903978529"
+},
+"pe_pa": {
+"__f__": "701.4621234956245"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9600000000000003"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.6602352941176477"
+},
+"dp_inj_pa": {
+"__f__": "1106380.8000000007"
+},
+"pc_pa": {
+"__f__": "666400.0000000002"
+},
+"pe_over_pa": {
+"__f__": "0.007067119839478083"
+},
+"pe_pa": {
+"__f__": "716.0759177351167"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9800000000000003"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.694117647058824"
+},
+"dp_inj_pa": {
+"__f__": "1152000.000000001"
+},
+"pc_pa": {
+"__f__": "680000.0000000003"
+},
+"pe_over_pa": {
+"__f__": "0.0072113467749776354"
+},
+"pe_pa": {
+"__f__": "730.6897119746089"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "1.0000000000000004"
+}
+}
+],
+"thrust_sl_n": {
+"__f__": "310.3506494069127"
+},
+"thrust_vac_floor_n": {
+"__f__": "58449.6"
+},
+"thrust_vac_n": {
+"__f__": "97416.0"
+},
+"turbopump_ports": null,
+"turbopump_sizing": null,
+"warnings": [
+"[nozzle extension] Niobium C-103 (radiative): computed wall temp 1694 K EXCEEDS its 1650 K max service temp (Tc 1545 K, radiative cooling). Marginal/unsuitable as designed.",
+"First tangential mode ~1874 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities (buzzing is most prevalent at this thrust class). Stiffen the injector, or plan on damping devices.",
+"TEA-TEB pyrophoric slug is an unusual choice for Aerozine-50/NTO (typically used with LOX/RP-1).",
+"Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.007) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage. sl Isp/thrust are nominal placeholders, not physical."
+]
+}

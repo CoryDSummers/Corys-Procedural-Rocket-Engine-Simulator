@@ -1,6 +1,6 @@
-upstream/
+/upstream
 literature/
-v/
+/v
 __pycache__/
 *.pyc
 verify_output.log
