@@ -34,6 +34,11 @@ class MeshBuffers:
                                      # only (flow_meshes.py); legend range + Phase-2 shader
     flow_s: np.ndarray = None       # optional (N,) arc length along the stream, m - flow
                                      # pieces only; drives the Phase-2 flow animation
+    flow_colors: np.ndarray = None  # optional (N, 3) temperature tint shown instead of
+                                     # `colors` while the Flow view is on (render_layers)
+    meta: dict = None               # optional render hints, e.g. {"coolant_pass": "up"},
+                                     # {"tube_body": True, "grid_n_theta": 12},
+                                     # {"channel_grid": True, ...}, {"flow_host": "ox"}
 
 def triangulate_grid(n_theta, n_stations):
     """

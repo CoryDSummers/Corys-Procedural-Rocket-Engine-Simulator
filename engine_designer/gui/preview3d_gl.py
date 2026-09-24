@@ -375,10 +375,13 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
             GL.glDepthMask(GL.GL_FALSE)
             GL.glEnable(GL.GL_BLEND)
             GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-            GL.glUniform1f(loc["u_alpha"], self._xray_opacity)
             for facing_pass in (1, 2):
                 GL.glUniform1i(loc["u_facing_pass"], facing_pass)
                 for k in order:
+                    # per-batch opacity: temperature-tinted coolant hardware
+                    # (Flow view) has its own; everything else the X-ray slider's
+                    alpha = translucent[k]["alpha"]
+                    GL.glUniform1f(loc["u_alpha"], self._xray_opacity if alpha is None else alpha)
                     self._draw_batch(translucent[k])
             GL.glDisable(GL.GL_BLEND)
             GL.glDepthMask(GL.GL_TRUE)
@@ -460,7 +463,8 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
             self._gl_meshes.append({"vbo": vbo, "ibo": ibo, "n_indices": indices.size,
                                      "specular_strength": float(buf.specular_strength),
                                      "shininess": float(buf.shininess),
-                                     "layer": batch.layer, "centroid": batch.centroid})
+                                     "layer": batch.layer, "centroid": batch.centroid,
+                                     "alpha": batch.alpha})
 
     def _request_redraw(self):
         # See module docstring's note: unconfirmed against the actually-

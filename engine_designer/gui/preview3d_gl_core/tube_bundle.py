@@ -207,6 +207,15 @@ def tube_end_cap_disk(x_m, center_y_m, center_z_m, tube_r_m, n_theta_tube, base_
                 break
     return mesh
 
+def _stamp_coolant_pass(pieces, coolant_pass):
+    """Tag regen tube bodies/caps with which coolant pass they carry (render
+    metadata for the flow view: temperature tint + inner streams)."""
+    for p in pieces:
+        p.meta = {**(p.meta or {}), "coolant_pass": coolant_pass}
+        if not p.meta.get("tube_body"):
+            p.meta["cap"] = True
+
+
 def _tube_caps(x_m, center_r_m, half_h_m, half_w_m, thetas, n_theta_tube, base_color_rgb,
                facing_sign, specular_strength, shininess):
     """Elliptical flat end caps for every tube angle in `thetas` at one station."""
@@ -288,6 +297,7 @@ def tube_bundle_pieces(outer_xs_m, outer_rs_m, inner_rs_m, n_theta, n_channels_p
                                   float(half_h[end_idx]), float(half_w[end_idx]), thetas,
                                   n_theta_tube, base_color_rgb, 1.0, specular_strength, shininess)
 
+    _stamp_coolant_pass(tube_pieces, "single")
     return backing, tube_pieces
 
 def _single_tube_mesh(outer_xs_m, phi, center_rs_m, tube_radius_m, theta_i, base_color_rgb,
@@ -322,8 +332,11 @@ def _single_tube_mesh(outer_xs_m, phi, center_rs_m, tube_radius_m, theta_i, base
     Ny = n_r * np.cos(theta_i) - n_t * np.sin(theta_i)
     Nz = n_r * np.sin(theta_i) + n_t * np.cos(theta_i)
     normals_flat = np.stack([Nx.ravel(), Ny.ravel(), Nz.ravel()], axis=1).astype(np.float32)
-    return mesh_from_grid(X, Y, Z, base_color_rgb, normals=normals_flat,
-                           specular_strength=specular_strength, shininess=shininess)
+    mesh = mesh_from_grid(X, Y, Z, base_color_rgb, normals=normals_flat,
+                          specular_strength=specular_strength, shininess=shininess)
+    # (n_theta_tube, n_stations) grid - lets the flow view shrink it into an inner stream.
+    mesh.meta = {"tube_body": True, "grid_n_theta": int(len(phi))}
+    return mesh
 
 def double_pass_tube_pieces(outer_xs_m, outer_rs_m, inner_rs_m, n_theta, n_channels_physical,
                              channel_height_profile_m, thickness_m, base_color_rgb,
@@ -421,6 +434,8 @@ def double_pass_tube_pieces(outer_xs_m, outer_rs_m, inner_rs_m, n_theta, n_chann
         up_tubes += _tube_caps(*args, up_thetas, n_theta_tube, base_color_rgb, 1.0,
                                specular_strength, shininess)
 
+    _stamp_coolant_pass(down_tubes, "down")
+    _stamp_coolant_pass(up_tubes, "up")
     return backing, down_tubes, up_tubes, terminal_crest_r_m
 
 def self_test():

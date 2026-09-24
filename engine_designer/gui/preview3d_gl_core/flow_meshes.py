@@ -62,7 +62,7 @@ def _attach_flow_attrs(buf, station_t_k, station_s, n_theta):
 
 
 def flow_tube_mesh(centerline_xyz, t_k, radius_m, s_offset_m=0.0, spacing_m=None,
-                   n_theta=FLOW_N_THETA):
+                   n_theta=FLOW_N_THETA, resample=True):
     """
     A thin tube swept along `centerline_xyz` (in flow direction) with a
     per-point temperature `t_k` (scalar or per point), colored on the fixed
@@ -73,8 +73,12 @@ def flow_tube_mesh(centerline_xyz, t_k, radius_m, s_offset_m=0.0, spacing_m=None
     pts = np.asarray(centerline_xyz, dtype=float)
     if pts.shape[0] < 2:
         return None
-    spacing = spacing_m or max(4.0 * radius_m, 1e-4)
-    pts, t, s = resample_polyline(pts, t_k, spacing)
+    if resample:
+        spacing = spacing_m or max(4.0 * radius_m, 1e-4)
+        pts, t, s = resample_polyline(pts, t_k, spacing)
+    else:   # keep the given points (already dense enough) - cheaper for many streams
+        t = np.broadcast_to(np.asarray(t_k, dtype=float), (pts.shape[0],)).copy()
+        s = np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(pts, axis=0), axis=1))])
     if s[-1] <= 0:
         return None
     tangents = np.gradient(pts, axis=0)
@@ -92,6 +96,38 @@ def ring_loop_points(x_m, center_r_m, start_angle_deg, n=96):
     u = np.radians(start_angle_deg) + np.linspace(0.0, 2.0 * np.pi, n)
     r = np.broadcast_to(np.asarray(center_r_m, dtype=float), u.shape)
     return np.stack([np.full_like(u, x_m), r * np.cos(u), r * np.sin(u)], axis=1)
+
+
+def stream_inside_tube(tube, n_theta, t_of_x, shrink, reverse=False, s_offset_m=0.0):
+    """
+    The flow stream inside one drawn tube: the tube's own (n_theta,
+    n_stations) grid shrunk by `shrink` toward its per-station centreline
+    (the mean of each station's ring, seam duplicate excluded) - so it
+    follows the tube exactly and always stays inside it, whatever its
+    cross-section. `t_of_x` maps axial x -> temperature (K). flow_s counts
+    along the centreline in flow direction: `reverse=True` when the stream runs
+    toward station 0 (the tubes' stations are stored forward -> aft, so that's
+    an up/forward-flowing tube).
+    """
+    V = np.asarray(tube.vertices, dtype=float)
+    n_st = V.shape[0] // n_theta
+    if n_st < 2 or n_st * n_theta != V.shape[0]:
+        return None
+    G = V.reshape(n_theta, n_st, 3)
+    ring = G[:-1] if n_theta > 2 else G
+    center = ring.mean(axis=0)                                  # (n_st, 3)
+    Vs = center[None, :, :] + shrink * (G - center[None, :, :])
+    seg = np.linalg.norm(np.diff(center, axis=0), axis=1)
+    s = np.concatenate([[0.0], np.cumsum(seg)])
+    if reverse:
+        s = s[-1] - s
+    t = np.asarray(t_of_x(center[:, 0]), dtype=float)
+    from .mesh_primitives import MeshBuffers
+    buf = MeshBuffers(vertices=Vs.reshape(-1, 3).astype(np.float32),
+                      normals=np.asarray(tube.normals, dtype=np.float32).copy(),
+                      colors=np.zeros((V.shape[0], 3), dtype=np.float32),
+                      indices=np.asarray(tube.indices, dtype=np.uint32).copy())
+    return _attach_flow_attrs(buf, t, s + s_offset_m, n_theta)
 
 
 def gas_core_mesh(xs_m, rs_core_m, t_k, n_theta=48):
@@ -134,6 +170,21 @@ def self_test():
     # ring loop closes on itself at the attach angle
     loop = ring_loop_points(0.5, 0.3, 90.0)
     assert np.allclose(loop[0], loop[-1]) and np.allclose(loop[0], [0.5, 0.0, 0.3], atol=1e-12)
+
+    # stream inside a tube: stays inside, same topology, flow_s follows direction
+    from .tube_bundle import _single_tube_mesh
+    xs = np.linspace(0.0, 1.0, 6)
+    phi = np.linspace(0.0, 2.0 * np.pi, 12)
+    tb = _single_tube_mesh(xs, phi, np.full(6, 0.5), 0.02, 0.3, (1, 1, 1), half_width_m=0.03)
+    st = stream_inside_tube(tb, 12, lambda x: 100.0 + 100.0 * x, 0.45, reverse=True)
+    assert st.vertices.shape == tb.vertices.shape and st.indices.shape == tb.indices.shape
+    ctr = np.stack([xs, 0.5 * np.cos(0.3) * np.ones(6), 0.5 * np.sin(0.3) * np.ones(6)], axis=1)
+    d_tube = np.linalg.norm(tb.vertices.reshape(12, 6, 3) - ctr, axis=2)
+    d_st = np.linalg.norm(st.vertices.reshape(12, 6, 3) - ctr, axis=2)
+    assert np.allclose(d_st, 0.45 * d_tube, atol=1e-6)
+    fs = st.flow_s[:6]
+    assert fs[0] > fs[-1] and abs(fs[-1]) < 1e-6          # reverse: flows toward station 0
+    assert abs(st.scalar[:6][-1] - 200.0) < 1e-3
 
     # gas core
     core = gas_core_mesh([0, 0.5, 1.0], [0.2, 0.1, 0.3], [3500, 2400, 1500])

@@ -41,6 +41,11 @@ LAYER_ORDER = (LAYER_OPAQUE, LAYER_FLOW, LAYER_TRANSLUCENT)
 XRAY_ROLES = frozenset({"", "wall", "injector_head", "cover", "hatband",
                         "flange", "turbopump"})
 
+#: Face-on opacity of temperature-tinted coolant hardware (tubes, channel
+#: jacket, rings, plumbing) while the Flow view is on - tinted "glass" round
+#: the opaque streams inside. Cosmetic only.
+FLOW_TINT_OPACITY = 0.35
+
 #: Default X-ray opacity (face-on alpha) and rim exponent - cosmetic only.
 XRAY_DEFAULT_OPACITY = 0.18
 XRAY_RIM_POWER = 2.0
@@ -52,6 +57,7 @@ class RenderBatch:
     layer: str
     buffers: MeshBuffers
     centroid: np.ndarray  # (3,) vertex mean - back-to-front sort key
+    alpha: float = None   # translucent face-on opacity; None = the global X-ray opacity
 
 
 def layer_for(piece, xray_enabled, flow_enabled=False):
@@ -59,6 +65,8 @@ def layer_for(piece, xray_enabled, flow_enabled=False):
     while the Flow toggle is off)."""
     if piece.role == FLOW_ROLE:
         return LAYER_FLOW if flow_enabled else None
+    if flow_enabled and piece.flow_colors is not None:
+        return LAYER_TRANSLUCENT        # temperature-tinted coolant hardware
     if xray_enabled and piece.role in XRAY_ROLES:
         return LAYER_TRANSLUCENT
     return LAYER_OPAQUE
@@ -105,8 +113,13 @@ def build_batches(pieces, xray_enabled, flow_enabled=False):
         layer = layer_for(piece, xray_enabled, flow_enabled)
         if layer is None:
             continue
+        tinted = flow_enabled and piece.flow_colors is not None and piece.role != FLOW_ROLE
+        if tinted:
+            piece = MeshBuffers(piece.vertices, piece.normals, piece.flow_colors, piece.indices,
+                                specular_strength=piece.specular_strength,
+                                shininess=piece.shininess, role=piece.role)
         key = (layer, piece.role,
-               float(piece.specular_strength), float(piece.shininess))
+               float(piece.specular_strength), float(piece.shininess), tinted)
         groups.setdefault(key, []).append(piece)
     batches = []
     for layer in LAYER_ORDER:
@@ -115,7 +128,8 @@ def build_batches(pieces, xray_enabled, flow_enabled=False):
                 continue
             merged = merge_buffers(group)
             batches.append(RenderBatch(layer=layer, buffers=merged,
-                                       centroid=merged.vertices.mean(axis=0)))
+                                       centroid=merged.vertices.mean(axis=0),
+                                       alpha=FLOW_TINT_OPACITY if key[4] else None))
     return batches
 
 
@@ -180,6 +194,18 @@ def self_test():
     assert [bt.layer for bt in fb] == [LAYER_FLOW, LAYER_TRANSLUCENT]
     assert fb[0].buffers.scalar.shape == (8,) and fb[0].buffers.flow_s.shape == (8,)
     assert fb[1].buffers.scalar is None
+    # temperature-tinted hardware: untouched while Flow is off, translucent with
+    # its tint colors + FLOW_TINT_OPACITY while it's on (even with X-ray off)
+    tube = _quad(0.0, role="wall")
+    tube.flow_colors = np.tile(np.array([[1.0, 0.0, 0.0]], dtype=np.float32), (4, 1))
+    off_b = build_batches([tube], False)
+    assert off_b[0].layer == LAYER_OPAQUE and np.allclose(off_b[0].buffers.colors, 0.5)
+    on_b = build_batches([tube, _quad(1.0, role="wall")], False, flow_enabled=True)
+    tb = [b for b in on_b if b.layer == LAYER_TRANSLUCENT]
+    assert len(tb) == 1 and tb[0].alpha == FLOW_TINT_OPACITY
+    assert np.allclose(tb[0].buffers.colors, [1.0, 0.0, 0.0])
+    assert [b.layer for b in on_b if b is not tb[0]] == [LAYER_OPAQUE]
+    assert np.allclose(tube.colors, 0.5), "source piece must not be mutated"
 
     # back-to-front
     order = back_to_front_order([[0, 0, 0], [10, 0, 0], [5, 0, 0]], eye=[-1, 0, 0])

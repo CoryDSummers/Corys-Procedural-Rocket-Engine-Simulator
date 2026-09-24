@@ -126,6 +126,7 @@ from .render_layers import (
     FLOW_ROLE,
     XRAY_ROLES,
     XRAY_DEFAULT_OPACITY,
+    FLOW_TINT_OPACITY,
     XRAY_RIM_POWER,
     RenderBatch,
     layer_for,
@@ -146,6 +147,7 @@ from .flow_meshes import (
     flow_tube_mesh,
     ring_loop_points,
     gas_core_mesh,
+    stream_inside_tube,
 )
 
 __all__ = [
@@ -230,6 +232,7 @@ __all__ = [
     "FLOW_ROLE",
     "XRAY_ROLES",
     "XRAY_DEFAULT_OPACITY",
+    "FLOW_TINT_OPACITY",
     "XRAY_RIM_POWER",
     "RenderBatch",
     "layer_for",
@@ -248,4 +251,5 @@ __all__ = [
     "flow_tube_mesh",
     "ring_loop_points",
     "gas_core_mesh",
+    "stream_inside_tube",
 ]

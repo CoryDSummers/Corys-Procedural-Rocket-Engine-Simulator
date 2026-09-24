@@ -218,6 +218,11 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
         normals_flat = grid_vertex_normals(X, Y, Z).reshape(-1, 3)
         outer_pieces = [mesh_from_grid(X, Y, Z, base_color_rgb, normals=normals_flat,
                                         specular_strength=specular_strength, shininess=shininess)]
+        # Milled channels live inside this grid - tell the flow view how many
+        # are drawn and where (tube_bundle.channel_modulated_grid's phase).
+        outer_pieces[0].meta = {"channel_grid": True,
+                                "n_visual": visual_channel_count(n_channels_physical),
+                                "land_fraction": float(land_fraction)}
     else:
         outer_pieces = [revolve_to_buffers(outer_xs, outer_rs, n_theta, base_color_rgb,
                                             specular_strength=specular_strength, shininess=shininess)]

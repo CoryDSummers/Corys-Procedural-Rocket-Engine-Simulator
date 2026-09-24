@@ -56,7 +56,7 @@ class FlowLegend(ttk.Frame):
             self._note.configure(text="")
             return
         net = flow_network.build_flow_network(result)
-        lo, hi = flow_network.temperature_range(net)
+        lo, hi = flow_network.temperature_range(net, propellants=("fuel", "ox"))
         c = self._canvas
         for t in (lo, hi):
             x = self._x_of(t)

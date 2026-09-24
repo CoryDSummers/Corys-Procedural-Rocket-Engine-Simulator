@@ -52,15 +52,22 @@ draw call instead of hundreds. With X-ray and Flow off, the render is
 pixel-identical to the old single-pass renderer (checked headlessly under
 Xvfb + Mesa).
 
-The **Flow** checkbox draws the propellant streams inside the engine, colored
-by temperature on a fixed log scale from 20 to 4000 K, with a colorbar above
-the view. Ticking it also turns on X-ray, which can be unticked again. The
-streams are:
-- the fuel feed duct, jacket-inlet ring, coolant streams through the regen
-  jacket and the injector fuel ring;
-- the oxidizer ring;
-- the hot-gas core, from chamber temperature out to the exit static
-  temperature.
+The **Flow** checkbox shows the propellant plumbing by temperature, on a
+fixed log scale from 20 to 4000 K, with a colorbar above the view. Ticking it
+also turns on X-ray, which can be unticked again.
+- **Tinted hardware:** every drawn regen tube (or the milled-channel jacket),
+  manifold ring and plumbing pipe is tinted by the temperature of the
+  propellant inside it and turns semi-transparent.
+- **One stream per tube:** a bright stream runs inside each drawn tube; on a
+  milled-channel jacket, one per drawn channel. Two-pass (J-2) designs:
+  - tube wall: the down tubes carry the down leg;
+  - milled channels: every third channel carries it.
+- **Gaps are filled:** a jacket stretch with no drawn tubes, such as the
+  smooth chamber-jacket option, gets streams at the real channel count, so
+  the flow stays continuous.
+- **The hot gas is not drawn:** the chamber and nozzle stay plain X-ray walls.
+- **Uncooled tubes:** tubes drawn on an uncooled nozzle extension carry no
+  coolant, so they stay untinted and get no stream.
 
 The colors come from `physics/flow_network.py`. In "channels" regen mode the
 jacket temperatures are the coolant march's own values. In any other mode only

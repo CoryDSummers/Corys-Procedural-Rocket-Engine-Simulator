@@ -97,8 +97,12 @@ File menu.
    `camera_color.py`/`render_layers.py` (opaque/translucent "X-ray" layer assignment,
    per-layer draw batching, back-to-front sort, rim-alpha reference - the multi-pass
    pipeline's testable half) / `flow_meshes.py` (flow visualization: fixed log-T 20-4000 K
-   "turbo" colormap, stream tubes, ring loops, hot-gas core; per-vertex `scalar`/`flow_s`
-   on `MeshBuffers` for the legend and a future animated-flow shader),
+   "turbo" colormap, stream tubes, ring loops, `stream_inside_tube` = a drawn tube's own grid
+   shrunk to its centreline; per-vertex `scalar`/`flow_s` on `MeshBuffers` for the legend
+   and a future animated-flow shader; `MeshBuffers.meta` tags regen tubes (`coolant_pass`),
+   the milled-channel grid (`channel_grid`) and rings/plumbing (`flow_host`), and
+   `flow_colors` is their temperature tint, drawn translucent at `FLOW_TINT_OPACITY` in Flow
+   mode; the hot gas is NOT drawn - Cory's call),
    re-exported unchanged through `__init__.py`, with `__main__.py`
    running every submodule's own self-test as one combined banner), and its per-part
    mesh assembly (what used to be `preview3d_gl.py`'s own ~830-line `_build_mesh_data`

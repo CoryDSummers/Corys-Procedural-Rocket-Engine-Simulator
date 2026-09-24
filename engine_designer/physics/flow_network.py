@@ -12,7 +12,9 @@ isentropic relations), and each segment carries only an ANCHOR naming the
 geometry it lives on (profile stations, a manifold host, a plumbing host).
 gui/mesh_builder.build_flow_pieces maps anchors onto the RENDERED shells, so
 flow tubes always sit inside what is drawn. The pending cooling rework only
-has to keep filling the same fields.
+has to keep filling the same fields. The hot-gas segment is kept as data but
+the 3D view doesn't draw it (Cory's call, 2026-09-24: the chamber stays a
+plain X-ray wall; only the propellant plumbing is colored).
 
 Exact vs approximate (FlowSegment.approximate):
   - "channels" regen mode: jacket temperatures are the march's own per-station
@@ -188,8 +190,11 @@ def build_flow_network(result):
     return segs
 
 
-def temperature_range(segments):
-    """(min, max) temperature over every sample of every segment."""
+def temperature_range(segments, propellants=PROPELLANTS):
+    """(min, max) temperature over every sample of the segments of
+    `propellants` (the 3D view draws only ("fuel", "ox") - see
+    gui/mesh_builder.build_flow_pieces)."""
+    segments = [s for s in segments if s.propellant in propellants]
     vals = np.concatenate([np.atleast_1d(s.t_k) for s in segments]) if segments else np.zeros(1)
     vals = vals[np.isfinite(vals)]
     return float(vals.min()), float(vals.max())
