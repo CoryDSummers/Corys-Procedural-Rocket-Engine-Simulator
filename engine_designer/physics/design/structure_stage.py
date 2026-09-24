@@ -124,6 +124,7 @@ def wall_structure(self, s):
                                    and s.jacket_dp_pa > 0.0 and s.throat_r_m > 0)
     s.jacket_overpressure_ok = True
     jacket_overpressure_detail = ""
+    jacket_overpressure_ok_detail = "OK - stress stays within margin at the evaluated stations"
     s.jacket_worst_station_eps = None
     s.jacket_pressure_at_worst_station_pa = None
     s.jacket_local_gas_pressure_at_worst_station_pa = None
@@ -239,9 +240,9 @@ def wall_structure(self, s):
                     q_w_m2 / material.thermal_conductivity_w_mk, material.youngs_modulus_pa,
                     material.cte_per_k, nu=mass_model.POISSON_RATIO)
                     if material.thermal_conductivity_w_mk > 0 else 0.0)
-                return mass_model.min_combined_stress_thickness_m(
+                return mass_model.regen_hot_wall_thickness_m(
                     jacket_pressure_pa - p_local_gas_pa, radius_m, k_per_m,
-                    t_floor_m, REGEN_HOT_WALL_THICKNESS_M)
+                    material.allowable_stress_pa, t_floor_m, REGEN_HOT_WALL_THICKNESS_M)
 
             t_construction_worst_m, t_limit_worst = _sized_thickness(
                 radius_worst_m, p_local_gas_worst_pa, q_worst_w_m2, worst_material)
@@ -289,14 +290,26 @@ def wall_structure(self, s):
                     buckling_detail = (f"n/a - no compression tangent-modulus (E_c) data for "
                                         f"{buckling_material_name}; see ASSUMPTIONS.md")
 
+            # Pass/fail on the PRIMARY (load-controlled) hoop stress only
+            # (2026-09-24). The thermal-restraint term (Huzel eq 4-28) is a
+            # SECONDARY stress: it comes from an imposed through-wall strain,
+            # so once the hot face yields it stops growing and becomes cyclic
+            # plastic strain - a low-cycle-fatigue question, answered by the
+            # "Throat thermal-fatigue cycle life" row, not a burst/collapse
+            # one (standard primary/secondary classification, e.g. ASME BPVC
+            # Sec. III: P_m <= S_m, secondary stresses limited by shakedown/
+            # fatigue). Holding hoop + thermal to allowable/SF failed EVERY
+            # real tube-wall engine in the corpus (F-1 423 vs 133 MPa, J-2
+            # 990 vs 67, RL10 761 vs 67) and Huzel's own Sample Calc 4-4.
+            # Combined stress is still reported. See ASSUMPTIONS.md.
             # Governing station = the one furthest over ITS OWN allowable
             # (the two stations can be different materials), not the one
             # with the bigger raw stress - that hid e.g. a copper throat
             # over its lower allowable behind a larger exit stress.
-            util_throat = combined_throat / (s.chamber_material.allowable_stress_pa
-                                             / mass_model.SAFETY_FACTOR)
-            util_worst = combined_worst / (worst_material.allowable_stress_pa
-                                           / mass_model.SAFETY_FACTOR)
+            util_throat = hoop_throat / (s.chamber_material.allowable_stress_pa
+                                         / mass_model.SAFETY_FACTOR)
+            util_worst = hoop_worst / (worst_material.allowable_stress_pa
+                                       / mass_model.SAFETY_FACTOR)
             if util_throat >= util_worst:
                 station_name = "throat"
                 station_eps = 1.0
@@ -313,14 +326,35 @@ def wall_structure(self, s):
                 station_t_limit = t_limit_worst
 
             allowable_pa = station_material.allowable_stress_pa / mass_model.SAFETY_FACTOR
-            s.jacket_overpressure_ok = combined_pa <= allowable_pa
+            # (1e-9 slack: a hoop-sized wall lands exactly on the allowable)
+            s.jacket_overpressure_ok = hoop_pa <= allowable_pa * (1.0 + 1e-9)
             s.jacket_overpressure_worst_station = station_name
             s.jacket_combined_stress_pa = combined_pa
             s.jacket_hoop_stress_pa = hoop_pa
             s.jacket_thermal_stress_pa = thermal_pa
+            station_desc = ("the throat" if station_name == "throat"
+                             else f"the end of active cooling (area ratio ~{station_eps:.1f})")
+            # Secondary-stress note, shown on pass or fail. Throat thermal
+            # stress is the one the fatigue row evaluates (it peaks there).
+            yield_pa = s.chamber_material.allowable_stress_pa
+            thermal_note = (
+                f"The thermal-restraint stress (~{thermal_throat/1e6:.0f} MPa at the throat, "
+                f"dT = q*t/k across the wall) is a self-limiting secondary stress, not a "
+                f"burst load")
+            if hoop_throat + thermal_throat > yield_pa:
+                thermal_note += (
+                    f": with the hoop load it exceeds {s.chamber_material.display_name}'s "
+                    f"~{yield_pa/1e6:.0f} MPa hot yield, so the hot face yields a little each "
+                    f"firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same "
+                    f"in this model). Its life limit is the 'Throat thermal-fatigue cycle "
+                    f"life' row")
+            thermal_note += "."
+            jacket_overpressure_ok_detail = (
+                f"OK - primary hoop stress ~{hoop_pa/1e6:.0f} MPa (~{net_dp_pa/1e6:.1f} MPa net "
+                f"jacket-vs-gas differential, {formula_name}) vs a ~{allowable_pa/1e6:.0f} MPa "
+                f"allowable at {station_desc} ({station_material.display_name}, SF "
+                f"{mass_model.SAFETY_FACTOR:.1f}, wall ~{station_t_m*1e3:.2f} mm). {thermal_note}")
             if not s.jacket_overpressure_ok:
-                station_desc = ("the throat" if station_name == "throat"
-                                 else f"the end of active cooling (area ratio ~{station_eps:.1f})")
                 if self.wall_construction == "coax_shell":
                     # Large-radius thin liner: r/t is inherently large (a
                     # continuous shell at full chamber radius, sized thin
@@ -343,39 +377,22 @@ def wall_structure(self, s):
                                 "coax_shell at this scale, matching why real coax-shell "
                                 "designs stayed small (V-2/early-Atlas class), not a marginal "
                                 "or unusual result")
-                elif station_t_limit == "floor":
-                    # Thermal-limited: the best wall is thinner than the
-                    # gauge floor allows; thermal term grows with t.
-                    mitigation = ("the thermal-restraint term dominates and grows with wall "
-                                   "thickness (dT = q*t/k), so the wall is already at its "
-                                   f"~{t_floor_m*1e3:.1f} mm minimum - consider a higher-"
-                                   "conductivity liner (a copper alloy such as GRCop-84/"
-                                   "NARloy-Z) or less throat heat flux (film cooling, lower Pc)")
-                    framing = "worth a closer structural look"
-                elif station_t_limit == "cap":
-                    # Pressure-limited: the best wall is thicker than a
-                    # regen hot wall can be.
-                    mitigation = ("the hoop term dominates and the wall is already at its "
+                else:
+                    # Only reachable at the cap: below it the wall is
+                    # thickened until hoop passes (regen_hot_wall_thickness_m).
+                    mitigation = ("the wall is already at its "
                                    f"~{REGEN_HOT_WALL_THICKNESS_M*1e3:.1f} mm regen hot-wall "
                                    "maximum - consider more/narrower tubes there (tube count, "
                                    "tube split), lower jacket pressure (shorter cooled length, "
                                    "less jacket dP) or a stronger alloy")
-                    framing = "worth a closer structural look"
-                else:
-                    mitigation = ("no single wall thickness carries both the pressure and the "
-                                   "thermal load in this material (this is already the minimum-"
-                                   "stress thickness) - consider a stronger or higher-"
-                                   "conductivity alloy, more/narrower tubes, or less heat flux")
-                    framing = "worth a closer structural look"
+                    framing = "the tube cannot hold its coolant pressure as drawn"
                 jacket_overpressure_detail = (
-                    f"At {station_desc}, combined hoop + thermal-restraint stress "
-                    f"({formula_name}) is ~{combined_pa/1e6:.0f} MPa (hoop "
+                    f"At {station_desc}, the primary hoop stress ({formula_name}) is "
                     f"~{hoop_pa/1e6:.0f} MPa from a ~{net_dp_pa/1e6:.1f} MPa net jacket-vs-gas "
-                    f"differential + thermal-restraint ~{thermal_pa/1e6:.0f} MPa) against a "
-                    f"~{allowable_pa/1e6:.0f} MPa allowable ({station_material.display_name}, "
-                    f"SF {mass_model.SAFETY_FACTOR:.1f}), with the wall at its minimum-stress "
-                    f"thickness ~{station_t_m*1e3:.2f} mm. This uses a real handbook stress "
-                    f"formula ({formula_name}), not a proxy - {framing}. {mitigation[:1].upper() + mitigation[1:]}.")
+                    f"differential, against a ~{allowable_pa/1e6:.0f} MPa allowable "
+                    f"({station_material.display_name}, SF {mass_model.SAFETY_FACTOR:.1f}) with "
+                    f"the wall at ~{station_t_m*1e3:.2f} mm ({station_t_limit}-limited) - "
+                    f"{framing}. {mitigation[:1].upper() + mitigation[1:]}. {thermal_note}")
         else:
             # milled_channel: unchanged clamped-plate-strip proxy.
             n_ch_worst = cooling.channel_count_at_station(
@@ -418,7 +435,7 @@ def wall_structure(self, s):
            s.jacket_overpressure_ok, jacket_overpressure_detail,
            "n/a - only evaluated in \"channels\" regen mode with an active jacket"
            if not jacket_overpressure_active
-           else "OK - stress stays within margin at the evaluated stations")
+           else jacket_overpressure_ok_detail)
     _check(s.checklist, s.warnings, "cooling", "Tube-wall longitudinal thermal buckling margin",
            buckling_ok, buckling_detail,
            "n/a - only evaluated for tube_wall construction with an active jacket"

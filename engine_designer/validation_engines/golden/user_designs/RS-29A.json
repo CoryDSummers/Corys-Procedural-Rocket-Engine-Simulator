@@ -391,9 +391,9 @@
 },
 {
 "category": "cooling",
-"detail": "At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~678 MPa (hoop ~40 MPa from a ~3.2 MPa net jacket-vs-gas differential + thermal-restraint ~638 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
+"detail": "OK - primary hoop stress ~105 MPa (~15.1 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~133 MPa allowable at the end of active cooling (area ratio ~18.0) (Inconel 718 Nickel Superalloy, SF 1.5, wall ~0.59 mm). The thermal-restraint stress (~638 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Inconel 718 Nickel Superalloy's ~200 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row.",
 "name": "Jacket overpressure vs. channel-wall structural margin",
-"passed": false
+"passed": true
 },
 {
 "category": "cooling",
@@ -3935,10 +3935,10 @@
 "__f__": "313.05838580194865"
 },
 "jacket_combined_stress_pa": {
-"__f__": "677859837.9611722"
+"__f__": "210888663.3305497"
 },
 "jacket_hoop_stress_pa": {
-"__f__": "40067071.23313928"
+"__f__": "105444331.66527484"
 },
 "jacket_inlet_eps_effective": null,
 "jacket_local_gas_pressure_at_worst_station_pa": {
@@ -4020,8 +4020,8 @@
 "__f__": "26.15494301460481"
 }
 },
-"jacket_overpressure_ok": false,
-"jacket_overpressure_worst_station": "throat",
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": "cooled_length_end",
 "jacket_pressure_at_worst_station_pa": {
 "__f__": "15161125.681120077"
 },
@@ -4032,7 +4032,7 @@
 "__f__": "71.31039319714606"
 },
 "jacket_thermal_stress_pa": {
-"__f__": "637792766.728033"
+"__f__": "105444331.66527484"
 },
 "jacket_worst_station_eps": {
 "__f__": "18.0"
@@ -5467,7 +5467,6 @@
 "warnings": [
 "Inconel 718 Nickel Superalloy: computed wall temp 1334 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerative cooling). Marginal/unsuitable as designed. Basis: coupled throat wall balance: gas h_g ~11.3 kW/m2K incl. carbon-deposit credit, T_aw ~3623 K, coolant ~37 m/s (coolant-side wall ~991 K), 0.20 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
 "Hottest wall station is in the convergent section (area ratio ~1.1, regen): wall ~1351 K, 0.93x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
-"At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~678 MPa (hoop ~40 MPa from a ~3.2 MPa net jacket-vs-gas differential + thermal-restraint ~638 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
 "Hatbands: Unsupported tube length between hatbands exceeds the allowable span (tube bending at wall pressure, SP-8120 p.29) - add bands or set the count to 0 (structural auto)."
 ]
 }

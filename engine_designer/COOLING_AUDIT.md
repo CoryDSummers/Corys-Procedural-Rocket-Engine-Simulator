@@ -149,6 +149,19 @@ Full detail: `validation_engines/reports/2026-09-23_coolant_side_followup_before
 - RP-1 and CH4 have no cited throat-flux anchor. Raptor-2 and RD-180 still read hot on their stand-in copper walls.
 - The Inconel-walled RS-29 / RS-29A / RS-30 remain over their limit at the throat: about 1330 K and 1690 K against 1250 K.
 
+## Follow-up: tube-wall structural row false alarm (2026-09-24)
+
+**The problem.** The "Jacket overpressure vs. channel-wall structural margin" row (tube_wall / coax_shell) added the hoop stress to Huzel's eq 4-28 thermal-restraint stress. It then held the sum to `allowable_stress_pa / 1.5`, a yield value taken near the material's *max service temperature*. That failed every real tube-wall engine in the corpus: F-1 at 423 vs 133 MPa, J-2 at 990 vs 67, RL10A-3-3 at 761 vs 67. It also failed Huzel's own Sample Calc 4-4 and Cory's H-1-class stainless design (456 vs 67 MPa). On that same H-1 the "Throat thermal-fatigue cycle life" row, working from the same through-wall gradient, gave about 95,000 cycles.
+
+**Root cause: the criterion, not the stress.** The thermal-restraint stress comes from an imposed strain, so it is *secondary* and self-limiting. Once the hot face yields, the stress stops growing and turns into cyclic plastic strain, which is a low-cycle-fatigue limit (the fatigue row), not a burst limit. Only the *primary* hoop stress from the net coolant-vs-gas ΔP is load-controlled. This is the standard primary/secondary classification (ASME BPVC Sec. III). Tier 2: it is a standard principle, but no source in `claude_lit/` states it.
+
+**What was done.**
+- `structure_stage.wall_structure`: pass/fail now checks primary hoop against allowable/SF only. The governing station is chosen by hoop utilisation. Combined, hoop and thermal stresses are still reported. The row text quotes the throat thermal-restraint stress and, when hoop + thermal is above yield, points to the fatigue row.
+- `mass_model.regen_hot_wall_thickness_m`: the wall is t* (the min-combined-stress gauge that matches Huzel A-1) but never thinner than the gauge that carries the hoop load, `SF·|ΔP|·r/σ`. It is used by both the thermal solve's throat wall and the structural check. It is a no-op on the whole corpus's throat walls; it thickens only the structural gauge at the end-of-cooling station where t* left the hoop load over the allowable.
+- `validate/structures.py`: Huzel A-1/A-2 primary hoop ≤ F_ty/SF and his elastic rule combined ≤ F_ty. The real F-1 / J-2 / RL10 (from `validation_engines/engines/`) must pass the row, and a coax_shell J-2 must still trip it. Banner count stays 26.
+
+**Corpus.** 7 designs flip from FAIL to PASS on this row (F-1, J-2, RL10A-3-3, LR-100, RS-29, RS-29A, j-2_test_bed); RS-29C gets new OK text only. There are no thermal, mass or performance changes. Golden files were patched only on the changed keys, so they stay valid in Cory's environment. Full detail: `validation_engines/reports/2026-09-24_tube_wall_secondary_stress_before_after.txt`.
+
 ## Open items / where more information is needed
 
 1. **Coolant-side heat transfer: resolved.** See the follow-up above. What's left is data: real per-engine channel geometry, jacket flow split and coolant inlet state. None of it is in `literature/`; SSME MCC geometry is likely in SECA-P-90-09, the Phase I report, which isn't in the collection.
@@ -157,6 +170,7 @@ Full detail: `validation_engines/reports/2026-09-23_coolant_side_followup_before
 4. **P3 – validate definitions.** validate's COOLING_CHECKS still uses its historical stand-ins (F-1 as NARloy-Z at 7.77 MN, "RL10-class" at 3.2 MPa). Migrating them to load from the corpus JSONs would remove the drift.
 5. **Literature gaps.** Cooling data is cited only for F-1 / J-2 / SSME. Still needed: throat flux, coolant ΔT, jacket dP, liner thickness and coolant velocity for RL10, Vulcain, RD-180, Merlin, Raptor, Rutherford, Aestus. Also NASA SP-8124 (film effectiveness) and an RP-1 coking rate model (see `claude_lit/OPEN_QUESTIONS.md`).
 6. **Hydrazine and H2O2** have no equilibrium table (catalytic decomposition is non-equilibrium). They keep the legacy derived gas properties, flagged `gas_property_source = legacy`.
+7. **Thermal ratcheting (Bree diagram).** Not modelled. With x = hoop/σy and y = thermal/σy, a Bree check would flag ratcheting where xy > 1. With today's room-temperature k/E/σy it would flag the real J-2 and RL10 too, so it needs temperature-dependent k(T), E(T) and σy(T) per material first. The SSME-style "dog-house" throat failure is the classic example of this mechanism.
 
 ## Structure after this round
 

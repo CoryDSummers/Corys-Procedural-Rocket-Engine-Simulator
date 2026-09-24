@@ -1,0 +1,93 @@
+Tube-wall structural row: primary/secondary stress split (2026-09-24)
+=====================================================================
+Before = HEAD 52cf3db, after = this change, BOTH computed in the same Python
+environment (numpy 2.4.6 / scipy 1.17.1) so last-ULP library drift vs golden/
+does not show up as a change. Every field that differs is listed (full
+_diff, no limit); all other result fields of all 20 corpus files are
+bit-identical before vs after - no thermal, mass, performance or pump number
+moved (the cooling_stage throat-wall sizing change is a no-op on the corpus:
+every throat t* already carries its hoop load).
+
+jacket_* stresses now report the governing station by HOOP utilisation
+(usually the end of active cooling, where the new hoop floor on the
+structural gauge thickens a wall that t* left overloaded); the throat's
+thermal-restraint stress is quoted in the row text and routed to the
+"Throat thermal-fatigue cycle life" row.
+
+IDENTICAL engines/AJ10-137.json
+IDENTICAL engines/Aestus.json
+CHANGED   engines/F-1.json
+    /checklist[36]/detail: 'At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~423 MPa (hoop ~35 MPa from a ~1.8 MPa net jacket-vs-gas differential + thermal-restraint ~388 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).' -> "OK - primary hoop stress ~105 MPa (~8.5 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~133 MPa allowable at the end of active cooling (area ratio ~10.0) (Inconel 718 Nickel Superalloy, SF 1.5, wall ~0.57 mm). The thermal-restraint stress (~388 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Inconel 718 Nickel Superalloy's ~200 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row."
+    /checklist[36]/passed: False -> True
+    /jacket_combined_stress_pa/__f__: '422958277.3939429' -> '209462659.45595616'
+    /jacket_hoop_stress_pa/__f__: '35313490.0895229' -> '104731329.72797807'
+    /jacket_overpressure_ok: False -> True
+    /jacket_overpressure_worst_station: 'throat' -> 'cooled_length_end'
+    /jacket_thermal_stress_pa/__f__: '387644787.30442' -> '104731329.72797808'
+    /warnings: len 4 -> 3
+CHANGED   engines/J-2.json
+    /checklist[39]/detail: 'At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~990 MPa (hoop ~33 MPa from a ~3.9 MPa net jacket-vs-gas differential + thermal-restraint ~957 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).' -> "OK - primary hoop stress ~67 MPa (~9.1 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~67 MPa allowable at the end of active cooling (area ratio ~27.5) (Stainless Steel (304/316), SF 1.5, wall ~0.72 mm). The thermal-restraint stress (~957 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Stainless Steel (304/316)'s ~100 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row."
+    /checklist[39]/passed: False -> True
+    /jacket_combined_stress_pa/__f__: '989743440.2667117' -> '161176310.50117248'
+    /jacket_hoop_stress_pa/__f__: '33233305.627918843' -> '66666666.66666667'
+    /jacket_overpressure_ok: False -> True
+    /jacket_overpressure_worst_station: 'throat' -> 'cooled_length_end'
+    /jacket_thermal_stress_pa/__f__: '956510134.6387929' -> '94509643.83450583'
+    /warnings: len 8 -> 7
+IDENTICAL engines/LMAE.json
+IDENTICAL engines/Merlin-1D.json
+IDENTICAL engines/RD-180.json
+CHANGED   engines/RL10A-3-3.json
+    /checklist[35]/detail: 'At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~761 MPa (hoop ~37 MPa from a ~9.9 MPa net jacket-vs-gas differential + thermal-restraint ~724 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).' -> "OK - primary hoop stress ~43 MPa (~12.6 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~67 MPa allowable at the end of active cooling (area ratio ~61.0) (Stainless Steel (304/316), SF 1.5, wall ~0.48 mm). The thermal-restraint stress (~724 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Stainless Steel (304/316)'s ~100 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row."
+    /checklist[35]/passed: False -> True
+    /jacket_combined_stress_pa/__f__: '761013712.085154' -> '86039504.60255072'
+    /jacket_hoop_stress_pa/__f__: '36604331.323078655' -> '43019752.30127535'
+    /jacket_overpressure_ok: False -> True
+    /jacket_overpressure_worst_station: 'throat' -> 'cooled_length_end'
+    /jacket_thermal_stress_pa/__f__: '724409380.7620754' -> '43019752.30127536'
+    /warnings: len 8 -> 7
+IDENTICAL engines/RS-25.json
+IDENTICAL engines/Raptor-2.json
+IDENTICAL engines/Rutherford.json
+IDENTICAL engines/Vulcain.json
+IDENTICAL user_designs/AJ-90k.json
+CHANGED   user_designs/LR-100.json
+    /checklist[34]/detail: 'At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~538 MPa (hoop ~17 MPa from a ~2.4 MPa net jacket-vs-gas differential + thermal-restraint ~521 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).' -> "OK - primary hoop stress ~66 MPa (~8.3 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~67 MPa allowable at the end of active cooling (area ratio ~14.0) (Stainless Steel (304/316), SF 1.5, wall ~0.32 mm). The thermal-restraint stress (~521 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Stainless Steel (304/316)'s ~100 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row."
+    /checklist[34]/passed: False -> True
+    /jacket_combined_stress_pa/__f__: '537502796.6876252' -> '131183275.37073565'
+    /jacket_hoop_stress_pa/__f__: '16867370.343011633' -> '65591637.685367815'
+    /jacket_overpressure_ok: False -> True
+    /jacket_overpressure_worst_station: 'throat' -> 'cooled_length_end'
+    /jacket_thermal_stress_pa/__f__: '520635426.3446135' -> '65591637.68536782'
+    /warnings: len 5 -> 4
+CHANGED   user_designs/RS-29.json
+    /checklist[36]/detail: 'At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~669 MPa (hoop ~29 MPa from a ~2.7 MPa net jacket-vs-gas differential + thermal-restraint ~640 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).' -> "OK - primary hoop stress ~133 MPa (~14.6 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~133 MPa allowable at the end of active cooling (area ratio ~12.0) (Inconel 718 Nickel Superalloy, SF 1.5, wall ~0.52 mm). The thermal-restraint stress (~640 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Inconel 718 Nickel Superalloy's ~200 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row."
+    /checklist[36]/passed: False -> True
+    /jacket_combined_stress_pa/__f__: '668848624.8877355' -> '291590635.0881701'
+    /jacket_hoop_stress_pa/__f__: '28821685.496983293' -> '133333333.33333333'
+    /jacket_overpressure_ok: False -> True
+    /jacket_overpressure_worst_station: 'throat' -> 'cooled_length_end'
+    /jacket_thermal_stress_pa/__f__: '640026939.3907522' -> '158257301.7548368'
+    /warnings: len 5 -> 4
+CHANGED   user_designs/RS-29A.json
+    /checklist[34]/detail: 'At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~678 MPa (hoop ~40 MPa from a ~3.2 MPa net jacket-vs-gas differential + thermal-restraint ~638 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).' -> "OK - primary hoop stress ~105 MPa (~15.1 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~133 MPa allowable at the end of active cooling (area ratio ~18.0) (Inconel 718 Nickel Superalloy, SF 1.5, wall ~0.59 mm). The thermal-restraint stress (~638 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Inconel 718 Nickel Superalloy's ~200 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row."
+    /checklist[34]/passed: False -> True
+    /jacket_combined_stress_pa/__f__: '677859837.9611722' -> '210888663.3305497'
+    /jacket_hoop_stress_pa/__f__: '40067071.23313928' -> '105444331.66527484'
+    /jacket_overpressure_ok: False -> True
+    /jacket_overpressure_worst_station: 'throat' -> 'cooled_length_end'
+    /jacket_thermal_stress_pa/__f__: '637792766.728033' -> '105444331.66527484'
+    /warnings: len 4 -> 3
+CHANGED   user_designs/RS-29C.json
+    /checklist[36]/detail: 'OK - stress stays within margin at the evaluated stations' -> 'OK - primary hoop stress ~55 MPa (~14.6 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~73 MPa allowable at the end of active cooling (area ratio ~18.0) (NARloy-Z Copper Alloy (Cu-Ag-Zr), SF 1.5, wall ~1.50 mm). The thermal-restraint stress (~28 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load.'
+IDENTICAL user_designs/RS-30.json
+IDENTICAL user_designs/TRW-270.json
+CHANGED   user_designs/j-2_test_bed.json
+    /checklist[34]/detail: 'At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~1091 MPa (hoop ~27 MPa from a ~2.4 MPa net jacket-vs-gas differential + thermal-restraint ~1065 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).' -> "OK - primary hoop stress ~131 MPa (~10.4 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~133 MPa allowable at the end of active cooling (area ratio ~14.0) (Inconel 718 Nickel Superalloy, SF 1.5, wall ~0.44 mm). The thermal-restraint stress (~1065 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Inconel 718 Nickel Superalloy's ~200 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row."
+    /checklist[34]/passed: False -> True
+    /jacket_combined_stress_pa/__f__: '1091463200.6945863' -> '262059681.10831982'
+    /jacket_hoop_stress_pa/__f__: '26808157.542927023' -> '131029840.5541599'
+    /jacket_overpressure_ok: False -> True
+    /jacket_overpressure_worst_station: 'throat' -> 'cooled_length_end'
+    /jacket_thermal_stress_pa/__f__: '1064655043.1516594' -> '131029840.55415991'
+    /warnings: len 9 -> 8

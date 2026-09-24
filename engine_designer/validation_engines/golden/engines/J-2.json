@@ -361,9 +361,9 @@
 },
 {
 "category": "cooling",
-"detail": "At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~990 MPa (hoop ~33 MPa from a ~3.9 MPa net jacket-vs-gas differential + thermal-restraint ~957 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
+"detail": "OK - primary hoop stress ~67 MPa (~9.1 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~67 MPa allowable at the end of active cooling (area ratio ~27.5) (Stainless Steel (304/316), SF 1.5, wall ~0.72 mm). The thermal-restraint stress (~957 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Stainless Steel (304/316)'s ~100 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row.",
 "name": "Jacket overpressure vs. channel-wall structural margin",
-"passed": false
+"passed": true
 },
 {
 "category": "cooling",
@@ -3351,10 +3351,10 @@
 "__f__": "420.13210902038855"
 },
 "jacket_combined_stress_pa": {
-"__f__": "989743440.2667117"
+"__f__": "161176310.50117248"
 },
 "jacket_hoop_stress_pa": {
-"__f__": "33233305.627918843"
+"__f__": "66666666.66666667"
 },
 "jacket_inlet_eps_effective": {
 "__f__": "8.0"
@@ -3504,8 +3504,8 @@
 "__f__": "3.4226946834022236"
 }
 },
-"jacket_overpressure_ok": false,
-"jacket_overpressure_worst_station": "throat",
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": "cooled_length_end",
 "jacket_pressure_at_worst_station_pa": {
 "__f__": "9142187.309707908"
 },
@@ -3516,7 +3516,7 @@
 "__f__": "71.92140307429186"
 },
 "jacket_thermal_stress_pa": {
-"__f__": "956510134.6387929"
+"__f__": "94509643.83450583"
 },
 "jacket_worst_station_eps": {
 "__f__": "27.5"
@@ -5015,7 +5015,6 @@
 "Hottest wall station is in the nozzle (area ratio ~27.5, regen): wall ~1013 K, 1.09x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Resultant injection beta angle +4.7 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negative beta (~0 or below). Adjust the impingement angle or element momentum ratio.",
 "First tangential mode ~2062 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.",
-"At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~990 MPa (hoop ~33 MPa from a ~3.9 MPa net jacket-vs-gas differential + thermal-restraint ~957 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.194) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]

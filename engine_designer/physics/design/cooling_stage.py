@@ -145,9 +145,9 @@ def thermal(self, s):
                                                      s.chamber_material.cte_per_k,
                                                      nu=mass_model.POISSON_RATIO)
                         if _k_mat > 0 else 0.0)
-            s.hot_wall_thickness_m, s.hot_wall_sizing_limit = mass_model.min_combined_stress_thickness_m(
+            s.hot_wall_thickness_m, s.hot_wall_sizing_limit = mass_model.regen_hot_wall_thickness_m(
                 _jp_throat - self.chamber_pressure_pa, _r_span, _k_per_m,
-                _t_floor, REGEN_HOT_WALL_THICKNESS_M)
+                s.chamber_material.allowable_stress_pa, _t_floor, REGEN_HOT_WALL_THICKNESS_M)
 
     # Jacket dP the pump chain sees: the real-contour march ("channels") or the
     # legacy flat constant ("flat" now only means a flat DP - the thermal side
