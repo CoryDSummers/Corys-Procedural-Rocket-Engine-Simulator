@@ -257,6 +257,36 @@ MATERIALS = {
         notes="Higher-temp, higher-strength, lower thermal conductivity than copper alloys. "
               "Common for nozzle extensions and structural jackets.",
     ),
+    "inconel_x750": Material(
+        key="inconel_x750",
+        display_name="Inconel X-750 Nickel-Chromium Superalloy",
+        density_kg_m3=8280.0,
+        max_service_temp_k=1255.0,
+        relative_cost_factor=2.0,
+        cooling_method="regenerative",
+        allowed_cooling_methods=("regenerative", "dump", "radiative", "uncooled"),
+        cooling_effectiveness=0.31,
+        color_hex="#8C8A82",
+        thermal_conductivity_w_mk=12.0,
+        tech_era_hint="Mature (1950s+, predates Inconel 718; classic precipitation-hardened "
+                      "Ni-Cr-Fe superalloy)",
+        allowable_stress_pa=2.1e+08,
+        emissivity=0.90,
+        youngs_modulus_pa=2.14e+11,
+        cte_per_k=1.40e-05,
+        specular_strength=0.40,
+        shininess=45.0,
+        metallic=1.0,
+        roughness=0.42,
+        notes="Precipitation-hardened by gamma-prime Ni3(Al,Ti) (Special Metals SMC-067), "
+              "'used extensively in rocket-engine thrust chambers' per the alloy's own "
+              "datasheet. Named alongside Inconel 718 as a real SP-8120 nozzle-hatband "
+              "material (see hatbands.py/claude_lit topic 12) - this entry makes it "
+              "selectable as a chamber/nozzle material too. Broadly similar duty to "
+              "Inconel 718 (slightly lower thermal conductivity, real cited emissivity "
+              "0.90 vs. 718's uncited 0.7) - predates 718 and was the earlier workhorse "
+              "Ni-Cr thrust-chamber/hot-structure alloy.",
+    ),
     "stainless_steel": Material(
         key="stainless_steel",
         display_name="Stainless Steel (304/316)",

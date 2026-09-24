@@ -371,3 +371,19 @@ into any topic file.
 
 No `validate.py`/`ASSUMPTIONS.md` constant was changed — every finding is report-only, per
 this file's standing rule.
+
+## 2026-09-24 batch — Inconel X-750 datasheet
+
+Cory asked to add Inconel X-750 to `materials.py`'s catalog. The `literature/` folder isn't
+reachable from this cloud session (git-ignored; the fresh checkout has no local copy), and
+`specialmetals.com` is blocked by this session's network egress policy, so Cory uploaded the
+source PDF directly rather than it living in `literature/`: Special Metals Corporation,
+*INCONEL alloy X-750*, Publication No. SMC-067 (Sept 2004) — the standard mill datasheet.
+Extracted into `sources/smc067-inconel-x750.md` (tag `[SMC-X750]`) and folded into
+`topics/12-materials-and-structures.md` (a new subsection near the existing `[SP-8120]`
+hatband-material mention, plus an `## Implications for engine_designer` update). This
+directly backs a new `materials.py` `inconel_x750` entry (density, thermal conductivity,
+CTE, Young's modulus, and emissivity are real cited numbers; `allowable_stress_pa` stays a
+Tier-3 derated judgment call, same bucket as `inconel_718`'s, since real cited yield data
+sits far above any reasonable working allowable) — see `ASSUMPTIONS.md` for the exact tier
+notes on each field.

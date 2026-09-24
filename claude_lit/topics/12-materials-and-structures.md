@@ -155,6 +155,22 @@ taper ratio before splicing is needed, and always put any joggle on the cold-gas
 tube, never the hot-gas side (hot-side joggles are a crown-depression/stress-concentration
 risk exactly where wall temperature is already highest).
 
+**Inconel X-750 physical/thermal/mechanical properties** `[SMC-X750 Tables 2/3/5/13]`: the
+alloy `[SP-8120]` names above (alongside Inconel 718) as a real hatband material now has a
+citable properties source for `materials.py`'s `inconel_x750` entry. Density 8.28 g/cm³
+(8280 kg/m³); melting range 1393-1427°C; oxidized-surface emissivity 0.895 at 600°F rising
+to 0.925 at 2000°F (a real cited figure, unlike `inconel_718`'s uncited 0.7 estimate).
+Thermal conductivity 83 Btu·in/(hr·ft²·°F) at 70°F (11.97 W/(m·K)), rising to 143 at 1200°F;
+mean CTE (from 70°F) 7.8e-6/°F at 800°F (1.40e-5/K); static-tension Young's modulus 31.0e3
+ksi at 80°F (2.14e11 Pa). Real cited yield strength (Table 13, solution-treated + furnace-
+cool precipitation-treated - the condition aimed at real service strength rather than
+spring temper) is 845 MPa at 1200°F and 530 MPa at 1500°F - both far above any working
+allowable this tool would assign, matching `inconel_718`'s own already-heavily-derated
+`allowable_stress_pa`. No table gives a strength value at the alloy's own claimed 1800°F
+oxidation-resistance ceiling (only creep/rupture/fatigue curves extend that far) - the same
+"real data stops short of the tool's max_service_temp_k" situation `inconel_718`'s
+ASSUMPTIONS.md entry already flags. See `sources/smc067-inconel-x750.md` for full tables.
+
 **Real splice-count corroboration — J-2S** `[AEDC-J2S §2.1.1 p.1-3]`: real J-2S hardware
 (same engine family as SP-8120's J-2/J-2S band-redesign anecdote above) uses exactly this
 splice pattern in practice — fuel flows down **180** tubes then up **360** tubes to the
@@ -493,7 +509,12 @@ bolt holes), bolt spacing = bolt-head diameter + 2× flange thickness, seals tol
   table. The topic file's honest statement: keep the sources ASSUMPTIONS.md already cites
   (Cal Poly thesis + NASA for NARloy-Z; materials DBs for C-103; NASA GRC for GRCop-84;
   Haynes Intl for Haynes 230), and keep the "derated/interpolated, Tier 3" flag for
-  Inconel 718 / stainless / Re-Ir / C-C / Mo-TZM.
+  Inconel 718 / stainless / Re-Ir / C-C / Mo-TZM. **2026-09-24**: the new `inconel_x750`
+  entry's `density`/`thermal_conductivity_w_mk`/`youngs_modulus_pa`/`cte_per_k`/`emissivity`
+  are real cited `[SMC-X750]` numbers (an improvement over the uncited "standard textbook
+  figure" tier the other entries in this bucket carry) - only its `allowable_stress_pa`
+  stays in the same Tier-3 derated-judgment-call bucket as `inconel_718`'s, since the cited
+  yield data sits far above any number this tool would assign as a working allowable.
 - **`materials.py` radiation-cool `max_service_temp_k`**: C-103 1650 K, Haynes 230 1400 K,
   Re-Ir 2200 K, Mo-TZM 1950 K, C-C 1900 K — consistent with `[Huzel §4.4]` (Ti/Haynes-25 ≈
   1444 K; Mo-Ti/Ta-W ≈ 1944 K) and `[Sutton]` (C-C loses strength ~3700 K but the tool
