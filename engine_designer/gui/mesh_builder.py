@@ -53,6 +53,17 @@ def _darken_rgb01(rgb, factor=0.72):
 # fuel/ox injector-feed ring placement below can reuse the exact
 # same technique to sit flush on the real wall rather than a
 # formula-derived radius. No logic change from the original.
+def _stamp_material(pieces, mat, colors_per_station=None):
+    """Stamp a Material's (or TurbopumpMaterial's) PBR metallic/roughness onto
+    every piece one material-backed build call returned - see
+    preview3d_gl_core.shading. With a heat-flux colormap on the piece it is a
+    data readout, not a material look: flagged data_colors (shaded without
+    tone mapping, no metal reflection), mirroring spec_for's zero-specular."""
+    if colors_per_station is not None:
+        return preview3d_gl_core.stamp_pbr(pieces, 0.0, 1.0, data_colors=True)
+    return preview3d_gl_core.stamp_pbr(pieces, mat.metallic, mat.roughness)
+
+
 def _lookup_shell(shell, x_query):
     if shell is None or shell.outer_xs.size < 2:
         return None
@@ -346,7 +357,7 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             if body_channel_heights is not None else None,
             cap_start=True, cap_end=False,
             specular_strength=chamber_spec, shininess=chamber_shin)
-        pieces.extend(chamber_shell.pieces)
+        pieces.extend(_stamp_material(chamber_shell.pieces, chamber_mat, chamber_colors))
         body_colors = q_colors(body_xs[sl_throat_bell])
         body_spec, body_shin = spec_for(body_colors, chamber_mat)
         body_shell = preview3d_gl_core.build_shell_mesh(
@@ -361,7 +372,7 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             regen_circuit_style=regen_circuit_style, tube_cutoff_x_m=x_tube_end,
             down_tube_start_x_m=down_tube_start_x_m,
             specular_strength=body_spec, shininess=body_shin)
-        pieces.extend(body_shell.pieces)
+        pieces.extend(_stamp_material(body_shell.pieces, chamber_mat, body_colors))
     else:
         body_colors = q_colors(body_xs)
         body_spec, body_shin = spec_for(body_colors, chamber_mat)
@@ -375,7 +386,7 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             regen_circuit_style=regen_circuit_style, tube_cutoff_x_m=x_tube_end,
             down_tube_start_x_m=down_tube_start_x_m,
             specular_strength=body_spec, shininess=body_shin)
-        pieces.extend(body_shell.pieces)
+        pieces.extend(_stamp_material(body_shell.pieces, chamber_mat, body_colors))
     if has_extension:
         ext_colors = q_colors(ext_xs)
         ext_spec, ext_shin = spec_for(ext_colors, bell_mat)
@@ -389,7 +400,7 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             regen_circuit_style=regen_circuit_style, tube_cutoff_x_m=x_tube_end,
             down_tube_start_x_m=down_tube_start_x_m,
             specular_strength=ext_spec, shininess=ext_shin)
-        pieces.extend(ext_shell.pieces)
+        pieces.extend(_stamp_material(ext_shell.pieces, bell_mat, ext_colors))
 
         # Bridge the body/extension outer-wall gap: the two pieces' outer
         # walls are built entirely independently and can land at very
@@ -407,9 +418,10 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
                                  # normal - guard against the two landing
                                  # in reversed order at the joint
         bridge_rgb = tuple((c1 + c2) / 2.0 for c1, c2 in zip(chamber_rgb, bell_rgb))
-        pieces.append(preview3d_gl_core.revolve_to_buffers(
+        pieces.extend(_stamp_material([preview3d_gl_core.revolve_to_buffers(
             bx[order], br[order], _N_THETA, bridge_rgb,
-            specular_strength=chamber_mat.specular_strength, shininess=chamber_mat.shininess))
+            specular_strength=chamber_mat.specular_strength, shininess=chamber_mat.shininess)],
+            chamber_mat))
     return pieces, body_shell, ext_shell, flange_height_m, chamber_shell
 
 
@@ -974,9 +986,10 @@ def build_turbopump_pieces(result):
         origin = geometry3d.turbopump_origin_for_result(result)
         for kind, (Xt, Yt, Zt) in geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin):
             rgb = turb_rgb if kind == "turbine" else pump_rgb
-            pieces.append(preview3d_gl_core.mesh_from_grid(
+            pieces.extend(_stamp_material([preview3d_gl_core.mesh_from_grid(
                 Xt, Yt, Zt, rgb,
-                specular_strength=tp_mat.specular_strength, shininess=tp_mat.shininess))
+                specular_strength=tp_mat.specular_strength, shininess=tp_mat.shininess)],
+                tp_mat))
         pieces.extend(turbopump_port_stub_pieces(result))
 
     return pieces
@@ -1396,6 +1409,21 @@ def self_test():
         # per-material colors of heat_flux_mode=False.
         if heat_flux_mode:
             assert any(np.ptp(p.colors, axis=0).max() > 1e-6 for p in pieces)
+        # PBR stamping: every piece resolves to in-range metallic/roughness;
+        # material-backed pieces carry the material's own explicit values
+        # (narloy_z chamber, turbopump rotor material), and heat-flux pieces
+        # are flagged as a data readout instead.
+        for piece in pieces:
+            _m, _r = preview3d_gl_core.resolve_pbr(piece)
+            assert 0.0 <= _m <= 1.0 and 0.0 <= _r <= 1.0
+        _cm = materials.MATERIALS[result["inputs"]["material_key"]]
+        _tm = turbopump_materials.MATERIALS[result["inputs"]["turbopump_material_key"]]
+        if heat_flux_mode:
+            assert any(p.data_colors for p in pieces)
+        else:
+            assert not any(p.data_colors for p in pieces)
+            assert any((p.metallic, p.roughness) == (_cm.metallic, _cm.roughness) for p in pieces)
+            assert any((p.metallic, p.roughness) == (_tm.metallic, _tm.roughness) for p in pieces)
     print("build_mesh_data self-check (tube_wall, real joint, turbopump): OK")
 
     # A second, simpler design (milled_channel, no forced material split via

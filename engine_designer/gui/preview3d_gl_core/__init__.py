@@ -19,6 +19,8 @@ axis, one directory up) into:
   - tube_bundle.py         - discrete cooling-tube/channel bundle meshes
   - shell_mesh.py           - whole-piece solid-shell composition
   - camera_color.py         - heat-flux colormap, bounds, orbit camera
+  - shading.py              - PBR fragment shader + light rig/environment + its
+                             numpy reference twin (headless-testable look)
 
 This __init__.py re-exports every public name from all of the above, so
 external code (gui/mesh_builder.py's ~100 call sites) keeps using the exact
@@ -114,6 +116,19 @@ from .camera_color import (
     gizmo_rotation_matrix,
     gizmo_projection_matrix,
 )
+from .shading import (
+    blinn_to_pbr,
+    resolve_pbr,
+    stamp_pbr,
+    pbr_shade_reference,
+    PBR_FRAGMENT_SHADER,
+    LIGHT_RIG,
+    BACKGROUND_TOP,
+    BACKGROUND_BOTTOM,
+    BACKGROUND_VERTEX_SHADER,
+    BACKGROUND_FRAGMENT_SHADER,
+    background_triangle,
+)
 
 __all__ = [
     "VISUAL_CHANNEL_COUNT_MAX",
@@ -190,4 +205,15 @@ __all__ = [
     "gizmo_axis_lines",
     "gizmo_rotation_matrix",
     "gizmo_projection_matrix",
+    "blinn_to_pbr",
+    "resolve_pbr",
+    "stamp_pbr",
+    "pbr_shade_reference",
+    "PBR_FRAGMENT_SHADER",
+    "LIGHT_RIG",
+    "BACKGROUND_TOP",
+    "BACKGROUND_BOTTOM",
+    "BACKGROUND_VERTEX_SHADER",
+    "BACKGROUND_FRAGMENT_SHADER",
+    "background_triangle",
 ]
