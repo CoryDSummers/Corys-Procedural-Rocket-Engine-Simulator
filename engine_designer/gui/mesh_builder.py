@@ -1093,8 +1093,11 @@ def apply_flow_tint(pieces, network):
             if not np.any(inside):
                 continue
             tint = np.array(p.colors, dtype=np.float32, copy=True)
-            tint[inside] = preview3d_gl_core.temperature_colors(np.interp(x[inside], xg, tg))
+            t_vert = np.full(x.shape, np.nan, dtype=np.float32)
+            t_vert[inside] = np.interp(x[inside], xg, tg)
+            tint[inside] = preview3d_gl_core.temperature_colors(t_vert[inside])
             p.flow_colors = tint
+            p.scalar = t_vert   # lets render_layers recolor on another scale
             n += 1
         elif "flow_host" in meta:
             host = meta["flow_host"]
@@ -1104,6 +1107,7 @@ def apply_flow_tint(pieces, network):
                 continue
             p.flow_colors = np.tile(preview3d_gl_core.temperature_colors([t]),
                                     (p.vertices.shape[0], 1))
+            p.scalar = np.full(p.vertices.shape[0], t, dtype=np.float32)
             n += 1
     return n
 
@@ -1814,6 +1818,20 @@ def self_test():
     # every channel carries the up leg except every third (the down leg, aft
     # of the inlet only), so at least 2/3 of the drawn channels are streamed
     assert len(_fm) >= (2 * _n_vis) // 3, (len(_fm), _n_vis)
+    # "Coolant (fit)" color scale: the same tubes recolored at batch time span
+    # far more of the colormap than on the fixed absolute scale (the LH2 jacket
+    # only warms ~100 -> ~135 K), without rebuilding a single mesh.
+    _fit = preview3d_gl_core.scale_for_network(flow_network.build_flow_network(_rj), "coolant")
+    assert _fit.mode == "coolant" and _fit.hi_k - _fit.lo_k > 5.0, _fit
+
+    def _tube_color_spread(scale):
+        bb = preview3d_gl_core.build_batches(_pj, True, flow_enabled=True, color_scale=scale)
+        cols = np.concatenate([b.buffers.colors for b in bb if b.alpha is not None])
+        return float(np.ptp(cols, axis=0).max())
+    _spread_abs = _tube_color_spread(None)
+    _spread_fit = _tube_color_spread(_fit)
+    assert _spread_fit > 2.0 * _spread_abs, (_spread_fit, _spread_abs)
+    assert all(p.scalar is not None for p in _tb if p.flow_colors is not None)
     print(f"J-2 flow: OK (tube wall {_n_up} up + {_n_down} down tubes, all streamed; "
           f"milled {_n_vis} channels -> {len(_fm)} stream pieces)")
 

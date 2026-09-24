@@ -147,6 +147,7 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._flat_shade = False
         self._xray = False
         self._flow = False
+        self._flow_scale = None     # flow_meshes.FlowColorScale; None = baked absolute colors
         self._xray_opacity = preview3d_gl_core.XRAY_DEFAULT_OPACITY
         self._duct_bend_radius_mult = None  # None = use DUCT_BEND_RADIUS_TUBE_DIA_MULT
         self._last_result = None
@@ -248,6 +249,15 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         enabled = bool(enabled)
         if enabled != self._flow:
             self._flow = enabled
+            self._dirty = True
+        self._request_redraw()
+
+    def set_flow_scale(self, scale):
+        """Render-state only: the FlowColorScale the Flow view's temperature
+        colors use (render_layers recolors from each vertex's temperature at
+        batch time - a re-batch, no mesh rebuild)."""
+        if scale != self._flow_scale:
+            self._flow_scale = scale
             self._dirty = True
         self._request_redraw()
 
@@ -622,7 +632,8 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         # Batch per render layer/role/material (render_layers.build_batches):
         # a tube bundle's hundreds of pieces become one draw call.
         for batch in preview3d_gl_core.build_batches(self._pending_mesh_data, self._xray,
-                                                     flow_enabled=self._flow):
+                                                     flow_enabled=self._flow,
+                                                     color_scale=self._flow_scale):
             buf = batch.buffers
             interleaved = np.concatenate([buf.vertices, buf.normals, buf.colors], axis=1)
             interleaved = np.ascontiguousarray(interleaved, dtype=np.float32)
