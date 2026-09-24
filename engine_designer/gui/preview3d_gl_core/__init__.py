@@ -19,6 +19,8 @@ axis, one directory up) into:
   - tube_bundle.py         - discrete cooling-tube/channel bundle meshes
   - shell_mesh.py           - whole-piece solid-shell composition
   - camera_color.py         - heat-flux colormap, bounds, orbit camera
+  - render_layers.py        - opaque/translucent (X-ray) layer assignment,
+                             per-layer batching, back-to-front sort
 
 This __init__.py re-exports every public name from all of the above, so
 external code (gui/mesh_builder.py's ~100 call sites) keeps using the exact
@@ -114,6 +116,21 @@ from .camera_color import (
     gizmo_rotation_matrix,
     gizmo_projection_matrix,
 )
+from .render_layers import (
+    LAYER_OPAQUE,
+    LAYER_TRANSLUCENT,
+    LAYER_FLOW,
+    LAYER_ORDER,
+    XRAY_ROLES,
+    XRAY_DEFAULT_OPACITY,
+    XRAY_RIM_POWER,
+    RenderBatch,
+    layer_for,
+    merge_buffers,
+    build_batches,
+    back_to_front_order,
+    rim_alpha,
+)
 
 __all__ = [
     "VISUAL_CHANNEL_COUNT_MAX",
@@ -190,4 +207,17 @@ __all__ = [
     "gizmo_axis_lines",
     "gizmo_rotation_matrix",
     "gizmo_projection_matrix",
+    "LAYER_OPAQUE",
+    "LAYER_TRANSLUCENT",
+    "LAYER_FLOW",
+    "LAYER_ORDER",
+    "XRAY_ROLES",
+    "XRAY_DEFAULT_OPACITY",
+    "XRAY_RIM_POWER",
+    "RenderBatch",
+    "layer_for",
+    "merge_buffers",
+    "build_batches",
+    "back_to_front_order",
+    "rim_alpha",
 ]

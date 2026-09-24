@@ -1,0 +1,175 @@
+"""
+Render-layer bookkeeping for the OpenGL 3D preview's multi-pass pipeline:
+which layer (opaque / translucent) each MeshBuffers piece draws in, batching
+many small pieces into a few GL buffers, back-to-front ordering for the
+translucent pass, and a numpy reference of the shader's rim-alpha formula.
+Pure numpy, no OpenGL/Tk import - gui/preview3d_gl.py is the only consumer
+that touches GL, and it just uploads/draws what build_batches hands it.
+
+Pass structure (preview3d_gl.EnginePreviewGLFrame.redraw):
+  1. LAYER_OPAQUE      - depth write on, blend off (the only pass before X-ray).
+  2. LAYER_TRANSLUCENT - depth write off, alpha blend on, batches sorted back
+                         to front, each drawn twice (fragments facing away from
+                         the eye, then facing it - split in the shader on
+                         sign(dot(N, V)), so it doesn't depend on triangle
+                         winding, which isn't consistent across the builders).
+  (LAYER_FLOW is reserved for the planned flow visualization - animated,
+  temperature-colored propellant paths drawn between the two passes above -
+  and isn't produced by anything yet.)
+
+X-ray is purely a render-state choice: pieces whose `role` is in XRAY_ROLES
+move to LAYER_TRANSLUCENT when it's on; nothing is rebuilt.
+"""
+from dataclasses import dataclass
+
+import numpy as np
+
+from .mesh_primitives import MeshBuffers
+
+LAYER_OPAQUE = "opaque"
+LAYER_TRANSLUCENT = "translucent"
+LAYER_FLOW = "flow"  # reserved - see module docstring
+
+#: Draw order of the layers within one frame.
+LAYER_ORDER = (LAYER_OPAQUE, LAYER_FLOW, LAYER_TRANSLUCENT)
+
+#: Piece roles (MeshBuffers.role, stamped by gui/mesh_builder.build_mesh_data)
+#: that turn translucent in X-ray mode. "" = untagged (e.g. the Shape Lab's
+#: synthetic scenes) - treated as structural too. Cosmetic only.
+XRAY_ROLES = frozenset({"", "wall", "injector_head", "cover", "hatband",
+                        "flange", "turbopump"})
+
+#: Default X-ray opacity (face-on alpha) and rim exponent - cosmetic only.
+XRAY_DEFAULT_OPACITY = 0.18
+XRAY_RIM_POWER = 2.0
+
+
+@dataclass
+class RenderBatch:
+    """One merged GL upload: every piece sharing a layer/role/material."""
+    layer: str
+    buffers: MeshBuffers
+    centroid: np.ndarray  # (3,) vertex mean - back-to-front sort key
+
+
+def layer_for(piece, xray_enabled):
+    """Which layer this piece draws in."""
+    if xray_enabled and piece.role in XRAY_ROLES:
+        return LAYER_TRANSLUCENT
+    return LAYER_OPAQUE
+
+
+def merge_buffers(pieces):
+    """
+    Concatenate pieces into one MeshBuffers, offsetting each piece's indices
+    by the running vertex count. Specular/shininess/role come from the first
+    piece - callers group by those first (build_batches does).
+    """
+    pieces = [p for p in pieces if p.vertices.shape[0] > 0]
+    if not pieces:
+        empty = np.zeros((0, 3), dtype=np.float32)
+        return MeshBuffers(empty, empty, empty, np.zeros((0, 3), dtype=np.uint32))
+    offsets = np.cumsum([0] + [p.vertices.shape[0] for p in pieces[:-1]])
+    first = pieces[0]
+    return MeshBuffers(
+        vertices=np.concatenate([p.vertices for p in pieces]).astype(np.float32),
+        normals=np.concatenate([p.normals for p in pieces]).astype(np.float32),
+        colors=np.concatenate([p.colors for p in pieces]).astype(np.float32),
+        indices=np.concatenate([np.asarray(p.indices, dtype=np.int64).reshape(-1, 3) + off
+                                for p, off in zip(pieces, offsets)]).astype(np.uint32),
+        specular_strength=first.specular_strength, shininess=first.shininess,
+        role=first.role)
+
+
+def build_batches(pieces, xray_enabled):
+    """
+    Group pieces by (layer, role, specular_strength, shininess) and merge each
+    group into one RenderBatch - collapses e.g. a discrete tube bundle's
+    hundreds of pieces (hundreds of glDrawElements calls) into one. Pieces
+    with no triangles are dropped. Batches come back in LAYER_ORDER, groups
+    within a layer in first-seen order.
+    """
+    groups = {}
+    for piece in pieces:
+        if piece.vertices.shape[0] == 0 or np.asarray(piece.indices).size == 0:
+            continue
+        key = (layer_for(piece, xray_enabled), piece.role,
+               float(piece.specular_strength), float(piece.shininess))
+        groups.setdefault(key, []).append(piece)
+    batches = []
+    for layer in LAYER_ORDER:
+        for key, group in groups.items():
+            if key[0] != layer:
+                continue
+            merged = merge_buffers(group)
+            batches.append(RenderBatch(layer=layer, buffers=merged,
+                                       centroid=merged.vertices.mean(axis=0)))
+    return batches
+
+
+def back_to_front_order(centroids, eye):
+    """Indices into `centroids` (N, 3), farthest from `eye` first."""
+    centroids = np.asarray(centroids, dtype=float).reshape(-1, 3)
+    if centroids.shape[0] == 0:
+        return np.zeros(0, dtype=int)
+    dist = np.linalg.norm(centroids - np.asarray(eye, dtype=float), axis=1)
+    return np.argsort(-dist, kind="stable")
+
+
+def rim_alpha(n_dot_v, base_alpha, rim_power=XRAY_RIM_POWER):
+    """
+    Numpy reference of the fragment shader's X-ray alpha: `base_alpha` where
+    the surface faces the eye, rising to 1 at grazing angles (silhouettes stay
+    readable while faces go clear). Must match _FRAGMENT_SHADER in
+    gui/preview3d_gl.py.
+    """
+    grazing = 1.0 - np.clip(np.abs(n_dot_v), 0.0, 1.0)
+    return base_alpha + (1.0 - base_alpha) * grazing ** rim_power
+
+
+def self_test():
+    def _quad(x0, role="", spec=0.0, shin=32.0):
+        v = np.array([[x0, 0, 0], [x0 + 1, 0, 0], [x0 + 1, 1, 0], [x0, 1, 0]], dtype=np.float32)
+        n = np.tile(np.array([0, 0, 1], dtype=np.float32), (4, 1))
+        c = np.full((4, 3), 0.5, dtype=np.float32)
+        i = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.uint32)
+        return MeshBuffers(v, n, c, i, specular_strength=spec, shininess=shin, role=role)
+
+    # merge: vertex count conserved, indices offset into the right piece
+    a, b = _quad(0.0), _quad(5.0)
+    m = merge_buffers([a, b])
+    assert m.vertices.shape == (8, 3) and m.indices.shape == (4, 3)
+    assert m.indices.max() == 7 and m.indices.dtype == np.uint32
+    assert np.allclose(m.vertices[m.indices[2:]], b.vertices[b.indices])
+    assert merge_buffers([]).vertices.shape == (0, 3)
+
+    # 300 identical-material tubes collapse to one batch; another material stays separate
+    tubes = [_quad(float(k), role="wall") for k in range(300)]
+    pump = _quad(0.0, role="turbopump", spec=0.4, shin=64.0)
+    empty = MeshBuffers(np.zeros((0, 3)), np.zeros((0, 3)), np.zeros((0, 3)),
+                        np.zeros((0, 3), dtype=np.uint32), role="wall")
+    off = build_batches(tubes + [pump, empty], xray_enabled=False)
+    assert len(off) == 2 and all(bt.layer == LAYER_OPAQUE for bt in off)
+    assert off[0].buffers.vertices.shape[0] == 1200
+    on = build_batches(tubes + [pump], xray_enabled=True)
+    assert all(bt.layer == LAYER_TRANSLUCENT for bt in on)
+    # a role outside XRAY_ROLES stays opaque and is ordered first
+    mixed = build_batches([_quad(0.0, role="wall"), _quad(1.0, role="flow_probe")], True)
+    assert [bt.layer for bt in mixed] == [LAYER_OPAQUE, LAYER_TRANSLUCENT]
+
+    # back-to-front
+    order = back_to_front_order([[0, 0, 0], [10, 0, 0], [5, 0, 0]], eye=[-1, 0, 0])
+    assert list(order) == [1, 2, 0]
+    assert back_to_front_order([], eye=[0, 0, 0]).size == 0
+
+    # rim alpha: face-on = base, grazing = 1, monotonic in between, sign-symmetric
+    ndv = np.linspace(1.0, 0.0, 11)
+    al = rim_alpha(ndv, 0.2)
+    assert abs(al[0] - 0.2) < 1e-12 and abs(al[-1] - 1.0) < 1e-12
+    assert np.all(np.diff(al) >= 0)
+    assert np.allclose(rim_alpha(-ndv, 0.2), al)
+    print("render_layers self-test: OK")
+
+
+if __name__ == "__main__":
+    self_test()

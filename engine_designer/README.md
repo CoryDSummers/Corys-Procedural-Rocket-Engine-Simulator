@@ -42,6 +42,16 @@ installed) — only its pure-math mesh/camera/colormap layer
 layer (`gui/preview3d_gl.py`) was only syntax-checked. Please exercise the
 orbit drag, scroll zoom, and heat-flux toggle yourself and report back.
 
+The GL preview draws in layers (`gui/preview3d_gl_core/render_layers.py`):
+an opaque pass, then a translucent pass. The **X-ray** checkbox above the 3D
+view (and in the Shape Lab toolbar) moves the structural parts into the
+translucent pass: they fade by viewing angle, so faces go clear while
+silhouettes stay visible. The opacity slider sets how see-through the faces
+are. Pieces are batched per layer and material, so a tube-wall bundle is one
+draw call instead of hundreds. This is the foundation for the planned
+propellant-flow visualization. With X-ray off, the render is pixel-identical
+to the old single-pass renderer (checked headlessly under Xvfb + Mesa).
+
 Before first use (or after `Engine_Configs/` changes), rebuild the host-model
 catalog:
 

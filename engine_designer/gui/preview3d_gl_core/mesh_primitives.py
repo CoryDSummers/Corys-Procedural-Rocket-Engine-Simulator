@@ -27,6 +27,9 @@ class MeshBuffers:
                                      # today's pure-Lambertian look for any caller that
                                      # doesn't pass a material-derived value explicitly.
     shininess: float = 32.0         # Blinn-Phong exponent - cosmetic/rendering only
+    role: str = ""                  # which engine part this piece is ("wall", "turbopump",
+                                     # ...), stamped by mesh_builder.build_mesh_data; "" =
+                                     # untagged. Picks the render layer (render_layers.py).
 
 def triangulate_grid(n_theta, n_stations):
     """

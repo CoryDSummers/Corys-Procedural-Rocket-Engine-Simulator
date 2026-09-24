@@ -982,6 +982,14 @@ def build_turbopump_pieces(result):
     return pieces
 
 
+def _tag(pieces, role):
+    """Stamp MeshBuffers.role on every piece (render-layer choice only - see
+    preview3d_gl_core/render_layers.py) and hand the list back."""
+    for piece in pieces:
+        piece.role = role
+    return pieces
+
+
 def build_mesh_data(result, heat_flux_mode, duct_bend_radius_mult=None, return_context=False):
     """
     Build every mesh piece for one EngineDesign.compute() result - the
@@ -1271,30 +1279,30 @@ def build_mesh_data(result, heat_flux_mode, duct_bend_radius_mult=None, return_c
         body_channel_heights, ext_channel_heights, chamber_tube_jacket, tube_split_x_for_piece,
         n_channels_for_piece, x_tube_end, q_colors, spec_for, cooling_result,
         down_tube_start_x_m=down_tube_start_x_m)
-    pieces.extend(chamber_pieces)
+    pieces.extend(_tag(chamber_pieces, "wall"))
 
-    pieces.extend(build_injector_head_pieces(
+    pieces.extend(_tag(build_injector_head_pieces(
         body_rs, result, chamber_rgb, construction, n_channels_physical,
         body_shell, ext_shell, has_extension,
         duct_bend_radius_mult=duct_bend_radius_mult,
         return_band_drawn=(construction == "tube_wall" and n_channels_physical > 0
                            and x_tube_cutoff is not None
                            and preview3d_gl_core.is_double_pass(regen_circuit_style)),
-        chamber_shell=chamber_shell))
+        chamber_shell=chamber_shell), "injector_head"))
 
-    pieces.extend(build_far_end_cover_pieces(
+    pieces.extend(_tag(build_far_end_cover_pieces(
         construction, n_channels_physical, x_tube_cutoff, regen_circuit_style, throat_dia_m,
-        body_shell, ext_shell, has_extension))
+        body_shell, ext_shell, has_extension), "cover"))
 
-    pieces.extend(build_tube_hatband_pieces(
+    pieces.extend(_tag(build_tube_hatband_pieces(
         cooling_result, construction, n_channels_physical, throat_dia_m,
-        body_shell, ext_shell, has_extension))
+        body_shell, ext_shell, has_extension), "hatband"))
 
-    pieces.extend(build_flange_joint_pieces(
+    pieces.extend(_tag(build_flange_joint_pieces(
         has_real_joint, throat_dia_m, body_shell, ext_shell, x_split,
-        flange_half_width, flange_height_m, cooling_result))
+        flange_half_width, flange_height_m, cooling_result), "flange"))
 
-    pieces.extend(build_turbopump_pieces(result))
+    pieces.extend(_tag(build_turbopump_pieces(result), "turbopump"))
 
     if return_context:
         return pieces, {"body_shell": body_shell, "ext_shell": ext_shell,
@@ -1396,6 +1404,13 @@ def self_test():
         # per-material colors of heat_flux_mode=False.
         if heat_flux_mode:
             assert any(np.ptp(p.colors, axis=0).max() > 1e-6 for p in pieces)
+        # every piece carries a render role, and X-ray batching conserves geometry
+        assert all(p.role for p in pieces), sorted({p.role for p in pieces})
+        for xray in (False, True):
+            batches = preview3d_gl_core.build_batches(pieces, xray)
+            assert sum(b.buffers.vertices.shape[0] for b in batches) == \
+                sum(p.vertices.shape[0] for p in pieces if p.indices.size)
+            assert len(batches) < len(pieces)
     print("build_mesh_data self-check (tube_wall, real joint, turbopump): OK")
 
     # A second, simpler design (milled_channel, no forced material split via

@@ -94,13 +94,22 @@ File menu.
    colormap math lives separately in the `gui/preview3d_gl_core/` package (split by
    geometry-operation kind: `hardware_constants.py`/`profile_geometry.py`/
    `mesh_primitives.py`/`duct_meshes.py`/`tube_bundle.py`/`shell_mesh.py`/
-   `camera_color.py`, re-exported unchanged through `__init__.py`, with `__main__.py`
+   `camera_color.py`/`render_layers.py` (opaque/translucent "X-ray" layer assignment,
+   per-layer draw batching, back-to-front sort, rim-alpha reference - the multi-pass
+   pipeline's testable half; `LAYER_FLOW` reserved for the planned flow visualization),
+   re-exported unchanged through `__init__.py`, with `__main__.py`
    running every submodule's own self-test as one combined banner), and its per-part
    mesh assembly (what used to be `preview3d_gl.py`'s own ~830-line `_build_mesh_data`
    method - it never touched `self`) lives in `gui/mesh_builder.py`. Both are runnable/
    self-tested here (no OpenGL/Tk import) - keep new 3D-preview math/mesh-assembly logic
    in that split when extending it, per the same testable/untestable line this round
    established.
+   **Cloud-sandbox exception (2026-09-24):** the cloud container has Xvfb + Mesa, and
+   apt's `python3-tk` targets `/usr/bin/python3.12` (not the default 3.11). A
+   `python3.12 -m venv --system-site-packages` venv with numpy/scipy/matplotlib/PyOpenGL/
+   pyopengltk can build `EnginePreviewGLFrame` under `xvfb-run` and `glReadPixels` a frame
+   to PNG. That makes GL-preview changes screenshot-checkable (and pixel-diffable against a
+   `git worktree` of the previous HEAD). Actual clicking/interaction is still Cory's to check.
 5. Run the full verification suite after any physics change. Prefer
    `./verify_all.sh` from the repo root — it runs every module below, keeps full
    output in `verify_output.log`, and prints only a PASS/FAIL line per module

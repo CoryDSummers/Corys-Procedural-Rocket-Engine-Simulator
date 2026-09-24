@@ -61,19 +61,34 @@ uniform vec3 u_eye_pos;
 uniform float u_specular_strength;
 uniform float u_shininess;
 uniform float u_flat_shade;
+// X-ray (translucent layer) controls - see preview3d_gl_core/render_layers.py.
+// u_alpha = 1.0 is the opaque layer: output identical to the pre-X-ray shader.
+uniform float u_alpha;       // face-on opacity
+uniform float u_rim_power;   // grazing-angle opacity rise (render_layers.rim_alpha)
+uniform int u_facing_pass;   // 0 = all fragments, 1 = facing away from eye, 2 = facing eye
 void main() {
+    vec3 N = normalize(v_normal);
+    vec3 V = normalize(u_eye_pos - v_world_pos);
+    float ndotv = dot(N, V);
+    // Split by normal vs view direction, not gl_FrontFacing: triangle winding
+    // isn't consistent across the mesh builders, the outward normals are.
+    if (u_facing_pass == 1 && ndotv >= 0.0) discard;
+    if (u_facing_pass == 2 && ndotv < 0.0) discard;
+    float alpha = 1.0;
+    if (u_alpha < 1.0) {
+        float grazing = 1.0 - clamp(abs(ndotv), 0.0, 1.0);
+        alpha = u_alpha + (1.0 - u_alpha) * pow(grazing, u_rim_power);
+    }
     if (u_flat_shade > 0.5) {
-        gl_FragColor = vec4(v_color, 1.0);
+        gl_FragColor = vec4(v_color, alpha);
         return;
     }
-    vec3 N = normalize(v_normal);
     vec3 L = normalize(u_light_dir);
     float ndotl = max(dot(N, L), 0.0);
-    vec3 V = normalize(u_eye_pos - v_world_pos);
     vec3 H = normalize(L + V);
     float spec = u_specular_strength * pow(max(dot(N, H), 0.0), u_shininess);
     vec3 lit = u_ambient + v_color * ndotl + vec3(spec);
-    gl_FragColor = vec4(min(lit, vec3(1.0)), 1.0);
+    gl_FragColor = vec4(min(lit, vec3(1.0)), alpha);
 }
 """
 
@@ -123,13 +138,17 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._camera = preview3d_gl_core.CameraState()
         self._heat_flux_mode = False
         self._flat_shade = False
+        self._xray = False
+        self._xray_opacity = preview3d_gl_core.XRAY_DEFAULT_OPACITY
         self._duct_bend_radius_mult = None  # None = use DUCT_BEND_RADIUS_TUBE_DIA_MULT
         self._last_result = None
         self._last_bounds = None  # (center_xyz, half_extent), set by update_result/update_meshes
         self._pending_mesh_data = []
-        self._gl_meshes = []  # [{"vbo", "ibo", "n_indices"}, ...] - live GL objects
+        self._gl_meshes = []  # [{"vbo", "ibo", "n_indices", "layer", "centroid", ...}] -
+                              # live GL objects, one per render_layers.RenderBatch
         self._dirty = False
         self._program = None
+        self._locs = {}  # attrib/uniform locations of self._program, cached in initgl
         self._gizmo_program = None
         self._gizmo_vbo = None
         self._drag_last = None
@@ -194,6 +213,19 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._flat_shade = bool(enabled)
         self._request_redraw()
 
+    def set_xray(self, enabled, opacity=None):
+        """Pure render-state toggle: structural pieces (render_layers.XRAY_ROLES)
+        move to the translucent layer with a rim-alpha fade (faces go clear,
+        silhouettes stay). Re-batches the already-built pieces - no mesh
+        rebuild. `opacity` = face-on alpha (None keeps the current value)."""
+        if opacity is not None:
+            self._xray_opacity = float(min(max(opacity, 0.0), 1.0))
+        enabled = bool(enabled)
+        if enabled != self._xray:
+            self._xray = enabled
+            self._dirty = True  # layer assignment changed -> re-batch/upload
+        self._request_redraw()
+
     def set_heat_flux_mode(self, enabled):
         """Pure render-state toggle - rebuilds vertex colors only, no physics."""
         self._heat_flux_mode = bool(enabled)
@@ -245,6 +277,12 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
             print(f"preview3d_gl: shader compile failed, GL preview disabled: {exc}")
             self._program = None
             return
+        prog = self._program
+        self._locs = {name: GL.glGetAttribLocation(prog, name)
+                      for name in ("in_position", "in_normal", "in_color")}
+        self._locs.update({name: GL.glGetUniformLocation(prog, name) for name in (
+            "u_view", "u_proj", "u_light_dir", "u_ambient", "u_eye_pos", "u_flat_shade",
+            "u_specular_strength", "u_shininess", "u_alpha", "u_rim_power", "u_facing_pass")})
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glClearColor(*self._clear_color, 1.0)
 
@@ -284,39 +322,60 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         GL.glViewport(0, 0, width, height)
 
         GL.glUseProgram(self._program)
+        loc = self._locs
         view = self._camera.view_matrix().astype(np.float32)
         proj = self._camera.projection_matrix(aspect=width / height).astype(np.float32)
-        GL.glUniformMatrix4fv(GL.glGetUniformLocation(self._program, "u_view"), 1, GL.GL_TRUE, view)
-        GL.glUniformMatrix4fv(GL.glGetUniformLocation(self._program, "u_proj"), 1, GL.GL_TRUE, proj)
-        GL.glUniform3f(GL.glGetUniformLocation(self._program, "u_light_dir"), *self._light_dir)
-        GL.glUniform3f(GL.glGetUniformLocation(self._program, "u_ambient"), 0.25, 0.25, 0.28)
+        GL.glUniformMatrix4fv(loc["u_view"], 1, GL.GL_TRUE, view)
+        GL.glUniformMatrix4fv(loc["u_proj"], 1, GL.GL_TRUE, proj)
+        GL.glUniform3f(loc["u_light_dir"], *self._light_dir)
+        GL.glUniform3f(loc["u_ambient"], 0.25, 0.25, 0.28)
         eye = self._camera.eye_position()
-        GL.glUniform3f(GL.glGetUniformLocation(self._program, "u_eye_pos"),
-                        float(eye[0]), float(eye[1]), float(eye[2]))
-        GL.glUniform1f(GL.glGetUniformLocation(self._program, "u_flat_shade"),
-                        1.0 if self._flat_shade else 0.0)
+        GL.glUniform3f(loc["u_eye_pos"], float(eye[0]), float(eye[1]), float(eye[2]))
+        GL.glUniform1f(loc["u_flat_shade"], 1.0 if self._flat_shade else 0.0)
+        GL.glUniform1f(loc["u_rim_power"], preview3d_gl_core.XRAY_RIM_POWER)
 
-        pos_loc = GL.glGetAttribLocation(self._program, "in_position")
-        normal_loc = GL.glGetAttribLocation(self._program, "in_normal")
-        color_loc = GL.glGetAttribLocation(self._program, "in_color")
-        stride = 9 * 4  # 9 floats/vertex, 4 bytes each
-        spec_loc = GL.glGetUniformLocation(self._program, "u_specular_strength")
-        shin_loc = GL.glGetUniformLocation(self._program, "u_shininess")
-
+        # Pass 1 - opaque layer: depth write on, no blending (the pre-X-ray path).
+        GL.glUniform1f(loc["u_alpha"], 1.0)
+        GL.glUniform1i(loc["u_facing_pass"], 0)
         for mesh in self._gl_meshes:
-            GL.glUniform1f(spec_loc, mesh["specular_strength"])
-            GL.glUniform1f(shin_loc, mesh["shininess"])
-            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, mesh["vbo"])
-            GL.glEnableVertexAttribArray(pos_loc)
-            GL.glVertexAttribPointer(pos_loc, 3, GL.GL_FLOAT, GL.GL_FALSE, stride, GL.GLvoidp(0))
-            GL.glEnableVertexAttribArray(normal_loc)
-            GL.glVertexAttribPointer(normal_loc, 3, GL.GL_FLOAT, GL.GL_FALSE, stride, GL.GLvoidp(12))
-            GL.glEnableVertexAttribArray(color_loc)
-            GL.glVertexAttribPointer(color_loc, 3, GL.GL_FLOAT, GL.GL_FALSE, stride, GL.GLvoidp(24))
-            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, mesh["ibo"])
-            GL.glDrawElements(GL.GL_TRIANGLES, mesh["n_indices"], GL.GL_UNSIGNED_INT, None)
+            if mesh["layer"] == preview3d_gl_core.LAYER_OPAQUE:
+                self._draw_batch(mesh)
+
+        # Pass 2 - translucent (X-ray) layer: depth-tested against the opaque
+        # pass but not writing depth, alpha-blended back to front; each batch
+        # twice (far-facing fragments, then near-facing) so a revolved shell's
+        # back wall is blended under its front wall.
+        translucent = [m for m in self._gl_meshes
+                       if m["layer"] == preview3d_gl_core.LAYER_TRANSLUCENT]
+        if translucent:
+            order = preview3d_gl_core.back_to_front_order(
+                [m["centroid"] for m in translucent], eye)
+            GL.glDepthMask(GL.GL_FALSE)
+            GL.glEnable(GL.GL_BLEND)
+            GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+            GL.glUniform1f(loc["u_alpha"], self._xray_opacity)
+            for facing_pass in (1, 2):
+                GL.glUniform1i(loc["u_facing_pass"], facing_pass)
+                for k in order:
+                    self._draw_batch(translucent[k])
+            GL.glDisable(GL.GL_BLEND)
+            GL.glDepthMask(GL.GL_TRUE)
 
         self._draw_gizmo(width, height)
+
+    def _draw_batch(self, mesh):
+        """Bind one uploaded batch's buffers and draw it with the current uniforms."""
+        loc = self._locs
+        stride = 9 * 4  # 9 floats/vertex (pos, normal, color), 4 bytes each
+        GL.glUniform1f(loc["u_specular_strength"], mesh["specular_strength"])
+        GL.glUniform1f(loc["u_shininess"], mesh["shininess"])
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, mesh["vbo"])
+        for name, offset in (("in_position", 0), ("in_normal", 12), ("in_color", 24)):
+            GL.glEnableVertexAttribArray(loc[name])
+            GL.glVertexAttribPointer(loc[name], 3, GL.GL_FLOAT, GL.GL_FALSE, stride,
+                                     GL.GLvoidp(offset))
+        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, mesh["ibo"])
+        GL.glDrawElements(GL.GL_TRIANGLES, mesh["n_indices"], GL.GL_UNSIGNED_INT, None)
 
     def _draw_gizmo(self, width, height):
         """
@@ -359,7 +418,10 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
             GL.glDeleteBuffers(1, [mesh["vbo"]])
             GL.glDeleteBuffers(1, [mesh["ibo"]])
         self._gl_meshes = []
-        for buf in self._pending_mesh_data:
+        # Batch per render layer/role/material (render_layers.build_batches):
+        # a tube bundle's hundreds of pieces become one draw call.
+        for batch in preview3d_gl_core.build_batches(self._pending_mesh_data, self._xray):
+            buf = batch.buffers
             interleaved = np.concatenate([buf.vertices, buf.normals, buf.colors], axis=1)
             interleaved = np.ascontiguousarray(interleaved, dtype=np.float32)
             indices = np.ascontiguousarray(buf.indices.ravel(), dtype=np.uint32)
@@ -374,7 +436,8 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
 
             self._gl_meshes.append({"vbo": vbo, "ibo": ibo, "n_indices": indices.size,
                                      "specular_strength": float(buf.specular_strength),
-                                     "shininess": float(buf.shininess)})
+                                     "shininess": float(buf.shininess),
+                                     "layer": batch.layer, "centroid": batch.centroid})
 
     def _request_redraw(self):
         # See module docstring's note: unconfirmed against the actually-
