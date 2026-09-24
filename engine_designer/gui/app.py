@@ -32,7 +32,8 @@ from matplotlib.figure import Figure
 
 from ..catalog import load_roengines_models
 from ..export.cfg_writer import write_cfg
-from ..physics import (combustion, controller_tech, cooling, cost_model, cycles, ignition,
+from ..physics import (combustion, controller_tech, cooling, cost_model, cycles, flow_network,
+                        ignition,
                         hatbands, injectors, materials, mixture_ratio, plumbing, reliability,
                         tech_tree,
                         turbopump_materials, turbopump_sizing, turbopump_tech)
@@ -51,7 +52,7 @@ from .turbopump_diagram import draw_turbopump_diagram
 # module docstring.
 try:
     from .preview3d_gl import EnginePreviewGLFrame
-    from .preview3d_gl_core import XRAY_DEFAULT_OPACITY
+    from .preview3d_gl_core import XRAY_DEFAULT_OPACITY, FLOW_SCALE_MODES, scale_for_network
     from .flow_legend import FlowLegend
     _GL_PREVIEW_AVAILABLE = True
 except ImportError:
@@ -1304,6 +1305,16 @@ class EngineDesignerApp:
                 self._flow_var = tk.BooleanVar(value=False)
                 ttk.Checkbutton(xray_bar, text="Flow", variable=self._flow_var,
                                 command=self._on_flow_change).pack(side=tk.LEFT, padx=(12, 4))
+                # Flow color scale: fit the colormap to this design's coolant
+                # range (default - a jacket's tens-of-K rise gets the whole
+                # gradient), to every drawn stream, or the fixed absolute scale.
+                self._flow_scale_labels = dict(FLOW_SCALE_MODES)
+                self._flow_scale_var = tk.StringVar(value=self._flow_scale_labels["coolant"])
+                _scale_box = ttk.Combobox(xray_bar, textvariable=self._flow_scale_var,
+                                          values=[lbl for _, lbl in FLOW_SCALE_MODES],
+                                          state="readonly", width=22)
+                _scale_box.pack(side=tk.LEFT, padx=2)
+                _scale_box.bind("<<ComboboxSelected>>", lambda _e: self._apply_flow_scale())
                 self._flow_legend = FlowLegend(tab_3d)
                 self._last_result = None
                 self.gl_preview.pack(fill=tk.BOTH, expand=True)
@@ -1766,9 +1777,24 @@ class EngineDesignerApp:
         self.gl_preview.set_flow(on)
         if on:
             self._flow_legend.pack(fill=tk.X, before=self.gl_preview)
-            self._flow_legend.update_result(self._last_result)
+            self._apply_flow_scale()
         else:
             self._flow_legend.pack_forget()
+
+    def _flow_scale_mode(self):
+        label = self._flow_scale_var.get()
+        return next((m for m, lbl in FLOW_SCALE_MODES if lbl == label), "coolant")
+
+    def _apply_flow_scale(self):
+        """Resolve the selected Flow color scale on the current design and push
+        it to the 3D preview (a re-batch, no rebuild) and the legend."""
+        if self.gl_preview is None or self._last_result is None:
+            return
+        network = flow_network.build_flow_network(self._last_result)
+        scale = scale_for_network(network, self._flow_scale_mode())
+        self.gl_preview.set_flow_scale(scale)
+        if self._flow_var.get():
+            self._flow_legend.update_result(self._last_result, scale=scale, network=network)
 
     def _sync_gizmo3d(self, event):
         """
@@ -1846,8 +1872,7 @@ class EngineDesignerApp:
         if self._use_gl_preview:
             self.gl_preview.update_result(result)
             self._last_result = result
-            if self._flow_var.get():
-                self._flow_legend.update_result(result)
+            self._apply_flow_scale()
         else:
             draw_3d_preview(self.ax3d, result)
             self.canvas3d.draw_idle()

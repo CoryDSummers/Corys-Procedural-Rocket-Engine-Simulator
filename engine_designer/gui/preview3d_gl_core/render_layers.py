@@ -21,12 +21,13 @@ Pass structure (preview3d_gl.EnginePreviewGLFrame.redraw):
 X-ray is purely a render-state choice: pieces whose `role` is in XRAY_ROLES
 move to LAYER_TRANSLUCENT when it's on; nothing is rebuilt.
 """
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 import numpy as np
 
 from .mesh_primitives import MeshBuffers
 from .shading import resolve_pbr
+from .flow_meshes import recolor
 
 LAYER_OPAQUE = "opaque"
 LAYER_TRANSLUCENT = "translucent"
@@ -101,13 +102,19 @@ def merge_buffers(pieces):
         role=first.role, **extra)
 
 
-def build_batches(pieces, xray_enabled, flow_enabled=False):
+def build_batches(pieces, xray_enabled, flow_enabled=False, color_scale=None):
     """
     Group pieces by (layer, role, specular_strength, shininess) and merge each
     group into one RenderBatch - collapses e.g. a discrete tube bundle's
     hundreds of pieces (hundreds of glDrawElements calls) into one. Pieces
     with no triangles are dropped. Batches come back in LAYER_ORDER, groups
     within a layer in first-seen order.
+
+    `color_scale` (a flow_meshes.FlowColorScale): while Flow is on, flow
+    pieces and tinted coolant hardware are recolored from their per-vertex
+    `scalar` temperature on that scale - switching scales is a re-batch, not
+    a mesh rebuild. None keeps the colors baked at build time (absolute scale).
+    The source pieces are never mutated.
     """
     groups = {}
     for piece in pieces:
@@ -117,10 +124,16 @@ def build_batches(pieces, xray_enabled, flow_enabled=False):
         if layer is None:
             continue
         tinted = flow_enabled and piece.flow_colors is not None and piece.role != FLOW_ROLE
+        if (flow_enabled and color_scale is not None and piece.role == FLOW_ROLE
+                and piece.scalar is not None):
+            piece = replace(piece, colors=recolor(piece.scalar, piece.colors, color_scale))
         if tinted:
+            tint = piece.flow_colors
+            if color_scale is not None and piece.scalar is not None:
+                tint = recolor(piece.scalar, tint, color_scale)
             # the temperature tint is a data readout (like the heat-flux map):
             # shaded without the PBR tone mapping so the colormap stays true
-            piece = MeshBuffers(piece.vertices, piece.normals, piece.flow_colors, piece.indices,
+            piece = MeshBuffers(piece.vertices, piece.normals, tint, piece.indices,
                                 specular_strength=piece.specular_strength,
                                 shininess=piece.shininess, role=piece.role,
                                 metallic=piece.metallic, roughness=piece.roughness,
@@ -215,6 +228,22 @@ def self_test():
     assert [b.layer for b in on_b if b is not tb[0]] == [LAYER_OPAQUE]
     assert np.allclose(tube.colors, 0.5), "source piece must not be mutated"
     assert tb[0].buffers.data_colors and not tube.data_colors
+    # a color scale recolors flow pieces + tinted hardware from their per-vertex
+    # temperature at batch time; NaN (outside the cooled length) keeps the tint
+    from .flow_meshes import FlowColorScale, temperature_colors
+    fit = FlowColorScale("coolant", 300.0, 380.0)
+    tube.scalar = np.array([300.0, 380.0, np.nan, 340.0])
+    stream = _quad(5.0, role=FLOW_ROLE)
+    stream.scalar = np.full(4, 380.0)
+    sb = {b.layer: b for b in build_batches([tube, stream], False, True, color_scale=fit)}
+    tcol = sb[LAYER_TRANSLUCENT].buffers.colors
+    assert np.allclose(tcol[0], temperature_colors([300.0], fit)[0])
+    assert np.allclose(tcol[1], temperature_colors([380.0], fit)[0])
+    assert np.allclose(tcol[2], [1.0, 0.0, 0.0])
+    assert np.allclose(sb[LAYER_FLOW].buffers.colors, temperature_colors([380.0], fit)[0])
+    assert np.allclose(stream.colors, 0.5) and np.isnan(tube.scalar[2]), "sources untouched"
+    nb = build_batches([tube, stream], False, True)       # no scale: baked colors
+    assert np.allclose({b.layer: b for b in nb}[LAYER_FLOW].buffers.colors, 0.5)
     # PBR material is part of the batch key and survives the merge
     ma, mb_ = _quad(0.0, role="wall"), _quad(1.0, role="wall")
     ma.metallic, ma.roughness = 1.0, 0.3

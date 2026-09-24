@@ -65,9 +65,19 @@ draw call instead of hundreds. With X-ray and Flow off, the render is
 pixel-identical to the old single-pass renderer (checked headlessly under
 Xvfb + Mesa).
 
-The **Flow** checkbox shows the propellant plumbing by temperature, on a
-fixed log scale from 20 to 4000 K, with a colorbar above the view. Ticking it
-also turns on X-ray, which can be unticked again.
+The **Flow** checkbox shows the propellant plumbing by temperature, with a
+colorbar above the view. Ticking it also turns on X-ray, which can be unticked
+again. A dropdown next to it picks the color scale:
+- **Coolant (fit)** (default): the whole colormap spans this design's
+  regen-jacket temperature range, so a jacket rise of a few tens of K shows as
+  a full blue-to-red gradient.
+- **All streams (fit)**: spans every drawn fuel/ox stream.
+- **Absolute (log 20-4000 K)**: fixed, so a color means the same temperature
+  on every design.
+
+On a fit scale, streams outside the range are drawn in its end colors, and
+the legend names them (e.g. "ox 90 K below scale"). Switching scales only
+recolors from each vertex's stored temperature; no mesh is rebuilt.
 - **Tinted hardware:** every drawn regen tube (or the milled-channel jacket),
   manifold ring and plumbing pipe is tinted by the temperature of the
   propellant inside it and turns semi-transparent.
@@ -85,10 +95,7 @@ also turns on X-ray, which can be unticked again.
 The colors come from `physics/flow_network.py`. In "channels" regen mode the
 jacket temperatures are the coolant march's own values. In any other mode only
 the total coolant temperature rise is known, so it is spread along the jacket
-by absorbed heat, and the legend says "approx.". Because the scale is fixed,
-a color means the same temperature on every design. The flip side is that a
-small rise, such as RP-1's ~80 K through the jacket, barely changes color.
-Feed lines appear only where a plumbing run or the default jacket-inlet duct
+by absorbed heat, and the legend says "approx.". Feed lines appear only where a plumbing run or the default jacket-inlet duct
 is drawn.
 
 Before first use (or after `Engine_Configs/` changes), rebuild the host-model

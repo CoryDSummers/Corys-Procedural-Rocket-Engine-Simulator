@@ -1,6 +1,8 @@
 """
-Flow-visualization mesh primitives: temperature -> color on a FIXED log-T
-scale (so a color means the same temperature on every design), thin tubes
+Flow-visualization mesh primitives: temperature -> color on a selectable
+FlowColorScale (the fixed log-T "absolute" scale, so a color means the same
+temperature on every design, or a linear fit to this design's coolant /
+stream range, so a jacket's small rise uses the whole colormap), thin tubes
 swept along a stream centerline, a flow loop round a manifold ring, and the
 revolved hot-gas core. Every piece carries per-vertex `scalar` (temperature,
 K) and `flow_s` (arc length along its stream, m) on MeshBuffers for the
@@ -10,6 +12,8 @@ the colormap), no OpenGL/Tk - see this package's __init__.py.
 Which temperature goes where is decided by physics/flow_network.py; mapping
 its anchors onto rendered geometry is gui/mesh_builder.build_flow_pieces.
 """
+from dataclasses import dataclass
+
 import matplotlib
 import numpy as np
 
@@ -26,16 +30,99 @@ FLOW_LEGEND_TICKS_K = (20, 50, 100, 300, 1000, 3000)
 FLOW_N_THETA = 8          # cross-section facets of a flow tube - they're thin
 
 
-def temperature_unit(t_k):
-    """0..1 position of `t_k` on the fixed log-T scale (clipped)."""
-    t = np.clip(np.asarray(t_k, dtype=float), FLOW_T_MIN_K, FLOW_T_MAX_K)
-    return np.log(t / FLOW_T_MIN_K) / np.log(FLOW_T_MAX_K / FLOW_T_MIN_K)
+@dataclass(frozen=True)
+class FlowColorScale:
+    """Which temperatures the flow colormap spans.
+    mode "absolute": the fixed log scale FLOW_T_MIN_K..FLOW_T_MAX_K (colors mean
+    the same temperature on every design); "coolant" / "streams": LINEAR over
+    [lo_k, hi_k] - this design's regen-jacket range, or every drawn fuel/ox
+    stream - so a jacket's tens-of-kelvin rise uses the whole colormap.
+    Temperatures outside [lo_k, hi_k] clamp to the end colors."""
+    mode: str = "absolute"
+    lo_k: float = FLOW_T_MIN_K
+    hi_k: float = FLOW_T_MAX_K
+
+    @property
+    def is_log(self):
+        return self.mode == "absolute"
 
 
-def temperature_colors(t_k):
-    """(N, 3) float32 RGB for temperatures `t_k` (K)."""
-    rgba = matplotlib.colormaps[FLOW_CMAP](temperature_unit(np.atleast_1d(t_k)))
+ABSOLUTE_SCALE = FlowColorScale()
+#: UI order + labels of the scale modes (gui/app.py's dropdown).
+FLOW_SCALE_MODES = (("coolant", "Coolant (fit)"), ("streams", "All streams (fit)"),
+                    ("absolute", "Absolute (log 20-4000 K)"))
+FLOW_MIN_FIT_SPAN_K = 1.0     # a fit range narrower than this is padded to it
+
+
+def temperature_unit(t_k, scale=ABSOLUTE_SCALE):
+    """0..1 position of `t_k` on `scale` (clipped)."""
+    t = np.asarray(t_k, dtype=float)
+    lo, hi = float(scale.lo_k), float(scale.hi_k)
+    if scale.is_log:
+        t = np.clip(t, lo, hi)
+        return np.log(t / lo) / np.log(hi / lo)
+    return np.clip((t - lo) / (hi - lo), 0.0, 1.0)
+
+
+def temperature_colors(t_k, scale=ABSOLUTE_SCALE):
+    """(N, 3) float32 RGB for temperatures `t_k` (K) on `scale`."""
+    rgba = matplotlib.colormaps[FLOW_CMAP](temperature_unit(np.atleast_1d(t_k), scale))
     return np.asarray(rgba[..., :3], dtype=np.float32).reshape(-1, 3)
+
+
+def scale_for_network(network, mode):
+    """The FlowColorScale for `mode` on one physics/flow_network result:
+    "coolant" = the regen jacket segments' range (falls back to "streams" when
+    the design has no jacket), "streams" = every fuel/ox segment, anything else
+    = ABSOLUTE_SCALE."""
+    def _range(segs):
+        vals = [np.atleast_1d(np.asarray(sg.t_k, dtype=float)) for sg in segs]
+        vals = np.concatenate(vals) if vals else np.zeros(0)
+        vals = vals[np.isfinite(vals)]
+        return (float(vals.min()), float(vals.max())) if vals.size else None
+
+    if mode not in ("coolant", "streams"):
+        return ABSOLUTE_SCALE
+    rng = None
+    if mode == "coolant":
+        rng = _range([sg for sg in network if sg.kind == "jacket_pass"])
+        if rng is not None:
+            mode_eff = "coolant"
+    if rng is None:
+        rng = _range([sg for sg in network if sg.propellant in ("fuel", "ox")])
+        mode_eff = "streams"
+    if rng is None:
+        return ABSOLUTE_SCALE
+    lo, hi = rng
+    if hi - lo < FLOW_MIN_FIT_SPAN_K:
+        mid = 0.5 * (lo + hi)
+        lo, hi = mid - 0.5 * FLOW_MIN_FIT_SPAN_K, mid + 0.5 * FLOW_MIN_FIT_SPAN_K
+    return FlowColorScale(mode_eff, lo, hi)
+
+
+def scale_ticks(scale, n_target=5):
+    """Legend tick temperatures (K) for `scale`: FLOW_LEGEND_TICKS_K on the
+    absolute log scale, else round numbers (1/2/2.5/5 x 10^k steps) inside
+    [lo_k, hi_k]."""
+    if scale.is_log:
+        return [float(t) for t in FLOW_LEGEND_TICKS_K]
+    lo, hi = float(scale.lo_k), float(scale.hi_k)
+    raw = (hi - lo) / max(n_target - 1, 1)
+    mag = 10.0 ** np.floor(np.log10(raw))
+    step = next(m * mag for m in (1.0, 2.0, 2.5, 5.0, 10.0) if m * mag >= raw)
+    first = np.ceil(lo / step) * step
+    return [float(t) for t in np.arange(first, hi + 1e-9 * step, step)]
+
+
+def recolor(scalar, fallback_colors, scale):
+    """Per-vertex colors from `scalar` (K) on `scale`; vertices whose scalar is
+    NaN (e.g. tube length past the cooled end) keep `fallback_colors`."""
+    out = np.array(fallback_colors, dtype=np.float32, copy=True)
+    t = np.asarray(scalar, dtype=float)
+    ok = np.isfinite(t)
+    if np.any(ok):
+        out[ok] = temperature_colors(t[ok], scale)
+    return out
 
 
 def resample_polyline(points_xyz, values, spacing_m):
@@ -148,6 +235,37 @@ def self_test():
     assert np.all(np.diff(u) > 0)
     c = temperature_colors([90.0, 3500.0])
     assert c.shape == (2, 3) and c[0, 2] > c[0, 0] and c[1, 0] > c[1, 2]  # cold blue, hot red
+
+    # color scales: absolute is today's log scale; fit modes are linear + clamped
+    assert np.allclose(temperature_colors([90.0, 3500.0], ABSOLUTE_SCALE), c)
+    fit = FlowColorScale("coolant", 300.0, 380.0)
+    u = temperature_unit([250.0, 300.0, 340.0, 380.0, 500.0], fit)
+    assert np.allclose(u, [0.0, 0.0, 0.5, 1.0, 1.0])
+    # a 300->380 K jacket spans (nearly) the whole map on fit, a sliver on absolute
+    span_fit = np.ptp(temperature_unit([300.0, 380.0], fit))
+    span_abs = np.ptp(temperature_unit([300.0, 380.0]))
+    assert span_fit == 1.0 and span_abs < 0.06, (span_fit, span_abs)
+    rc = recolor([np.nan, 340.0], [[0.1, 0.2, 0.3], [0.0, 0.0, 0.0]], fit)
+    assert np.allclose(rc[0], [0.1, 0.2, 0.3]) and np.allclose(rc[1], temperature_colors([340.0], fit)[0])
+
+    class _Seg:
+        def __init__(self, prop, kind, t):
+            self.propellant, self.kind, self.t_k = prop, kind, np.asarray(t, dtype=float)
+    net = [_Seg("fuel", "feed_line", [300.0]), _Seg("fuel", "jacket_pass", [300.0, 377.0]),
+           _Seg("ox", "manifold_ring", [90.0]), _Seg("gas", "chamber_gas", [3500.0, 1500.0])]
+    sc = scale_for_network(net, "coolant")
+    assert (sc.mode, sc.lo_k, sc.hi_k) == ("coolant", 300.0, 377.0)
+    ss = scale_for_network(net, "streams")
+    assert (ss.mode, ss.lo_k, ss.hi_k) == ("streams", 90.0, 377.0)   # gas is not a drawn stream
+    no_jacket = scale_for_network([sg for sg in net if sg.kind != "jacket_pass"], "coolant")
+    assert no_jacket.mode == "streams" and (no_jacket.lo_k, no_jacket.hi_k) == (90.0, 300.0)
+    flat = scale_for_network([_Seg("fuel", "jacket_pass", [100.0, 100.2])], "coolant")
+    assert abs((flat.hi_k - flat.lo_k) - FLOW_MIN_FIT_SPAN_K) < 1e-9
+    assert scale_for_network(net, "absolute") is ABSOLUTE_SCALE
+    assert scale_ticks(ABSOLUTE_SCALE) == [float(t) for t in FLOW_LEGEND_TICKS_K]
+    tk_ = scale_ticks(sc)                                   # 300..377 K
+    assert tk_[0] >= 300.0 and tk_[-1] <= 377.0 and 3 <= len(tk_) <= 6, tk_
+    assert np.allclose(np.diff(tk_), tk_[1] - tk_[0])
 
     # resample: endpoints kept, values interpolated along arc length
     p, v, s = resample_polyline([[0, 0, 0], [1, 0, 0], [1, 1, 0]], [0.0, 10.0, 20.0], 0.1)

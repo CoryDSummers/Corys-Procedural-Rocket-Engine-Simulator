@@ -167,8 +167,16 @@ def build_flow_network(result):
     for s in jacket:
         s.order = o; segs.append(s); o += 1
     if regen and jm.get("jacket_return"):
+        # The return / turnaround collar sits at the AFT end of the cooled
+        # length, so its coolant is at the jacket temperature there - the J-2
+        # turnaround temperature (end of the down leg), or near-inlet on a
+        # lumped single pass (F-1 split) - NOT the jacket-exit temperature.
+        down = [sg for sg in jacket if sg.anchor.get("pass") == "down"]
+        two_pass = bool(down)
+        src = down[0] if two_pass else max(jacket, key=lambda sg: float(np.max(sg.x_m)))
+        t_return = float(src.t_k[int(np.argmax(src.x_m))])
         segs.append(FlowSegment("fuel", "manifold_ring", {"host": "jacket_return"},
-                                np.array([t_jacket_exit]), o, approximate=True)); o += 1
+                                np.array([t_return]), o, approximate=not two_pass)); o += 1
     if mr.get("fuel"):
         if not regen:
             segs.append(FlowSegment("fuel", "feed_line", {"host": "fuel"},
@@ -266,6 +274,9 @@ def self_test():
     assert [s.anchor["pass"] for s in j3] == ["down", "up"], [s.anchor["pass"] for s in j3]
     assert np.all(np.diff(j3[0].x_m) > 0) and np.all(np.diff(j3[1].x_m) < 0)
     assert abs(j3[0].t_k[-1] - r3["cooling"]["coolant_turnaround_t_k"]) < 1e-9
+    ret = [s for s in n3 if s.kind == "manifold_ring" and s.anchor["host"] == "jacket_return"]
+    if ret:   # the aft turnaround collar carries turnaround-temperature coolant, not exit
+        assert abs(ret[0].t_k[0] - r3["cooling"]["coolant_turnaround_t_k"]) < 1e-6, ret[0].t_k
     print(f"J-2 two-pass: down {j3[0].t_k[0]:.0f}->{j3[0].t_k[-1]:.0f} K, "
           f"up {j3[1].t_k[0]:.0f}->{j3[1].t_k[-1]:.0f} K: OK")
 
