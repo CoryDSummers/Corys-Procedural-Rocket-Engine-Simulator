@@ -159,6 +159,11 @@ uniform vec3 u_env_horizon;
 uniform float u_env_horizon_width;
 uniform float u_env_horizon_rough_widen;
 uniform float u_exposure;
+// X-ray / Flow translucent pass (gui/preview3d_gl_core/render_layers.py):
+// u_alpha = 1.0 is the opaque path, output identical to the plain PBR shader.
+uniform float u_alpha;       // face-on opacity
+uniform float u_rim_power;   // grazing-angle opacity rise (render_layers.rim_alpha)
+uniform int u_facing_pass;   // 0 = all fragments, 1 = facing away from eye, 2 = facing eye
 
 const float PI = 3.14159265;
 const float MIN_ALPHA = %(MIN_ALPHA)r;
@@ -198,17 +203,28 @@ vec2 env_brdf_approx(float n_dot_v, float rough) {
 }
 
 void main() {
-    if (u_flat_shade > 0.5) {
-        gl_FragColor = vec4(v_color, 1.0);
-        return;
-    }
     vec3 N = normalize(v_normal);
     vec3 V = normalize(u_eye_pos - v_world_pos);
+    // Translucent-pass facing split on the RAW normal (before the two-sided
+    // flip below) - triangle winding isn't consistent across the builders,
+    // the outward normals are.
+    float ndotv_raw = dot(N, V);
+    if (u_facing_pass == 1 && ndotv_raw >= 0.0) discard;
+    if (u_facing_pass == 2 && ndotv_raw < 0.0) discard;
+    float out_alpha = 1.0;
+    if (u_alpha < 1.0) {
+        float grazing = 1.0 - clamp(abs(ndotv_raw), 0.0, 1.0);
+        out_alpha = u_alpha + (1.0 - u_alpha) * pow(grazing, u_rim_power);
+    }
+    if (u_flat_shade > 0.5) {
+        gl_FragColor = vec4(v_color, out_alpha);
+        return;
+    }
     if (u_data_colors > 0.5) {
         // Heat-flux colormap readout: keep the colormap's own sRGB values
         // (no linearize/tonemap hue shift), soft key-light shape cue only.
         float k = max(dot(N, normalize(u_light_dir[0])), 0.0);
-        gl_FragColor = vec4(v_color * (0.45 + 0.55 * k), 1.0);
+        gl_FragColor = vec4(v_color * (0.45 + 0.55 * k), out_alpha);
         return;
     }
     // Two-sided: shells are open at the bell lip, so a back face can be seen.
@@ -246,7 +262,7 @@ void main() {
     color += environment(N, 1.0) * albedo * (1.0 - metal);
     color += environment(R, rough) * (f0 * ab.x + ab.y);
 
-    gl_FragColor = vec4(linear_to_srgb(aces_tonemap(color * u_exposure)), 1.0);
+    gl_FragColor = vec4(linear_to_srgb(aces_tonemap(color * u_exposure)), out_alpha);
 }
 """ % dict(MIN_ALPHA=MIN_ALPHA, DIELECTRIC_F0=DIELECTRIC_F0, DIFFUSE_WRAP=DIFFUSE_WRAP,
            N_LIGHTS=N_LIGHTS)
@@ -515,7 +531,8 @@ def self_test():
         assert f" {fn}(" in PBR_FRAGMENT_SHADER, fn
     for u in ("u_metallic", "u_roughness", "u_flat_shade", "u_data_colors", "u_light_dir",
               "u_light_rgb", "u_env_up", "u_env_sky", "u_env_ground", "u_env_horizon",
-              "u_env_horizon_width", "u_env_horizon_rough_widen", "u_exposure", "u_eye_pos"):
+              "u_env_horizon_width", "u_env_horizon_rough_widen", "u_exposure", "u_eye_pos",
+              "u_alpha", "u_rim_power", "u_facing_pass"):
         assert f"uniform " in PBR_FRAGMENT_SHADER and f" {u}" in PBR_FRAGMENT_SHADER, u
     assert "%(" not in PBR_FRAGMENT_SHADER
     assert f"u_light_dir[{N_LIGHTS}]" in PBR_FRAGMENT_SHADER

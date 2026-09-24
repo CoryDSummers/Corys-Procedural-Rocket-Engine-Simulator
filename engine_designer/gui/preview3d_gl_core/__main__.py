@@ -11,6 +11,8 @@ from . import duct_meshes
 from . import tube_bundle
 from . import shell_mesh
 from . import camera_color
+from . import render_layers
+from . import flow_meshes
 from . import shading
 
 if __name__ == "__main__":
@@ -20,5 +22,7 @@ if __name__ == "__main__":
     tube_bundle.self_test()
     shell_mesh.self_test()
     camera_color.self_test()
+    render_layers.self_test()
+    flow_meshes.self_test()
     shading.self_test()
     print("ALL PREVIEW3D_GL_CORE CHECKS OK")

@@ -19,6 +19,10 @@ axis, one directory up) into:
   - tube_bundle.py         - discrete cooling-tube/channel bundle meshes
   - shell_mesh.py           - whole-piece solid-shell composition
   - camera_color.py         - heat-flux colormap, bounds, orbit camera
+  - render_layers.py        - opaque/translucent (X-ray) layer assignment,
+                             per-layer batching, back-to-front sort
+  - flow_meshes.py          - flow visualization: fixed log-T colormap, stream
+                             tubes, ring loops, streams inside drawn tubes
   - shading.py              - PBR fragment shader + light rig/environment + its
                              numpy reference twin (headless-testable look)
 
@@ -116,6 +120,37 @@ from .camera_color import (
     gizmo_rotation_matrix,
     gizmo_projection_matrix,
 )
+from .render_layers import (
+    LAYER_OPAQUE,
+    LAYER_TRANSLUCENT,
+    LAYER_FLOW,
+    LAYER_ORDER,
+    FLOW_ROLE,
+    XRAY_ROLES,
+    XRAY_DEFAULT_OPACITY,
+    FLOW_TINT_OPACITY,
+    XRAY_RIM_POWER,
+    RenderBatch,
+    layer_for,
+    merge_buffers,
+    build_batches,
+    back_to_front_order,
+    rim_alpha,
+)
+from .flow_meshes import (
+    FLOW_T_MIN_K,
+    FLOW_T_MAX_K,
+    FLOW_CMAP,
+    FLOW_LEGEND_TICKS_K,
+    FLOW_N_THETA,
+    temperature_unit,
+    temperature_colors,
+    resample_polyline,
+    flow_tube_mesh,
+    ring_loop_points,
+    gas_core_mesh,
+    stream_inside_tube,
+)
 from .shading import (
     blinn_to_pbr,
     resolve_pbr,
@@ -205,6 +240,33 @@ __all__ = [
     "gizmo_axis_lines",
     "gizmo_rotation_matrix",
     "gizmo_projection_matrix",
+    "LAYER_OPAQUE",
+    "LAYER_TRANSLUCENT",
+    "LAYER_FLOW",
+    "LAYER_ORDER",
+    "FLOW_ROLE",
+    "XRAY_ROLES",
+    "XRAY_DEFAULT_OPACITY",
+    "FLOW_TINT_OPACITY",
+    "XRAY_RIM_POWER",
+    "RenderBatch",
+    "layer_for",
+    "merge_buffers",
+    "build_batches",
+    "back_to_front_order",
+    "rim_alpha",
+    "FLOW_T_MIN_K",
+    "FLOW_T_MAX_K",
+    "FLOW_CMAP",
+    "FLOW_LEGEND_TICKS_K",
+    "FLOW_N_THETA",
+    "temperature_unit",
+    "temperature_colors",
+    "resample_polyline",
+    "flow_tube_mesh",
+    "ring_loop_points",
+    "gas_core_mesh",
+    "stream_inside_tube",
     "blinn_to_pbr",
     "resolve_pbr",
     "stamp_pbr",

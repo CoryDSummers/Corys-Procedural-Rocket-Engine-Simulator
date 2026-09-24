@@ -42,6 +42,42 @@ installed) — only its pure-math mesh/camera/colormap layer
 layer (`gui/preview3d_gl.py`) was only syntax-checked. Please exercise the
 orbit drag, scroll zoom, and heat-flux toggle yourself and report back.
 
+The GL preview draws in layers (`gui/preview3d_gl_core/render_layers.py`):
+an opaque pass, then a translucent pass. The **X-ray** checkbox above the 3D
+view (and in the Shape Lab toolbar) moves the structural parts into the
+translucent pass: they fade by viewing angle, so faces go clear while
+silhouettes stay visible. The opacity slider sets how see-through the faces
+are. Pieces are batched per layer and material, so a tube-wall bundle is one
+draw call instead of hundreds. With X-ray and Flow off, the render is
+pixel-identical to the old single-pass renderer (checked headlessly under
+Xvfb + Mesa).
+
+The **Flow** checkbox shows the propellant plumbing by temperature, on a
+fixed log scale from 20 to 4000 K, with a colorbar above the view. Ticking it
+also turns on X-ray, which can be unticked again.
+- **Tinted hardware:** every drawn regen tube (or the milled-channel jacket),
+  manifold ring and plumbing pipe is tinted by the temperature of the
+  propellant inside it and turns semi-transparent.
+- **One stream per tube:** a bright stream runs inside each drawn tube; on a
+  milled-channel jacket, one per drawn channel. Two-pass (J-2) designs:
+  - tube wall: the down tubes carry the down leg;
+  - milled channels: every third channel carries it.
+- **Gaps are filled:** a jacket stretch with no drawn tubes, such as the
+  smooth chamber-jacket option, gets streams at the real channel count, so
+  the flow stays continuous.
+- **The hot gas is not drawn:** the chamber and nozzle stay plain X-ray walls.
+- **Uncooled tubes:** tubes drawn on an uncooled nozzle extension carry no
+  coolant, so they stay untinted and get no stream.
+
+The colors come from `physics/flow_network.py`. In "channels" regen mode the
+jacket temperatures are the coolant march's own values. In any other mode only
+the total coolant temperature rise is known, so it is spread along the jacket
+by absorbed heat, and the legend says "approx.". Because the scale is fixed,
+a color means the same temperature on every design. The flip side is that a
+small rise, such as RP-1's ~80 K through the jacket, barely changes color.
+Feed lines appear only where a plumbing run or the default jacket-inlet duct
+is drawn.
+
 Before first use (or after `Engine_Configs/` changes), rebuild the host-model
 catalog:
 

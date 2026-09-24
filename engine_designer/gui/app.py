@@ -51,6 +51,8 @@ from .turbopump_diagram import draw_turbopump_diagram
 # module docstring.
 try:
     from .preview3d_gl import EnginePreviewGLFrame
+    from .preview3d_gl_core import XRAY_DEFAULT_OPACITY
+    from .flow_legend import FlowLegend
     _GL_PREVIEW_AVAILABLE = True
 except ImportError:
     from .preview3d import draw_3d_preview
@@ -1277,6 +1279,28 @@ class EngineDesignerApp:
         if self._use_gl_preview:
             try:
                 self.gl_preview = EnginePreviewGLFrame(tab_3d, width=600, height=600)
+                # X-ray toggle (GL-only render state - see EnginePreviewGLFrame.set_xray):
+                # structural pieces go translucent with a rim-alpha fade. Packed before
+                # the canvas so it sits above it; destroyed with the rest of tab_3d's
+                # children by the fallback below if GL fails.
+                xray_bar = ttk.Frame(tab_3d)
+                xray_bar.pack(fill=tk.X)
+                self._xray_var = tk.BooleanVar(value=False)
+                self._xray_opacity_var = tk.DoubleVar(value=XRAY_DEFAULT_OPACITY)
+                ttk.Checkbutton(xray_bar, text="X-ray", variable=self._xray_var,
+                                command=self._on_xray_change).pack(side=tk.LEFT, padx=4, pady=2)
+                ttk.Label(xray_bar, text="opacity").pack(side=tk.LEFT, padx=(8, 2))
+                ttk.Scale(xray_bar, from_=0.02, to=0.8, variable=self._xray_opacity_var,
+                          orient="horizontal", length=140,
+                          command=lambda _v: self._on_xray_change()).pack(side=tk.LEFT, padx=2)
+                # Flow toggle (propellant-flow visualization, GL render state
+                # only - see EnginePreviewGLFrame.set_flow) + its colorbar legend,
+                # which is packed in above the canvas only while Flow is on.
+                self._flow_var = tk.BooleanVar(value=False)
+                ttk.Checkbutton(xray_bar, text="Flow", variable=self._flow_var,
+                                command=self._on_flow_change).pack(side=tk.LEFT, padx=(12, 4))
+                self._flow_legend = FlowLegend(tab_3d)
+                self._last_result = None
                 self.gl_preview.pack(fill=tk.BOTH, expand=True)
             except Exception as exc:
                 # Construction-time GL failure (e.g. no usable GL context) -
@@ -1697,6 +1721,26 @@ class EngineDesignerApp:
         except ValueError:
             pass
 
+    def _on_xray_change(self):
+        if self.gl_preview is not None:
+            self.gl_preview.set_xray(self._xray_var.get(), self._xray_opacity_var.get())
+
+    def _on_flow_change(self):
+        if self.gl_preview is None:
+            return
+        on = self._flow_var.get()
+        # The streams run inside the walls: turn X-ray on with them (it can be
+        # unticked again).
+        if on and not self._xray_var.get():
+            self._xray_var.set(True)
+            self._on_xray_change()
+        self.gl_preview.set_flow(on)
+        if on:
+            self._flow_legend.pack(fill=tk.X, before=self.gl_preview)
+            self._flow_legend.update_result(self._last_result)
+        else:
+            self._flow_legend.pack_forget()
+
     def _sync_gizmo3d(self, event):
         """
         Keep the matplotlib-fallback corner orientation gizmo tracking the
@@ -1752,6 +1796,9 @@ class EngineDesignerApp:
 
         if self._use_gl_preview:
             self.gl_preview.update_result(result)
+            self._last_result = result
+            if self._flow_var.get():
+                self._flow_legend.update_result(result)
         else:
             draw_3d_preview(self.ax3d, result)
             self.canvas3d.draw_idle()
