@@ -88,3 +88,14 @@ Results and Discussion (p.3-6), Summary and Conclusions (p.7), References (p.8).
 - **No manifold content whatsoever** — checked specifically per the user's interest in
   manifold literature; this paper only ever models one interior segment of one coolant
   passage.
+
+## Regen passage geometry data (2026-09-23 re-read)
+
+All 8 leaves searched. **No real-engine passage data.** The only stated passage numbers are
+the idealized CFD case already noted: **640** rectangular passages around the perimeter,
+passage (tube) **aspect ratio 1.5:1** `[Merkle-RegenCFD abstract p.1]`, copper wall, water
+coolant in at 300 K / 10 m/s, hot gas 3000 K / 500 m/s, 100 mm simulated length
+`[p.2-3]`. Fig. 5 plane labels (Y = 0 passage centre, Y = 3 passage wall, Y = 6 land
+centre) imply passage width : pitch = 1 : 2 (land width = channel width) in unstated grid
+units - an inference from figure labels, not a stated dimension. No land width, hot-wall
+thickness, absolute channel size, pressure, or flow rate given.

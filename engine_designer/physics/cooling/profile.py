@@ -145,3 +145,61 @@ def area_weighted_mean(xs_m, rs_m, values, throat_dia_m=None, transition_area_ra
         tot_a += a
         tot_va += a * 0.5 * (v[i] + v[i + 1])
     return tot_va / tot_a if tot_a > 0 else 1.0
+
+
+# A coolant passage following the wall is "in a bend" where the wall's radius of
+# curvature is below this many throat diameters (throat arcs ~0.4-1.5 Rt, the
+# cylinder->convergent fillet, the bell's initial arc). The long, gently curving
+# bell and straight cones are treated as straight - [EUCASS-2023] Eq. 22 is a
+# BEND correlation and would otherwise act on a nearly straight passage. Tier 3.
+BEND_RADIUS_MAX_THROAT_DIAMETERS = 2.0
+
+
+def bend_segments(xs_m, rs_m, throat_dia_m):
+    """Per-SEGMENT bend geometry of a coolant passage that follows the wall
+    contour, for the [EUCASS-2023 Eq. 22] curvature factor. Returns dict of
+    arrays (len n-1): radius_m (inf where straight), sign (+1 where the hot
+    wall is on the CONCAVE/outer side of the passage bend - r''(x) > 0, the
+    throat arc, where secondary flow is driven onto it and enhances h_c; -1 on
+    the convex side, e.g. the cylinder->convergent fillet), s_m (arc position of
+    the segment midpoint from its bend's start) and length_m (that bend's arc
+    length)."""
+    xs = np.asarray(xs_m, dtype=float)
+    rs = np.asarray(rs_m, dtype=float)
+    n = len(xs)
+    nseg = max(n - 1, 0)
+    out = dict(radius_m=np.full(nseg, np.inf), sign=np.zeros(nseg),
+               s_m=np.zeros(nseg), length_m=np.zeros(nseg))
+    if n < 3 or throat_dia_m <= 0:
+        return out
+    # arc-length parametrisation (robust to a vertical/steep wall)
+    ds = np.hypot(np.diff(xs), np.diff(rs))
+    sarc = np.concatenate([[0.0], np.cumsum(ds)])
+    if np.any(ds <= 0):
+        return out
+    dx = np.gradient(xs, sarc)
+    dr = np.gradient(rs, sarc)
+    ddx = np.gradient(dx, sarc)
+    ddr = np.gradient(dr, sarc)
+    kappa = (dx * ddr - dr * ddx) / np.maximum((dx * dx + dr * dr) ** 1.5, 1e-12)
+    k_seg = 0.5 * (kappa[:-1] + kappa[1:])
+    r_seg = np.where(np.abs(k_seg) > 1e-12, 1.0 / np.abs(k_seg), np.inf)
+    bent = r_seg < BEND_RADIUS_MAX_THROAT_DIAMETERS * throat_dia_m
+    sgn = np.sign(k_seg)
+    mids = 0.5 * (sarc[:-1] + sarc[1:])
+    i = 0
+    while i < nseg:
+        if not bent[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < nseg and bent[j + 1] and sgn[j + 1] == sgn[i]:
+            j += 1
+        s0, s1 = sarc[i], sarc[j + 1]
+        for k in range(i, j + 1):
+            out["radius_m"][k] = r_seg[k]
+            out["sign"][k] = sgn[k]
+            out["s_m"][k] = mids[k] - s0
+            out["length_m"][k] = s1 - s0
+        i = j + 1
+    return out

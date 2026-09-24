@@ -18,7 +18,7 @@ from .channels import (
     coolant_side_htc,
 )
 from .coolant_props import COOLANT_DENSITY_KG_M3, FUEL_CP_J_KGK, _COOLANT_DENSITY_FALLBACK
-from .profile import _frustum_area, _local_area_ratio
+from .profile import _frustum_area, _local_area_ratio, bend_segments
 
 def _passage_v(mdot_kgs, rho, total_area_m2):
     """Bulk passage velocity mdot/(rho*A), 0 for a degenerate passage."""
@@ -58,6 +58,11 @@ class _Bulk:
             self.h += q_w / mdot
             self.t = self.model.t_from_h(self.h)
         return self.t - t0
+
+
+def _seg_bend(bends, i):
+    """(radius, sign, s, length) of segment i for channels.curvature_factor."""
+    return (bends["radius_m"][i], bends["sign"][i], bends["s_m"][i], bends["length_m"][i])
 
 
 def _seg_wall_t(t_wall_profile, i):
@@ -118,6 +123,7 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
     q = np.asarray(q_profile_w_m2, dtype=float)
     rt = throat_dia_m / 2.0
     throat_idx = int(np.argmin(rs))
+    bends = bend_segments(xs, rs, throat_dia_m)       # [EUCASS-2023 Eq.22] curvature
     n_ch = channel_count(throat_dia_m, n_channels)
     lf = land_fraction if land_fraction and land_fraction > 0 else CHANNEL_LAND_FRACTION_DEFAULT
     bulk = _Bulk(pair, t_inlet_k if t_inlet_k is not None else 290.0, coolant_model)
@@ -161,7 +167,8 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
         rho, _cp, props = bulk.props()
         h_c, re = coolant_side_htc(mdot_coolant_kgs, g["total_area_m2"], g["dh_m"], pair,
                                    construction=construction, props=props,
-                                   mu_wall_pa_s=bulk.mu_wall(_seg_wall_t(t_wall_coolant_profile_k, i)))
+                                   mu_wall_pa_s=bulk.mu_wall(_seg_wall_t(t_wall_coolant_profile_k, i)),
+                                   bend=_seg_bend(bends, i))
 
         d_t = bulk.add_heat(q_seg * a_seg, mdot_coolant_kgs)
         t_bulk = bulk.t
@@ -281,6 +288,7 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
     q = np.asarray(q_profile_w_m2, dtype=float)
     rt = throat_dia_m / 2.0
     throat_idx = int(np.argmin(rs))
+    bends = bend_segments(xs, rs, throat_dia_m)       # [EUCASS-2023 Eq.22] curvature
     n_up, n_down = two_pass_tube_counts(throat_dia_m, n_channels)
     n_tot = n_up + n_down
     lf = land_fraction if land_fraction and land_fraction > 0 else CHANNEL_LAND_FRACTION_DEFAULT
@@ -378,7 +386,8 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
             rho, _cp, props = bulk.props()
             h_c, re = coolant_side_htc(
                 mdot_coolant_kgs, area, g["dh_m"], pair, construction=construction,
-                props=props, mu_wall_pa_s=bulk.mu_wall(_seg_wall_t(t_wall_coolant_profile_k, i)))
+                props=props, mu_wall_pa_s=bulk.mu_wall(_seg_wall_t(t_wall_coolant_profile_k, i)),
+                bend=_seg_bend(bends, i))
             bulk.add_heat(q_seg * a_seg * heat_share, mdot_coolant_kgs)
             t_bulk = bulk.t
             t_wc = t_bulk + (q_seg / h_c if h_c > 0 else 0.0)

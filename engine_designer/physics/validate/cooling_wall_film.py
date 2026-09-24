@@ -77,17 +77,16 @@ def run_coupled_wall_temperature_check():
                         injector_type="impinging", material_key="narloy_z",
                         target_vac_thrust_n=ss["thrust_n"],
                         regen_channel_model="channels").compute()["cooling"]
-    # KNOWN GAP (2026-09-23, COOLING_AUDIT.md): with the unscaled Bartz flux now
-    # matching the cited SSME design flux, the coolant side (Sieder-Tate + fin
-    # correction on auto-sized channels) runs ~300 K hot of [Wieseneck-J2]'s
-    # assumed 400 F coolant-side wall. Reported every run, NOT gated, until the
-    # coolant-side model gains the remaining cited corrections (EUCASS-2023
-    # roughness / curvature, Eq. 21-22) or per-engine channel data.
-    print(f"  [KNOWN GAP, not gated] SSME T_wc {c_ss['t_wc_throat_k']:.0f} K vs Wieseneck "
-          f"{WIESENECK_SSME_T_WC_K:.0f} K; T_wg {c_ss['t_wg_throat_k']:.0f} K vs copper max "
-          f"{WIESENECK_COPPER_T_WG_MAX_K:.0f} K")
-    checks.append((f"SSME coupled throat solve finite and bounded (T_wc < T_wg < T_aw)",
-                   c_ss["t_wc_throat_k"] < c_ss["t_wg_throat_k"] < c_ss["t_aw_chamber_k"]))
+    # Re-gated 2026-09-23 (follow-up): with the [EUCASS-2023 Eq.21-22] roughness
+    # and curvature factors ([Wieseneck-J2 p.24-25]: the SSME design relied on them)
+    # and the SSME-reverse-solved LOX/LH2 h_g factor, the SSME-class wall is back
+    # inside Wieseneck's design envelope.
+    checks.append((f"SSME T_wc {c_ss['t_wc_throat_k']:.0f} K vs Wieseneck "
+                   f"{WIESENECK_SSME_T_WC_K:.0f} K (+/-150)",
+                   abs(c_ss["t_wc_throat_k"] - WIESENECK_SSME_T_WC_K) <= 150.0))
+    checks.append((f"SSME T_wg {c_ss['t_wg_throat_k']:.0f} K < copper max "
+                   f"{WIESENECK_COPPER_T_WG_MAX_K:.0f} K",
+                   c_ss["t_wg_throat_k"] < WIESENECK_COPPER_T_WG_MAX_K))
 
     c_base = _run(material_key="narloy_z")["cooling"]
     c_fast = _run(material_key="narloy_z", regen_coolant_velocity_ms=50.0)["cooling"]

@@ -51,7 +51,7 @@ Most symptoms came from five things:
 | W13 | A "regenerative" nozzle with `regen_nozzle_end_eps = 0` had nothing cooling the bell, and was checked against the local gas temperature | **Now explicit.** Those stations are solved uncooled (radiation equilibrium), with a warn-only checklist row saying so |
 | V1 | Validation engine definitions disagreed between checks | **Partly fixed.** The corpus holds one cited definition per engine. The validate checks keep their own historical definitions (open item P3) |
 | V2 | validate stopped at the first failing check | **Fixed.** It runs every check and fails at the end |
-| — | Flux calibration LH2 0.55 / CH4 0.75 | **Retired.** Raw Bartz meets both cited anchors: J-2 38 MW/m² (cited 28–57) and SSME 142 MW/m² (cited design point 118, band 82–153) [Wieseneck-J2] |
+| — | Flux calibration LH2 0.55 / CH4 0.75 | **Retired, then LH2 re-solved (follow-up below).** The old factors compensated for bugs. Once the coolant side was fixed, raw Bartz read the SSME at 164 against 118, so LOX/LH2 is now **0.66, reverse-solved to the one cited SSME design point** (Cory's call; Tier 2). RP-1 keeps its cited deposit factor; CH4 is 1.0 (no anchor) |
 
 ## Before → after (corpus)
 
@@ -92,9 +92,66 @@ Every design now closes both self-consistency probes: throat q = h_g(T_aw,f − 
 - **LR-100.** About 1.06×, a thin margin.
 - **TRW-270.** OK. Its Aerozine-50 regen jacket used to be silently zero; it now solves with generic fallback coolant properties, and the checklist warns about that.
 
+## Follow-up: coolant-side gap closed (2026-09-23)
+
+**The problem.** After the audit, the SSME coolant-side throat wall was about 800 K against [Wieseneck-J2]'s 478 K. That is an effective h_c about 2× low.
+
+**What the model experiments showed.**
+- The staged-combustion cycle itself contributes about 0%. In this model the cycle doesn't touch the cooling circuit.
+- Jacket pressure is worth only about 4–15%.
+- Channel count matters a lot. But **no cited SSME channel geometry exists** in any source in `literature/`: three focused re-reads covered Wieseneck, SECA-FR-93-18, SP-8087, Sutton, Huzel, the J-2X paper, AEDC J-2S, IAC-19 and Merkle.
+- What the literature *does* give is the mechanism. [Wieseneck-J2 p.24–25] says the SSME design relied on H2 coolant-side enhancement:
+  - roughness about 1.45–1.55× at 200 µin;
+  - curvature from 1.0 up to about 1.9× through the throat turn;
+  - "more than doubled" in the high-flux region.
+
+**What was done.**
+- **Roughness and curvature factors.** `coolant_side_htc` now applies [EUCASS-2023] Eq. 21 (roughness; same Haaland friction and 6 µm roughness as the jacket dP) and Eq. 22 (curvature). The bend geometry comes from the real contour (`profile.bend_segments`): "+" on the throat arc, "−" at the cylinder-to-convergent fillet, and only where the wall radius is under 2 throat diameters.
+- **Roughness cap.** Eq. 21 extrapolates to about 1.9–2.0× at SSME Reynolds numbers, so the roughness factor is capped at Wieseneck's measured 1.55× (`ROUGHNESS_FACTOR_MAX`).
+- **LOX/LH2 h_g factor 0.66.** The colder wall then drew 164 MW/m² at the SSME throat against the cited 118. With Cory's approval, a single LOX/LH2 h_g factor of 0.66 was reverse-solved to that point.
+- **J-2 tube count.** The J-2 corpus engine now uses its cited 360 up / 180 down tubes [AEDC-J2S].
+
+**Result.**
+
+| SSME check | Model | Cited |
+|---|---|---|
+| Throat flux | 118.9 MW/m² | 117.7 design point |
+| Coolant-side wall | 376–390 K | 478 ± 150 K |
+| Gas-side wall | 562–572 K | < 811 K copper limit |
+| J-2 throat flux | 32.7 MW/m² | 28–57 band |
+
+The SSME Wieseneck wall comparison is a **gate again** in validate (26/26 pass).
+
+**Auto-sizer: deliberately not changed.**
+- At the 8:1 aspect-ratio cap, adding channels *raises* mass flux; it does not restore the target velocity. A cited count only exists for the J-2.
+- LH2's 95 m/s at inlet density (G ≈ 5000–6700 kg/m²·s) was left alone.
+
+| design | q throat MW/m² | T_wg throat K | margin | coolant ΔT K | jacket dP MPa |
+|---|---|---|---|---|---|
+| engines/F-1 | 14.6 → 15.65 | 1097 → 973.5 | 1.14 → 1.284 | 67.26 → 68.62 | 1.282 |
+| engines/J-2 | 38.5 → 32.65 | 1119 → 690.4 | 0.9829 → 1.593 | 120.6 → 93.06 | 2.851 → 3.712 |
+| engines/Merlin-1D | 31.64 → 32.94 | 799.1 → 722 | 1.001 → 1.108 | 124.5 → 125.7 | 1.753 |
+| engines/RD-180 | 53.93 → 58.73 | 1272 → 1109 | 0.6288 → 0.7215 | 91.63 → 93.29 | 0.9995 |
+| engines/RL10A-3-3 | 31.67 → 24.73 | 834 → 550.5 | 1.319 → 1.998 | 291.3 → 208.5 | 11.53 → 8.966 |
+| engines/RS-25 | 142.2 → 118.9 | 1019 → 571.7 | 0.7848 → 1.399 | 140.9 → 111 | 1.715 → 1.509 |
+| engines/Raptor-2 | 125 → 148 | 1350 → 1039 | 0.6669 → 0.8659 | 206 → 221.7 | 1.673 → 1.718 |
+| engines/Vulcain | 91.65 → 74.92 | 801.1 → 413.2 | 0.9986 → 1.936 | 92.91 → 70.33 | 1.082 → 0.9494 |
+| user_designs/LR-100 | 17.11 → 17.77 | 1039 → 968.8 | 1.059 → 1.135 | 91.71 → 93.44 | 1.299 |
+| user_designs/RS-29 | 23.85 → 25.85 | 1464 → 1328 | 0.8541 → 0.9413 | 71.22 → 73.05 | 1.036 |
+| user_designs/RS-29A | 23.58 → 25.76 | 1483 → 1334 | 0.8431 → 0.937 | 82.63 → 84.6 | 1.001 |
+| user_designs/RS-29C | 26.64 → 27.85 | 794.9 → 727.1 | 1.006 → 1.1 | 71.48 → 72.38 | 1.024 |
+| user_designs/RS-30 | 22.63 → 24.1 | 1782 → 1686 | 0.7016 → 0.7414 | 52.27 → 53.63 | 0.8515 |
+| user_designs/j-2_test_bed | 47.92 → 43 | 1393 → 902.3 | 0.8973 → 1.385 | 71.86 → 58.38 | 1.166 → 1.028 |
+
+Full detail: `validation_engines/reports/2026-09-23_coolant_side_followup_before_after.txt`.
+
+**Remaining limits.**
+- RP-1 and CH4 have no cited throat-flux anchor. Raptor-2 and RD-180 still read hot on their stand-in copper walls.
+- The Inconel-walled RS-29 / RS-29A / RS-30 remain over their limit at the throat: about 1330 K and 1690 K against 1250 K.
+
 ## Open items / where more information is needed
 
-1. **Coolant-side heat transfer runs about 2× low (the top remaining gap).** The SSME coolant-side throat wall solves to about 840 K against [Wieseneck-J2]'s design assumption of 478 K (400 °F). The gas side matches its cited anchors, so the extra wall temperature sits on the coolant side. Candidate cited terms: the [EUCASS-2023] roughness (Eq. 21) and channel-curvature (Eq. 22) factors, a supercritical-H2 correlation, and per-engine channel geometry and coolant velocity (neither is in claude_lit for any corpus engine). `validate` reports this as `[KNOWN GAP, not gated]`. Needs its own plan.
+1. **Coolant-side heat transfer: resolved.** See the follow-up above. What's left is data: real per-engine channel geometry, jacket flow split and coolant inlet state. None of it is in `literature/`; SSME MCC geometry is likely in SECA-P-90-09, the Phase I report, which isn't in the collection.
 2. **P1 – performance table.** The LOX/LH2 γ/M columns in `combustion._TABLES` are effective performance numbers, not physical ones. The equilibrium tables also carry c* and Isp at ε 10/40/100, so a re-anchored performance path is possible. That changes every Isp spot check and `DEFAULT_ETA_CSTAR`, so it needs its own plan. Symptoms today: RS-25 vacuum Isp is 6% low (427 vs 455); RD-180 is 6% low (318 vs 338).
 3. **P2 – RL10 jacket dP.** With the real H2 expansion and auto-sized channels (224 at the 1.2 mm pitch floor), the full-length RL10 jacket reads about 11.5 MPa. The real RL10 has 180 larger tubes. Per-engine channel data would fix this; set `regen_channel_count` in the corpus if a cited count becomes available.
 4. **P3 – validate definitions.** validate's COOLING_CHECKS still uses its historical stand-ins (F-1 as NARloy-Z at 7.77 MN, "RL10-class" at 3.2 MPa). Migrating them to load from the corpus JSONs would remove the drift.

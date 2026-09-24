@@ -247,14 +247,60 @@ def channel_geometry_profile(xs_m, rs_m, n_channels, channel_height_m, land_frac
                 n_channels_station=n_station_arr, total_area_m2=total_area_m2)
 
 
+def roughness_factor(re, pr, dh_m, roughness_m=None):
+    """Wall-roughness enhancement of the turbulent Nusselt number
+    [EUCASS-2023 Eq. 21, its ref. 18]:
+        C_xi = xi (1 + 1.5 Pr^-1/6 Re^-1/8 (Pr - 1)) / (1 + 1.5 Pr^-1/6 Re^-1/8 (Pr xi - 1))
+    with xi = f(Re, eps) / f(Re, 0) the rough/smooth friction-factor ratio
+    (same Haaland friction and CHANNEL_ROUGHNESS_M as the jacket dP). 1.0 in
+    laminar flow. [Wieseneck-J2 p.24-25]: roughness raised H2 coolant h_c
+    ~1.45-1.55x at 200 micro-in (5.1 um) and was built into the SSME design."""
+    if re < RE_LAMINAR or dh_m <= 0 or pr <= 0:
+        return 1.0
+    xi = _darcy_friction(re, dh_m, roughness_m) / _darcy_friction(re, dh_m, 0.0)
+    a = 1.5 * pr ** (-1.0 / 6.0) * re ** (-0.125)
+    c_xi = xi * (1.0 + a * (pr - 1.0)) / (1.0 + a * (pr * xi - 1.0))
+    return min(c_xi, ROUGHNESS_FACTOR_MAX)
+
+
+# Ceiling on the roughness enhancement: [Wieseneck-J2 p.24-25]'s H2 data at the
+# tool's own roughness (200 micro-in = 5.1 um vs CHANNEL_ROUGHNESS_M 6 um) tops
+# out at ~1.45-1.55x; Eq. 21 fully-rough extrapolation at SSME-class Re 2-5e6
+# gives ~1.9-2.0x, beyond that measured range. Tier 2 (cited cap).
+ROUGHNESS_FACTOR_MAX = 1.55
+
+
+def curvature_factor(re, dh_m, bend):
+    """Passage-curvature (secondary-flow) enhancement [EUCASS-2023 Eq. 22]:
+        C_I = [Re (Dh/2R)^2]^(+/-0.02) [1 + 0.32 sin(pi sqrt(s / (L + 15 Dh)))]
+    `bend` = (radius_m, sign, s_m, length_m) from profile.bend_segments; + where
+    the hot wall is on the concave side (the throat arc). A straight passage
+    (radius inf) -> 1.0. The Dean-type bracket is floored at 1 before the
+    exponent (the correlation describes bends; a vanishingly mild bend must not
+    fall below a straight tube). [Wieseneck-J2 p.24-25]: curvature raised H2
+    h_c from ~1.0 (10 deg turn) to ~1.9 (80-90 deg) in the SSME design."""
+    if bend is None:
+        return 1.0
+    radius, sign, s, length = bend
+    if not np.isfinite(radius) or radius <= 0 or sign == 0 or dh_m <= 0:
+        return 1.0
+    dean = max(re * (dh_m / (2.0 * radius)) ** 2, 1.0)
+    return dean ** (0.02 * sign) * (1.0 + 0.32 * math.sin(math.pi * math.sqrt(
+        max(s, 0.0) / (length + 15.0 * dh_m))))
+
+
 def coolant_side_htc(mdot_coolant_kgs, total_area_m2, dh_m, pair,
-                     construction="milled_channel", *, props=None, mu_wall_pa_s=None):
+                     construction="milled_channel", *, props=None, mu_wall_pa_s=None,
+                     bend=None, roughness_m=None):
     """Coolant-side convective coefficient h_c [W/m^2/K] and channel Reynolds
-    number: Sieder-Tate turbulent / laminar floor (see SIEDER_TATE_C), scaled by
-    the wall-construction factor (milled_channel = 1.0 reference).
+    number: Sieder-Tate turbulent / laminar floor (see SIEDER_TATE_C) x the
+    [EUCASS-2023 Eq. 21-23] roughness and curvature factors, scaled by the
+    wall-construction factor (milled_channel = 1.0 reference).
     `props` = (rho, cp, mu, k) at the local bulk state (CoolantModel.props);
     None -> the legacy per-pair constants. `mu_wall_pa_s` = coolant viscosity
-    at the coolant-side wall temperature (None -> ratio 1)."""
+    at the coolant-side wall temperature (None -> ratio 1). `bend` = this
+    segment's (radius, sign, s, length) from profile.bend_segments (None ->
+    straight). `roughness_m` None -> CHANNEL_ROUGHNESS_M."""
     if props is not None:
         _, cp, mu, k = props
     else:
@@ -267,6 +313,8 @@ def coolant_side_htc(mdot_coolant_kgs, total_area_m2, dh_m, pair,
     pr = mu * cp / k
     visc = (mu / mu_wall_pa_s) ** SIEDER_TATE_VISC_EXP if mu_wall_pa_s and mu_wall_pa_s > 0 else 1.0
     nu_turb = SIEDER_TATE_C * re ** SIEDER_TATE_RE_EXP * pr ** SIEDER_TATE_PR_EXP * visc
+    if re >= RE_LAMINAR:
+        nu_turb *= roughness_factor(re, pr, dh_m, roughness_m) * curvature_factor(re, dh_m, bend)
     nu = LAMINAR_NU if re < RE_LAMINAR else max(LAMINAR_NU, nu_turb)
     h_c = nu * k / dh_m * H_C_CONSTRUCTION_FACTOR.get(construction, 1.0)
     return h_c, re

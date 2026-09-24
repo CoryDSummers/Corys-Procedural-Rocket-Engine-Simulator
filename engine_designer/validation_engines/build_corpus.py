@@ -79,9 +79,13 @@ ENGINES = {
                     chamber_cooling_method="regenerative", nozzle_cooling_method="regenerative",
                     regen_nozzle_end_eps=27.5, regen_channel_model="channels",
                     wall_construction="tube_wall", cooling_flow_topology="j2_mid_nozzle_inlet",
-                    jacket_inlet_eps=8.0, injector_type="coax_post", config_name="J-2", **_BELL),
+                    jacket_inlet_eps=8.0, injector_type="coax_post", config_name="J-2",
+                    regen_channel_count=360, **_BELL),
         notes=["347-stainless tube wall, full-length regen, two-pass with a mid-nozzle inlet "
-               "(validate.run_two_pass_cooling_check's J-2 layout)."],
+               "(validate.run_two_pass_cooling_check's J-2 layout).",
+               "Tubes: 180 down then 360 up [AEDC-J2S s2.1.1 p.1-2] (J-2S; same circuit as the "
+               "J-2's 1-1/2-pass layout [SP-8087 Table I p.5]) -> regen_channel_count=360 (the "
+               "up count; the down count follows as 180). jacket_inlet_eps 8 is NOT cited."],
         cite='[RO J2_Config.cfg "J-2 230K (1968)"]', isp=(425.0, 304.0),
         extra={"q_throat_mw_m2": _J2_CLASS_Q},
         gaps=["coolant dT", "jacket dP", "wall temps"]),

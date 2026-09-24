@@ -87,3 +87,41 @@ procedure* from.
   frozen-composition.
 - Propellant combustion charts (figs 4-3…4-6) are for specific Pc values (1000 psia LOX/RP-1,
   800 psia LOX/LH2, 100 psia for the fluorine pairs) — read at those, interpolate with care.
+
+## Regen passage geometry data (2026-09-23 re-read)
+
+Keyword search (tubes, coolant velocity, F-1, J-2, RL10, H-1) of the text layer; the key
+pages re-read from rendered images (leaf N = printed p.N-9 around ch.4). **Huzel names no
+real engine's tube/channel geometry anywhere** - F-1/J-2 appear only in a Saturn V vehicle
+listing. The only tube numbers are **Sample Calculation (4-4)** for the book's hypothetical
+A-1 / A-2 stage engines. These are textbook DESIGN EXAMPLES, not hardware - usable as a
+worked method and as order-of-magnitude analogs (A-1 ~ F-1/H-1-class LOX/RP-1, A-2 ~
+J-2-class LOX/LH2), never as a real-engine spot check.
+
+| Quantity | A-1 (LOX/RP-1, 747,000 lbf SL, Pc 1000 psia, eps 14) | A-2 (LOX/LH2, 149,500 lbf alt) |
+|---|---|---|
+| Throat dia Dt | 24.9 in (0.632 m) | 11.2 in (0.284 m) |
+| Pass layout | **2-pass**, down alternate tubes, up adjacent | **1½-pass**: inlet manifold at **eps = 8**, down to eps = 30 and back, then through throat and chamber to injector |
+| Tube material / wall t | Inconel X, **0.020 in (0.51 mm)** | Inconel X, **0.008 in (0.20 mm)** |
+| Tube ID at throat | **0.855 in (21.7 mm)** | **0.185 in (4.70 mm)** |
+| Tube count N | **94** (rounded even from 94.5) | **178** |
+| Coolant flow | 827 lb/s (375 kg/s) = all fuel | 54.5 lb/s (24.7 kg/s) = all fuel |
+| Throat coolant velocity | **87.6 ft/s (26.7 m/s)** | not computed |
+| Throat coolant pressure | 1500 psia (10.3 MPa) | 1200 psia (8.27 MPa) (estimated) |
+| Throat coolant bulk T | 600 °R (333 K), "up" tube | 135 °R (75 K) |
+| T_wg / T_wc at throat | 1188 °R / ~1000 °R (660 / 556 K) | 1600 °R / 1204 °R (889 / 669 K) |
+| Throat heat flux | 3.00 Btu/in²·s (4.9 MW/m²) | 19.10 Btu/in²·s (31.2 MW/m²) |
+| Required h_c | 0.0075 Btu/in²·s·°F (22.1 kW/m²K) | 0.0179 Btu/in²·s·°F (52.7 kW/m²K) |
+
+`[Huzel Sample Calc 4-4 p.109-113]`; A-1/A-2 thrusts `[Huzel Sample Calc 4-2 p.95]`, A-1 eps 14 `[Huzel Fig. 4-20 p.96]`.
+Tube-count relation used: N = pi [Dt + 0.8 (d + 2t)] / (d + 2t) (0.8 = tube centers on a
+circle); A-2's printed final substitution shows d = 0.17 in, but N = 178 is what d = 0.185 in
+gives (typo only). A-1's N = 94.5 does not reproduce exactly from its own printed relations
+(they give ~90 at d = 0.85 in) - treat the book's arithmetic as +/-5 %. Also: "Total
+temperature increase for a typical thrust chamber design is of the order of **100 °F** [56 K]
+between cooling jacket inlet and outlet" `[Huzel §4.4 p.110]` (RP-1 context, generic).
+Tube forming: uniform round tubes cut, swaged by internal hydraulic pressure in a die,
+wax-filled, bent to contour `[Huzel p.113-114, Fig. 4-31/4-32]`.
+
+**NOT in Huzel** (for any real engine): tube/channel count, dimensions, land width, jacket
+flow fraction, coolant inlet/outlet T/P, throat coolant velocity, separate-circuit layout.

@@ -63,9 +63,10 @@ def run_contraction_ratio_sensitivity_check():
 # T_wg against the liner limit is allowed to run right up to / just past it for
 # the two engines whose real throats did (SSME cracked; the F-1 copper wall sat
 # near its limit).
-T_WG_LO_K = 350.0   # 2026-09-23: was 450 - a big LH2 flow through a 0.2 mm stainless
-                    # tube (RL10-class, real 45 K inlet) legitimately runs its throat
-                    # near 400 K; this floor only guards against an absurd solve.
+T_WG_LO_K = 200.0   # 2026-09-23: was 450. With a real 45 K LH2 inlet and the cited
+                    # roughness/curvature coolant-side enhancement, a small copper
+                    # RL10-class throat legitimately runs ~300 K; this floor only
+                    # guards against an absurd (sub-coolant) solve.
 # jacket_dp bands (regen_channel_model="channels") are deliberately wide / order-
 # of-magnitude, like the flux-magnitude bands above: the 1-D single-pass march is
 # calibrated to ONE reference design (see cooling.CHANNEL_DP_CALIBRATION and
@@ -85,10 +86,7 @@ COOLING_CHECKS = [
          # 2026-09-23: the CITED SSME design point, 72 Btu/in2-s = 118 MW/m2
          # [Wieseneck-J2 p.6], +/-30 % (was an uncited 18-140).
          q_throat_lo_mw=82.4, q_throat_hi_mw=153.0, hg_lo=12000.0, hg_hi=60000.0,
-         # KNOWN GAP (engine_designer/COOLING_AUDIT.md "open items"): the coolant-side
-         # h_c runs ~2x low vs [Wieseneck-J2]'s 478 K SSME coolant-side wall, so this
-         # hot-wall ceiling is loosened from 1050 K until that is modelled.
-         t_wg_hi_k=1150.0, dp_lo_mpa=0.2, dp_hi_mpa=4.0),
+         t_wg_hi_k=1050.0, dp_lo_mpa=0.2, dp_hi_mpa=4.0),
     dict(name="RL10-class (LOX/LH2, expander, small upper stage)",
          pair="LOX/LH2", pc_pa=3.2e6, mr=5.5, eps=61.0, thrust_n=73_000.0,
          cycle="expander", material="narloy_z",

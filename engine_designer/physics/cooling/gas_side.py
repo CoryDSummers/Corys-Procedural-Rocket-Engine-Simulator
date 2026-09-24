@@ -120,11 +120,17 @@ WALL_TEMP_FRACTION_DEFAULT = 0.25
 #   SSME  throat ~140 MW/m2 vs design point 72 Btu/in2-s = 118 MW/m2 [Wieseneck-J2 p.6]
 #   (validation_engines/ corpus, run_corpus --report). LOX/RP-1's real
 # carbon-deposit reduction is carried by GAS_SIDE_DEPOSIT_FACTOR ([TP2862],
-# 40-60 % below clean Bartz), now applied to the one h_g everywhere. Kept as a
-# per-pair dict so a future CITED calibration can land here.
+# 40-60 % below clean Bartz), now applied to the one h_g everywhere.
+# LOX/LH2 0.66 (2026-09-23 follow-up, Cory's call): once the coolant side
+# carried [Wieseneck-J2 p.24-25]'s roughness + curvature enhancement, the SSME
+# wall matched Wieseneck (T_wc ~500 vs 478 K) but the colder wall let raw Bartz
+# (sigma ~1.35 at T_wg/T0 ~0.21) read the SSME throat at 164 MW/m2 vs the cited
+# 118 design point. 0.66 is REVERSE-SOLVED to that one cited point (Tier 2, one
+# anchor): SSME 119, J-2 33 (cited 28-57), SSME T_wc ~390 K / T_wg ~570 K
+# (Wieseneck 478 +/- 150 / < 811). Other pairs have no cited throat-flux anchor.
 BARTZ_ABS_FLUX_CALIBRATION = {
     "LOX/RP-1": 1.00,
-    "LOX/LH2": 1.00,
+    "LOX/LH2": 0.66,
     "LOX/CH4": 1.00,
     "N2O4/MMH": 1.00,
     "Aerozine-50/NTO": 1.00,

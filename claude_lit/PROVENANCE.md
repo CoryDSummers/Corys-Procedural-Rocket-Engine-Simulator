@@ -271,6 +271,20 @@ surfaces: the real Cu-alloy properties table and HEE index data for `materials.p
 independent real bearing-DN fleet anchors, and the real Bartz-under-prediction corroboration
 from actual fired hardware (not just CFD) for `cooling.py`'s calibration approach.
 
+## 2026-09-23 — targeted re-read for regen passage geometry (engine_designer cooling audit follow-up)
+
+Three parallel lit-integrator passes (pymupdf text + rendered images for garbled/rotated
+tables) re-read `[Wieseneck-J2]` (all 32 leaves; several leaves previously marked "nothing
+extractable" are image-only text with real content - corrected in its note),
+`[SECA-HT]` (all 163 leaves; printed pp. 61-64 missing from the scan),
+`[SP-8087]`, `[Sutton]`, `[Huzel]`, `[J2X-Overview]`, `[AEDC-J2S]`, `[ChannelWall-IAC19]`
+and `[Merkle-RegenCFD]` for real channel/tube counts, dimensions, lands, hot-wall
+thickness, jacket flow split and coolant state. Each touched note gained a "Regen passage
+geometry ... (2026-09-23 re-read)" section. Result: almost no real SSME/F-1/RL10 passage
+geometry exists in the collection; the key find is `[Wieseneck-J2 p.24-25]`'s H2
+roughness/curvature enhancement, which engine_designer now implements
+(COOLING_AUDIT.md follow-up). Folded into `topics/06`; gaps into `OPEN_QUESTIONS.md`.
+
 ## 2026-09-23 — numeric filenames renamed; duplicates moved to `literature/duplicates/`
 
 At the user's request, all 24 unique NTRS-accession-numbered PDFs in `literature/` (e.g.

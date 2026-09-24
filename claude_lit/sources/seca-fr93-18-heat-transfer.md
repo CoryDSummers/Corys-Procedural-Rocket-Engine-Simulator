@@ -123,3 +123,48 @@ Little to directly port as a formula (see Character, above). Treat this source a
 - Contains **no** propellant-class-specific gas-side heat-transfer coefficient of the kind
   `cooling.py`'s `BARTZ_ABS_FLUX_CALIBRATION` needs — this source cannot be used to derive
   or spot-check that constant.
+
+## Regen passage geometry & coolant-side data (2026-09-23 re-read)
+
+Targeted full-text re-read (pymupdf, all 163 leaves; every figure leaf touching wall heat
+flux or the MCC/nozzle rendered and read visually). Cites: **printed** page, with PDF leaf
+in parentheses. Leaf↔printed offset is 5 up to leaf 65 (printed 60) and 1 from leaf 66
+(printed 65) onward — **printed pp. 61–64 are missing from this scan**, i.e. the §4.1
+P&W subscale-STME prose and Figs. 31–33 (the TOC puts §4.1 at p.62). Whatever chamber /
+coolant description §4.1 contained is not recoverable from this PDF.
+
+**Bottom line: the report gives NO regen coolant-passage data for any engine.** No channel
+count, width, depth, land width, liner thickness, aspect ratio, coolant flow split,
+coolant-side h_c correlation, coolant Re/velocity, roughness, or regen-wall temperature
+appears in prose, tables, or legible figure text. The words "Reynolds", "Prandtl",
+"Dittus", "Bartz", "roughness", "land", "rib" do not occur; "channel" occurs only as
+"fully developed channel flows" for PSU injector inlet turbulence (p.79 (80)). The Phase I
+SSME conjugate regen model (SECA-P-90-09, Ref. 1) is where such inputs would live; it is
+cited, not reproduced (p.1 (6)).
+
+What IS stated (all SSME data is **injector-side**, not the MCC regen jacket):
+
+| Item | Value (original) | SI | Cite |
+|---|---|---|---|
+| SSME MCC construction (labels only, no dimensions) | "slotted liner", "jacket", "throat ring", coolant inlet (aft) / coolant outlet (fwd), acoustic cavities | — | Fig. 2, p.3 (8) |
+| SSME nozzle construction (labels only) | coolant inlet manifold, coolant outlet manifold, hatbands, jacket transfer ducts, drain lines; "a large number of regenerative cooling tubes in the nozzle" | — | Fig. 3, p.4 (9); p.8 (13) |
+| SSME injector "coolant hydrogen" (H₂ cavity between injector plates; Fig. 1 labels a "coolant circuit" into the "hydrogen cavity") | 465 R, 3580 psia, ρ = 1.2298 lbm/ft³ | 258 K, 24.68 MPa, 19.70 kg/m³ | p.37 (42) |
+| same, through 75 baffle-element sleeves | 19.3 lbm/s; 17.558 ft/s inflow | 8.75 kg/s; 5.35 m/s | p.37 (42) |
+| baffle coolant H₂ temperature range | 465 → 450 R | 258 → 250 K | p.43 (48) |
+| porous primary-plate transpiration H₂, whole MCC | 5.29 lbm/s at 465 R, 3584 psia; inlet 11.9 ft/s; exits MCC side at assumed fixed 666 R; typ. exit velocity 18.5 ft/s | 2.40 kg/s; 258 K; 24.71 MPa; 3.63 m/s; 370 K; 5.64 m/s | p.47–48 (52–53) |
+| fuel-rich hot-gas (turbine exhaust) to 525 main elements | 241.3 lbm/s, O/F 0.8012, 1500 R, 3527 psia, ρ 0.7292 lbm/ft³; 0.45962 lbm/s/element, 954.77 ft/s, M 0.1776 | 109.5 kg/s; 833 K; 24.32 MPa; 11.68 kg/m³; 0.2085 kg/s; 291.0 m/s | p.28 (33) |
+| main LOX | 877.62 lbm/s ÷ 600 elements, 200 R, 3450 psia, 68.0665 lbm/ft³, 111.50 ft/s | 398.1 kg/s; 111 K; 23.79 MPa; 1090 kg/m³; 33.99 m/s | p.28 (33) |
+| element-wall BC model | q = U(T_a − T_i), U = 1/(t_w/k_w + 1/h); h from White (Ref. 18) tube-bank-in-crossflow Nu, averaged staggered/in-line; T_a = 1600 R hot gas or 465 R H₂ | 889 K / 258 K | p.24 (29) |
+| computed element skin temps | main: 975 R (LOX dome), 1250 R (exhaust manifold near secondary plate), 911 R (between plates); baffle: 866 / 941 / 465 R, **1500 R estimated** in chamber along baffle | 542 / 694 / 506 K; 481 / 523 / 258 K; 833 K | p.28 (33); p.37 (42) |
+| Rocketdyne LOX/RP-1 motor | 3.4 in dia; baseline MR 2.73; test "designed to provide a constant wall temperature" (value not given) | 86.4 mm | p.67 (68) |
+
+Wall heat flux, **digitized from plots (±~2 Btu/in²·s)**; 1 Btu/in²·s = 1.635 MW/m²:
+
+| Case | Throat-region peak | Cylinder plateau | Cite |
+|---|---|---|---|
+| "Subscale NLS Engine" (prior prediction, Refs. 23–25; propellant not stated in legible text) | test ~51, CFD ~52 Btu/in²·s at x ≈ −1 in (≈ 83–85 MW/m²) | ~24–31 (39–51 MW/m²) | Fig. 29, p.59 (64) |
+| Rocketdyne hydrocarbon motor, "Case 2" (prior prediction) | exp ~43, pred ~41 (≈ 67–70 MW/m²) | ~7–9 (11–15 MW/m²) | Fig. 30, p.60 (65) |
+| Rocketdyne circumferential-fan injector, original config, MR 2.38–3.16, "corrected" flux | test ~60–68 at throat (≈ 98–111 MW/m²); FDNS(2.73) ~54 (≈ 88 MW/m²) | test ~33–40 (54–65 MW/m²) | Fig. 37, p.69 (70) |
+
+Minor erratum to the note above: the 4.45 / 13.35 / 26.7 lb/s injector split is the Fig. 36
+caption (p.68 (69)), not Fig. 35 (Fig. 35 is subscale-STME nozzle species, p.66 (67)).

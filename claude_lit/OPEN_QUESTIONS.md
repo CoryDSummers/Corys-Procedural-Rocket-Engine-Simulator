@@ -230,13 +230,19 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
 
 ## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
 
-- **Coolant-side heat transfer, highest priority.** With the gas side now matching the
-  cited J-2 / SSME throat fluxes unscaled, the coolant side runs ~2x low against
-  `[Wieseneck-J2]`'s 478 K SSME coolant-side wall. Wanted: the `[EUCASS-2023]` roughness
-  (Eq. 21) and channel-curvature (Eq. 22) factors transcribed with their inputs; a
-  supercritical-hydrogen forced-convection correlation with its property-ratio term and
-  validity range; any REAL channel/tube geometry (count, width, height, land, hot-wall
-  thickness) and throat coolant velocity for SSME MCC, RL10, J-2, Vulcain, F-1.
+- **Coolant-side heat transfer: RESOLVED 2026-09-23** by `[EUCASS-2023]` Eq. 21-22
+  roughness/curvature factors (the mechanism `[Wieseneck-J2 p.24-25]` says the SSME design
+  used) plus a LOX/LH2 h_g factor reverse-solved to the SSME design flux. STILL WANTED (a
+  2026-09-23 re-read of Wieseneck, SECA-FR-93-18, SP-8087, Sutton, Huzel, J-2X, AEDC-J2S,
+  IAC-19 and Merkle found none of it): REAL channel geometry (count, width, height, land,
+  hot-wall thickness), jacket flow split and coolant inlet state for SSME MCC, RL10, F-1,
+  Vulcain. The SSME MCC model data is likely in **SECA-P-90-09** (SECA-FR-93-18's Phase I
+  report, its Ref. 1) - not in `literature/`. Cited so far: J-2S 180 down / 360 up tubes
+  `[AEDC-J2S]`, F-1 Inconel-X 0.018 in tube wall `[SP-8087 Table III]`, LE-7 288 channels
+  x 0.05 in and RS-27 292 tubes x 0.45 in `[Sutton Table 8-1]`.
+- **Throat-flux anchors for LOX/RP-1 and LOX/CH4** (both run raw Bartz; RP-1 with the
+  cited deposit factor). SECA-FR-93-18 Fig. 37 shows a Rocketdyne 3.4-in LOX/RP-1 motor at
+  ~98-111 MW/m2 measured throat flux but gives no chamber pressure - find it.
 - **Real-engine cooling data for the corpus** (`engine_designer/validation_engines/`):
   cited throat heat flux, coolant ΔT, jacket dP, liner thickness for RL10A-3-3, Vulcain,
   RD-180, Merlin-1D, Raptor-2, Rutherford, Aestus (only F-1 / J-2 / SSME have any today).

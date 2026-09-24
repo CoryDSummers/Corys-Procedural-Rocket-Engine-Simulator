@@ -71,3 +71,46 @@ electric / testing.
   were checked against rendered page images. Re-render (`get_pixmap(dpi=200)`) before
   trusting any equation not already transcribed here.
 - Chapters 11–15 (solid/hybrid) and 18–20 largely irrelevant to `engine_designer`.
+
+## Regen passage geometry data (2026-09-23 re-read)
+
+Targeted keyword search (tubes, channels, coolant, jacket, SSME, Vulcain, RL10) of the 7e
+text layer; Table 8-1 read from rendered page images (leaf 287-288 = printed p.272-273;
+leaf N = printed p.N-15 in ch.6-8).
+
+**Table 8-1 cooling rows** `[Sutton Table 8-1 p.272-273]`:
+
+| Engine | Cooling system (as printed) | Tube dia / channel width | No. of tubes | Jacket dP | Fuel jacket + manifold volume |
+|---|---|---|---|---|---|
+| RL10B-2 (LOX/LH2 expander, 24,750 lbf vac, Pc 640 psia) | stainless steel tubes, **1½ passes**, regen | NA | NA | **253 psi (1.74 MPa)** | - |
+| LE-7 (LOX/LH2 staged comb., 242,500 lbf vac) | "regenerative (fuel) cooled, stainless steel tubes" | **0.05 in (1.27 mm) (channel)** | **288** | **540 psi (3.72 MPa)** | 3.5 ft³ (0.099 m³) |
+| RS-27 (LOX/RP-1 GG, 207,000 lbf vac, Pc 576 psia injector end) | stainless steel tubes, **single pass**, regen | **0.45 in (11.4 mm)** | **292** | **100 psi (0.69 MPa)** | 2.5 ft³ (0.071 m³) |
+
+(RCS = radiation-cooled niobium; AJ10-118I = ablative silica phenolic.) Note the LE-7 row
+is internally mixed ("tubes" in the cooling-system cell, "(channel)" on the width) - the
+0.05 in is a channel width, 288 the passage count. The RS-27 "single pass" conflicts with
+`[SP-8087 Table I]`'s "2 pass" for its parent H-1 - unresolved, record both.
+
+**Coolant velocity typical ranges** `[Sutton §8.3 p.292]`: chamber ~**3-10 m/s (10-33
+ft/s)**; nozzle throat **6-24 m/s (20-80 ft/s)** ("for many liquid propellant rockets").
+Generic, not engine-specific.
+
+**Tubular/axial jacket applicability** `[Sutton §8.3 p.288]`: an axial-flow jacket or tubular
+wall "is practical only for large coolant flows (above approximately **9 kg/sec**)"; below
+that, tube/gap tolerances become prohibitive -> radiation or ablative. Same page: some
+chambers put the fuel inlet manifold downstream of the throat with flow "up and down in the
+nozzle exit region, but unidirectionally up in the throat and chamber regions" (the 1½-pass
+layout, unnamed). Fig. 8-9 (p.287) shows the alternate-tube down/up 2-pass layout.
+
+**Separate circuits / bypass** (qualitative only): SSME flowsheet Fig. 6-12 (p.227) shows a
+**coolant control valve** on the hydrogen side (no flow split given); expander cycle "part
+of the coolant, perhaps **5 to 15%**, bypasses the turbine" `[Sutton §6.6 p.224]` (turbine
+bypass, not a jacket bypass).
+
+**Sample design §8.6** (p.324-335) is a hypothetical LOX/RP-1 150-channel design (15 m/s
+throat velocity, 4.387 kg/s coolant, 3.62 cm² total throat channel area `[p.332]`) - NOT a
+real engine; don't cite as one.
+
+**NOT in Sutton 7e** (searched): SSME/RS-25, Vulcain, J-2, F-1, RL10A channel/tube counts or
+dimensions; land width; hot-wall thickness for any named engine; coolant inlet/outlet T or P;
+coolant flow or fuel fraction through the jacket for any named engine.

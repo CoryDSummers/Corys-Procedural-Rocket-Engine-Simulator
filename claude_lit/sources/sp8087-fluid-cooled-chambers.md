@@ -380,3 +380,68 @@ criteria.
   "designer experience and fabrication knowledge" than by rigorous optimization (§2.1.1.1,
   explicit statement that two designers with the same requirements could reach equally valid
   but different designs).
+
+## Regen passage geometry data (2026-09-23 re-read)
+
+Targeted re-read for real per-engine coolant-passage numbers. Leaf -> printed page offset
+is **16** for these leaves (leaf 21 = p.5, leaf 27 = p.11, leaf 31 = p.15). Tables I and III
+are rotated scans with an unusable OCR layer; values below were read from rendered images.
+
+**Table I - Chief features of major production regen chambers** `[SP-8087 Table I p.5-6]`
+(thrust = rated altitude thrust; material/reinforcement = combustion + throat zones only):
+
+| Engine | Thrust klbf (kN) | Pc psia (MN/m²) | Coolant | Cooling design | Tube material | Reinforcement |
+|---|---|---|---|---|---|---|
+| F-1 | 1522 (6770) | 960 (6.619) | RP-1 | brazed tubular, **2 pass, 1 bifurcation** | Inconel X | brazed shell |
+| H-1 | 205 (911.8) | 632 (4.358) | RP-1 | brazed tubular, **2 pass** | CRES 347 | brazed shell |
+| Atlas booster / Thor | 165 / 185 (733.9 / 822.9) | 575 / 640 | RP-1 (Thor alt. RJ-1) | hand-brazed tubular, 2 pass | Nickel A | welded bands |
+| Atlas sustainer | 80 (355.8) | 700 (4.827) | RP-1 | brazed tubular, 2 pass | CRES 347 | welded bands |
+| J-2 | 230 (1023) | 686 (4.730) | LH2 | brazed tubular, **1½ pass** | CRES 347 | brazed shell |
+| RL10 | 15 (66.7) | 300 (1.069 as printed; 300 psia = 2.07 MN/m²) | LH2 | brazed tubular, **1½ pass** | CRES 347 | glasswrap; welded shell |
+| NERVA | 75 (334) | 450 (3.103) | H2 | brazed U-tubes, 1 pass | Hastelloy X | outer shell |
+| Titan I booster / sustainer | 149 / 80 | 675 / 784 | RP-1 | welded+brazed tubes, 2 pass (booster: 1 bifurcation) | CRES 347 | wirewrap |
+| Titan II/III booster / sustainer | 214 / 100 | 820 / 832 | A-50 | brazed tubular, 2 pass (booster: 1 bifurcation) | CRES 347 | wirewrap |
+| Improved Titan III booster / sustainer | 220 / 100 | 817 / 825 | A-50 | brazed tubular, 2 pass | CRES 347 / Hastelloy X | wirewrap+cyl. shell / brazed square-wire wrap |
+| Agena | 15.8 (70.3) | 504 (3.475) | IRFNA | drilled passageway, 1½ pass | 6061-T6 Al | integral wall |
+| Delta (AJ10) | 7.89 (35.1) | 307 (2.117) | IRFNA | welded tubular, 1½ pass | CRES 347 | unbrazed square-wire wrap |
+| X-15 | 15-50 (66.7-222.4) | n/a | NH3 | welded tubular, 2 pass | CRES 347 | wirewrap |
+| Aerobee / Atlas-Thor vernier | 4.70 / 0.67 | 324 / 265 | furfuryl alc. / RP-1 | double walled, helical single pass | CRES 347 / 4130 | welded outer shell |
+
+**Separate cooling circuit, F-1** `[SP-8087 Table I note p.6]`: "F-1 chamber used
+regenerative cooling to **10:1**; Hastelloy C to **16:1** cooled by turbine exhaust gases" -
+i.e. the regen tube bundle stops at eps = 10 and a separate turbine-exhaust-cooled
+extension continues to eps = 16.
+
+**Tube wall thickness by material/engine** `[SP-8087 Table III p.11]`: CRES 347 **0.010-0.040
+in (0.254-1.016 mm)** (J-2, RL10, Titan II/III, Delta, Titan I, H-1, Atlas, X-15);
+**Inconel X 0.018 in (0.457 mm) - F-1**; Nickel A 0.040 in (1.016 mm) - Atlas, Thor; Hastelloy
+X 0.015 in (0.381 mm) - NERVA, Improved Titan III; Inconel 718 0.012 in (0.305 mm) -
+Mansat/ARES (N2O4/A-50, development); Nickel 200 0.017 in (0.432 mm) - NERVA simulation;
+Al 5052 0.035 in (0.889 mm) - Ablestar; 321 SS 0.022 in (0.559 mm) - E-1 (LOX/RP-1); 304 SS
+0.022 in (0.559 mm) - experimental H2/F2. Hastelloy N (RL10): "not available". Tubes also
+formed from TD nickel and 29-20 SS (J-2), Inconel 625 and Waspaloy (F-1). General statement:
+"large numbers (usually hundreds and in some recent designs even thousands) of tubes",
+tapered walls **0.010 to 0.040 in (0.254 to 1.02 mm)** `[SP-8087 §2.1.1.3 p.10]`.
+
+**Pass arrangements** `[SP-8087 §2.1.1.2 p.10]`: one pass (coolant enters in the expansion
+section, flows forward); **1½ pass** (coolant introduced in the expansion section, flows down,
+then up to the injector - "the 'half' actually represents a partial pass starting below the
+throat", used when the coolant must be heated before it is effective: LH2 "is introduced in
+the expansion sections of the **RL 10 and J-2** engines, since it must be gasified before it
+can accommodate the high heat fluxes at the throat"); two pass (down from the injector end and
+back up through alternating passages). Two-pass permits higher coolant velocity with larger
+tubes than one-pass and keeps the heavy manifold forward. No inlet eps is given for RL10/J-2.
+
+**Agena drilled passages (real dimensions)** `[SP-8087 §2.1.1.4 p.15]`: aluminum chamber in
+three sections; throat-section holes **0.116 in (2.95 mm) dia x 15½ in (39.4 cm) long**,
+drilled at a 34 deg skew to the chamber axis (placement +/-0.005 in / 0.127 mm, dia +/-0.002
+in / 0.051 mm, straightness 0.025 in / 0.635 mm); forward cylinder holes **0.125 in (3.18
+mm)**; conical nozzle holes **0.172 in (4.37 mm)**, two-pass at a 25 deg cant, inlet at the
+forward end of the cone, return pass then flows forward through throat and chamber to the
+injector. Gundrilling L/D > 125 achieved; capability quoted as L/D 250-300, min dia 0.090 in
+(2.29 mm).
+
+**NOT in this monograph** (searched: tubes, channels, velocity, F-1, J-2, RL10, H-1, SSME):
+tube COUNT for any engine, tube diameter, land width, coolant mass flow or fraction of fuel,
+coolant inlet/outlet T or P, throat coolant velocity for any named engine. Only generic
+criteria (61 m/s liquid limit etc., above).
