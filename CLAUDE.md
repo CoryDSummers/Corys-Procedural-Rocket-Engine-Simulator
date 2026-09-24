@@ -94,7 +94,7 @@ File menu.
    colormap math lives separately in the `gui/preview3d_gl_core/` package (split by
    geometry-operation kind: `hardware_constants.py`/`profile_geometry.py`/
    `mesh_primitives.py`/`duct_meshes.py`/`tube_bundle.py`/`shell_mesh.py`/
-   `camera_color.py`, re-exported unchanged through `__init__.py`, with `__main__.py`
+   `camera_color.py`/`shading.py` (PBR metallic/roughness GLSL + its numpy reference twin), re-exported unchanged through `__init__.py`, with `__main__.py`
    running every submodule's own self-test as one combined banner), and its per-part
    mesh assembly (what used to be `preview3d_gl.py`'s own ~830-line `_build_mesh_data`
    method - it never touched `self`) lives in `gui/mesh_builder.py`. Both are runnable/

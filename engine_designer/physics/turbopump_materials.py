@@ -49,6 +49,8 @@ class TurbopumpMaterial:
                                     # only, same tier as color_hex
     tech_era_hint: str
     notes: str
+    metallic: float = None          # 3D-preview PBR metalness/roughness - cosmetic only,
+    roughness: float = None         # same meaning/None rule as materials.Material's
 
 
 MATERIALS = {
@@ -64,6 +66,8 @@ MATERIALS = {
         color_hex="#C7CCD0",
         specular_strength=0.55,
         shininess=70.0,
+        metallic=1.0,
+        roughness=0.35,
         tech_era_hint="Early (V-2 / early ICBM cast-aluminium pumps)",
         notes="Light and cheap; real early turbopumps (A-4, early Atlas) used "
               "cast/forged aluminium impellers and housings. Strength falls off "
@@ -84,6 +88,8 @@ MATERIALS = {
         color_hex="#9DA1A6",
         specular_strength=0.6,
         shininess=80.0,
+        metallic=1.0,
+        roughness=0.38,
         tech_era_hint="Mature (precipitation-hardening stainless, general pump use)",
         notes="A workhorse pump-side material: corrosion-resistant, weldable, "
               "oxidiser-compatible, moderate strength. Heavier than aluminium or "
@@ -102,6 +108,8 @@ MATERIALS = {
         color_hex="#8E8C84",
         specular_strength=0.4,
         shininess=45.0,
+        metallic=1.0,
+        roughness=0.42,
         tech_era_hint="Mature (hot turbine end, GG / staged-combustion)",
         notes="The default turbine-end alloy: high strength retained to ~980 K, "
               "used for GG and staged-combustion turbine disks and hot housings. "
@@ -121,6 +129,8 @@ MATERIALS = {
         color_hex="#6E7076",
         specular_strength=0.5,
         shininess=60.0,
+        metallic=1.0,
+        roughness=0.4,
         tech_era_hint="Mature (LH2 pump impellers / inducers)",
         notes="Best strength-to-weight of the table -> the highest tip speed, "
               "which is exactly why real high-head LH2 pump impellers (J-2, "
@@ -142,6 +152,8 @@ MATERIALS = {
         color_hex="#7C7A73",
         specular_strength=0.35,
         shininess=40.0,
+        metallic=1.0,
+        roughness=0.45,
         tech_era_hint="Modern (HIP / powder-metallurgy blisks, staged combustion)",
         notes="Hot-isostatic-pressed powder-metallurgy superalloy blisks are "
               "what real staged-combustion turbopumps (KBKhA RD-0124-class, "
@@ -162,6 +174,8 @@ MATERIALS = {
         color_hex="#A8A29A",
         specular_strength=0.45,
         shininess=55.0,
+        metallic=1.0,
+        roughness=0.4,
         tech_era_hint="Mature (oxidiser-rich / LOX-side rotating hardware)",
         notes="Nickel-copper alloy prized for oxygen compatibility: resists "
               "ignition in high-pressure oxygen far better than steel or "
@@ -330,6 +344,8 @@ def turbopump_material_suitability(mat_key, *, turbine_inlet_k, tip_speed_m_s,
 
 if __name__ == "__main__":
     keys = available_turbopump_materials()
+    assert all(0.0 <= m.metallic <= 1.0 and 0.0 <= m.roughness <= 1.0
+               for m in MATERIALS.values()), "every rotor material carries PBR values"
     assert keys and all(MATERIALS[k].key == k for k in keys)
     # Titanium tip-speed anchor is the SP-8107 forged-Ti value.
     assert MATERIALS["titanium_forged"].max_tip_speed_m_s == 853.0
