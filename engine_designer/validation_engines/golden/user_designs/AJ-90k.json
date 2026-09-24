@@ -471,6 +471,9 @@
 "convergent_half_angle_deg": {
 "__f__": "30.0"
 },
+"coolant_inlet_t_k": {
+"__f__": "45.0"
+},
 "cooling": {
 "bartz_sigma_profile": {
 "__nd__": [
@@ -779,6 +782,7 @@
 },
 "coolant_property_source": "table:ParaHydrogen",
 "coolant_side_wall_t_throat_k": null,
+"coolant_t_bulk_profile_k": null,
 "coolant_turnaround_t_k": null,
 "coolant_velocity_profile_ms": null,
 "coolant_velocity_throat_ms": null,
@@ -2993,6 +2997,9 @@
 },
 "orifice_cd": {
 "__f__": "0.61"
+},
+"oxidizer_inlet_t_k": {
+"__f__": "90.0"
 },
 "pc_feed_pa": {
 "__f__": "3100000.0"

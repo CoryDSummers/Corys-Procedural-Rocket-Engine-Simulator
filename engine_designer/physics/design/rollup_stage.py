@@ -8,6 +8,8 @@ from .. import (combustion, cycles, electric_pump, gimbal, ignition, injectors,
                 manifold, mass_model, materials)
 from .constants import (
     PA_SEA_LEVEL,
+    COOLANT_INLET_TEMP_K,
+    OXIDIZER_INLET_TEMP_K,
     CONTRACTION_RATIO_TYPICAL,
     LSTAR_TYPICAL_M,
     BASE_RATED_BURN_TIME_S,
@@ -253,6 +255,9 @@ def checks_and_result(self, s):
         "plumbing_mass_kg": s.plumbing_mass_kg,
         "plumbing_total_length_m": s.plumbing_total_length_m,
         "cooling_flow_topology": self.cooling_flow_topology,
+        # Stream inlet temperatures (flow visualization only - see the tables).
+        "coolant_inlet_t_k": COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0),
+        "oxidizer_inlet_t_k": OXIDIZER_INLET_TEMP_K.get(self.propellant_pair),
         "jacket_inlet_eps_effective": s.jacket_inlet_eps_eff,
         "jacket_return_split_fraction": s.jacket_return_split_fraction,
         "manifold_bypass_fraction": self.manifold_bypass_fraction,

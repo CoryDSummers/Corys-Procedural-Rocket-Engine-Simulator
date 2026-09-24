@@ -97,6 +97,7 @@ class _ShapeLabBase(ttk.Frame):
         self._on_close = on_close
         self._gl_frame = None
         self._flat_shade_var = None
+        self._xray_var = None
         self._fig = self._ax = self._canvas = None
 
         self.columnconfigure(0, weight=0)
@@ -155,6 +156,10 @@ class _ShapeLabBase(ttk.Frame):
                 ttk.Checkbutton(toolbar, text="Engineering shading",
                                 variable=self._flat_shade_var,
                                 command=self._on_flat_shade_toggle).pack(side=tk.LEFT, padx=4, pady=2)
+                self._xray_var = tk.BooleanVar(value=False)
+                ttk.Checkbutton(toolbar, text="X-ray", variable=self._xray_var,
+                                command=lambda: self._gl_frame.set_xray(self._xray_var.get())
+                                ).pack(side=tk.LEFT, padx=4, pady=2)
                 self._gl_frame.pack(fill=tk.BOTH, expand=True)
                 return
             except Exception as exc:

@@ -412,4 +412,8 @@ def jacket_manifolds_and_stability(self, s):
         "coolant_turnaround_t_k": (s.coolant_march.get("coolant_turnaround_t_k")
                                    if s.coolant_march else None),
         "coolant_channels_down": (s.coolant_march.get("n_channels_down") if s.coolant_march else None),
+        # Per-station bulk coolant temperature from the march (NaN outside the
+        # cooled length; two-pass = the UP pass) - exported for
+        # physics/flow_network.py, None outside "channels" mode.
+        "coolant_t_bulk_profile_k": (s.coolant_march["t_bulk_profile_k"] if s.coolant_march else None),
     }

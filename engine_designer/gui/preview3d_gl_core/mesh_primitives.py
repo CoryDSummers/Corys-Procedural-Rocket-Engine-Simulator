@@ -27,6 +27,24 @@ class MeshBuffers:
                                      # today's pure-Lambertian look for any caller that
                                      # doesn't pass a material-derived value explicitly.
     shininess: float = 32.0         # Blinn-Phong exponent - cosmetic/rendering only
+    metallic: float = None           # PBR metalness/roughness (shading.py) - None = derive
+    roughness: float = None          # from the Blinn-Phong pair above (shading.blinn_to_pbr);
+                                     # a material-backed piece gets explicit values stamped
+                                     # by gui/mesh_builder (shading.stamp_pbr)
+    data_colors: bool = False        # vertex colors are a data readout (heat-flux colormap),
+                                     # not a material look - shaded without tone mapping
+    role: str = ""                  # which engine part this piece is ("wall", "turbopump",
+                                     # ...), stamped by mesh_builder.build_mesh_data; "" =
+                                     # untagged. Picks the render layer (render_layers.py).
+    scalar: np.ndarray = None       # optional (N,) per-vertex temperature, K - flow pieces
+                                     # only (flow_meshes.py); legend range + Phase-2 shader
+    flow_s: np.ndarray = None       # optional (N,) arc length along the stream, m - flow
+                                     # pieces only; drives the Phase-2 flow animation
+    flow_colors: np.ndarray = None  # optional (N, 3) temperature tint shown instead of
+                                     # `colors` while the Flow view is on (render_layers)
+    meta: dict = None               # optional render hints, e.g. {"coolant_pass": "up"},
+                                     # {"tube_body": True, "grid_n_theta": 12},
+                                     # {"channel_grid": True, ...}, {"flow_host": "ox"}
 
 def triangulate_grid(n_theta, n_stations):
     """
