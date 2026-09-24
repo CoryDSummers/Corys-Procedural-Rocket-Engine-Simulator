@@ -162,6 +162,7 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._pbr = False           # True = PBR shader compiled; False = legacy fallback
         self._bg_program = None
         self._bg_vbo = None
+        self._max_attribs = None    # GL_MAX_VERTEX_ATTRIBS, queried once per context
         self._msaa = None           # {"fbo", "rbos", "size"} offscreen multisample target
         self._msaa_failed = False
         self._drag_last = None
@@ -293,6 +294,7 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._gl_meshes = []
         self._gizmo_vbo = None
         self._bg_vbo = None
+        self._max_attribs = None    # new context - re-query
         self._msaa = None           # same forget-don't-delete rule as the buffers above
         self._msaa_failed = False
         self._dirty = True
@@ -412,6 +414,23 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
                              GL.GL_COLOR_BUFFER_BIT, GL.GL_NEAREST)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
+    def _disable_stray_attribs(self, keep=-1):
+        """
+        Disable every vertex-attribute array except `keep`. GL fetches from ALL
+        enabled arrays on a draw, whatever the bound shader reads - and an
+        array whose VBO was deleted (every _upload_meshes re-upload: a new
+        design, the X-ray/Flow toggles) falls back to buffer 0, so its byte
+        offset becomes a raw client pointer. That was the Windows crash
+        "access violation reading 0x0000000000000018" in _draw_background's
+        glDrawArrays (0x18 = in_color's offset 24). Mesa tolerates it; NVIDIA/
+        AMD drivers don't.
+        """
+        if self._max_attribs is None:
+            self._max_attribs = int(np.ravel(GL.glGetIntegerv(GL.GL_MAX_VERTEX_ATTRIBS))[0])
+        for i in range(self._max_attribs):
+            if i != keep:
+                GL.glDisableVertexAttribArray(i)
+
     def _draw_background(self):
         """Vertical gradient behind the scene (depth test off, so it never
         occludes anything); falls back to the plain clear color."""
@@ -424,6 +443,7 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         GL.glUniform3f(GL.glGetUniformLocation(self._bg_program, "u_bottom"),
                        *preview3d_gl_core.BACKGROUND_BOTTOM)
         loc = GL.glGetAttribLocation(self._bg_program, "in_ndc")
+        self._disable_stray_attribs(keep=loc)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._bg_vbo)
         GL.glEnableVertexAttribArray(loc)
         GL.glVertexAttribPointer(loc, 2, GL.GL_FLOAT, GL.GL_FALSE, 8, GL.GLvoidp(0))
@@ -548,6 +568,12 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
                                      GL.GLvoidp(offset))
         GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, mesh["ibo"])
         GL.glDrawElements(GL.GL_TRIANGLES, mesh["n_indices"], GL.GL_UNSIGNED_INT, None)
+        # Never leave an array enabled past its draw: the next re-upload
+        # deletes this VBO, and a still-enabled array would then dangle (see
+        # _disable_stray_attribs).
+        for name in ("in_position", "in_normal", "in_color"):
+            if loc[name] >= 0:
+                GL.glDisableVertexAttribArray(loc[name])
 
     def _draw_gizmo(self, width, height):
         """
@@ -582,6 +608,9 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         GL.glEnableVertexAttribArray(color_loc)
         GL.glVertexAttribPointer(color_loc, 3, GL.GL_FLOAT, GL.GL_FALSE, stride, GL.GLvoidp(12))
         GL.glDrawArrays(GL.GL_LINES, 0, 6)
+        for attr_loc in (pos_loc, color_loc):   # same hygiene as _draw_batch
+            if attr_loc >= 0:
+                GL.glDisableVertexAttribArray(attr_loc)
 
         GL.glViewport(0, 0, width, height)  # restore full-window viewport for the next frame
 
