@@ -70,10 +70,15 @@ def temperature_colors(t_k, scale=ABSOLUTE_SCALE):
     return np.asarray(rgba[..., :3], dtype=np.float32).reshape(-1, 3)
 
 
+#: The streams the 3D Flow view draws (and the "streams" scale / legend fit):
+#: the liquids plus an open cycle's turbine exhaust - never the hot core gas.
+DRAWN_PROPELLANTS = ("fuel", "ox", "exhaust")
+
+
 def scale_for_network(network, mode):
     """The FlowColorScale for `mode` on one physics/flow_network result:
     "coolant" = the regen jacket segments' range (falls back to "streams" when
-    the design has no jacket), "streams" = every fuel/ox segment, anything else
+    the design has no jacket), "streams" = every drawn (fuel/ox/exhaust) segment, anything else
     = ABSOLUTE_SCALE."""
     def _range(segs):
         vals = [np.atleast_1d(np.asarray(sg.t_k, dtype=float)) for sg in segs]
@@ -89,7 +94,7 @@ def scale_for_network(network, mode):
         if rng is not None:
             mode_eff = "coolant"
     if rng is None:
-        rng = _range([sg for sg in network if sg.propellant in ("fuel", "ox")])
+        rng = _range([sg for sg in network if sg.propellant in DRAWN_PROPELLANTS])
         mode_eff = "streams"
     if rng is None:
         return ABSOLUTE_SCALE

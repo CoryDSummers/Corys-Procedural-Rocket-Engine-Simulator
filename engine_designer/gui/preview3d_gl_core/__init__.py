@@ -96,6 +96,7 @@ from .duct_meshes import (
     RAY_RADIUS_TUBE_R_MULT,
     RAY_N_THETA,
     ray_mesh,
+    exhaust_nozzle_mesh,
 )
 from .tube_bundle import (
     visual_channel_count,
@@ -150,6 +151,7 @@ from .flow_meshes import (
     FLOW_SCALE_MODES,
     FLOW_MIN_FIT_SPAN_K,
     scale_for_network,
+    DRAWN_PROPELLANTS,
     recolor,
     scale_ticks,
     resample_polyline,
@@ -230,6 +232,7 @@ __all__ = [
     "RAY_RADIUS_TUBE_R_MULT",
     "RAY_N_THETA",
     "ray_mesh",
+    "exhaust_nozzle_mesh",
     "visual_channel_count",
     "channel_modulated_grid",
     "_tube_geometry_profile",
@@ -274,6 +277,7 @@ __all__ = [
     "FLOW_SCALE_MODES",
     "FLOW_MIN_FIT_SPAN_K",
     "scale_for_network",
+    "DRAWN_PROPELLANTS",
     "recolor",
     "scale_ticks",
     "resample_polyline",

@@ -100,6 +100,9 @@ PLUMBING_FLANGE_RGB = (0.5, 0.5, 0.52)          # same grey as the bell-joint fl
 PLUMBING_SELECTED_RGB = (0.95, 0.75, 0.25)      # Shape Lab selected-segment highlight
 PLUMBING_AUTO_LEG_LIGHTEN = 0.45                # auto-close legs: blend this far toward white
 PORT_STUB_RGB = (0.62, 0.62, 0.65)              # turbopump inlet/discharge nozzle stubs
+EXHAUST_RGB = (0.52, 0.44, 0.38)                # heat-tinted Ni-superalloy exhaust hardware
+EXHAUST_HX_RGB = (0.66, 0.66, 0.70)             # LOX->GOX heat-exchanger can (cosmetic)
+EXHAUST_HX_PORT_OFFSET_DIA_MULT = 0.2           # can starts this x duct bore past the port face
 PORT_STUB_MAX_BODY_OD_FRACTION = 0.4            # stub radius cap vs the (render-scaled) body OD
 PLUMBING_N_BEND_SAMPLES = 12
 
@@ -1017,6 +1020,105 @@ def build_turbopump_pieces(result):
     return pieces
 
 
+def exhaust_render_edge(hardware, body_shell, ext_shell, has_extension, chamber_shell=None):
+    """Render inner-edge radius of the turbine-exhaust termination ring
+    (physics/turbine_exhaust.size_hardware): the injection manifold is wall-
+    snapped like every other ring (Option A, _ring_inner_edge_r); the
+    aspirator's inlet collar rides its shroud, so it keeps its physics radius;
+    None for the overboard exit (a point hook - no ring)."""
+    hk = hardware["exhaust"]
+    if hk.get("point_hook"):
+        return None
+    if hardware["mode"] == "nozzle_injection":
+        return _ring_inner_edge_r(body_shell, ext_shell, has_extension, hk, chamber_shell)
+    return hk["major_radius_m"] - hk["outer_radius_m"]
+
+
+def exhaust_run_root(hardware, edge, angle_deg):
+    """(centre, tube) radius a turbine_exhaust run roots on - ring_local_render
+    for a ring, the point hook's own radius / duct bore for the overboard exit."""
+    hk = hardware["exhaust"]
+    if edge is None:
+        return float(hk["major_radius_m"]), float(hk["outer_radius_m"])
+    return ring_local_render(hk, edge, angle_deg)
+
+
+def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXHAUST_RGB,
+                                       angle_deg=None):
+    """The exhaust termination itself (no duct): the injection manifold torus,
+    the aspirator shroud (a closed meridian section: annulus inner line out,
+    outer line back) + its inlet collar, or the overboard exhaust nozzle
+    (duct_meshes.exhaust_nozzle_mesh, canted as designed). `angle_deg` (the
+    duct run's attach angle) swings the overboard nozzle round the engine axis
+    with its duct root; the rings are axisymmetric and ignore it."""
+    kw = dict(specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
+              shininess=preview3d_gl_core.HARDWARE_SHININESS)
+    mode = hardware["mode"]
+    if mode == "nozzle_injection":
+        return [ring_mesh_for(hardware["exhaust"], edge, rgb)]
+    if mode == "aspirator":
+        a = hardware["aspirator"]
+        sec_x = np.concatenate([a["xs"], a["xs"][::-1]])
+        sec_r = np.concatenate([a["r_inner"], a["r_outer"][::-1]])
+        return [preview3d_gl_core.revolve_closed_section(sec_x, sec_r, n_theta, rgb, **kw),
+                ring_mesh_for(a["collar"], edge, rgb)]
+    o = hardware["outlet"]
+    pos = np.asarray(o["pos"], dtype=float)
+    ndir = np.asarray(o["dir"], dtype=float)
+    if angle_deg is not None:
+        da = np.radians(float(angle_deg)
+                        - float(hardware["exhaust"].get("attach_angular_position_deg", 0.0)))
+        rot = np.array([[1.0, 0.0, 0.0], [0.0, np.cos(da), -np.sin(da)],
+                        [0.0, np.sin(da), np.cos(da)]])
+        pos, ndir = rot @ pos, rot @ ndir
+    r_in = 0.5 * o["inlet_dia_m"]
+    return preview3d_gl_core.exhaust_nozzle_mesh(
+        pos - np.array([r_in, 0.0, 0.0]), pos, ndir, r_in, 0.5 * o["throat_dia_m"],
+        0.5 * o["exit_dia_m"], o["converge_length_m"], o["length_m"], n_theta, rgb, **kw)
+
+
+def build_turbine_exhaust_pieces(result, body_shell, ext_shell, has_extension,
+                                 chamber_shell=None, flow_anchors=None):
+    """An open cycle's turbine-exhaust hardware (result["turbine_exhaust_hardware"]):
+    the termination, the exhaust duct - the design's baked turbine_exhaust
+    plumbing run, else the auto-routed default one design.py massed
+    (hardware["implicit_run"]) - closed onto the turbine exhaust port, and the
+    LOX->GOX heat-exchanger can just past that port. Registers the duct / ring
+    for the Flow view in `flow_anchors`. [] for a closed cycle."""
+    hw = result.get("turbine_exhaust_hardware")
+    if not hw:
+        return []
+    edge = exhaust_render_edge(hw, body_shell, ext_shell, has_extension, chamber_shell)
+    baked = plumbing.runs_for_host(result.get("inputs", {}).get("plumbing_runs"), "turbine_exhaust")
+    run = baked[0] if baked else hw.get("implicit_run")
+    pieces = turbine_exhaust_termination_pieces(
+        hw, edge, angle_deg=plumbing.run_from_dict(run).attach_angle_deg if run else None)
+    for p in pieces:
+        p.meta = {"flow_host": "turbine_exhaust"}
+    if run is not None:
+        rr, rt = exhaust_run_root(hw, edge, plumbing.run_from_dict(run).attach_angle_deg)
+        pp, pres = build_plumbing_pieces(run, hw["exhaust"], rr, rt, EXHAUST_RGB,
+                                         supercritical=True, port=run_port_for_result(result, run))
+        if pp:
+            pp[0].meta = {"flow_host": "turbine_exhaust", "feed_line": True}
+            pieces.extend(pp)
+            if flow_anchors is not None:
+                flow_anchors.setdefault("feed_lines", {})["turbine_exhaust"] = (
+                    pres["render_centerline_xyz"], pres["render_station_r_m"])
+    if flow_anchors is not None and edge is not None:
+        flow_anchors.setdefault("rings", {})["turbine_exhaust"] = (hw["exhaust"], edge)
+    port = plumbing.port_for_host(result.get("turbopump_ports"), "turbine_exhaust")
+    if hw.get("hx") and port is not None:
+        d = float(port.get("dia_m") or 0.0)
+        u = np.asarray(port["dir"], dtype=float)
+        start = np.asarray(port["pos"], dtype=float) + EXHAUST_HX_PORT_OFFSET_DIA_MULT * d * u
+        pieces.extend(preview3d_gl_core.ray_mesh(
+            start, start + hw["hx"]["length_m"] * u, 0.5 * hw["hx"]["dia_m"], _N_THETA,
+            EXHAUST_HX_RGB, specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
+            shininess=preview3d_gl_core.HARDWARE_SHININESS))
+    return pieces
+
+
 def _tag(pieces, role):
     """Stamp MeshBuffers.role on every piece (render-layer choice only - see
     preview3d_gl_core/render_layers.py) and hand the list back."""
@@ -1153,7 +1255,7 @@ def build_flow_pieces(result, flow_anchors, body_shell, ext_shell, has_extension
     feeds = (flow_anchors or {}).get("feed_lines", {})
     hardware = hardware or []
     pieces = []
-    s_run = {"fuel": 0.0, "ox": 0.0}   # arc length travelled per stream
+    s_run = {"fuel": 0.0, "ox": 0.0, "exhaust": 0.0}   # arc length travelled per stream
 
     def _add(piece):
         if piece is not None:
@@ -1605,6 +1707,10 @@ def build_mesh_data(result, heat_flux_mode, duct_bend_radius_mult=None, return_c
 
     pieces.extend(_tag(build_turbopump_pieces(result), "turbopump"))
 
+    # Open cycles: turbine-exhaust termination + duct + heat exchanger.
+    pieces.extend(_tag(build_turbine_exhaust_pieces(result, body_shell, ext_shell, has_extension,
+                                                    chamber_shell, flow_anchors), "exhaust"))
+
     # Flow visualization - always built, only drawn while the preview's Flow
     # toggle is on (render_layers skips "flow" pieces otherwise; no rebuild).
     _net = flow_network.build_flow_network(result)
@@ -1758,7 +1864,7 @@ def self_test():
         "tubes past the cooled length carry no coolant - left untinted"
     _all_t = np.concatenate([p.scalar for p in _flow])
     assert np.all(np.isfinite(_all_t)) and all(np.all(np.isfinite(p.flow_s)) for p in _flow)
-    _lo, _hi = flow_network.temperature_range(_net, propellants=("fuel", "ox"))
+    _lo, _hi = flow_network.temperature_range(_net, propellants=preview3d_gl_core.DRAWN_PROPELLANTS)
     assert abs(_all_t.min() - _lo) < 1.0 and abs(_all_t.max() - _hi) < 1.0, (_all_t.min(), _lo)
     assert _all_t.max() < 1000.0, "hot-gas core must not be drawn"
     # the smooth Chamber-Jacket segment draws no tubes, but coolant still runs
@@ -1825,7 +1931,9 @@ def self_test():
     assert _fit.mode == "coolant" and _fit.hi_k - _fit.lo_k > 5.0, _fit
 
     def _tube_color_spread(scale):
-        bb = preview3d_gl_core.build_batches(_pj, True, flow_enabled=True, color_scale=scale)
+        # the jacket's coolant hardware only - not the (hot) turbine-exhaust duct
+        bb = preview3d_gl_core.build_batches([p for p in _pj if p.role != "exhaust"], True,
+                                             flow_enabled=True, color_scale=scale)
         cols = np.concatenate([b.buffers.colors for b in bb if b.alpha is not None])
         return float(np.ptp(cols, axis=0).max())
     _spread_abs = _tube_color_spread(None)
@@ -1976,6 +2084,45 @@ def self_test():
     print(f"pump-connected runs (render + two-pass line loss): OK - fuel "
           f"{_res_conn['line_loss_fuel_pa'] / 1e3:.0f} kPa / ox {_res_conn['line_loss_ox_pa'] / 1e3:.0f} kPa "
           f"vs flat {500:.0f}, residual {_res_conn['line_loss_residual_pa']:.0f} Pa")
+
+    # Turbine-exhaust hardware (physics/turbine_exhaust.py): every open-cycle
+    # mode draws its termination + the default duct closed on the turbine
+    # exhaust port (+ the heat-exchanger can when asked); a closed cycle none.
+    _te_base = dict(propellant_pair="LOX/RP-1", mixture_ratio=2.34, chamber_pressure_pa=5.0e6,
+                    expansion_ratio=12.0, cycle=cycles.GAS_GENERATOR,
+                    target_vac_thrust_n=900_000.0)
+    for _mode, _extra in (("overboard_duct", dict(turbine_exhaust_nozzle_eps=4.0,
+                                                  turbine_exhaust_cant_deg=15.0)),
+                          ("aspirator", dict(turbine_exhaust_hx_gox_kgs=0.3)),
+                          ("nozzle_injection", dict(turbine_exhaust_inject_eps=6.0))):
+        _r = EngineDesign(**_te_base, turbine_exhaust_mode=_mode, **_extra).compute()
+        _all, _ctx = build_mesh_data(_r, False, return_context=True)
+        _ex = [p for p in _all if p.role == "exhaust"]
+        _hw = _r["turbine_exhaust_hardware"]
+        _edge = exhaust_render_edge(_hw, _ctx["body_shell"], _ctx["ext_shell"],
+                                    _ctx["has_extension"], _ctx["chamber_shell"])
+        _term = turbine_exhaust_termination_pieces(_hw, _edge)
+        _duct = [p for p in _ex if (p.meta or {}).get("feed_line")]
+        assert _term and len(_ex) > len(_term) and len(_duct) == 1, (_mode, len(_ex))
+        for _p in _ex:
+            assert _p.vertices.shape[0] > 0 and not np.any(np.isnan(_p.vertices))
+        _run = _hw["implicit_run"]
+        _res_run = plumbing.resolve_run(_run, _hw["exhaust"],
+                                        *exhaust_run_root(_hw, _edge, _run["attach_angle_deg"]),
+                                        supercritical=True, port=run_port_for_result(_r, _run))
+        _port = _r["turbopump_ports"]["turbine"]["exhaust"]
+        assert np.linalg.norm(_res_run["waypoints_xyz"][-1] - _port["pos"]) < 1e-9
+        assert (_edge is None) == (_mode == "overboard_duct")
+        _hx_pieces = [p for p in _ex if p.colors.shape[0]
+                      and np.allclose(p.colors, EXHAUST_HX_RGB, atol=1e-6)]
+        if _mode == "aspirator":            # heat-exchanger can drawn (body + 2 disks)
+            assert _hw["hx"] is not None and len(_hx_pieces) == 3, len(_hx_pieces)
+        else:
+            assert not _hx_pieces
+    _closed = EngineDesign(**{**_te_base, "cycle": cycles.FRSC, "propellant_pair": "LOX/LH2",
+                              "mixture_ratio": 6.0, "chamber_pressure_pa": 20e6}).compute()
+    assert not [p for p in build_mesh_data(_closed, False) if p.role == "exhaust"]
+    print("turbine-exhaust hardware (overboard nozzle / aspirator + HX / injection ring): OK")
 
     print("ALL MESH_BUILDER CHECKS OK")
 
