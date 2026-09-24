@@ -310,11 +310,11 @@ def coolant_capacity_and_isp(self, s):
         cooling.regen_isp_bonus_from_heat(th["wall_heat_regen_w"], jet_power_w)
         if s.regen_cooled and s.cyc["has_turbopump"] else 0.0)
     if s.regen_isp_bonus > 0.0:
-        _chamber_share = 1.0 - (s.cyc.get("gg_flow_fraction") or 0.0)
+        _chamber_share = s.mdot / s.mdot_total     # chamber stream's share of TOTAL flow
         s.isp_vac_eng += s.regen_isp_bonus * _chamber_share * s.isp_vac_chamber
         s.isp_sl_eng += s.regen_isp_bonus * _chamber_share * s.isp_sl_chamber
-        s.thrust_vac = s.mdot * s.isp_vac_eng * G0
-        s.thrust_sl = s.mdot * s.isp_sl_eng * G0
+        s.thrust_vac = s.mdot_total * s.isp_vac_eng * G0
+        s.thrust_sl = s.mdot_total * s.isp_sl_eng * G0
         s.thrust_vac_floor = s.thrust_vac * self.throttle_floor
 
     # Dump cooling (nozzle extension only): the bleed was sized INSIDE the
@@ -325,13 +325,13 @@ def coolant_capacity_and_isp(self, s):
     s.dump_coolant_fraction_eff = _d["fraction"]
     s.dump_mdot_kgs = _d["mdot_kgs"]
     s.dump_coolant_dt_k = _d["delta_t_k"]
-    s.dump_isp_penalty_fraction = (cooling.dump_cooling_isp_penalty_fraction(s.dump_mdot_kgs, s.mdot)
+    s.dump_isp_penalty_fraction = (cooling.dump_cooling_isp_penalty_fraction(s.dump_mdot_kgs, s.mdot_total)
                                    if s.dump_mdot_kgs > 0 else 0.0)
     if s.dump_isp_penalty_fraction > 0.0:
         s.isp_vac_eng *= (1.0 - s.dump_isp_penalty_fraction)
         s.isp_sl_eng *= (1.0 - s.dump_isp_penalty_fraction)
-        s.thrust_vac = s.mdot * s.isp_vac_eng * G0
-        s.thrust_sl = s.mdot * s.isp_sl_eng * G0
+        s.thrust_vac = s.mdot_total * s.isp_vac_eng * G0
+        s.thrust_sl = s.mdot_total * s.isp_sl_eng * G0
         s.thrust_vac_floor = s.thrust_vac * self.throttle_floor
     _dump_limit = s.coolant_limit_k if s.coolant_limit_k else 200.0
     dump_ok = s.dump_coolant_dt_k <= _dump_limit + 1e-6
@@ -351,11 +351,11 @@ def coolant_capacity_and_isp(self, s):
     s.nozzle_film_isp_penalty_fraction = 0.0
     if s.nozzle_film_active:
         s.nozzle_film_isp_penalty_fraction = cooling.dump_cooling_isp_penalty_fraction(
-            self.nozzle_film_fraction * s.mdot_fuel_kgs, s.mdot)
+            self.nozzle_film_fraction * s.mdot_fuel_kgs, s.mdot_total)
         s.isp_vac_eng *= (1.0 - s.nozzle_film_isp_penalty_fraction)
         s.isp_sl_eng *= (1.0 - s.nozzle_film_isp_penalty_fraction)
-        s.thrust_vac = s.mdot * s.isp_vac_eng * G0
-        s.thrust_sl = s.mdot * s.isp_sl_eng * G0
+        s.thrust_vac = s.mdot_total * s.isp_vac_eng * G0
+        s.thrust_sl = s.mdot_total * s.isp_sl_eng * G0
         s.thrust_vac_floor = s.thrust_vac * self.throttle_floor
     _slot_eps = self.nozzle_film_inject_eps
     _slot_ok = (self.nozzle_film_fraction <= 0.0 or s.nozzle_film_active)

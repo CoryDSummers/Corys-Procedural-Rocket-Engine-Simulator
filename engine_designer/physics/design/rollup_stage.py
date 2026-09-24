@@ -206,7 +206,8 @@ def checks_and_result(self, s):
         "nozzle_divergence_efficiency": s.lam,
         "nozzle_efficiency_vs_reference": s.lam_relative,
         "theta_n_deg": s.theta_n_deg, "theta_e_deg": s.theta_e_deg,
-        "mdot_kgs": s.mdot,
+        "mdot_kgs": s.mdot_total,          # TOTAL engine flow (chamber + any GG/tap-off draw)
+        "mdot_chamber_kgs": s.mdot,        # through the main-chamber throat
         "isp_vac_chamber_s": s.isp_vac_chamber, "isp_sl_chamber_s": s.isp_sl_chamber,
         "isp_vac_engine_s": s.isp_vac_eng, "isp_sl_engine_s": s.isp_sl_eng,
         "thrust_vac_n": s.thrust_vac, "thrust_sl_n": s.thrust_sl,

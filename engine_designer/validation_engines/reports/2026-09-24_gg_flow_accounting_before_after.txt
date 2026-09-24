@@ -1,0 +1,191 @@
+GG / tap-off flow & thrust accounting fix (2026-09-24)
+======================================================
+Before = HEAD e43e713, after = this change. BOTH were computed in the same Python environment
+(python 3.12, numpy 2.4.6, scipy 1.17.1, cloud container) with a git worktree of HEAD, so
+last-ULP library drift vs golden/ does not show up as a change. Every field that differs is
+listed below (the full _diff, with no limit).
+
+**The bug.**
+- cycles.gas_generator_result reports gg_flow_fraction = mdot_gg / mdot_CHAMBER.
+- turbopump.engine_isp_with_gg_dump blended it as if it were a share of TOTAL flow.
+- design thrust = chamber mdot x that engine Isp.
+
+As a result, GG / tap-off thrust came out about x*(1-k) BELOW the level the chamber actually
+produces, and mdot_kgs left out the GG / tap-off draw.
+
+**The fix.**
+- mdot_kgs = chamber + GG / tap-off flow. The new mdot_chamber_kgs carries the chamber alone.
+- Engine Isp = (mdot_c*Isp_c + mdot_gg*k*Isp_c) / mdot_total.
+- thrust = mdot_total x engine Isp.
+- The dump and slot-film bleed penalties are now fractions of total flow.
+- A new cycle_result["gg_fraction_of_total"] is reported. gg_flow_fraction keeps its
+  chamber-relative meaning.
+- Unchanged: GG_DUMP_ISP_FRACTION is still 0.55 in this commit, so the diff shows only the
+  accounting change.
+
+**Also fixed by the same change, affecting staged cycles (RS-25, RD-180, Raptor-2).**
+- The regen Isp credit's "chamber share" was 1 - cycle_result["gg_flow_fraction"].
+- Staged results fill that field with the PREBURNER fraction, so the credit was withheld from
+  preburner flow. That flow does go through the chamber.
+- The share is now mdot_chamber / mdot_total, which is 1.0 for staged cycles. Their Isp and
+  thrust rise by 0.2-0.9 %.
+
+**Target-thrust semantics are unchanged.** target_vac_thrust_n sets the CHAMBER flow, and
+every Isp adjustment (regen credit, dump, film, now GG exhaust) moves the thrust from there.
+Open-cycle engines therefore now sit above target by the exhaust's own thrust, instead of
+below it.
+
+Summary (vacuum Isp s, vacuum thrust kN, mdot kg/s, before -> after):
+  engines/AJ10-137           pressure_fed   Isp  313.89-> 313.89  F     97.4->    97.4 (target 97.4)  mdot    31.65->   31.65
+  engines/Aestus             pressure_fed   Isp  308.06-> 308.06  F     27.8->    27.8 (target 27.8)  mdot     9.20->    9.20
+  engines/F-1                gas_generator  Isp  299.42-> 299.59  F   7601.4->  7775.9 (target 7775.5)  mdot  2588.72-> 2646.71
+  engines/J-2                gas_generator  Isp  420.13-> 420.18  F   1024.7->  1040.5 (target 1023.1)  mdot   248.72->  252.51
+  engines/LMAE               pressure_fed   Isp  310.22-> 310.22  F     15.6->    15.6 (target 15.6)  mdot     5.12->    5.12
+  engines/Merlin-1D          gas_generator  Isp  299.07-> 299.24  F    734.7->   761.6 (target 742.4)  mdot   250.52->  259.51
+  engines/RD-180             orsc           Isp  318.14-> 319.04  F   4155.9->  4167.6 (target 4152.0)  mdot  1332.05-> 1332.05
+  engines/RL10A-3-3          expander       Isp  453.52-> 453.52  F     71.1->    71.1 (target 70.0)  mdot    15.99->   15.99
+  engines/RS-25              frsc           Isp  425.60-> 426.41  F   2104.9->  2108.8 (target 2090.0)  mdot   504.31->  504.31
+  engines/Raptor-2           ffsc           Isp  347.13-> 350.41  F   2255.5->  2276.8 (target 2255.5)  mdot   662.57->  662.57
+  engines/Rutherford         electric_pump  Isp  302.85-> 302.85  F     26.6->    26.6 (target 26.2)  mdot     8.95->    8.95
+  engines/Vulcain            gas_generator  Isp  429.67-> 429.86  F   1130.4->  1157.7 (target 1145.0)  mdot   268.28->  274.64
+  user_designs/AJ-90k        frsc           Isp  454.31-> 454.31  F    400.0->   400.0 (target 400.0)  mdot    89.78->   89.78
+  user_designs/LR-100        gas_generator  Isp  328.61-> 328.69  F    596.0->   610.1 (target 600.0)  mdot   184.96->  189.28
+  user_designs/RS-29         tap_off        Isp  312.89-> 312.95  F   1595.0->  1645.7 (target 1600.0)  mdot   519.82->  536.25
+  user_designs/RS-29A        tap_off        Isp  313.06-> 313.12  F   1595.9->  1646.6 (target 1600.0)  mdot   519.82->  536.23
+  user_designs/RS-29C        tap_off        Isp  308.80-> 308.86  F   1596.1->  1645.9 (target 1600.0)  mdot   527.06->  543.42
+  user_designs/RS-30         tap_off        Isp  312.40-> 312.54  F   1583.5->  1642.1 (target 1600.0)  mdot   516.88->  535.76
+  user_designs/TRW-270       pressure_fed   Isp  303.61-> 303.61  F     12.0->    12.0 (target 12.0)  mdot     4.03->    4.03
+  user_designs/j-2_test_bed  gas_generator  Isp  416.65-> 416.71  F   1030.3->  1048.5 (target 1033.0)  mdot   252.17->  256.57
+
+Full field diff:
+CHANGED   engines/AJ10-137
+    /mdot_chamber_kgs: added
+CHANGED   engines/Aestus
+    /mdot_chamber_kgs: added
+CHANGED   engines/F-1
+    /checklist[16]/detail: 'OK - 8.0% of fuel as a slot film at eps 10.0, Isp cost 1.47%' -> 'OK - 8.0% of fuel as a slot film at eps 10.0, Isp cost 1.44%'
+    /cooling/nozzle_film_isp_penalty_fraction/__f__: '0.014678899082568806' -> '0.014357300595091767'
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '259.1719938459458' -> '259.3145854569524'
+    /isp_vac_engine_s/__f__: '299.4225409153631' -> '299.5872776287989'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '2588.7237201783887' -> '2646.7102217070897'
+    /thrust_sl_n/__f__: '6579523.592309985' -> '6730603.625123573'
+    /thrust_vac_floor_n/__f__: '4560811.473773019' -> '4665537.528394899'
+    /thrust_vac_n/__f__: '7601352.456288366' -> '7775895.8806581665'
+CHANGED   engines/J-2
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '301.7310576584423' -> '301.7627947759038'
+    /isp_vac_engine_s/__f__: '420.13210902038855' -> '420.17629997042474'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '248.71526058409856' -> '252.51361387400905'
+    /thrust_sl_n/__f__: '735941.212630886' -> '747259.0204195738'
+    /thrust_vac_floor_n/__f__: '614837.337946776' -> '624292.7274436001'
+    /thrust_vac_n/__f__: '1024728.8965779599' -> '1040487.8790726668'
+CHANGED   engines/LMAE
+    /mdot_chamber_kgs: added
+CHANGED   engines/Merlin-1D
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '262.23049499880096' -> '262.3809170243518'
+    /isp_vac_engine_s/__f__: '299.07099920662847' -> '299.2425538745339'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '250.51528585803916' -> '259.5112851570969'
+    /thrust_sl_n/__f__: '644225.7814404453' -> '667742.7318610355'
+    /thrust_vac_floor_n/__f__: '440839.4565344796' -> '456931.9507211933'
+    /thrust_vac_n/__f__: '734732.4275574661' -> '761553.2512019888'
+CHANGED   engines/RD-180
+    /isp_sl_engine_s/__f__: '294.2576261575889' -> '295.09025328111983'
+    /isp_vac_engine_s/__f__: '318.14181202824693' -> '319.0420214987132'
+    /mdot_chamber_kgs: added
+    /thrust_sl_n/__f__: '3843866.3776012957' -> '3854742.926314787'
+    /thrust_vac_floor_n/__f__: '2493518.2762120394' -> '2500573.8994660727'
+    /thrust_vac_n/__f__: '4155863.7936867326' -> '4167623.1657767883'
+CHANGED   engines/RL10A-3-3
+    /mdot_chamber_kgs: added
+CHANGED   engines/RS-25
+    /isp_sl_engine_s/__f__: '342.45318264230906' -> '343.1012033150077'
+    /isp_vac_engine_s/__f__: '425.5999901083185' -> '426.4053486386803'
+    /mdot_chamber_kgs: added
+    /thrust_sl_n/__f__: '1693643.0499842218' -> '1696847.913493137'
+    /thrust_vac_floor_n/__f__: '1262913.3006012007' -> '1265303.098588479'
+    /thrust_vac_n/__f__: '2104855.501002001' -> '2108838.497647465'
+CHANGED   engines/Raptor-2
+    /isp_sl_engine_s/__f__: '322.92382896397777' -> '325.97279582912364'
+    /isp_vac_engine_s/__f__: '347.1320064265583' -> '350.40954091146074'
+    /mdot_chamber_kgs: added
+    /thrust_sl_n/__f__: '2098234.5921974746' -> '2118045.6038761036'
+    /thrust_vac_floor_n/__f__: '1353318.0' -> '1366095.69359184'
+    /thrust_vac_n/__f__: '2255530.0' -> '2276826.1559864003'
+CHANGED   engines/Rutherford
+    /mdot_chamber_kgs: added
+CHANGED   engines/Vulcain
+    /checklist[15]/detail: 'OK - ~500 K coolant rise, 8.1% of fuel, Isp penalty 0.78%' -> 'OK - ~500 K coolant rise, 8.1% of fuel, Isp penalty 0.76%'
+    /cooling/dump_isp_penalty_fraction/__f__: '0.007758323113729796' -> '0.0075786366800154005'
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '337.49466599967377' -> '337.64069573571885'
+    /isp_vac_engine_s/__f__: '429.6723381985031' -> '429.85825206457'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '268.27768929902044' -> '274.6384456290338'
+    /thrust_sl_n/__f__: '887916.5398451593' -> '909361.9840284963'
+    /thrust_vac_floor_n/__f__: '678256.3653330676' -> '694637.9827171516'
+    /thrust_vac_n/__f__: '1130427.2755551126' -> '1157729.9711952528'
+CHANGED   user_designs/AJ-90k
+    /mdot_chamber_kgs: added
+CHANGED   user_designs/LR-100
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '95.8276034070602' -> '95.85099968904153'
+    /isp_vac_engine_s/__f__: '328.61476367910495' -> '328.694994879729'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '184.95761390199888' -> '189.28218446683132'
+    /thrust_sl_n/__f__: '173813.5046451453' -> '177920.93891973895'
+    /thrust_vac_floor_n/__f__: '596046.251001131' -> '610131.5823199106'
+    /thrust_vac_n/__f__: '596046.251001131' -> '610131.5823199106'
+CHANGED   user_designs/RS-29
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '286.39741673556847' -> '286.4539829959963'
+    /isp_vac_engine_s/__f__: '312.88753907239055' -> '312.9493373882466'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '519.8184882229117' -> '536.2491086350196'
+    /thrust_sl_n/__f__: '1459961.8041147378' -> '1506406.3029649896'
+    /thrust_vac_floor_n/__f__: '1036749.9462926212' -> '1069731.173303408'
+    /thrust_vac_n/__f__: '1594999.9173732633' -> '1645740.2666206276'
+CHANGED   user_designs/RS-29A
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '286.5537990004174' -> '286.6104199522748'
+    /isp_vac_engine_s/__f__: '313.05838580194865' -> '313.1202438678787'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '519.8184882229117' -> '536.2343865322217'
+    /thrust_sl_n/__f__: '1460758.9905423347' -> '1507187.5955372022'
+    /thrust_vac_floor_n/__f__: '1037316.0453396423' -> '1070285.9857854869'
+    /thrust_vac_n/__f__: '1595870.838984065' -> '1646593.8242853642'
+CHANGED   user_designs/RS-29C
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '282.54036478497443' -> '282.59431244529225'
+    /isp_vac_engine_s/__f__: '308.799760157421' -> '308.858721731212'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '527.0584102904561' -> '543.4160589543105'
+    /thrust_sl_n/__f__: '1460359.986545369' -> '1505970.8338210732'
+    /thrust_vac_floor_n/__f__: '1037456.113768868' -> '1069858.5712425874'
+    /thrust_vac_n/__f__: '1596086.3288751815' -> '1645936.2634501343'
+CHANGED   user_designs/RS-30
+    /checklist[16]/detail: 'OK - 3.0% of fuel as a slot film at eps 6.0, Isp cost 0.53%' -> 'OK - 3.0% of fuel as a slot film at eps 6.0, Isp cost 0.51%'
+    /cooling/nozzle_film_isp_penalty_fraction/__f__: '0.0053254437869822485' -> '0.005137776181591267'
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '287.3500361793828' -> '287.4794963633994'
+    /isp_vac_engine_s/__f__: '312.3966916780788' -> '312.5374361642413'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '516.8787060122398' -> '535.7587400204286'
+    /thrust_sl_n/__f__: '1456533.817769008' -> '1510416.82767376'
+    /thrust_vac_floor_n/__f__: '981764.7433203099' -> '1018084.1467856497'
+    /thrust_vac_n/__f__: '1583491.5214843708' -> '1642071.2044929834'
+CHANGED   user_designs/TRW-270
+    /mdot_chamber_kgs: added
+CHANGED   user_designs/j-2_test_bed
+    /cycle_result/gg_fraction_of_total: added
+    /isp_sl_engine_s/__f__: '339.2594236852445' -> '339.3057410240562'
+    /isp_vac_engine_s/__f__: '416.64826622607836' -> '416.70514906429844'
+    /mdot_chamber_kgs: added
+    /mdot_kgs/__f__: '252.17041200363383' -> '256.56898241325945'
+    /thrust_sl_n/__f__: '838970.5641433714' -> '853721.1392107516'
+    /thrust_vac_floor_n/__f__: '618209.4407305695' -> '629078.6477714272'
+    /thrust_vac_n/__f__: '1030349.0678842826' -> '1048464.4129523787'

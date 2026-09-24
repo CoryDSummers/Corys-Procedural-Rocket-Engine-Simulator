@@ -349,8 +349,14 @@ def turbomachinery_cycle(self, s):
     else:
         raise ValueError(f"unknown cycle {self.cycle!r}; choices: {cycles.CYCLES}")
 
-    s.thrust_vac = s.mdot * s.isp_vac_eng * G0
-    s.thrust_sl = s.mdot * s.isp_sl_eng * G0
+    # Total engine flow: an open cycle's GG / tap-off draw is EXTRA propellant on
+    # top of the chamber flow s.mdot (dumped overboard, not through the throat);
+    # staged/expander/electric/pressure-fed engines put everything through the
+    # chamber. Thrust = total flow x the total-flow-averaged engine Isp.
+    s.mdot_total = s.mdot + (s.cyc["gg_mdot_kgs"]
+                             if self.cycle in (cycles.GAS_GENERATOR, cycles.TAP_OFF) else 0.0)
+    s.thrust_vac = s.mdot_total * s.isp_vac_eng * G0
+    s.thrust_sl = s.mdot_total * s.isp_sl_eng * G0
     s.thrust_vac_floor = s.thrust_vac * self.throttle_floor
 
     s.separated_100pct = iso.is_separated(s.pe_pa, PA_SEA_LEVEL, SEPARATION_K)
