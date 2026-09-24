@@ -120,6 +120,8 @@ class EngineDesignerApp:
         self._current_project_path = None   # last Saved/Loaded .json (Ctrl+S target)
         self._gated_controls = []       # [(frame, predicate)] - see _register_gate/_apply_gates
         self._shape_lab_panel = None    # active ShapeLabPanel, if any - see _enter/_exit_shape_lab
+        self._recompute_after_id = None   # pending debounced recompute() - see _schedule_recompute
+        self._mr_peak_stale = False       # Combustion Chamber tab's MR label needs a refresh
         self._build_menu()
         self._build_layout()
         self._set_title()
@@ -214,6 +216,8 @@ class EngineDesignerApp:
         input_notebook = ttk.Notebook(left)
         input_notebook.grid(row=row, column=0, columnspan=2, sticky="nsew")
         row += 1
+        self.input_notebook = input_notebook
+        input_notebook.bind("<<NotebookTabChanged>>", self._on_input_tab_changed)
 
         # --- Combustion Chamber tab ---
         # Grouped into collapsible sections (gui/collapsible.py) rather than one
@@ -1264,6 +1268,7 @@ class EngineDesignerApp:
 
         notebook = ttk.Notebook(right)
         notebook.pack(fill=tk.BOTH, expand=True)
+        self.notebook = notebook
 
         tab_2d = ttk.Frame(notebook)
         notebook.add(tab_2d, text="2D Schematic")
@@ -1361,6 +1366,30 @@ class EngineDesignerApp:
         self.ax_tp = self.fig_tp.add_subplot(111)
         self.canvas_tp = FigureCanvasTkAgg(self.fig_tp, master=tab_turbopump)
         self.canvas_tp.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
+        # Redrawing every result tab (2D schematic, 3D preview, injector face,
+        # checklist, turbopump diagram) on every recompute() is most of its
+        # cost beyond the physics solve itself - matplotlib/GL redraws for
+        # tabs the user isn't even looking at. recompute() instead redraws
+        # only the currently-visible tab and marks the rest dirty; switching
+        # tabs (below) redraws a dirty tab exactly once, from the cached
+        # last_result, with no physics recompute.
+        self._tab_frames = {
+            "schematic": tab_2d,
+            "preview3d": tab_3d,
+            "injector_face": tab_injector_face,
+            "checklist": tab_checklist,
+            "turbopump": tab_turbopump,
+        }
+        self._tab_redraw_fns = {
+            "schematic": self._redraw_schematic,
+            "preview3d": self._redraw_preview3d,
+            "injector_face": self._redraw_injector_face,
+            "checklist": self._redraw_checklist,
+            "turbopump": self._redraw_turbopump_diagram,
+        }
+        self._tab_dirty = {key: False for key in self._tab_frames}
+        notebook.bind("<<NotebookTabChanged>>", self._on_result_tab_changed)
 
     def _add_dropdown(self, parent, row, label, attr_name, values, initial_value,
                        on_select=None, width=None):
@@ -1679,7 +1708,7 @@ class EngineDesignerApp:
         self.tech_node_combo["values"] = tech_tree.suggested_nodes(
             self.design.propellant_pair, self.design.cycle)
 
-        self.recompute()
+        self._schedule_recompute()
 
     def _on_turbopump_tech_change(self, _event=None):
         # The tier no longer pre-fills efficiency sliders (efficiency is derived);
@@ -1780,6 +1809,98 @@ class EngineDesignerApp:
                            f"{hb['total_mass_kg']:.1f} kg{buck_txt}"
                            + ("" if hb.get("all_ok") else "  - see Warnings")))
 
+    def _schedule_recompute(self, delay_ms=150):
+        """Debounced entry point for input-driven changes. A slider drag or a
+        held-down key fires its Tk variable's write trace on every
+        intermediate value, not just the final one - calling recompute()
+        (a full physics solve + tab redraw) straight from that trace turns
+        one drag into dozens of recomputes. Collapse a burst of these into a
+        single recompute() fired `delay_ms` after the user pauses; each new
+        call within the window just reschedules the same pending one."""
+        if self._recompute_after_id is not None:
+            self.root.after_cancel(self._recompute_after_id)
+        self._recompute_after_id = self.root.after(delay_ms, self._debounced_recompute)
+
+    def _debounced_recompute(self):
+        self._recompute_after_id = None
+        if self.root.winfo_exists():   # window may have closed while this was pending
+            self.recompute()
+
+    def _visible_result_tab(self):
+        """Which key of self._tab_frames the right-side notebook currently
+        shows, or None (e.g. mid-teardown)."""
+        try:
+            current = self.notebook.nametowidget(self.notebook.select())
+        except tk.TclError:
+            return None
+        for key, frame in self._tab_frames.items():
+            if frame is current:
+                return key
+        return None
+
+    def _redraw_schematic(self, result):
+        draw_schematic(self.ax, result)
+        self.canvas.draw_idle()
+
+    def _redraw_preview3d(self, result):
+        if self._use_gl_preview:
+            self.gl_preview.update_result(result)
+            self._last_result = result
+            if self._flow_var.get():
+                self._flow_legend.update_result(result)
+        else:
+            draw_3d_preview(self.ax3d, result)
+            self.canvas3d.draw_idle()
+
+    def _redraw_injector_face(self, result):
+        draw_injector_face(self.ax_if, result)
+        self.canvas_if.draw_idle()
+
+    def _redraw_turbopump_diagram(self, result):
+        draw_turbopump_diagram(self.ax_tp, result)
+        self.canvas_tp.draw_idle()
+
+    def _redraw_checklist(self, result):
+        self._populate_checklist(result["checklist"])
+
+    def _on_result_tab_changed(self, _event=None):
+        """Redraw a right-notebook tab exactly once, from the cached
+        last_result (no physics recompute), the moment it's switched into -
+        recompute() itself only redraws whichever tab was visible at the
+        time, per _visible_result_tab."""
+        key = self._visible_result_tab()
+        if key is not None and self._tab_dirty.get(key) and self.last_result is not None:
+            self._tab_redraw_fns[key](self.last_result)
+            self._tab_dirty[key] = False
+
+    def _is_combustion_tab_visible(self):
+        try:
+            return self.input_notebook.tab(self.input_notebook.select(), "text") == "Combustion Chamber"
+        except tk.TclError:
+            return True
+
+    def _update_mr_peak_label(self, result):
+        """Isp-vs-MR feedback for the Combustion Chamber tab. Sweeps 25
+        points across the whole MR range (mixture_ratio.isp_vs_mr_curve),
+        each a full compute() - by far recompute()'s single costliest step
+        beyond the main solve, so it's skipped unless that tab is actually
+        showing (see recompute()) and caught up on switching back to it."""
+        if combustion.is_monopropellant(self.design.propellant_pair):
+            self.mr_peak_var.set("Mixture ratio: n/a (monopropellant)")
+            self.optimize_mr_btn.state(["disabled"])
+        else:
+            curve = mixture_ratio.isp_vs_mr_curve(self.design, n=25)
+            delta = result["isp_vac_engine_s"] - curve["peak_isp_s"]
+            self.mr_peak_var.set(
+                f"Peak vac Isp {curve['peak_isp_s']:.1f} s at MR {curve['peak_mr']:.2f}"
+                f"  (current MR {self.design.mixture_ratio:.2f}: {delta:+.1f} s)")
+            self.optimize_mr_btn.state(["!disabled"])
+
+    def _on_input_tab_changed(self, _event=None):
+        if self._mr_peak_stale and self._is_combustion_tab_visible() and self.last_result is not None:
+            self._mr_peak_stale = False
+            self._update_mr_peak_label(self.last_result)
+
     def recompute(self):
         if self._loading:      # New / Load calls recompute() itself once, at the end
             return
@@ -1791,37 +1912,26 @@ class EngineDesignerApp:
         self.last_result = result
         self._update_hatband_summary(result)
 
-        draw_schematic(self.ax, result)
-        self.canvas.draw_idle()
-
-        if self._use_gl_preview:
-            self.gl_preview.update_result(result)
-            self._last_result = result
-            if self._flow_var.get():
-                self._flow_legend.update_result(result)
-        else:
-            draw_3d_preview(self.ax3d, result)
-            self.canvas3d.draw_idle()
-
-        draw_injector_face(self.ax_if, result)
-        self.canvas_if.draw_idle()
-
-        draw_turbopump_diagram(self.ax_tp, result)
-        self.canvas_tp.draw_idle()
+        # Redraw only the currently-visible result tab; the rest are marked
+        # dirty and catch up on exactly one redraw when the user switches to
+        # them (_on_result_tab_changed) - see _tab_redraw_fns/_tab_dirty setup
+        # in _build_layout. Worth skipping since none of these are free
+        # (matplotlib/GL draws, a Treeview rebuild).
+        visible_tab = self._visible_result_tab()
+        for key, fn in self._tab_redraw_fns.items():
+            if key == visible_tab:
+                fn(result)
+                self._tab_dirty[key] = False
+            else:
+                self._tab_dirty[key] = True
 
         self._refresh_plumbing_rows(result)
 
-        # Isp-vs-MR feedback for the Combustion Chamber tab.
-        if combustion.is_monopropellant(self.design.propellant_pair):
-            self.mr_peak_var.set("Mixture ratio: n/a (monopropellant)")
-            self.optimize_mr_btn.state(["disabled"])
+        if self._is_combustion_tab_visible():
+            self._mr_peak_stale = False
+            self._update_mr_peak_label(result)
         else:
-            curve = mixture_ratio.isp_vs_mr_curve(self.design, n=25)
-            delta = result["isp_vac_engine_s"] - curve["peak_isp_s"]
-            self.mr_peak_var.set(
-                f"Peak vac Isp {curve['peak_isp_s']:.1f} s at MR {curve['peak_mr']:.2f}"
-                f"  (current MR {self.design.mixture_ratio:.2f}: {delta:+.1f} s)")
-            self.optimize_mr_btn.state(["!disabled"])
+            self._mr_peak_stale = True
 
         injector = injectors.INJECTORS[self.design.injector_type]
         ig = result.get("injector_geometry", {})
@@ -2045,7 +2155,8 @@ class EngineDesignerApp:
 
         self._set_text(self.readout, "\n".join(lines))
         self._set_text(self.warnings_box, "\n".join(result["warnings"]) if result["warnings"] else "(none)")
-        self._populate_checklist(result["checklist"])
+        # Checklist tab redraw is gated on visibility - see _redraw_checklist /
+        # _tab_redraw_fns above, not called unconditionally here.
 
         tp_tech = turbopump_tech.TURBOPUMP_TECHS[self.design.turbopump_tech_key]
         tp_lines = [
