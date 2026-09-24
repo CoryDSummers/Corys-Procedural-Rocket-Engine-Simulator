@@ -17,6 +17,7 @@ MODULES=(
   engine_designer.physics.nozzle_shapes
   engine_designer.physics.geometry3d
   engine_designer.physics.combustion
+  engine_designer.physics.thermo_tables   # baked Cantera/CoolProp property tables load + sanity
   engine_designer.physics.mixture_ratio
   engine_designer.physics.cooling
   engine_designer.physics.combustion_stability
