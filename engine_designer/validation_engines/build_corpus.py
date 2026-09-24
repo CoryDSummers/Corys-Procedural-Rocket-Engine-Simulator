@@ -63,13 +63,15 @@ ENGINES = {
                     chamber_cooling_method="regenerative", nozzle_cooling_method="uncooled",
                     cooling_transition_eps=10.0, regen_channel_model="channels",
                     wall_construction="tube_wall", cooling_flow_topology="f1_split_reverse_flow",
-                    nozzle_film_fraction=0.08, nozzle_film_inject_eps=10.0,
+                    turbine_exhaust_mode="nozzle_injection", turbine_exhaust_inject_eps=10.0,
                     injector_type="impinging", config_name="F-1", **_BELL),
         notes=["Inconel-X-750 tube wall in reality; inconel_718 is the closest catalog alloy.",
                "Regen tube bundle to eps 10, then a turbine-exhaust-film-cooled extension to eps 16 "
-               "[SP-8120 s2.2.2]; modelled as an uncooled Inconel extension + the nozzle film slot at "
-               "eps 10. nozzle_film_fraction=0.08 of fuel is a STAND-IN for the GG exhaust flow "
-               "(the tool's slot is fed post-jacket fuel, not turbine exhaust) - not a cited number."],
+               "[SP-8120 s2.2.2]: modelled as an uncooled Inconel extension + the turbine exhaust "
+               "injected at eps 10 (turbine_exhaust_mode nozzle_injection), whose gas film cools it. "
+               "(Until 2026-09-24 an 8%-of-fuel liquid slot film stood in for the exhaust film.)",
+               "The F-1's heat exchanger (LOX->GOX) in the exhaust duct is not modelled: no GOX "
+               "flow in hand."],
         cite='[RO F1_Config.cfg "SA-501..503"]',
         isp=(301.0, 262.1), gaps=["throat heat flux", "coolant dT", "jacket dP", "wall temps"]),
     "J-2": dict(
@@ -80,12 +82,16 @@ ENGINES = {
                     regen_nozzle_end_eps=27.5, regen_channel_model="channels",
                     wall_construction="tube_wall", cooling_flow_topology="j2_mid_nozzle_inlet",
                     jacket_inlet_eps=8.0, injector_type="coax_post", config_name="J-2",
-                    regen_channel_count=360, **_BELL),
+                    regen_channel_count=360, turbine_exhaust_mode="nozzle_injection",
+                    turbine_exhaust_inject_eps=10.9, **_BELL),
         notes=["347-stainless tube wall, full-length regen, two-pass with a mid-nozzle inlet "
                "(validate.run_two_pass_cooling_check's J-2 layout).",
                "Tubes: 180 down then 360 up [AEDC-J2S s2.1.1 p.1-2] (J-2S; same circuit as the "
                "J-2's 1-1/2-pass layout [SP-8087 Table I p.5]) -> regen_channel_count=360 (the "
-               "up count; the down count follows as 180). jacket_inlet_eps 8 is NOT cited."],
+               "up count; the down count follows as 180). jacket_inlet_eps 8 is NOT cited.",
+               "Turbine exhaust enters the nozzle through eyelets ('cat-eyes') between the tubes, "
+               "115 in2 total at eps 10.45-11.40 [J-2 history, literature/; SP-8120] -> "
+               "nozzle_injection at eps 10.9 (the band's middle)."],
         cite='[RO J2_Config.cfg "J-2 230K (1968)"]', isp=(425.0, 304.0),
         extra={"q_throat_mw_m2": _J2_CLASS_Q},
         gaps=["coolant dT", "jacket dP", "wall temps"]),

@@ -286,15 +286,28 @@ def render_cfg(design, result, config_name, manufacturer="Fictional", mass_mult=
             f"~{_cyc['preburner_flow_fraction']*100:.0f}% of flow ({_cyc['gg_mdot_kgs']:.1f} kg/s) "
             f"at ~{_dg.get('tin_k', 0):.0f} K; {_boost} pump(s) boosted > 2x Pc; "
             f"closed cycle - no dump loss")
-    elif _cname == "tap_off":
+    elif _cname in ("tap_off", "gas_generator"):
         _dg = _cyc.get("drive_gas", {})
         _cycle_note = (
             f"chamber tap-off gas film-cooled to ~{_dg.get('tin_k', 0):.0f} K, "
-            f"bleed {_cyc['gg_flow_fraction']*100:.1f}%, dump Isp fraction "
-            f"{_cyc['gg_dump_isp_fraction']:.2f}")
-    elif _cname == "gas_generator":
-        _cycle_note = (f"gas-generator bleed {_cyc['gg_flow_fraction']*100:.1f}% "
-                       f"({_cyc['gg_mdot_kgs']:.1f} kg/s) dumped overboard")
+            if _cname == "tap_off" else "gas-generator ")
+        _cycle_note += (f"bleed {_cyc['gg_flow_fraction']*100:.1f}% "
+                        f"({_cyc['gg_mdot_kgs']:.1f} kg/s)")
+        # physics/turbine_exhaust.py: where the spent drive gas goes. Its thrust
+        # is already folded into the engine Isp/thrust above - RealFuels has no
+        # separate exhaust stream, and (like RO's own LR-91) no roll module is
+        # emitted for a canted exhaust nozzle.
+        _te = result.get("turbine_exhaust")
+        if _te:
+            _cycle_note += (
+                f"; turbine exhaust: {_te['mode'].replace('_', ' ')}, turbine PR "
+                f"{_te['turbine_pressure_ratio']:.1f}, {_te['t_exhaust_k']:.0f} K, exhaust Isp "
+                f"{_te['isp_vac_s']:.0f} s vac ({_te['isp_fraction_vac']*100:.0f}% of chamber)")
+            if _te.get("hx_on"):
+                _cycle_note += f", LOX->GOX heat exchanger {_te['hx_gox_kgs']:.2f} kg/s"
+            if abs(_te.get("roll_torque_nm") or 0.0) > 0:
+                _cycle_note += (f", canted {_te['cant_deg']:.0f} deg: "
+                                f"{_te['roll_torque_nm']:.0f} N.m roll torque (not exported)")
     if _cycle_note:
         header_lines.append(f"//\tCycle detail: {_cycle_note}")
         header_lines.append("//")

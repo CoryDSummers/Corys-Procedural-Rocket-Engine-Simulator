@@ -49,6 +49,10 @@ if __name__ == "__main__":
                            chamber_cooling_method="uncooled", nozzle_cooling_method="radiative",
                            film_cooling_fraction=0.06, chamber_film_inject_area_ratio=1.8,
                            nozzle_film_fraction=0.03, nozzle_film_inject_eps=12.0,
+                           turbine_exhaust_mode="aspirator", turbine_exhaust_nozzle_eps=3.0,
+                           turbine_exhaust_cant_deg=12.0, turbine_exhaust_inject_eps=9.0,
+                           aspirator_fwd_length_frac=0.4, aspirator_overhang_frac=0.08,
+                           turbine_exhaust_hx_gox_kgs=0.4,
                            wall_construction="tube_wall", regen_nozzle_end_eps=25.0,
                            regen_circuit_style="f1_double_pass",
                            dump_coolant_fraction=0.08,
@@ -114,6 +118,13 @@ if __name__ == "__main__":
     assert old_v7.chamber_cooling_method == "uncooled" and old_v7.film_cooling_fraction == 0.05
     assert old_v7.nozzle_cooling_method == "auto" and old_v7.nozzle_film_fraction > 0.0
     assert EngineDesign().to_dict()["schema_version"] >= 8
+    # A schema-8 file (pre turbine-exhaust handling) takes the new fields' defaults:
+    # overboard duct, plain sonic exit, no heat exchanger (schema 9).
+    old_v8 = EngineDesign.from_dict({"schema_version": 8, "design": {"cycle": "gas_generator"}})
+    assert (old_v8.turbine_exhaust_mode == "overboard_duct"
+            and old_v8.turbine_exhaust_nozzle_eps == 1.0
+            and old_v8.turbine_exhaust_hx_gox_kgs == 0.0)
+    assert EngineDesign().to_dict()["schema_version"] >= 9
     loaded = json.loads(json.dumps(d.to_dict()))
     rebuilt = EngineDesign.from_dict(loaded)
     assert rebuilt.plumbing_runs == d.plumbing_runs

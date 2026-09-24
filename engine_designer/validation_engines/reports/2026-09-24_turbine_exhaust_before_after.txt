@@ -1,0 +1,726 @@
+Turbine-exhaust handling (2026-09-24): overboard duct / aspirator / nozzle injection
+====================================================================================
+Before = HEAD c578135 (the GG flow-accounting fix), after = this change. BOTH were computed in
+the same Python environment (python 3.12, numpy 2.4.6, scipy 1.17.1, cloud container) with a
+git worktree of HEAD, so last-ULP drift vs golden/ does not show up. Full field diff below.
+
+What changed physically for GG / tap-off engines (physics/turbine_exhaust.py):
+- The flat GG_DUMP_ISP_FRACTION 0.55 / TAP_OFF 0.80 are RETIRED. Exhaust Isp is now the ideal
+  expansion of the turbine's own exhaust gas through the chosen disposal mode, times
+  EXHAUST_THRUST_EFFICIENCY 0.96 (F-1 pinned). The default overboard_duct is a plain sonic duct
+  exit (k ~0.25-0.5 of chamber Isp).
+- The turbine PR is min(cap, inlet / the outlet the exhaust's back pressure needs). Every
+  corpus open-cycle engine sits at its cap (22 GG / 18 tap-off); only low-Pc sea-level boosters
+  such as the H-1 (PR 17.7) are back-pressure limited.
+- Open cycles now CLOSE ON THE TARGET THRUST. EngineDesign.compute rescales chamber flow until
+  chamber + exhaust thrust (with every Isp adjustment) = target_vac_thrust_n. Chamber flow
+  scales ~0.98-0.99 (reported as thrust_closure_scale). The previous commit had let open
+  cycles sit above target by their exhaust thrust, which pushed J-2 and Merlin-1D out of their
+  cited ±1% vacuum-thrust bands. With closure they are back on target.
+- Corpus F-1: nozzle_injection at eps 10. The 8%-of-fuel liquid slot-film stand-in is removed
+  and the turbine-exhaust gas film (~811 K) cools the extension instead. The extension wall
+  goes 1430 K (stand-in) -> 1548 K (exhaust film; vs 1970 K with no film at all). Engine Isp
+  goes up because the stand-in's dump penalty is gone.
+- Corpus J-2: nozzle_injection at eps 10.9 (cat-eyes 10.45-11.40). The exhaust film over the
+  regen tubes downstream of eps 10.9 cuts jacket heat (Q wall 57 -> ~49 MW).
+- Cory's tap-off user designs (RS-29 / RS-29A / RS-29C / RS-30) lose ~4-5 s vac Isp. The flat
+  0.80 was generous for their default sonic overboard duct (computed k ~0.33). Switching them
+  to nozzle_injection or a shaped exhaust nozzle recovers part of it.
+
+Summary (vac Isp s, vac thrust kN, mode, exhaust Isp fraction k, before -> after):
+  engines/AJ10-137           Isp  313.89-> 313.89  F     97.4->    97.4
+  engines/Aestus             Isp  308.06-> 308.06  F     27.8->    27.8
+  engines/F-1                Isp  299.59-> 302.33  F   7775.9->  7775.5  nozzle_injection k 0.55->0.308 PR 22.0 scale 0.9909
+  engines/J-2                Isp  420.18-> 419.85  F   1040.5->  1023.1  nozzle_injection k 0.55->0.554 PR 22.0 scale 0.9845
+  engines/LMAE               Isp  310.22-> 310.22  F     15.6->    15.6
+  engines/Merlin-1D          Isp  299.24-> 296.39  F    761.6->   742.4  overboard_duct   k 0.55->0.279 PR 22.0 scale 0.9841
+  engines/RD-180             Isp  319.04-> 319.04  F   4167.6->  4167.6
+  engines/RL10A-3-3          Isp  453.52-> 453.52  F     71.1->    71.1
+  engines/RS-25              Isp  426.41-> 426.41  F   2108.8->  2108.8
+  engines/Raptor-2           Isp  350.41-> 350.41  F   2276.8->  2276.8
+  engines/Rutherford         Isp  302.85-> 302.85  F     26.6->    26.6
+  engines/Vulcain            Isp  429.86-> 429.08  F   1157.7->  1145.0  overboard_duct   k 0.55->0.471 PR 22.0 scale 0.9908
+  user_designs/AJ-90k        Isp  454.31-> 454.31  F    400.0->   400.0
+  user_designs/LR-100        Isp  328.69-> 326.47  F    610.1->   600.0  overboard_duct   k 0.55->0.257 PR 22.0 scale 0.9900
+  user_designs/RS-29         Isp  312.95-> 308.47  F   1645.7->  1600.0  overboard_duct   k 0.80->0.335 PR 18.0 scale 0.9863
+  user_designs/RS-29A        Isp  313.12-> 308.65  F   1646.6->  1600.0  overboard_duct   k 0.80->0.335 PR 18.0 scale 0.9858
+  user_designs/RS-29C        Isp  308.86-> 304.61  F   1645.9->  1600.0  overboard_duct   k 0.80->0.344 PR 18.0 scale 0.9856
+  user_designs/RS-30         Isp  312.54-> 307.36  F   1642.1->  1600.0  overboard_duct   k 0.80->0.333 PR 18.0 scale 0.9908
+  user_designs/TRW-270       Isp  303.61-> 303.61  F     12.0->    12.0
+  user_designs/j-2_test_bed  Isp  416.71-> 416.29  F   1048.5->  1033.0  overboard_duct   k 0.55->0.491 PR 22.0 scale 0.9862
+
+Field diff: every non-numeric change (added/removed keys, booleans, strings, list lengths, checklist
+text) in full (lines cut at 600 chars); numeric changes collapsed to one line per top-level result
+group with the count and max relative change - the open-cycle chamber-flow rescale moves nearly
+every number by ~1-2%. The key performance numbers are in the summary table above.
+CHANGED   engines/AJ10-137
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/Aestus
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/F-1
+    /bell_material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 1430 K EXCEEDS its 1250 K max service temp (Tc 1604 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1548 K EXCEEDS its 1250 K max service temp (Tc 1604 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /checklist: len 56 -> 58
+    /cooling/coolant_channels: 316 -> 315
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 7626 -> 7556
+    /injector_geometry/n_fuel_orifices: 5236 -> 5188
+    /injector_geometry/n_ox_orifices: 10015 -> 9923
+    /injector_geometry/note: '15252 orifices in ~7626 impinging pairs' -> '15112 orifices in ~7556 impinging pairs'
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /stability/advisory: 'First tangential mode ~658 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~661 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on da ...
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[0]: '[nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 1430 K EXCEEDS its 1250 K max service temp (Tc 1604 K, regenerative cooling). Marginal/unsuitable as designed. (hottest extension station eps 16.0, radiation equilibrium ~1430 K)' -> '[nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 1548 K EXCEEDS its 1250 K max service temp (Tc 1604 K, regenerative cooling). Marginal/unsuitable as designed. (hottest extension station eps 11.1, radiation equilibrium ~1548 K)'
+    /warnings[1]: "Hottest wall station is in the nozzle (area ratio ~16.0, radiative): wall ~1430 K, 0.87x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling." -> "Hottest wall station is in the nozzle (area ratio ~11.1, radiative): wall ~1548 K, 0.81x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thin ...
+    /warnings[2]: 'First tangential mode ~658 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~661 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping d ...
+    /bell_material_margin: 2 numeric values changed, max |rel| 0.0822
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0137
+    /body_wall_thickness_m: 36 numeric values changed, max |rel| 0.00458
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.0046
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00628
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0134
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0133
+    /cooling: 519 numeric values changed, max |rel| 1.27
+    /cycle_result: 10 numeric values changed, max |rel| 0.439
+    /ext_wall_thickness_m: 10 numeric values changed, max |rel| 0.00458
+    /geometry: 8 numeric values changed, max |rel| 0.00913
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0137
+    /inputs: 1 numeric values changed, max |rel| 1
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.00575
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.00916
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.00533
+    /jacket_hoop_stress_pa: 1 numeric values changed, max |rel| 0.00533
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0136
+    /jacket_manifold_result: 31 numeric values changed, max |rel| 0.0136
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 2.57e-05
+    /jacket_structure_mass_kg: 1 numeric values changed, max |rel| 0.0134
+    /jacket_thermal_stress_pa: 1 numeric values changed, max |rel| 0.00533
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0136
+    /manifold_result: 28 numeric values changed, max |rel| 0.0136
+    /material_margin: 2 numeric values changed, max |rel| 0.0002
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.00913
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.00913
+    /profile_meta: 3 numeric values changed, max |rel| 0.00458
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00458
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00397
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 0.076
+    /stability: 3 numeric values changed, max |rel| 0.0046
+    /stay_time_s: 1 numeric values changed, max |rel| 1.72e-16
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.00343
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 5.22e-05
+    /thrust_vac_n: 1 numeric values changed, max |rel| 5.22e-05
+    /turbopump_ports: 22 numeric values changed, max |rel| 0.00548
+    /turbopump_sizing: 43 numeric values changed, max |rel| 0.0137
+CHANGED   engines/J-2
+    /bell_material_margin/warning: type str -> NoneType
+    /checklist: len 59 -> 61
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cooling/peak_wall_temp_zone: 'nozzle' -> 'convergent section'
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 1727 -> 1700
+    /injector_geometry/n_fuel_orifices: 1731 -> 1704
+    /injector_geometry/n_ox_orifices: 1723 -> 1697
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /stability/advisory: 'First tangential mode ~2062 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2078 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on  ...
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings: len 7 -> 5
+    /bell_material_margin: 2 numeric values changed, max |rel| 2.6
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0232
+    /body_wall_thickness_m: 24 numeric values changed, max |rel| 0.00779
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00785
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00879
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0204
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0243
+    /cooling: 537 numeric values changed, max |rel| 0.962
+    /cycle_result: 10 numeric values changed, max |rel| 0.0524
+    /ext_wall_thickness_m: 8 numeric values changed, max |rel| 0.00779
+    /geometry: 8 numeric values changed, max |rel| 0.0155
+    /injector_geometry: 2 numeric values changed, max |rel| 3.76e-16
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0232
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.00684
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.000765
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.141
+    /jacket_hoop_stress_pa: 1 numeric values changed, max |rel| 1.12e-16
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0565
+    /jacket_manifold_result: 33 numeric values changed, max |rel| 0.0596
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.0391
+    /jacket_return_split_fraction: 1 numeric values changed, max |rel| 0.0998
+    /jacket_structure_mass_kg: 1 numeric values changed, max |rel| 0.0204
+    /jacket_thermal_stress_pa: 1 numeric values changed, max |rel| 0.241
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0229
+    /manifold_result: 28 numeric values changed, max |rel| 0.0229
+    /material_margin: 2 numeric values changed, max |rel| 0.000206
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.0155
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.016
+    /profile_meta: 3 numeric values changed, max |rel| 0.00779
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00779
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00613
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 0.461
+    /stability: 3 numeric values changed, max |rel| 0.00785
+    /stay_time_s: 1 numeric values changed, max |rel| 2.18e-16
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.0227
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0167
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0167
+    /turbopump_ports: 28 numeric values changed, max |rel| 0.0186
+    /turbopump_sizing: 58 numeric values changed, max |rel| 0.0455
+CHANGED   engines/LMAE
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/Merlin-1D
+    /checklist: len 53 -> 54
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 796 -> 784
+    /injector_geometry/n_fuel_orifices: 536 -> 528
+    /injector_geometry/n_ox_orifices: 1057 -> 1040
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[1]: 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 11% thermal margin (computed wall temp 722 K vs 800 K max). Thin margin. Basis: coupled throat wall balance: gas h_g ~11.5 kW/m2K incl. carbon-deposit credit, T_aw ~3577 K, coolant ~37 m/s (coolant-side wall ~671 K), 0.50 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.' -> 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 11% thermal margin (computed wall temp 722 K vs 800 K max). T ...
+    /warnings[3]: "Near the end of active cooling (area ratio ~21.4), estimated jacket/coolant pressure (~13.4 MPa) exceeds local hot-gas static pressure (~0.0 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~9.8 mm channel width, this reversed ~13.4 MPa differential is ~2555 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer  ...
+    /bell_material_margin: 2 numeric values changed, max |rel| 1.7e-05
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0237
+    /body_wall_thickness_m: 26 numeric values changed, max |rel| 0.00797
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00803
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00862
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0202
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0208
+    /cooling: 521 numeric values changed, max |rel| 0.0159
+    /cycle_result: 11 numeric values changed, max |rel| 0.493
+    /geometry: 8 numeric values changed, max |rel| 0.0159
+    /injector_geometry: 2 numeric values changed, max |rel| 1.77e-16
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0237
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.0115
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.00953
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.0149
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0226
+    /jacket_manifold_result: 17 numeric values changed, max |rel| 0.0226
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000966
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0233
+    /manifold_result: 27 numeric values changed, max |rel| 0.0234
+    /material_margin: 2 numeric values changed, max |rel| 0.000441
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.0159
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.0158
+    /profile_meta: 3 numeric values changed, max |rel| 0.00797
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00797
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00533
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 0.000461
+    /stability: 3 numeric values changed, max |rel| 0.00803
+    /stay_time_s: 1 numeric values changed, max |rel| 1.77e-16
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.0271
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0252
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0252
+    /turbopump_ports: 22 numeric values changed, max |rel| 0.0215
+    /turbopump_sizing: 49 numeric values changed, max |rel| 0.0229
+CHANGED   engines/RD-180
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/RL10A-3-3
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/RS-25
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/Raptor-2
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/Rutherford
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   engines/Vulcain
+    /checklist: len 53 -> 54
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 1409 -> 1396
+    /injector_geometry/n_fuel_orifices: 1445 -> 1431
+    /injector_geometry/n_ox_orifices: 1373 -> 1360
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /stability/advisory: 'First tangential mode ~2876 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2890 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on  ...
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[2]: 'First tangential mode ~2876 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2890 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping ...
+    /warnings[3]: "Near the end of active cooling (area ratio ~45.0), estimated jacket/coolant pressure (~13.6 MPa) exceeds local hot-gas static pressure (~0.0 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~16.0 mm channel width, this reversed ~13.6 MPa differential is ~6965 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer ...
+    /bell_material_margin: 2 numeric values changed, max |rel| 0.000144
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0138
+    /body_wall_thickness_m: 21 numeric values changed, max |rel| 0.00461
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00463
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00502
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0116
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0128
+    /cooling: 474 numeric values changed, max |rel| 0.0428
+    /cycle_result: 10 numeric values changed, max |rel| 0.143
+    /ext_wall_thickness_m: 3 numeric values changed, max |rel| 0.00461
+    /geometry: 8 numeric values changed, max |rel| 0.0092
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0138
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.0024
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.00182
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.00885
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0134
+    /jacket_manifold_result: 16 numeric values changed, max |rel| 0.0134
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000351
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0136
+    /manifold_result: 27 numeric values changed, max |rel| 0.0136
+    /material_margin: 2 numeric values changed, max |rel| 0.000102
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.0092
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.00919
+    /profile_meta: 3 numeric values changed, max |rel| 0.00461
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00461
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00361
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 0.000144
+    /stability: 3 numeric values changed, max |rel| 0.00463
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.0116
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.011
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.011
+    /turbopump_ports: 28 numeric values changed, max |rel| 0.00957
+    /turbopump_sizing: 59 numeric values changed, max |rel| 0.0143
+CHANGED   user_designs/AJ-90k
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   user_designs/LR-100
+    /checklist: len 55 -> 56
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 700 -> 693
+    /injector_geometry/n_fuel_orifices: 422 -> 418
+    /injector_geometry/n_ox_orifices: 977 -> 968
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[1]: 'Stainless Steel (304/316): only 14% thermal margin (computed wall temp 969 K vs 1100 K max). Thin margin. Basis: coupled throat wall balance: gas h_g ~6.8 kW/m2K incl. carbon-deposit credit, T_aw ~3589 K, coolant ~36 m/s (coolant-side wall ~747 K), 0.20 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.' -> 'Stainless Steel (304/316): only 14% thermal margin (computed wall temp 969 K vs 1100 K max). Thin margin. B ...
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0149
+    /body_wall_thickness_m: 20 numeric values changed, max |rel| 0.00499
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00501
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00749
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0133
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0143
+    /cooling: 638 numeric values changed, max |rel| 0.0295
+    /cycle_result: 11 numeric values changed, max |rel| 0.533
+    /ext_wall_thickness_m: 3 numeric values changed, max |rel| 0.00499
+    /geometry: 8 numeric values changed, max |rel| 0.00995
+    /hatband_mass_kg: 1 numeric values changed, max |rel| 0.00703
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0149
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.00214
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.00676
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.00179
+    /jacket_hoop_stress_pa: 1 numeric values changed, max |rel| 0.00179
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0144
+    /jacket_manifold_result: 17 numeric values changed, max |rel| 0.0144
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000377
+    /jacket_structure_mass_kg: 1 numeric values changed, max |rel| 0.0116
+    /jacket_thermal_stress_pa: 1 numeric values changed, max |rel| 0.00179
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0148
+    /manifold_result: 27 numeric values changed, max |rel| 0.0148
+    /material_margin: 2 numeric values changed, max |rel| 6.87e-05
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.00995
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.00991
+    /profile_meta: 3 numeric values changed, max |rel| 0.00499
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00499
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00423
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 3.86e-05
+    /stability: 3 numeric values changed, max |rel| 0.00501
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.012
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0166
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0166
+    /turbopump_ports: 22 numeric values changed, max |rel| 0.00503
+    /turbopump_sizing: 49 numeric values changed, max |rel| 0.0151
+CHANGED   user_designs/RS-29
+    /bell_material_margin/warning: 'Stainless Steel (304/316): computed wall temp 2166 K EXCEEDS its 1100 K max service temp (Tc 1565 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Stainless Steel (304/316): computed wall temp 2167 K EXCEEDS its 1100 K max service temp (Tc 1565 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /checklist: len 57 -> 58
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 1398 -> 1378
+    /injector_geometry/n_fuel_orifices: 930 -> 917
+    /injector_geometry/n_ox_orifices: 1865 -> 1839
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[1]: '[nozzle extension] Stainless Steel (304/316): computed wall temp 2166 K EXCEEDS its 1100 K max service temp (Tc 1565 K, regenerative cooling). Marginal/unsuitable as designed. (hottest extension station eps 12.6, radiation equilibrium ~2166 K)' -> '[nozzle extension] Stainless Steel (304/316): computed wall temp 2167 K EXCEEDS its 1100 K max service temp (Tc 1565 K, regenerative cooling). Marginal/unsuitable as designed. (hottest extension station eps 12.6, radiation equilibrium ~2167 K)'
+    /warnings[3]: "Hottest wall station is in the nozzle (area ratio ~12.6, radiative): wall ~2166 K, 0.51x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling." -> "Hottest wall station is in the nozzle (area ratio ~12.6, radiative): wall ~2167 K, 0.51x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thin ...
+    /bell_material_margin: 2 numeric values changed, max |rel| 0.000204
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0205
+    /body_wall_thickness_m: 34 numeric values changed, max |rel| 0.00688
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00693
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00838
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0192
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0187
+    /cooling: 612 numeric values changed, max |rel| 0.0471
+    /cycle_result: 10 numeric values changed, max |rel| 0.582
+    /ext_wall_thickness_m: 9 numeric values changed, max |rel| 0.00688
+    /geometry: 8 numeric values changed, max |rel| 0.0137
+    /hatband_mass_kg: 1 numeric values changed, max |rel| 0.0188
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0205
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.0156
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.0143
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.00287
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.02
+    /jacket_manifold_result: 33 numeric values changed, max |rel| 0.0204
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000144
+    /jacket_structure_mass_kg: 1 numeric values changed, max |rel| 0.0154
+    /jacket_thermal_stress_pa: 1 numeric values changed, max |rel| 0.00529
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0203
+    /manifold_result: 27 numeric values changed, max |rel| 0.0203
+    /material_margin: 2 numeric values changed, max |rel| 4.48e-06
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.0137
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.0137
+    /profile_meta: 3 numeric values changed, max |rel| 0.00688
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00688
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00505
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 0.000204
+    /stability: 3 numeric values changed, max |rel| 0.00693
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.029
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0278
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0278
+    /turbopump_ports: 28 numeric values changed, max |rel| 0.00958
+    /turbopump_sizing: 59 numeric values changed, max |rel| 0.0206
+CHANGED   user_designs/RS-29A
+    /checklist: len 55 -> 56
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 1398 -> 1378
+    /injector_geometry/n_fuel_orifices: 930 -> 917
+    /injector_geometry/n_ox_orifices: 1865 -> 1838
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[0]: 'Inconel 718 Nickel Superalloy: computed wall temp 1334 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerative cooling). Marginal/unsuitable as designed. Basis: coupled throat wall balance: gas h_g ~11.3 kW/m2K incl. carbon-deposit credit, T_aw ~3623 K, coolant ~37 m/s (coolant-side wall ~991 K), 0.20 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1 ...
+    /body_wall_thickness_m: 34 numeric values changed, max |rel| 0.00715
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.0072
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00871
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0206
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0189
+    /cooling: 667 numeric values changed, max |rel| 0.0459
+    /cycle_result: 10 numeric values changed, max |rel| 0.582
+    /geometry: 8 numeric values changed, max |rel| 0.0142
+    /hatband_mass_kg: 1 numeric values changed, max |rel| 0.0272
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0213
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.0155
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.0143
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.00274
+    /jacket_hoop_stress_pa: 1 numeric values changed, max |rel| 0.00274
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0209
+    /jacket_manifold_result: 17 numeric values changed, max |rel| 0.0209
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000259
+    /jacket_structure_mass_kg: 1 numeric values changed, max |rel| 0.016
+    /jacket_thermal_stress_pa: 1 numeric values changed, max |rel| 0.00274
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0211
+    /manifold_result: 27 numeric values changed, max |rel| 0.0211
+    /material_margin: 2 numeric values changed, max |rel| 2.15e-05
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.0142
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.0142
+    /profile_meta: 3 numeric values changed, max |rel| 0.00715
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00715
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00525
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 1.49e-05
+    /stability: 3 numeric values changed, max |rel| 0.0072
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.0295
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0283
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0283
+    /turbopump_ports: 28 numeric values changed, max |rel| 0.00993
+    /turbopump_sizing: 60 numeric values changed, max |rel| 0.0214
+CHANGED   user_designs/RS-29C
+    /checklist: len 57 -> 58
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 1426 -> 1406
+    /injector_geometry/n_fuel_orifices: 1062 -> 1047
+    /injector_geometry/n_ox_orifices: 1790 -> 1765
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[0]: 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 10% thermal margin (computed wall temp 727 K vs 800 K max). Thin margin. Basis: coupled throat wall balance: gas h_g ~13.0 kW/m2K incl. carbon-deposit credit, T_aw ~2872 K, coolant ~36 m/s (coolant-side wall ~709 K), 0.21 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.' -> 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 10% thermal margin (computed wall temp 727 K vs 800 K max). T ...
+    /body_wall_thickness_m: 44 numeric values changed, max |rel| 0.00722
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00727
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00877
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0208
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0197
+    /cooling: 824 numeric values changed, max |rel| 0.134
+    /cycle_result: 10 numeric values changed, max |rel| 0.57
+    /geometry: 8 numeric values changed, max |rel| 0.0144
+    /hatband_mass_kg: 1 numeric values changed, max |rel| 0.0166
+    /injector_geometry: 1 numeric values changed, max |rel| 1.32e-16
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0215
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.015
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.0138
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.00582
+    /jacket_hoop_stress_pa: 1 numeric values changed, max |rel| 0.00707
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0211
+    /jacket_manifold_result: 31 numeric values changed, max |rel| 0.0214
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000147
+    /jacket_structure_mass_kg: 1 numeric values changed, max |rel| 0.0166
+    /jacket_thermal_stress_pa: 1 numeric values changed, max |rel| 0.00159
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0213
+    /manifold_result: 27 numeric values changed, max |rel| 0.0213
+    /material_margin: 2 numeric values changed, max |rel| 0.00025
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.0144
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.0143
+    /profile_meta: 3 numeric values changed, max |rel| 0.00722
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00722
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00529
+    /stability: 3 numeric values changed, max |rel| 0.00727
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.0291
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0279
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0279
+    /turbopump_ports: 28 numeric values changed, max |rel| 0.0097
+    /turbopump_sizing: 59 numeric values changed, max |rel| 0.0217
+CHANGED   user_designs/RS-30
+    /checklist: len 53 -> 54
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 1286 -> 1274
+    /injector_geometry/n_fuel_orifices: 856 -> 848
+    /injector_geometry/n_ox_orifices: 1717 -> 1701
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[1]: 'Inconel 718 Nickel Superalloy: computed wall temp 1686 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerative cooling). Marginal/unsuitable as designed. Basis: coupled throat wall balance: gas h_g ~12.3 kW/m2K incl. carbon-deposit credit, T_aw ~3642 K, coolant ~35 m/s (coolant-side wall ~883 K), 0.50 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1 ...
+    /bell_material_margin: 2 numeric values changed, max |rel| 0.000159
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0138
+    /body_wall_thickness_m: 26 numeric values changed, max |rel| 0.00463
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00465
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00545
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0114
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0122
+    /cooling: 505 numeric values changed, max |rel| 0.00924
+    /cycle_result: 10 numeric values changed, max |rel| 0.584
+    /ext_wall_thickness_m: 9 numeric values changed, max |rel| 0.00463
+    /geometry: 8 numeric values changed, max |rel| 0.00924
+    /injector_geometry: 1 numeric values changed, max |rel| 2.21e-16
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0138
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.0177
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.0166
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.000154
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0136
+    /jacket_manifold_result: 17 numeric values changed, max |rel| 0.0136
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000151
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0137
+    /manifold_result: 29 numeric values changed, max |rel| 0.0137
+    /material_margin: 2 numeric values changed, max |rel| 0.000154
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.00924
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.00922
+    /profile_meta: 3 numeric values changed, max |rel| 0.00463
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00463
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00331
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 0.000159
+    /stability: 3 numeric values changed, max |rel| 0.00465
+    /stay_time_s: 1 numeric values changed, max |rel| 1.99e-16
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.0267
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0256
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0256
+    /turbopump_ports: 28 numeric values changed, max |rel| 0.00681
+    /turbopump_sizing: 61 numeric values changed, max |rel| 0.0139
+CHANGED   user_designs/TRW-270
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /turbine_exhaust: added
+CHANGED   user_designs/j-2_test_bed
+    /checklist: len 54 -> 55
+    /cooling/gas_film_profile: added
+    /cooling/gas_film_temperature_k: added
+    /cycle_result/turbine_exhaust: added
+    /cycle_result/turbine_pressure_ratio: added
+    /injector_geometry/n_elements: 958 -> 944
+    /injector_geometry/n_fuel_orifices: 829 -> 818
+    /injector_geometry/n_ox_orifices: 1086 -> 1071
+    /injector_geometry/note: '1916 orifices in ~958 impinging pairs' -> '1888 orifices in ~944 impinging pairs'
+    /inputs/aspirator_fwd_length_frac: added
+    /inputs/aspirator_overhang_frac: added
+    /inputs/turbine_exhaust_cant_deg: added
+    /inputs/turbine_exhaust_hx_gox_kgs: added
+    /inputs/turbine_exhaust_inject_eps: added
+    /inputs/turbine_exhaust_mode: added
+    /inputs/turbine_exhaust_nozzle_eps: added
+    /stability/advisory: 'First tangential mode ~2544 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2562 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on  ...
+    /thrust_closure_scale: added
+    /turbine_exhaust: added
+    /warnings[5]: 'First tangential mode ~2544 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2562 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping ...
+    /bell_material_margin: 2 numeric values changed, max |rel| 0.000195
+    /bell_wall_mass_kg: 1 numeric values changed, max |rel| 0.0206
+    /body_wall_thickness_m: 25 numeric values changed, max |rel| 0.00691
+    /chamber_acoustics: 3 numeric values changed, max |rel| 0.00696
+    /chamber_l_over_d: 1 numeric values changed, max |rel| 0.00788
+    /chamber_wall_mass_kg: 1 numeric values changed, max |rel| 0.0199
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0185
+    /cooling: 490 numeric values changed, max |rel| 0.0138
+    /cycle_result: 10 numeric values changed, max |rel| 0.107
+    /geometry: 8 numeric values changed, max |rel| 0.0138
+    /injector_plate_mass_kg: 1 numeric values changed, max |rel| 0.0206
+    /isp_sl_engine_s: 1 numeric values changed, max |rel| 0.00272
+    /isp_vac_engine_s: 1 numeric values changed, max |rel| 0.000999
+    /jacket_combined_stress_pa: 1 numeric values changed, max |rel| 0.00252
+    /jacket_hoop_stress_pa: 1 numeric values changed, max |rel| 0.00252
+    /jacket_manifold_mass_kg: 1 numeric values changed, max |rel| 0.0198
+    /jacket_manifold_result: 17 numeric values changed, max |rel| 0.0198
+    /jacket_pressure_at_worst_station_pa: 1 numeric values changed, max |rel| 0.000668
+    /jacket_structure_mass_kg: 1 numeric values changed, max |rel| 0.0199
+    /jacket_thermal_stress_pa: 1 numeric values changed, max |rel| 0.00252
+    /manifold_mass_kg: 1 numeric values changed, max |rel| 0.0203
+    /manifold_result: 28 numeric values changed, max |rel| 0.0203
+    /material_margin: 2 numeric values changed, max |rel| 0.00053
+    /mdot_chamber_kgs: 1 numeric values changed, max |rel| 0.0138
+    /mdot_kgs: 1 numeric values changed, max |rel| 0.0138
+    /profile_meta: 3 numeric values changed, max |rel| 0.00691
+    /profile_rs_m: 44 numeric values changed, max |rel| 0.00691
+    /profile_xs_m: 43 numeric values changed, max |rel| 0.00542
+    /rated_burn_time_s: 1 numeric values changed, max |rel| 0.000195
+    /stability: 3 numeric values changed, max |rel| 0.00696
+    /stay_time_s: 1 numeric values changed, max |rel| 1.48e-16
+    /thrust_sl_n: 1 numeric values changed, max |rel| 0.0164
+    /thrust_vac_floor_n: 1 numeric values changed, max |rel| 0.0147
+    /thrust_vac_n: 1 numeric values changed, max |rel| 0.0147
+    /turbopump_ports: 28 numeric values changed, max |rel| 0.00904
+    /turbopump_sizing: 58 numeric values changed, max |rel| 0.0216

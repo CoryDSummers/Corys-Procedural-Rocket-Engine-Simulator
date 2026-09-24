@@ -1,5 +1,5 @@
 {
-  "schema_version": 8,
+  "schema_version": 9,
   "design": {
     "propellant_pair": "LOX/RP-1",
     "mixture_ratio": 2.27,
@@ -21,8 +21,15 @@
     "jacket_inlet_eps": 8.0,
     "film_cooling_fraction": 0.0,
     "chamber_film_inject_area_ratio": 0.0,
-    "nozzle_film_fraction": 0.08,
+    "nozzle_film_fraction": 0.0,
     "nozzle_film_inject_eps": 10.0,
+    "turbine_exhaust_mode": "nozzle_injection",
+    "turbine_exhaust_nozzle_eps": 1.0,
+    "turbine_exhaust_cant_deg": 0.0,
+    "turbine_exhaust_inject_eps": 10.0,
+    "aspirator_fwd_length_frac": 0.3,
+    "aspirator_overhang_frac": 0.05,
+    "turbine_exhaust_hx_gox_kgs": 0.0,
     "regen_channel_model": "channels",
     "regen_channel_count": 0,
     "regen_channel_aspect_ratio": 0.0,
@@ -102,7 +109,8 @@
     "source": "[RO F1_Config.cfg \"SA-501..503\"]",
     "notes": [
       "Inconel-X-750 tube wall in reality; inconel_718 is the closest catalog alloy.",
-      "Regen tube bundle to eps 10, then a turbine-exhaust-film-cooled extension to eps 16 [SP-8120 s2.2.2]; modelled as an uncooled Inconel extension + the nozzle film slot at eps 10. nozzle_film_fraction=0.08 of fuel is a STAND-IN for the GG exhaust flow (the tool's slot is fed post-jacket fuel, not turbine exhaust) - not a cited number."
+      "Regen tube bundle to eps 10, then a turbine-exhaust-film-cooled extension to eps 16 [SP-8120 s2.2.2]: modelled as an uncooled Inconel extension + the turbine exhaust injected at eps 10 (turbine_exhaust_mode nozzle_injection), whose gas film cools it. (Until 2026-09-24 an 8%-of-fuel liquid slot film stood in for the exhaust film.)",
+      "The F-1's heat exchanger (LOX->GOX) in the exhaust duct is not modelled: no GOX flow in hand."
     ],
     "gaps": [
       "throat heat flux",

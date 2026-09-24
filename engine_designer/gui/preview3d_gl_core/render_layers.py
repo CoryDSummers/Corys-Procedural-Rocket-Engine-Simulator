@@ -41,7 +41,7 @@ LAYER_ORDER = (LAYER_OPAQUE, LAYER_FLOW, LAYER_TRANSLUCENT)
 #: that turn translucent in X-ray mode. "" = untagged (e.g. the Shape Lab's
 #: synthetic scenes) - treated as structural too. Cosmetic only.
 XRAY_ROLES = frozenset({"", "wall", "injector_head", "cover", "hatband",
-                        "flange", "turbopump"})
+                        "flange", "turbopump", "exhaust"})
 
 #: Face-on opacity of temperature-tinted coolant hardware (tubes, channel
 #: jacket, rings, plumbing) while the Flow view is on - tinted "glass" round

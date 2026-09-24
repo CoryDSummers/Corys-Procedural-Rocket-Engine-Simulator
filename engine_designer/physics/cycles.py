@@ -89,7 +89,8 @@ def gas_generator_result(mdot, mr, pc, dp_fuel, dp_ox, rho_fuel, rho_ox,
         "has_turbopump": True,
         "turbopump": tpump,
         "gg_mdot_kgs": mdot_gg,
-        "gg_flow_fraction": gg_fraction,
+        "gg_flow_fraction": gg_fraction,             # of CHAMBER flow (mdot_gg / mdot_c)
+        "gg_fraction_of_total": mdot_gg / (mdot + mdot_gg),   # of TOTAL engine flow
         "gg_dump_isp_fraction": gg_dump_isp_fraction,
         "turbine_specific_work_j_kg": dh,  # for physics/turbopump_sizing.py (turbine pitchline)
         "required_tank_pressure_pa": None,  # turbopump handles the pressure rise; tanks stay low-pressure

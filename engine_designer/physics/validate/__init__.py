@@ -32,6 +32,7 @@ informational only, not gated on tolerance.
 #   cooling_methods      Cooling: explicit per-section cooling methods (incl. dump) and the mat
 #   cooling_layouts      Cooling: jacket flow layouts - F-1 manifold bypass and the J-2 two-pas
 #   cooling_wall_film    Cooling: coupled throat wall temperature and the two-site film overlay
+#   turbine_exhaust_checks  Turbine-exhaust handling: back pressure, exhaust Isp, aspirator, gas film
 #   turbomachinery       Turbopump efficiency / sizing / bearing DN, GG bleed, per-cycle models
 #   injectors_stability  Injector element geometry (incl. gas-centered swirl) and combustion ac
 #   structures           Mass-model sensitivity, jacket overpressure (plausibility + Huzel samp
@@ -97,6 +98,7 @@ from .cooling_wall_film import (  # noqa: F401
     run_coupled_wall_temperature_check,
     run_film_overlay_check,
 )
+from .turbine_exhaust_checks import run_turbine_exhaust_check  # noqa: F401
 
 # Every check, in the order `python3 -m engine_designer.physics.validate` runs them.
 ALL_CHECKS = (
@@ -126,4 +128,5 @@ ALL_CHECKS = (
     run_cooling_robustness_sweep,
     run_film_overlay_check,
     run_pump_pressure_chain_check,
+    run_turbine_exhaust_check,
 )

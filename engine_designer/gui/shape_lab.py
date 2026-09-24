@@ -330,11 +330,12 @@ class PlumbingLabPanel(_ShapeLabBase):
 
     def __init__(self, parent, title, run, hook, ring_center_r_m, ring_tube_r_m, host,
                  wall_profile, on_bake, on_close, ghost_turbopump=None, supercritical=False,
-                 pump_port=None, propellant_pair=""):
+                 pump_port=None, propellant_pair="", termination_fn=None):
         self.run = run
         # design.py's turbopump_ports discharge dict for HOST_PUMP[host] (None
         # without a turbopump): the connect_to_pump target / Route-to-pump goal.
         self._pump_port = pump_port
+        self._termination_fn = termination_fn   # turbine_exhaust: draw the real termination
         self._pair = propellant_pair
         self._supercritical = supercritical   # LH2: no SP-8087 liquid-velocity advisory
         self._hook = hook
@@ -381,7 +382,8 @@ class PlumbingLabPanel(_ShapeLabBase):
 
         # --- pump connection (auto-close onto the turbopump discharge port) ---
         pump_name = plumbing.HOST_PUMP.get(r.host, "fuel_pump").replace("_", " ")
-        pump_box = ttk.LabelFrame(sidebar, text=f"Pump connection ({pump_name} discharge)",
+        pump_box = ttk.LabelFrame(sidebar, text=f"Pump connection ({pump_name} "
+                                  f"{plumbing.HOST_PORT.get(r.host, 'discharge')})",
                                   padding=6)
         pump_box.grid(row=row, column=0, sticky="ew", pady=(8, 0)); row += 1
         pr = 0
@@ -635,7 +637,8 @@ class PlumbingLabPanel(_ShapeLabBase):
             ghost_turbopump=self._ghost_turbopump,
             show_ghost_turbopump=bool(self._tp_var.get()) if hasattr(self, "_tp_var") else True,
             supercritical=self._supercritical,
-            port=self._pump_port if self.run.connect_to_pump else None)
+            port=self._pump_port if self.run.connect_to_pump else None,
+            termination_fn=self._termination_fn)
         res = scene["resolved"]
         if hasattr(self, "_advisory"):
             self._advisory.configure(text="\n".join(res["advisories"]))
@@ -693,12 +696,14 @@ def open_plumbing_shape_lab(parent_app, host="jacket_inlet"):
         return
     hook, ring_r, tube_r = ring
     existing = plumbing.runs_for_host(parent_app.design.plumbing_runs, host)
+    _implicit = ((result.get("turbine_exhaust_hardware") or {}).get("implicit_run")
+                 if host == "turbine_exhaust" else None)
     run = (plumbing.run_from_dict(existing[0]) if existing
+           else plumbing.run_from_dict(_implicit) if _implicit   # the auto-routed default duct
            else plumbing.default_run_for_host(hook, tube_r, host))
     wall_profile = (result["profile_xs_m"], result["profile_rs_m"])
     ghost_turbopump = shape_lab_geometry.ghost_turbopump_from_result(result)
-    pump_port = ((result.get("turbopump_ports") or {})
-                 .get(plumbing.HOST_PUMP.get(host, "fuel_pump")) or {}).get("discharge")
+    pump_port = plumbing.port_for_host(result.get("turbopump_ports"), host)
 
     def on_bake(baked_run):
         kept = [r for r in parent_app.design.plumbing_runs
@@ -710,9 +715,11 @@ def open_plumbing_shape_lab(parent_app, host="jacket_inlet"):
         parent, f"Shape Lab - {label} plumbing (real ring, real scale)", run, hook, ring_r, tube_r,
         host, wall_profile, on_bake=on_bake, on_close=on_close,
         ghost_turbopump=ghost_turbopump,
-        supercritical=(result.get("inputs", {}).get("propellant_pair") == "LOX/LH2"
-                       and host != "ox"),
-        pump_port=pump_port, propellant_pair=result.get("inputs", {}).get("propellant_pair", "")))
+        supercritical=((result.get("inputs", {}).get("propellant_pair") == "LOX/LH2"
+                        and host != "ox") or host == "turbine_exhaust"),
+        pump_port=pump_port, propellant_pair=result.get("inputs", {}).get("propellant_pair", ""),
+        termination_fn=(shape_lab_geometry.exhaust_termination_fn(result, ring_r, tube_r)
+                        if host == "turbine_exhaust" else None)))
 
 
 if __name__ == "__main__":

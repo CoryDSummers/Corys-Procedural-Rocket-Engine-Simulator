@@ -571,7 +571,7 @@
 "__f__": "0.7379137226794857"
 },
 {
-"__f__": "0.7340060190745936"
+"__f__": "0.734006019074594"
 },
 {
 "__f__": "0.7304052315486732"
@@ -965,6 +965,8 @@
 "gas_cp_frozen_j_kgk": {
 "__f__": "4883.6862212493625"
 },
+"gas_film_profile": null,
+"gas_film_temperature_k": null,
 "gas_prandtl": {
 "__f__": "0.5791719855000055"
 },
@@ -1068,7 +1070,7 @@
 "__f__": "319.0443666057642"
 },
 {
-"__f__": "296.2988312752219"
+"__f__": "296.298831275222"
 },
 {
 "__f__": "276.4927188248385"
@@ -1394,7 +1396,7 @@
 "__f__": "252321.95610022146"
 },
 {
-"__f__": "241443.9551472221"
+"__f__": "241443.95514722218"
 },
 {
 "__f__": "231419.06552335172"
@@ -1530,7 +1532,7 @@
 "__f__": "252321.95610022146"
 },
 {
-"__f__": "241443.9551472221"
+"__f__": "241443.95514722218"
 },
 {
 "__f__": "231419.06552335172"
@@ -2518,6 +2520,12 @@
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
+"aspirator_fwd_length_frac": {
+"__f__": "0.3"
+},
+"aspirator_overhang_frac": {
+"__f__": "0.05"
+},
 "baffle_compartments": 5,
 "bearing_material_key": "cronidur_30",
 "bell_material_key": "stainless_steel",
@@ -2699,6 +2707,19 @@
 "tube_hatbands_on_extension": false,
 "tube_split_eps": {
 "__f__": "0.0"
+},
+"turbine_exhaust_cant_deg": {
+"__f__": "0.0"
+},
+"turbine_exhaust_hx_gox_kgs": {
+"__f__": "0.0"
+},
+"turbine_exhaust_inject_eps": {
+"__f__": "10.0"
+},
+"turbine_exhaust_mode": "overboard_duct",
+"turbine_exhaust_nozzle_eps": {
+"__f__": "1.0"
 },
 "turbine_staging": "auto",
 "turbopump_arrangement": "auto",
@@ -2985,6 +3006,9 @@
 "__f__": "1250.0"
 },
 "warning": "Inconel 718 Nickel Superalloy: computed wall temp 2101 K EXCEEDS its 1250 K max service temp (Tc 2997 K, regenerative cooling). Marginal/unsuitable as designed."
+},
+"mdot_chamber_kgs": {
+"__f__": "89.7809967513949"
 },
 "mdot_kgs": {
 "__f__": "89.7809967513949"
@@ -3396,6 +3420,11 @@
 },
 "thrust_vac_n": {
 "__f__": "400000.0"
+},
+"turbine_exhaust": null,
+"turbine_exhaust_hardware": null,
+"turbine_exhaust_hardware_mass_kg": {
+"__f__": "0.0"
 },
 "turbopump_ports": {
 "fuel_pump": {

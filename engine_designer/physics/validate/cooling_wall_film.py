@@ -201,7 +201,7 @@ def run_film_overlay_check():
     t1 = e1["bell_material_margin"]["assumed_wall_temp_k"]
     phn = np.asarray(e1["cooling"]["nozzle_film_profile"])
     i0 = int(np.argmax(phn < 1.0))
-    mdot_fuel = e1["mdot_kgs"] / (1.0 + f1["mixture_ratio"])
+    mdot_fuel = e1["mdot_chamber_kgs"] / (1.0 + f1["mixture_ratio"])
     want = cooling.dump_cooling_isp_penalty_fraction(0.05 * mdot_fuel, e1["mdot_kgs"])
     d_ok = (t1 < t0 and i0 > 0 and np.all(phn[:i0] == 1.0)
             and np.all(np.diff(phn[i0:]) >= -1e-12)

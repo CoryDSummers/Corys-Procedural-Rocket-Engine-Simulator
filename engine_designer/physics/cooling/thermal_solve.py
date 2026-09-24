@@ -94,6 +94,7 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
                   regen_mdot_kgs=0.0, regen_cut_eps=None, two_pass=False, inlet_eps=None,
                   march_kw=None, dump_fraction_fixed=0.0, mdot_fuel_kgs=0.0,
                   coolant_limit_k=None, calibration=1.0, deposit_factor=1.0,
+                  gas_film_phi=None, gas_film_t_k=None,
                   max_iter=80, tol_k=0.5, relax=0.5):
     xs = np.asarray(xs_m, dtype=float)
     rs = np.asarray(rs_m, dtype=float)
@@ -105,6 +106,16 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
     t_surf = np.asarray(t_surface_k, dtype=float)
     phi = np.asarray(film_phi, dtype=float)
     film_on = bool(np.any(phi < 1.0))
+    # Optional THIRD film: a hot-GAS film at its own temperature (turbine
+    # exhaust injected into the nozzle - physics/turbine_exhaust.py), applied
+    # AFTER the liquid-fuel film(s): T_aw -> film(T_aw, phi_liq, T_fuel) ->
+    # film(., phi_gas, T_gas). None/inactive -> the old path, bit-identical.
+    gphi = None if gas_film_phi is None else np.asarray(gas_film_phi, dtype=float)
+    gas_film_on = gphi is not None and gas_film_t_k is not None and bool(np.any(gphi < 1.0))
+
+    def _taw_film(t_film_liquid):
+        base = film_adiabatic_wall_temp(t_aw, phi, t_film_liquid) if film_on else t_aw
+        return film_adiabatic_wall_temp(base, gphi, float(gas_film_t_k)) if gas_film_on else base
     march_kw = dict(march_kw or {})
     construction = march_kw.get("construction", "milled_channel")
 
@@ -136,7 +147,7 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
     for it in range(1, max_iter + 1):
         sigma = bartz_sigma(twg / t0_k, mach, gamma)
         hg = hg_raw * sigma * cal
-        taw_f = film_adiabatic_wall_temp(t_aw, phi, t_film) if film_on else t_aw
+        taw_f = _taw_film(t_film)
         q = np.maximum(hg * (taw_f - twg), 0.0)
         new = twg.copy()
 
@@ -198,7 +209,7 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
     # final consistent evaluation at the converged wall temperature
     sigma = bartz_sigma(twg / t0_k, mach, gamma)
     hg = hg_raw * sigma * cal
-    taw_f = film_adiabatic_wall_temp(t_aw, phi, t_film) if film_on else t_aw
+    taw_f = _taw_film(t_film)
     q = np.maximum(hg * (taw_f - twg), 0.0)
     heat_regen = (wall_heat_total_w(xs, rs, np.where(m_regen, q, 0.0), throat_dia_m=throat_dia_m,
                                     transition_area_ratio=regen_cut_eps) if regen_on else 0.0)

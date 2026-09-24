@@ -54,9 +54,18 @@ def engine_isp_with_gg_dump(chamber_isp, gg_flow_fraction_x, gg_dump_isp_fractio
     gg_dump_isp_fraction is a documented engineering assumption (not
     derived): a skirt-dumped, fuel-rich, lower-pressure-ratio exhaust is
     assumed to deliver this fraction of the main chamber's specific impulse.
+
+    gg_flow_fraction_x is CHAMBER-relative (mdot_gg / mdot_chamber, as
+    cycles.gas_generator_result reports it): the GG draw is EXTRA propellant on
+    top of the chamber flow, so the engine Isp is the total-flow average
+        (mdot_c*Isp_c + mdot_gg*k*Isp_c) / (mdot_c + mdot_gg)
+    = Isp_c * (1 + x*k) / (1 + x), and engine thrust = (mdot_c + mdot_gg) *
+    that Isp. (Before 2026-09-24 this treated x as a share of TOTAL flow while
+    thrust was chamber mdot x engine Isp - thrust came out x*(1-k) low and the
+    reported mdot omitted the GG flow.)
     """
     x = gg_flow_fraction_x
-    return (1.0 - x) * chamber_isp + x * (gg_dump_isp_fraction * chamber_isp)
+    return chamber_isp * (1.0 + x * gg_dump_isp_fraction) / (1.0 + x)
 
 
 def pressure_fed_tank_pressure(pc, dp_injector, margin_pa=0.3e6):

@@ -4,11 +4,9 @@ Split verbatim out of the former single-file design.py; a value shared
 between stages lives on the PassState `s` (see design/state.py)."""
 import numpy as np
 
-from .. import (cycles, geometry3d, manifold, plumbing, turbopump_sizing)
+from .. import (cycles, geometry3d, manifold, plumbing, turbine_exhaust, turbopump_sizing)
 from .constants import (
-    GG_PRESSURE_RATIO,
     EXPANDER_TURBINE_PR,
-    TAP_OFF_PRESSURE_RATIO,
 )
 from .checklist import _check
 
@@ -33,7 +31,7 @@ def turbopump_and_plumbing(self, s):
         elif self.cycle == cycles.TAP_OFF:
             turbine_inlet_k = s.drive_gas["tin_k"]
             turbine_mdot = max(s.cyc["gg_mdot_kgs"], 1e-6)
-            turbine_pr = TAP_OFF_PRESSURE_RATIO
+            turbine_pr = s.cyc["turbine_pressure_ratio"]      # exhaust back pressure (turbine_exhaust.py)
         elif self.cycle == cycles.EXPANDER:
             turbine_inlet_k = 250.0  # heated-hydrogen expander turbine, far below combustion
             turbine_mdot = max(s.cyc["turbopump"]["mdot_fuel_kgs"], 1e-6)
@@ -45,7 +43,7 @@ def turbopump_and_plumbing(self, s):
         else:  # GAS_GENERATOR
             turbine_inlet_k = s.gg_gas["tin_k"]
             turbine_mdot = max(s.cyc["gg_mdot_kgs"], 1e-6)
-            turbine_pr = GG_PRESSURE_RATIO
+            turbine_pr = s.cyc["turbine_pressure_ratio"]      # exhaust back pressure (turbine_exhaust.py)
         # Actual specific work the turbine delivers = shaft power / turbine mass flow
         # (what pitchline sizing needs). Zero for electric pump-fed (no turbine).
         turbine_specific_work = (0.0 if self.cycle == cycles.ELECTRIC_PUMP
@@ -80,8 +78,23 @@ def turbopump_and_plumbing(self, s):
     # legs are re-solved there too and still land on the port). A run whose
     # host ring doesn't exist for this design is skipped with an advisory.
     # Runs after turbopump sizing: the pump ports come from its bodies.
+    # Open cycles: the turbine-exhaust termination hardware (injection torus /
+    # aspirator shroud + inlet collar / overboard exhaust nozzle) that the
+    # "turbine_exhaust" plumbing host roots on (physics/turbine_exhaust.py).
+    s.te_hardware = None
+    s.te_hardware_mass_kg = 0.0
+    if s.turbine_exhaust:
+        s.te_hardware = turbine_exhaust.size_hardware(
+            s.turbine_exhaust, xs=s.xs, rs=s.rs, throat_dia_m=s.geo["throat_dia_m"],
+            inject_eps=s.turbine_exhaust.get("inject_eps") or self.turbine_exhaust_inject_eps,
+            aspirator_fwd_length_frac=self.aspirator_fwd_length_frac,
+            aspirator_overhang_frac=self.aspirator_overhang_frac,
+            nozzle_eps=self.turbine_exhaust_nozzle_eps, cant_deg=self.turbine_exhaust_cant_deg,
+            attach_angle_deg=0.0)   # the turbopump's side (+y, geometry3d)
+        s.te_hardware_mass_kg = s.te_hardware["mass_kg"]
     _plumbing_hooks = {"manifold_result": s.manifold_result,
-                       "jacket_manifold_result": s.jacket_manifold_result}
+                       "jacket_manifold_result": s.jacket_manifold_result,
+                       "turbine_exhaust_hardware": s.te_hardware}
     s.turbopump_ports = None
     if s.tp_sizing and s.tp_sizing.get("bodies"):
         _fuel_primary = plumbing.hook_for_host(_plumbing_hooks, "jacket_inlet") or \
@@ -93,13 +106,36 @@ def turbopump_and_plumbing(self, s):
             s.tp_sizing["bodies"],
             geometry3d.turbopump_origin_xyz(float(np.max(s.xs)), float(np.max(s.rs)),
                                             s.tp_sizing["assembly_od_m"]),
-            s.tp_sizing, _dis)
+            s.tp_sizing, _dis,
+            turbine_exhaust_dia_m=s.te_hardware["duct"]["dia_m"] if s.te_hardware else 0.0)
     s.line_loss_computed = {"fuel": None, "ox": None}
     s.plumbing_results = []
     s.plumbing_mass_kg = 0.0
     s.plumbing_total_length_m = 0.0
-    for _run_dict in (self.plumbing_runs or []):
+    _run_dicts = list(self.plumbing_runs or [])
+    # An open cycle ALWAYS has an exhaust duct: with no baked run on the
+    # turbine_exhaust host, a default one (plumbing.seed_route_to_port's
+    # orthogonal route, termination -> turbine exhaust port) is resolved for
+    # mass/advisories (flagged implicit; its loss is reported, the lumped
+    # EXHAUST_DUCT_PRESSURE_RATIO stays in charge) and handed to the 3D preview.
+    _implicit_te = None
+    if s.te_hardware and not plumbing.runs_for_host(_run_dicts, "turbine_exhaust"):
+        _hk = s.te_hardware["exhaust"]
+        _tube = manifold.ring_outer_radius_at(_hk, _hk["attach_angular_position_deg"])
+        _te_port = plumbing.port_for_host(s.turbopump_ports, "turbine_exhaust")
+        if _te_port is not None:
+            _seed = plumbing.seed_route_to_port(_hk, _te_port, _hk["major_radius_m"], _tube,
+                                                "turbine_exhaust", bend_radius_dia_mult=1.0)
+            if _hk.get("point_hook"):   # the exhaust nozzle stays where it was placed
+                _seed.attach_angle_deg = float(_hk["attach_angular_position_deg"])
+        else:
+            _seed = plumbing.default_run_for_host(_hk, _tube, "turbine_exhaust")
+        _implicit_te = plumbing.run_to_dict(_seed)
+        s.te_hardware["implicit_run"] = _implicit_te
+        _run_dicts.append(_implicit_te)
+    for _run_dict in _run_dicts:
         _run = plumbing.run_from_dict(_run_dict)
+        _te_run = _run.host == "turbine_exhaust"
         _hook = plumbing.hook_for_host(_plumbing_hooks, _run.host)
         if _hook is None:
             _check(s.checklist, s.warnings, "plumbing", f"Plumbing run on '{_run.host}'", False,
@@ -110,7 +146,7 @@ def turbopump_and_plumbing(self, s):
         _pump = plumbing.HOST_PUMP.get(_run.host, "fuel_pump")
         _port = None
         if _run.connect_to_pump:
-            _port = (s.turbopump_ports or {}).get(_pump, {}).get("discharge")
+            _port = plumbing.port_for_host(s.turbopump_ports, _run.host)
             if _port is None:
                 _check(s.checklist, s.warnings, "plumbing", f"Plumbing run on '{_run.host}' pump link",
                        False, f"Run on '{_run.host}' is set to connect to the "
@@ -123,13 +159,20 @@ def turbopump_and_plumbing(self, s):
                        "jacket (jacket_inlet ring) first. Allowed; check it is intended.", "")
         _res = plumbing.resolve_run(_run, _hook, _hook["major_radius_m"],
                                     manifold.ring_outer_radius_at(_hook, _run.attach_angle_deg),
-                                    supercritical=(s._fuel_lh2 and _run.host != "ox"), port=_port)
+                                    supercritical=((s._fuel_lh2 and _run.host != "ox")
+                                                   or _te_run), port=_port)
         _m_total, _m_pipe, _m_flange = plumbing.plumbing_mass_kg(_hook, _res)
         s.plumbing_mass_kg += _m_total
         s.plumbing_total_length_m += _res["total_length_m"]
         _loss_pa, _loss_parts = plumbing.run_pressure_loss_pa(
             _res, _hook, plumbing.liquid_viscosity_pa_s(self.propellant_pair, _run.host))
-        if _res["closes_on_port"]:
+        if _te_run:
+            # exhaust duct: its loss sits between the turbine and the exhaust
+            # exit - fed back into the turbine back pressure (feed_stage) by
+            # the next pass when the run is a real (baked) one
+            if _run_dict is not _implicit_te and _res["closes_on_port"]:
+                s.line_loss_computed["turbine_exhaust"] = _loss_pa
+        elif _res["closes_on_port"]:
             # valve allowance at the run's slowest (largest-bore) pipe -
             # where a main valve would sit
             _v = min(_res["pipe_velocities_ms"])
@@ -138,6 +181,7 @@ def turbopump_and_plumbing(self, s):
             _leg = "ox" if _pump == "ox_pump" else "fuel"
             s.line_loss_computed[_leg] = max(s.line_loss_computed[_leg] or 0.0, _leg_loss)
         s.plumbing_results.append({"host": _run.host, "role": _run.role, "n_pipes": len(_run.pipes),
+                                 "implicit": _run_dict is _implicit_te,
                                  "pipe_dias_m": [2.0 * r for r in _res["pipe_radii_m"]],
                                  "pipe_velocities_ms": list(_res["pipe_velocities_ms"]),
                                  "total_length_m": _res["total_length_m"],
@@ -149,8 +193,12 @@ def turbopump_and_plumbing(self, s):
                                  "pressure_loss_parts_pa": _loss_parts,
                                  "advisories": list(_res["advisories"])})
         _check(s.checklist, s.warnings, "plumbing",
-               f"Plumbing run on '{_run.host}' geometry ({len(_run.pipes)} pipes)",
-               not _res["advisories"], " ".join(_res["advisories"]),
+               f"Plumbing run on '{_run.host}' geometry ({len(_run.pipes)} pipes)"
+               + (" (default exhaust duct)" if _run_dict is _implicit_te else ""),
+               # the auto-routed default exhaust duct is the tool's, not the
+               # user's - its routing advisories stay in plumbing_results
+               not _res["advisories"] or _run_dict is _implicit_te,
+               " ".join(_res["advisories"]),
                f"OK - {_res['total_length_m']:.2f} m, {_m_total:.1f} kg"
                + (f", -> {_pump.replace('_', ' ')}, line loss {_loss_pa / 1e3:.0f} kPa"
                   if _res["closes_on_port"] else ""))

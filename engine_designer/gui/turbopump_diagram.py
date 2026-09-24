@@ -43,6 +43,34 @@ def _flow(ax, p0, p1, label=None, style=None):
                 bbox=dict(boxstyle="round,pad=0.12", fc="white", ec="none", alpha=0.9), zorder=4)
 
 
+_EXHAUST_BOX_TEXT = {
+    "overboard_duct": "OVERBOARD\nDUCT",
+    "aspirator": "ASPIRATOR\n(exit slot)",
+    "nozzle_injection": "INTO NOZZLE\n(film)",
+}
+
+
+def _exhaust_box(ax, result):
+    """Open cycles: where the turbine exhaust goes (physics/turbine_exhaust.py),
+    its own Isp, and a heat-exchanger box when there is one."""
+    te = result.get("turbine_exhaust") or {}
+    mode = te.get("mode", "overboard_duct")
+    text = _EXHAUST_BOX_TEXT.get(mode, "OVERBOARD\nDUMP")
+    if te:
+        text += f"\n{te['isp_vac_s']:.0f} s vac"
+    label = f"exhaust PR {te['turbine_pressure_ratio']:.0f}" if te else "exhaust"
+    if te.get("hx_on"):
+        # turbine -> heat exchanger -> disposal, stacked down the left margin
+        _box(ax, 1.4, 3.3, 2.0, 0.8, f"HEAT EXCH.\n{te['hx_gox_kgs']:.2f} kg/s GOX", _NEUTRAL,
+             fontsize=5.8)
+        _box(ax, 1.4, 1.9, 2.0, 1.1, text, _NEUTRAL, fontsize=6.2)
+        _flow(ax, (_XF, 4.15), (1.9, 3.7), label)
+        _flow(ax, (1.4, 2.9), (1.4, 2.45))
+    else:
+        _box(ax, 1.4, 3.3, 2.0, 1.1, text, _NEUTRAL, fontsize=6.2)
+        _flow(ax, (_XF, 4.15), (1.9, 3.8), label)
+
+
 def draw_turbopump_diagram(ax, result):
     ax.clear()
     ax.set_xlim(0, _W)
@@ -158,8 +186,7 @@ def draw_turbopump_diagram(ax, result):
              _WARN, fontsize=6.6)
         _flow(ax, (_MID + 1.4, 2.35), (_MID + 0.9, 6.4), "tapped gas\nnear injector face")
         _flow(ax, (_MID - 0.3, 6.4), (_XF + 1.9, 6.05), "hot gas")
-        _box(ax, 1.4, 3.3, 2.0, 0.9, "OVERBOARD\nDUMP", _NEUTRAL, fontsize=6.5)
-        _flow(ax, (_XF, 4.15), (1.9, 3.8), "exhaust (better\ndump Isp)")
+        _exhaust_box(ax, result)
     elif cycle_name == "ffsc":
         _box(ax, _XF + 1.1, 7.0, 2.8, 1.0,
              f"FUEL-RICH\nPREBURNER ~{pbf_pct:.0f}% flow", _WARN, fontsize=6.2)
@@ -188,8 +215,7 @@ def draw_turbopump_diagram(ax, result):
         _flow(ax, (_XF + 1.6, 8.3), (_MID - 1.2, 7.3), "fuel")
         _flow(ax, (_XO - 1.6, 8.3), (_MID + 1.2, 7.3), "ox")
         _flow(ax, (_MID - 0.3, 6.4), (_XF + 1.9, 6.05), "hot gas")
-        _box(ax, 1.4, 3.3, 2.0, 0.9, "OVERBOARD\nDUMP", _NEUTRAL, fontsize=6.5)
-        _flow(ax, (_XF, 4.15), (1.9, 3.8), "exhaust")
+        _exhaust_box(ax, result)
 
     _box(ax, _MID, 1.6, 5.6, 1.5,
          f"MAIN CHAMBER\nPc {pc_mpa:.1f} MPa - {result['thrust_vac_n']/1e3:,.0f} kN vac",

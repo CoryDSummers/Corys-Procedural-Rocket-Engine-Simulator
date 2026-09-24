@@ -134,4 +134,7 @@ def nozzle_performance(self, s):
         # small positive nominal value; the separated_100pct warning below explains why.
         s.isp_sl_chamber = 1.0
 
-    s.mdot = self.target_vac_thrust_n / (s.isp_vac_chamber * G0)
+    # Chamber flow for the target thrust. An open cycle (GG / tap-off) re-runs
+    # with s.mdot_scale != 1 so chamber + turbine-exhaust thrust lands ON the
+    # target (EngineDesign.compute); everything else runs at scale 1.0.
+    s.mdot = self.target_vac_thrust_n * s.mdot_scale / (s.isp_vac_chamber * G0)

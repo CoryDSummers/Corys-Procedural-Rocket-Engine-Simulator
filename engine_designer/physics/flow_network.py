@@ -33,13 +33,13 @@ from scipy.optimize import brentq
 
 from . import isentropic
 
-PROPELLANTS = ("fuel", "ox", "gas")
+PROPELLANTS = ("fuel", "ox", "gas", "exhaust")   # exhaust: an open cycle's turbine exhaust
 KINDS = ("feed_line", "manifold_ring", "jacket_pass", "chamber_gas")
 
 
 @dataclass
 class FlowSegment:
-    propellant: str          # "fuel" | "ox" | "gas"
+    propellant: str          # "fuel" | "ox" | "gas" | "exhaust"
     kind: str                # one of KINDS
     anchor: dict             # {"host": ...} | {"stations": idx, "pass": "single"|"down"|"up"}
     t_k: np.ndarray          # temperature per sample (len 1 for a ring / feed line)
@@ -190,6 +190,18 @@ def build_flow_network(result):
         segs.append(FlowSegment("ox", "manifold_ring", {"host": "ox"},
                                 np.array([float(t_ox_in)]), 1))
 
+    # --- turbine exhaust (open cycles): turbine -> duct -> termination ring
+    # (injection manifold / aspirator collar; the overboard exit has none) ---
+    te = result.get("turbine_exhaust")
+    te_hw = result.get("turbine_exhaust_hardware")
+    if te and te_hw:
+        t_ex = float(te["t_exhaust_k"])
+        segs.append(FlowSegment("exhaust", "feed_line", {"host": "turbine_exhaust"},
+                                np.array([t_ex]), 0))
+        if not te_hw["exhaust"].get("point_hook"):
+            segs.append(FlowSegment("exhaust", "manifold_ring", {"host": "turbine_exhaust"},
+                                    np.array([t_ex]), 1))
+
     # --- hot gas: injector face -> nozzle exit ---
     xs = np.asarray(result["profile_xs_m"])
     stations = np.arange(xs.size)
@@ -289,6 +301,17 @@ def self_test():
     assert not any(s.kind == "jacket_pass" for s in n4)
     assert not any(s.propellant == "ox" for s in n4)
     print("monoprop / no regen: OK")
+
+    # 5) turbine exhaust: a GG design's exhaust stream at the exhaust temperature -
+    # the duct only for an overboard exit, duct + ring for nozzle injection
+    ex1 = [s for s in n1 if s.propellant == "exhaust"]
+    assert [s.kind for s in ex1] == ["feed_line"], [s.kind for s in ex1]
+    assert abs(ex1[0].t_k[0] - r1["turbine_exhaust"]["t_exhaust_k"]) < 1e-9
+    r5 = EngineDesign(**base, turbine_exhaust_mode="nozzle_injection").compute()
+    ex5 = [s for s in build_flow_network(r5) if s.propellant == "exhaust"]
+    assert [s.kind for s in ex5] == ["feed_line", "manifold_ring"]
+    assert not any(s.propellant == "exhaust" for s in n4)
+    print(f"turbine exhaust: {ex1[0].t_k[0]:.0f} K, overboard duct / injection duct + ring: OK")
     print("ALL FLOW-NETWORK CHECKS OK")
 
 

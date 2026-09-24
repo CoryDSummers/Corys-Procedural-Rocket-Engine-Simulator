@@ -200,6 +200,51 @@ def ray_mesh(start_xyz, end_xyz, radius_m, n_theta, base_color_rgb,
             _tube_end_disk(end, n, b, t, radius_m, n_theta, base_color_rgb, facing_sign=1.0, **kw)]
 
 
+def exhaust_nozzle_mesh(inlet_xyz, pos_xyz, dir_xyz, r_inlet_m, r_throat_m, r_exit_m,
+                        converge_length_m, length_m, n_theta, base_color_rgb,
+                        n_samples=16, specular_strength=0.0, shininess=32.0):
+    """A small off-axis exhaust nozzle (physics/turbine_exhaust.size_hardware's
+    overboard outlet) as ONE swept body: a straight inlet collar at the duct
+    bore from `inlet_xyz` to `pos_xyz`, then along `dir_xyz` (possibly canted
+    off the collar axis) a converging cone to the throat over
+    `converge_length_m` and a diverging cone to the exit at `length_m`. Open at
+    the exit (the exhaust leaves there); an end disk closes the inlet side.
+    Returns [body, inlet_disk] or [] for a degenerate input."""
+    a = np.asarray(inlet_xyz, dtype=float)
+    p = np.asarray(pos_xyz, dtype=float)
+    d = np.asarray(dir_xyz, dtype=float)
+    if np.linalg.norm(d) < 1e-12 or r_inlet_m <= 0 or length_m <= 0:
+        return []
+    d = d / np.linalg.norm(d)
+    conv = min(max(converge_length_m, 0.0), length_m)
+    collar = [a + (p - a) * f for f in np.linspace(0.0, 1.0, 4)]
+    s = np.linspace(0.0, length_m, n_samples + 1)[1:]
+    pts = np.array(collar + [p + si * d for si in s])
+    radii = [r_inlet_m] * 4
+    for si in s:
+        if si <= conv and conv > 0:
+            radii.append(r_inlet_m + (r_throat_m - r_inlet_m) * si / conv)
+        else:
+            f = (si - conv) / max(length_m - conv, 1e-12)
+            radii.append(r_throat_m + (r_exit_m - r_throat_m) * f)
+    radii = np.asarray(radii, dtype=float)
+    # drop coincident centreline points (a zero-length collar)
+    keep = np.concatenate(([True], np.linalg.norm(np.diff(pts, axis=0), axis=1) > 1e-9))
+    pts, radii = pts[keep], radii[keep]
+    if pts.shape[0] < 2:
+        return []
+    tang = np.gradient(pts, axis=0)
+    tang = tang / np.linalg.norm(tang, axis=1, keepdims=True)
+    normals_f, binormals_f = rotation_minimizing_frames(pts, tang)
+    body = _swept_tube_mesh_from_frames(pts, tang, normals_f, binormals_f, radii, n_theta,
+                                        base_color_rgb, specular_strength=specular_strength,
+                                        shininess=shininess)
+    cap = _tube_end_disk(pts[0], normals_f[0], binormals_f[0], tang[0], float(radii[0]),
+                         n_theta, base_color_rgb, facing_sign=-1.0,
+                         specular_strength=specular_strength, shininess=shininess)
+    return [body, cap]
+
+
 def self_test():
     wp_l = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0]])
     r_l = 0.3
@@ -340,6 +385,22 @@ def self_test():
     assert ray_mesh(p0, p0, 0.01, 8, (0.9, 0.3, 0.2)) == []
     assert ray_mesh(p0, p1, 0.0, 8, (0.9, 0.3, 0.2)) == []
     print("ray_mesh self-check: OK")
+
+    # exhaust_nozzle_mesh: collar at the inlet bore, throat, then the exit
+    # radius at `length` along a canted axis; open exit, one inlet disk
+    a0, p0_ = np.array([0.9, 0.5, 0.0]), np.array([1.0, 0.5, 0.0])
+    dcant = np.array([np.cos(0.2), np.sin(0.2), 0.0])
+    en = exhaust_nozzle_mesh(a0, p0_, dcant, 0.05, 0.03, 0.06, 0.02, 0.2, 16, (0.5, 0.4, 0.4))
+    assert len(en) == 2
+    v = en[0].vertices.reshape(16, -1, 3)
+    far = v[:, -1, :]                                  # exit ring
+    assert np.allclose(np.linalg.norm(far - (p0_ + 0.2 * dcant), axis=1), 0.06, atol=1e-5)
+    near = v[:, 0, :]                                  # collar start
+    assert np.allclose(np.linalg.norm(near - a0, axis=1), 0.05, atol=1e-5)
+    assert not np.any(np.isnan(en[0].normals))
+    assert exhaust_nozzle_mesh(a0, p0_, np.zeros(3), 0.05, 0.03, 0.06, 0.02, 0.2, 16,
+                               (0.5, 0.4, 0.4)) == []
+    print("exhaust_nozzle_mesh self-check: OK")
     print("ALL DUCT_MESHES CHECKS OK")
 
 

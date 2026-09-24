@@ -47,7 +47,8 @@ from ..physics import geometry3d, plumbing
 # Plumbing scene look: same ring/pipe tints per host as mesh_builder's main
 # preview (jacket rings olive, fuel/ox grey-blue/tan), pale ghost wall.
 PLUMBING_HOST_RGB = {"jacket_inlet": (0.56, 0.56, 0.20), "jacket_return": (0.56, 0.56, 0.20),
-                     "fuel": (0.55, 0.62, 0.75), "ox": (0.70, 0.60, 0.55)}
+                     "fuel": (0.55, 0.62, 0.75), "ox": (0.70, 0.60, 0.55),
+                     "turbine_exhaust": mesh_builder.EXHAUST_RGB}
 GHOST_WALL_RGB = (0.80, 0.83, 0.86)
 GHOST_WALL_N_THETA = 32
 GHOST_TURBOPUMP_RGB = (0.72, 0.76, 0.82)   # a shade darker/bluer than the wall so the two read apart
@@ -151,7 +152,28 @@ def host_ring_from_result(result, host):
     hook = plumbing.hook_for_host(result, host)
     if hook is None:
         return None
+    if host == "turbine_exhaust":
+        # the exhaust termination's own render rule (mesh_builder.exhaust_render_edge)
+        _, ctx = mesh_builder.build_mesh_data(result, False, return_context=True)
+        edge = mesh_builder.exhaust_render_edge(
+            result["turbine_exhaust_hardware"], ctx["body_shell"], ctx["ext_shell"],
+            ctx["has_extension"], ctx["chamber_shell"])
+        if edge is None:
+            return hook, float(hook["major_radius_m"]), float(hook["outer_radius_m"])
+        return hook, edge + hook["outer_radius_m"], hook["outer_radius_m"]
     return hook, mesh_builder.ring_render_center_r(result, hook), hook["outer_radius_m"]
+
+
+def exhaust_termination_fn(result, ring_center_r_m, ring_tube_r_m):
+    """For a turbine_exhaust Shape Lab: angle_deg -> the termination's mesh
+    pieces (mesh_builder.turbine_exhaust_termination_pieces), drawn in place
+    of the plain torus - the overboard nozzle follows the run's attach angle."""
+    hw = result.get("turbine_exhaust_hardware")
+    if not hw:
+        return None
+    edge = (None if hw["exhaust"].get("point_hook") else ring_center_r_m - ring_tube_r_m)
+    return lambda angle_deg: mesh_builder.turbine_exhaust_termination_pieces(
+        hw, edge, n_theta=24, angle_deg=angle_deg)
 
 
 def ghost_turbopump_from_result(result):
@@ -174,7 +196,7 @@ def ghost_turbopump_from_result(result):
 def build_plumbing_scene(run, hook, ring_center_r_m, ring_tube_r_m, host="jacket_inlet",
                          selected_index=None, wall_profile=None, show_ghost_wall=True,
                          ghost_turbopump=None, show_ghost_turbopump=True, supercritical=False,
-                         port=None):
+                         port=None, termination_fn=None):
     """
     Build the Shape Lab's plumbing scene. `wall_profile` = (xs_m, rs_m) of the
     chamber/nozzle contour (result["profile_xs_m"/"profile_rs_m"]) for the
@@ -189,6 +211,9 @@ def build_plumbing_scene(run, hook, ring_center_r_m, ring_tube_r_m, host="jacket
     advisories/length without a second solve.
     `port` (mesh_builder.run_port_for_result) closes a connect_to_pump run
     onto its pump's discharge port; a closed run draws no ray.
+    `termination_fn` (exhaust_termination_fn) draws a turbine-exhaust host's
+    real termination (injection ring / aspirator / overboard nozzle) instead
+    of the plain torus.
     """
     rgb = PLUMBING_HOST_RGB.get(host, (0.56, 0.56, 0.20))
     x0 = float(hook["attach_axial_station_m"])
@@ -204,14 +229,21 @@ def build_plumbing_scene(run, hook, ring_center_r_m, ring_tube_r_m, host="jacket
         ring_ctr, ring_tube = mesh_builder.ring_render_arrays(hook, edge, 24)
         _r = run if isinstance(run, plumbing.PlumbingRun) else plumbing.run_from_dict(run)
         run_ctr, run_tube = mesh_builder.ring_local_render(hook, edge, _r.attach_angle_deg)
-    pieces = [manifold_ring_mesh(x0, ring_ctr, ring_tube, 24, 12, rgb,
-                                 specular_strength=HARDWARE_SPECULAR_STRENGTH,
-                                 shininess=HARDWARE_SHININESS)]
+    if termination_fn is not None:
+        _r = run if isinstance(run, plumbing.PlumbingRun) else plumbing.run_from_dict(run)
+        pieces = list(termination_fn(_r.attach_angle_deg)) or [manifold_ring_mesh(
+            x0, ring_ctr, ring_tube, 24, 12, rgb, specular_strength=HARDWARE_SPECULAR_STRENGTH,
+            shininess=HARDWARE_SHININESS)]
+    else:
+        pieces = [manifold_ring_mesh(x0, ring_ctr, ring_tube, 24, 12, rgb,
+                                     specular_strength=HARDWARE_SPECULAR_STRENGTH,
+                                     shininess=HARDWARE_SHININESS)]
+    n_term = len(pieces)
     run_pieces, resolved = mesh_builder.build_plumbing_pieces(
         run, hook, run_ctr, run_tube, rgb, selected_index=selected_index,
         supercritical=supercritical, port=port)
     pieces.extend(run_pieces)
-    framed = [pieces[0]] + run_pieces   # what the camera fits to
+    framed = pieces[:n_term] + run_pieces   # what the camera fits to
     ray_target, ray_length = None, None
     if show_ghost_turbopump and ghost_turbopump is not None:
         tp_pieces, pump_points = ghost_turbopump
@@ -278,9 +310,10 @@ def self_test():
     ghost_tp = ghost_turbopump_from_result(result)   # default design is gas-generator: has one
     assert ghost_tp is not None
     tp_pieces, pump_points = ghost_tp
-    # bodies + a 3-piece nozzle stub per pump port (inlet + discharge)
+    # bodies + a 3-piece nozzle stub per port (each pump's inlet + discharge,
+    # and an open cycle's turbine exhaust)
     assert len(tp_pieces) == (len(result["turbopump_sizing"]["bodies"])
-                              + 3 * 2 * len(result["turbopump_ports"]))
+                              + 3 * sum(len(g) for g in result["turbopump_ports"].values()))
     assert "fuel_pump" in pump_points and "ox_pump" in pump_points
     with_tp = build_plumbing_scene(run, hook, ring_r, tube_r, wall_profile=wall,
                                    ghost_turbopump=ghost_tp)
@@ -366,6 +399,37 @@ def self_test():
     dist_large = np.linalg.norm(wp_large[0] - wp_large[-1])
     assert dist_large > dist_small
     print("bend_radius_tube_dia_mult self-check (larger mult -> longer duct run): OK")
+
+    # --- turbine_exhaust host: the real termination replaces the torus, the
+    # overboard nozzle follows the run's attach angle, runs close on the
+    # turbine exhaust port ---
+    from ..physics import cycles as _cyc
+    for _mode in ("overboard_duct", "aspirator", "nozzle_injection"):
+        _r = EngineDesign(propellant_pair="LOX/RP-1", mixture_ratio=2.34,
+                          chamber_pressure_pa=5.0e6, expansion_ratio=12.0,
+                          cycle=_cyc.GAS_GENERATOR, target_vac_thrust_n=900_000.0,
+                          turbine_exhaust_mode=_mode, turbine_exhaust_nozzle_eps=3.0).compute()
+        _ring = host_ring_from_result(_r, "turbine_exhaust")
+        assert _ring is not None
+        _hk, _rr, _rt = _ring
+        _fn = exhaust_termination_fn(_r, _rr, _rt)
+        _run = plumbing.run_from_dict(_r["turbine_exhaust_hardware"]["implicit_run"])
+        _port = plumbing.port_for_host(_r["turbopump_ports"], "turbine_exhaust")
+        _sc = build_plumbing_scene(_run, _hk, _rr, _rt, host="turbine_exhaust",
+                                   termination_fn=_fn, port=_port, supercritical=True)
+        assert _sc["resolved"]["closes_on_port"]
+        assert np.linalg.norm(_sc["resolved"]["waypoints_xyz"][-1] - _port["pos"]) < 1e-9
+        _t0 = _fn(0.0)
+        assert _t0 and len(_sc["pieces"]) > len(_t0)
+        if _mode == "overboard_duct":
+            _t90 = _fn(90.0)
+            _c0 = np.mean(_t0[0].vertices, axis=0)
+            _c90 = np.mean(_t90[0].vertices, axis=0)
+            assert abs(_c0[1]) > abs(_c0[2]) and abs(_c90[2]) > abs(_c90[1])  # +y -> +z
+    assert host_ring_from_result(EngineDesign(cycle=_cyc.FRSC, propellant_pair="LOX/LH2",
+                                              mixture_ratio=6.0).compute(),
+                                 "turbine_exhaust") is None
+    print("turbine_exhaust host scenes (termination + closed duct): OK")
 
     print("ALL SHAPE_LAB_GEOMETRY CHECKS OK")
 

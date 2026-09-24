@@ -68,13 +68,18 @@ from .manifold import (MANIFOLD_DENSITY_KG_M3, ring_flow_radius_at, velocity_cap
 
 KINDS = ("manifold", "pipe")
 ROLES = ("fuel_manifold", "ox_manifold", "coolant_supply_manifold", "coolant_return_manifold",
-         "fuel_feed", "ox_feed", "coolant_supply", "coolant_return", "turbine_exhaust")
+         "fuel_feed", "ox_feed", "coolant_supply", "coolant_return", "turbine_exhaust",
+         "turbine_exhaust_manifold")
 # host -> (compute()-result key, sub-key) for hook_for_host
 HOSTS = {
     "jacket_inlet": ("jacket_manifold_result", "jacket_inlet"),
     "jacket_return": ("jacket_manifold_result", "jacket_return"),
     "fuel": ("manifold_result", "fuel"),
     "ox": ("manifold_result", "ox"),
+    # open cycles: the turbine-exhaust duct's termination (physics/
+    # turbine_exhaust.size_hardware - injection torus / aspirator inlet collar /
+    # overboard exhaust-nozzle point hook)
+    "turbine_exhaust": ("turbine_exhaust_hardware", "exhaust"),
 }
 # Per-host display/role data, keyed identically to HOSTS (self_test asserts
 # the key sets match, so a future host - turbopump ports, a GG exhaust
@@ -85,6 +90,7 @@ HOST_LABELS = {
     "jacket_return": "Jacket return ring (coolant turnaround)",
     "fuel": "Fuel injector-feed ring",
     "ox": "Ox injector-feed ring",
+    "turbine_exhaust": "Turbine exhaust duct (GG / tap-off)",
 }
 # Why hook_for_host can return None for that host, in user words.
 HOST_MISSING_HINT = {
@@ -92,6 +98,7 @@ HOST_MISSING_HINT = {
     "jacket_return": "only exists under the F-1 split or J-2 mid-nozzle jacket topologies",
     "fuel": "always sized - if missing, the design failed to compute",
     "ox": "always sized - if missing, the design failed to compute",
+    "turbine_exhaust": "only open cycles (gas generator / tap-off) dump turbine exhaust",
 }
 # kind/role tags a run rooted on each host gets by default (see ROLES).
 HOST_RING_ROLE = {
@@ -99,18 +106,35 @@ HOST_RING_ROLE = {
     "jacket_return": "coolant_return_manifold",
     "fuel": "fuel_manifold",
     "ox": "ox_manifold",
+    "turbine_exhaust": "turbine_exhaust_manifold",
 }
 HOST_PIPE_ROLE = {
     "jacket_inlet": "coolant_supply",
     "jacket_return": "coolant_return",
     "fuel": "fuel_feed",
     "ox": "ox_feed",
+    "turbine_exhaust": "turbine_exhaust",
 }
 # Which turbopump port each host's run is fed from (both jacket rings carry
 # fuel as coolant). jacket_return is a turnaround - it never connects to a pump.
 HOST_PUMP = {"jacket_inlet": "fuel_pump", "jacket_return": "fuel_pump",
-             "fuel": "fuel_pump", "ox": "ox_pump"}
-CONNECTABLE_HOSTS = ("jacket_inlet", "fuel", "ox")
+             "fuel": "fuel_pump", "ox": "ox_pump", "turbine_exhaust": "turbine"}
+# ...and which of that turbomachinery body's ports (geometry3d.turbopump_ports):
+# pumps close onto their discharge, the exhaust duct onto the turbine exhaust.
+HOST_PORT = {"jacket_inlet": "discharge", "jacket_return": "discharge",
+             "fuel": "discharge", "ox": "discharge", "turbine_exhaust": "exhaust"}
+CONNECTABLE_HOSTS = ("jacket_inlet", "fuel", "ox", "turbine_exhaust")
+# Hot turbine-exhaust gas viscosity for the duct's friction loss (~800-900 K
+# fuel-rich combustion gas). Tier 3 - textbook order of magnitude, not from a
+# claude_lit source.
+EXHAUST_GAS_VISCOSITY_PA_S = 3.0e-5
+
+
+def port_for_host(ports, host):
+    """The turbopump port dict (geometry3d.turbopump_ports) a connect_to_pump
+    run on `host` closes onto, or None."""
+    return ((ports or {}).get(HOST_PUMP.get(host, "fuel_pump")) or {}).get(
+        HOST_PORT.get(host, "discharge"))
 PORT_STANDOFF_DIA_MULT_MIN = 0.5
 PORT_STANDOFF_DIA_MULT_MAX = 10.0
 SEED_APPROACH_DIA_MULT = 3.0       # seed route: leg A length (the 90-deg approach to S)
@@ -650,6 +674,8 @@ def _interp_table(table, x):
 def liquid_viscosity_pa_s(pair, host):
     """Dynamic viscosity of the liquid a `host`'s run carries: fuel from
     cooling.COOLANT_TRANSPORT, oxidizer from OX_VISCOSITY_PA_S (Tier 3)."""
+    if host == "turbine_exhaust":
+        return EXHAUST_GAS_VISCOSITY_PA_S
     if HOST_PUMP.get(host) == "ox_pump":
         return OX_VISCOSITY_PA_S.get(str(pair).split("/")[0], _OX_VISCOSITY_FALLBACK)
     return COOLANT_TRANSPORT.get(pair, _COOLANT_TRANSPORT_FALLBACK)[1]
@@ -781,6 +807,16 @@ def default_run_for_host(hook, ring_tube_r_m, host="jacket_inlet", bend_radius_d
         l1 = max(l1, REDUCER_LENGTH_DIA_MULT * max(2.0 * r_root / dia, 1.0) + mult + 0.1)
     role_pipe = HOST_PIPE_ROLE.get(host, "coolant_supply")
     role_ring = HOST_RING_ROLE.get(host, "coolant_supply_manifold")
+    if host == "turbine_exhaust":
+        # One short stub off the termination (forward, off an overboard
+        # exhaust nozzle's inlet; radially out of a ring), then the auto legs
+        # close it onto the turbine's exhaust port.
+        point = bool(hook.get("point_hook"))
+        return PlumbingRun(
+            role=role_ring, host=host,
+            attach_angle_deg=float(hook.get("attach_angular_position_deg", 0.0)),
+            attach_poloidal_deg=90.0 if point else 0.0, connect_to_pump=True,
+            pipes=[PipeSegment(role=role_pipe, length_dia_mult=max(l1, 2.0))])
     return PlumbingRun(
         role=role_ring, host=host,
         attach_angle_deg=float(hook.get("attach_angular_position_deg", 0.0)),
@@ -1008,6 +1044,10 @@ def self_test():
         assert not run_from_dict({"host": "jacket_return", "connect_to_pump": True}).connect_to_pump
     assert run_from_dict({"pipes": []}).connect_to_pump is False
     assert set(HOST_PUMP) == set(HOSTS) and set(CONNECTABLE_HOSTS) <= set(HOSTS)
+    assert set(HOST_PORT) == set(HOSTS)
+    assert port_for_host({"turbine": {"exhaust": {"pos": 1}}}, "turbine_exhaust") == {"pos": 1}
+    assert port_for_host({"ox_pump": {"discharge": {"pos": 2}}}, "ox") == {"pos": 2}
+    assert port_for_host({}, "fuel") is None
     # seed route: lands on the port, every corner <= 90 deg, no advisories
     seed = seed_route_to_port(hook, port, ring_r, ring_tube)
     sres = resolve_run(seed, hook, ring_r, ring_tube, port=port)

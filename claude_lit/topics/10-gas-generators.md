@@ -153,3 +153,13 @@ injector face, where both propellants arrive simultaneously.
 - **Ablative / burn-time for uncooled GG-adjacent parts**: `[SP-8081 §2.1.1.6]` "modern GGs
   are uncooled solid wall + film cooling" — relevant to how `mass_model.py` and the
   rated-burn-time logic treat film-cooled vs regen-cooled chambers.
+- **`[H1-Man]` real H-1 GG / turbine operating point (2026-09-24):**
+  - GG 17.22 lb/s at **O/F 0.346**, which falls inside `[SP-8081]`'s "hydrocarbons ~0.3", and
+    backs `GG_MIXTURE_RATIO["LOX/RP-1"] = 0.3`.
+  - GG flow is about **2.3 % of total engine flow**.
+  - Turbine inlet **599 psia total** vs main-chamber injector-end Pc 689.3 psia → **0.87 × Pc**.
+  - Exit **33.8 psia** → PR ≈ **17.7**.
+  - η_turbine **69.6 %**.
+
+  This is the first real anchor for a turbine *outlet* pressure in this set. It is what a
+  turbine-back-pressure coupling needs; `GG_PRESSURE_RATIO = 22` is today a flat assumption.

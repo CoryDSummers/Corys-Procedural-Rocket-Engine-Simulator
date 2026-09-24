@@ -155,7 +155,8 @@ def run_gg_flow_fraction_check():
         # Isp credit design.py adds to the chamber stream (2026-09-23: now sized by
         # the recovered heat, ~0.3-0.8 % on a regen LH2 engine - enough to mask
         # the dump loss in a plain chamber-minus-engine difference).
-        _credit = r["cooling"]["regen_isp_bonus_fraction"] * (1.0 - x) * r["isp_vac_chamber_s"]
+        _credit = (r["cooling"]["regen_isp_bonus_fraction"]
+                   * (1.0 - r["cycle_result"]["gg_fraction_of_total"]) * r["isp_vac_chamber_s"])
         isp_loss = (r["isp_vac_chamber_s"] - (r["isp_vac_engine_s"] - _credit)) / r["isp_vac_chamber_s"]
         pc_psia = check["pc_pa"] / 6894.76
         # [SP-8107 Table VI]: GG engine Isp loss ~= 1/3 to 1% at 1000 psia Pc,
@@ -164,9 +165,22 @@ def run_gg_flow_fraction_check():
         band_hi = 1.0 * (pc_psia / 1000.0) / 100.0 * 2.0
         isp_ok = (not check.get("gate_isp_loss")) or (band_lo <= isp_loss <= band_hi)
 
-        ok = bleed_ok and isp_ok
+        # Flow/thrust accounting (2026-09-24 fix): the GG draw is EXTRA flow on
+        # top of the chamber's, reported in mdot_kgs, and thrust = total flow x
+        # the total-flow-averaged engine Isp (it used to be chamber flow x a
+        # Isp that treated the chamber-relative bleed as a share of the total).
+        _g0 = 9.80665
+        _mt = r["mdot_chamber_kgs"] + r["cycle_result"]["gg_mdot_kgs"]
+        acct_ok = (abs(r["mdot_kgs"] - _mt) <= 1e-9 * _mt
+                   and abs(r["thrust_vac_n"] - r["mdot_kgs"] * r["isp_vac_engine_s"] * _g0)
+                   <= 1e-9 * r["thrust_vac_n"])
+
+        ok = bleed_ok and isp_ok and acct_ok
         all_ok &= ok
         print(f"\n{check['name']}  [{'OK' if ok else '*** FAIL ***'}]")
+        print(f"  flow accounting: mdot {r['mdot_kgs']:.2f} = chamber {r['mdot_chamber_kgs']:.2f} "
+              f"+ GG {r['cycle_result']['gg_mdot_kgs']:.2f} kg/s, thrust = mdot x engine Isp   "
+              f"[{'OK' if acct_ok else 'FAIL'}]")
         print(f"  {check['note']}")
         print(f"  bleed fraction: {x*100:5.2f}%   allowed band {check['bleed_lo']*100:.1f}-"
               f"{check['bleed_hi']*100:.1f}%   [{'OK' if bleed_ok else 'FAIL'}]")
@@ -460,15 +474,20 @@ def run_cycle_model_check():
     ])
 
     # --- J-2X (J-2S data): tap-off, LOX/LH2 ------------------------------
+    # The J-2X's turbine exhaust is injected supersonically into its nozzle
+    # extension through a manifold [J2X-Overview leaf 10-11, 13] -> nozzle_injection
+    # (at the J-2's cited 10.9 - the J-2X's own station isn't in the paper).
     r = _design(propellant_pair="LOX/LH2", mixture_ratio=5.5, chamber_pressure_pa=9.22e6,
-                expansion_ratio=92.0, cycle="tap_off", target_vac_thrust_n=1_307_000.0)
+                expansion_ratio=92.0, cycle="tap_off", target_vac_thrust_n=1_307_000.0,
+                turbine_exhaust_mode="nozzle_injection", turbine_exhaust_inject_eps=10.9)
     c = r["cycle_result"]
     tin = c["drive_gas"]["tin_k"]
     isp_loss_pct = 100.0 * (1.0 - r["isp_vac_engine_s"] / r["isp_vac_chamber_s"])
     _report("J-2X (tap-off, LOX/LH2, 9.22 MPa, MR 5.5)", [
         ("tap gas below chamber Tc", tin < r["tc_k"], f"{tin:.0f} K vs Tc {r['tc_k']:.0f} K"),
         ("tap gas in 850-1200 K", 850.0 <= tin <= 1200.0, f"{tin:.0f} K"),
-        ("dump Isp fraction == 0.80", abs(c["gg_dump_isp_fraction"] - 0.80) < 1e-9,
+        # computed by physics/turbine_exhaust.py since 2026-09-24 (was a flat 0.80)
+        ("dump Isp fraction computed, 0.3-0.9", 0.3 <= c["gg_dump_isp_fraction"] <= 0.9,
          f"{c['gg_dump_isp_fraction']:.2f}"),
         ("engine Isp loss 0.1-2.0 %", 0.1 <= isp_loss_pct <= 2.0, f"{isp_loss_pct:.3f} %"),
     ])

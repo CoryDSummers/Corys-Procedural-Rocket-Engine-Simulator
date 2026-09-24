@@ -173,6 +173,9 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.hatbands       # structural tube-bundle retaining bands
                                                      # (section polygons, span march, sizing)
    python3 -m engine_designer.physics.staged_combustion  # solved preburner power balance / pressure chain
+   python3 -m engine_designer.physics.turbine_exhaust    # GG/tap-off exhaust disposal: overboard duct /
+                                                     # H-1 aspirator / F-1-J-2 nozzle injection -
+                                                     # back pressure (turbine PR), exhaust Isp, HX
    python3 -m engine_designer.physics.electric_pump
    python3 -m engine_designer.physics.reliability
    python3 -m engine_designer.physics.cost_model
@@ -247,7 +250,9 @@ touching any cooling number.** What changed structurally:
    PRESSURE-CHAIN CHECKS OK" (solved staged-combustion power balance vs SSME/RD-0124/NK-33 +
    RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (193
    pair x method x construction combos compute finite + converged - the cooling audit's
-   crash/NaN guard, 2026-09-23) (26 banners
+   crash/NaN guard, 2026-09-23) and "ALL TURBINE-EXHAUST CHECKS OK" (H-1 back pressure/aspirator
+   slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24)
+   (27 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -361,6 +366,18 @@ plumbing host - no 3D; jacket T = the march's exported `cooling.coolant_t_bulk_p
 `approximate`; `gui/mesh_builder.build_flow_pieces` maps anchors onto the drawn shells/rings/
 plumbing centrelines as role "flow" pieces, shown by the preview's Flow toggle + `gui/
 flow_legend.py` colorbar),
+`turbine_exhaust.py` = open-cycle turbine-exhaust disposal (2026-09-24; `EngineDesign.
+turbine_exhaust_mode` overboard_duct / aspirator / nozzle_injection + exhaust-nozzle eps/cant,
+inject eps, aspirator shroud, LOX->GOX heat exchanger): the exhaust leaves SONIC into its
+discharge -> turbine outlet pressure -> PR = min(`GG_PRESSURE_RATIO` cap, inlet/outlet) (H-1
+33.8 psia / PR 17.7 [H1-Man]); exhaust Isp = ideal expansion x `EXHAUST_THRUST_EFFICIENCY`
+(F-1 16,000 lbf pin) - the flat GG/TAP_OFF_DUMP_ISP_FRACTION are RETIRED; injection lays a gas
+film (thermal_solve `gas_film_phi`, second compute pass); open cycles CLOSE ON THE TARGET THRUST
+(compute() rescales chamber flow, `thrust_closure_scale`) and `mdot_kgs` = chamber + GG flow
+(`mdot_chamber_kgs` = chamber only); `size_hardware` sizes the termination + a default duct
+routed to the new turbine exhaust port (`geometry3d.turbopump_ports["turbine"]["exhaust"]`), a
+`turbine_exhaust` plumbing host (`plumbing.HOST_PORT` / `port_for_host`), drawn by `gui/
+mesh_builder.build_turbine_exhaust_pieces` (role "exhaust") and the Shape Lab,
 `electric_pump.py` = battery+motor mass model, `expander.py` = regen-heat turbine,
 `turbopump_efficiency.py` = DERIVED pump & turbine efficiency (Ns / staging / pitchline),
 `turbopump_sizing.py` = 1-D Ns/tip-speed/stage/turbine-count sizing + envelope + mass,
