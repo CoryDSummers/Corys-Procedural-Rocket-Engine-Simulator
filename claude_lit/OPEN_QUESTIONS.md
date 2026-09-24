@@ -228,6 +228,22 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   agreeing that uncalibrated design predictions under-predict real LOX/hydrocarbon throat
   heat flux. Strengthens confidence in the calibration approach; doesn't change any number.
 
+## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
+
+- **Coolant-side heat transfer, highest priority.** With the gas side now matching the
+  cited J-2 / SSME throat fluxes unscaled, the coolant side runs ~2x low against
+  `[Wieseneck-J2]`'s 478 K SSME coolant-side wall. Wanted: the `[EUCASS-2023]` roughness
+  (Eq. 21) and channel-curvature (Eq. 22) factors transcribed with their inputs; a
+  supercritical-hydrogen forced-convection correlation with its property-ratio term and
+  validity range; any REAL channel/tube geometry (count, width, height, land, hot-wall
+  thickness) and throat coolant velocity for SSME MCC, RL10, J-2, Vulcain, F-1.
+- **Real-engine cooling data for the corpus** (`engine_designer/validation_engines/`):
+  cited throat heat flux, coolant ΔT, jacket dP, liner thickness for RL10A-3-3, Vulcain,
+  RD-180, Merlin-1D, Raptor-2, Rutherford, Aestus (only F-1 / J-2 / SSME have any today).
+- **RP-1 in CoolProp is an n-dodecane surrogate** - a real RP-1 property set (NIST
+  RP-1 surrogate model, Huber et al.) would firm up the kerosene jacket.
+- Still open from before: NASA SP-8124 film effectiveness; RP-1 coking rate model.
+
 ## Where to look before re-deriving or re-searching
 
 - `README.md`'s citation table + topic-file index is the map of what's already covered by

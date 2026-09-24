@@ -540,6 +540,13 @@ near-injection effectiveness. Relevant context (not a portable number) for the s
   removal capacity. A minimal real model would (a) use recovery factor `r ≈ 0.90` instead of
   1.0 (the tool currently assumes `T_aw ≈ Tc`, which is ~10 % pessimistic), and (b) compute
   `h_g` from Bartz at the throat and scale by `(At/A)^0.9` along the contour.
+  **CORRECTION (2026-09-23 cooling audit):** (a) was implemented as `T_aw = 0.9·Tc`, which
+  misreads the recovery factor - it applies to the DYNAMIC part only,
+  `T_aw = T_s + r (T0 − T_s)`, i.e. ≈ T0 in the chamber and ≈ 0.99·T0 at the throat (the
+  "~10 % pessimistic" remark applies to a high-Mach station, not the throat). engine_designer
+  now uses the per-station form with `r = Pr^(1/3)`, the full Bartz σ, and chemical-
+  equilibrium transport properties; with those, raw Bartz meets `[Wieseneck-J2]`'s J-2 and
+  SSME throat fluxes with no calibration (engine_designer/COOLING_AUDIT.md).
 - **`materials.py` `BARTZ_AREA_RATIO_EXPONENT = 0.9`** is not an approximation — it is the
   literal `(At/A)^0.9` term in `[Huzel eq. 4-13]`. ASSUMPTIONS.md item #12 can note "the 0.9
   exponent is the exact Bartz area-ratio term (Huzel eq. 4-13); only the `WALL_TEMP_DAMPING

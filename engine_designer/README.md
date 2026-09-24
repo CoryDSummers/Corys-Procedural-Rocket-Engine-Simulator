@@ -12,6 +12,19 @@ See `ASSUMPTIONS.md` for an honest, itemized accounting of exactly which
 numbers in this tool are validated vs. calibrated estimates vs. reasonable
 defaults - "how much of this is magic numbers," worked file-by-constant.
 
+See `COOLING_AUDIT.md` (2026-09-23) for the full cooling-physics audit. It covers:
+- **The fix:** one unified per-station thermal solve replacing the old circular wall
+  temperature, chemical-equilibrium gas properties, real coolant properties and
+  corrected T_aw / Bartz sigma.
+- **Before/after numbers:** for 12 real engines and the saved user designs.
+- **Remaining gaps.** The biggest is coolant-side h_c, which runs about 2x low against
+  the SSME's cited design wall.
+
+Validate the physics against real engines with
+`python3 -m engine_designer.validation_engines.run_corpus --report`.
+Regenerate the property tables with `tools/property_tables/generate_property_tables.py`
+(Cantera + CoolProp, runs locally or on Colab).
+
 ## Running it
 
 ```
@@ -716,8 +729,13 @@ physics/     pure computation: isentropic gas dynamics (+ conical AND bell
              (real RP-1 node names), chamber geometry, geometry3d (3D preview +
              symbolic turbopump block), mass_model (hoop-stress wall
              thickness/mass + ablative rated-burn-time), throttle sweep, and
-             design.py (EngineDesign, the one object everything else calls;
-             also to_dict/from_dict for the project file)
+             design/ (EngineDesign, the one object everything else calls;
+             also to_dict/from_dict for the project file - a package since
+             2026-09-23: engine.py + 17 compute stages in *_stage.py).
+             cooling/ and validate/ are packages too; thermo_tables.py +
+             property_data/ = the baked Cantera/CoolProp property tables
+validation_engines/  real-engine corpus (cited) + frozen user designs, golden
+             snapshots, run_corpus.py (--check / --report / --snapshot)
 catalog/     build_catalog.py scrapes Engine_Configs/*.cfg into catalog.json,
              the "pick a host model" data source (RO parts are individually
              modeled - no generic reskinnable part exists, so "pick a model"
