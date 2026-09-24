@@ -387,3 +387,20 @@ CTE, Young's modulus, and emissivity are real cited numbers; `allowable_stress_p
 Tier-3 derated judgment call, same bucket as `inconel_718`'s, since real cited yield data
 sits far above any reasonable working allowable) — see `ASSUMPTIONS.md` for the exact tier
 notes on each field.
+
+## 2026-09-24 batch — H-1 engine manual (targeted)
+
+Cory's turbine-exhaust feature (overboard duct / H-1 aspirator / F-1-J-2 nozzle injection)
+needed the aspirator source that `OPEN_QUESTIONS.md` item (g) was waiting on.
+`literature/H-1C-D_Manual.pdf` (Rocketdyne R-3620-1, 14.4 MB) was already on disk but had
+never been distilled.
+
+- **Method.** Cory approved a targeted read only. The PDF has an OCR text layer, so it was read
+  with a throwaway stdlib script: zlib-decompress each content stream and join the `Tj`/`TJ`
+  string operands. No pymupdf. That text was grepped for the exhaust system, GG, turbine and
+  chamber-characteristic sections.
+- **Output.** Extracted into `sources/h1-engine-manual-r3620-1.md` (tag `[H1-Man]`), and
+  folded into:
+  - `topics/07-dump-cooling.md` (a new "Turbine-exhaust disposal hardware" section);
+  - `topics/10-gas-generators.md` (implications).
+- Report-only here. The code use happens in the turbine-exhaust feature's own commits.

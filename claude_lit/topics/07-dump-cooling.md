@@ -117,6 +117,35 @@ Titan turbine-exhaust-impingement side loads on an ablative extension: **90±20 
 360±50 lbf lateral**, inducing a ~250 ft-lbf vehicle roll moment — a real dimensioned load
 case for any turbine-exhaust-impingement structural analysis.
 
+## Turbine-exhaust disposal hardware — the real H-1 aspirator, duct and heat exchanger
+`[H1-Man §1-39..1-51 p.1-25..1-28, targeted read 2026-09-24]`
+
+The Saturn I/IB H-1 is the only engine in this reference set whose turbine-exhaust *disposal
+hardware* is described part by part. The two models differ **only** in their exhaust system.
+- **H-1C (inboard, fixed)** routes the exhaust out overboard through a **curved stainless
+  duct with a bellows**.
+- **H-1D (outboard, gimbaled)** uses an **aspirator**: a welded **Hastelloy C shell** fitted
+  over the aft ~**20 in** of the nozzle. It is welded to the forward channel band, and its aft
+  end is free and extends past the exit. It leaves a **0.440 in annular clearance** over the
+  fuel-return manifold, and the GG exhaust leaves through that slot into the exit flow stream.
+  This is the "annulus-at-exit" pattern `[SP-8120]` gives for the Atlas sustainer.
+
+Both routes pass the fuel-rich exhaust through a **turbine exhaust hood** (a bellows elbow),
+then a **LOX→GOX heat exchanger**. That is a helix-wound, four-coil shell, with three coils in
+use, heating GOX for vehicle pressurisation. The exhaust then reaches the aspirator or duct.
+[SP-8120]'s Titan I also has an oxidiser superheater in its exhaust path, so an exhaust heat
+exchanger is a common feature, not a one-off.
+
+**Real turbine back-pressure anchor** `[H1-Man Fig 1-47]`:
+- turbine inlet **599 psia total**, exit **33.8 psia**, so PR ≈ **17.7** (total inlet /
+  static exhaust);
+- efficiency 69.6 %, 4,007 bhp;
+- GG flow **17.22 lb/s at O/F 0.346** (Fig 1-28), about **2.3 %** of total engine flow.
+
+That exit pressure lies between Titan I's **30 psi** `[SP-8120]` and a choked sea-level exit.
+It is consistent with the exhaust exit needing to stay sonic at sea level, which requires
+roughly p_amb / 0.55 ≈ 27 psia before duct losses.
+
 ## Caveats
 
 - One tiny, low-Pc engine (the `[TN-Dump]` propellant-dump-cooling test article). The
@@ -126,6 +155,8 @@ case for any turbine-exhaust-impingement structural analysis.
   re-fitted for data reduction (`[TN-Dump]` ref. 2, Svehla NASA SP-3011).
 - Dump cooling's real-world niche is narrow (pressure-fed LOX/LH2); most designs pick regen,
   film, or radiation instead.
+- `[H1-Man]` gives aspirator **geometry only**: no aspirator thrust, entrainment or
+  back-pressure number. Any aspirator Isp is a model anchored on that geometry.
 - `[SP-8120]`'s F-1 turbine-exhaust film-cooling content is real-hardware precedent, not a
   closed-form film-cooling-effectiveness formula — the 25-30% attachment-region split was
   itself experimentally determined, not derived, and is specific to the F-1's own geometry
@@ -164,3 +195,12 @@ case for any turbine-exhaust-impingement structural analysis.
 - **A real, dimensioned turbine-exhaust structural load case** now exists (`[SP-8120]`'s
   Titan 90±20/360±50 lbf side loads, ~250 ft-lbf roll moment) if a future feature ever adds
   turbine-exhaust-manifold structural sizing — none exists in `mass_model.py` today.
+- **`[H1-Man]` (2026-09-24) closes the "aspirator" gap** (`OPEN_QUESTIONS.md` item (g)).
+  The aspirator is now real hardware with real geometry. The planned turbine-exhaust feature
+  can model it as a **choked annular slot at the main-nozzle exit lip**, sized from GG flow
+  and checked against the 0.440 in gap on the 45.62 in-exit H-1. The feature can also:
+  - model the H-1C curved duct as the plain sonic overboard exit;
+  - model the heat exchanger as an in-line temperature drop;
+  - anchor the turbine back pressure on 599→33.8 psia (turbine inlet ≈ **0.87 × Pc**).
+
+  Report-only; no code changed.

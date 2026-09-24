@@ -162,9 +162,18 @@ into that and makes no claims about it.
   PR (only needed for the optional back-pressure coupling);
   (f) **RS-68 / Vulcain GG exhaust-duct data** (AIAA development papers), to check
   overboard mode and to confirm whether each engine ducts overboard or reinjects;
-  (g) **"aspirator"**: no source uses the term yet. It needs the specific stage/engine manual
-  (e.g. an H-1 / Saturn I-IB stage manual, if that is the ejector meant); until then it is
-  geometry-only.
+  (g) **"aspirator": DONE 2026-09-24** via `[H1-Man]`.
+  - It is the H-1D's Hastelloy C shroud over the aft ~20 in of the nozzle.
+  - The exhaust leaves through a 0.440 in annular slot at the exit lip.
+  - The H-1C instead uses a curved overboard duct.
+  - Geometry is real; no aspirator thrust or entrainment number exists, so its Isp stays a
+    choked-slot model.
+
+  (h) **Exhaust heat exchanger** (LOX→GOX, H-1 `[H1-Man §1-47]`; Titan I superheater
+  `[SP-8120]`):
+  - The heat-exchanger duty (GOX flow, outlet temperature) is not given anywhere.
+  - The heat-exchanger temperature drop and mass in `engine_designer` are Tier 3 until a
+    stage-pressurisation source is found.
   Anything left unfound is calibrated purely by reverse-solving against RO headers (say which).
 
 ## Pending `ASSUMPTIONS.md` citation upgrades
