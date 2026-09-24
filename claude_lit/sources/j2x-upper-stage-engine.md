@@ -143,3 +143,30 @@ series-turbine/tap-off findings, confirming the series-turbine arrangement persi
   literature batch as sources specifically covering that topic.
 - OCR/text quality: clean, born-digital PDF (AIAA conference paper + NASA slide deck), no
   reconstruction caveats needed for any quoted number.
+
+## Regen passage geometry data (2026-09-23 re-read)
+
+Keyword search of all 36 leaves (tube, channel, coolant, regen, jacket, MCC, hot wall, land).
+Leaf numbers 0-based as elsewhere in this note. **No dimensional or coolant-state numbers
+exist in this paper**; what it does establish is construction and circuit-component topology:
+
+- **MCC = channel wall (slotted liner), not tubes** `[J2X-Overview, body text, leaf 13]`: "The
+  jacket consists of three machined forgings electron beam (EB) welded together, further
+  machined, then plated ... The **liner has been fully slotted** and plated. All components
+  are prepared for **Hot Isostatic Press (HIP)** assembly" - i.e. a milled-slot liner
+  HIP-bonded to a forged jacket; slide leaf 28 captions the "MCC Jacket - note the machined
+  coolant holes" and "MCC Throat Support Halves / Shear Pins (5 of 12 complete)".
+- **Regen nozzle = brazed tube wall with 3 flat bands** `[J2X-Overview, body text, leaf 13;
+  slide leaf 29]`: "All **three flatbands** around the braze tubes were ready for plating ...
+  the regenerative nozzle tubes were fully alloyed for braze"; "forward base ring";
+  "E10001 tube stack and flat bands" photo.
+- **Separate MCC coolant feed is implied, not described** `[J2X-Overview, body text, leaf 13]`:
+  a named **"MCC coolant duct"** is listed among propellant ducts bent to final contour -
+  evidence the MCC coolant is ducted separately from the nozzle tube bundle, but no
+  flow split, direction or pass count is given.
+- Nozzle extension: passively (radiation + TEG film) cooled, injected supersonically via a
+  manifold; turbine exhaust manifold base ring is a separate part (leaf 10-11, 13).
+
+**NOT in this paper**: MCC channel count/width/depth/land/hot-wall thickness; nozzle tube
+count, diameter or wall; coolant flow or fuel fraction; jacket inlet/outlet T or P; coolant
+velocity; circuit flow directions.

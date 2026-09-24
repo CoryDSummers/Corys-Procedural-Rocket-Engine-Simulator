@@ -17,6 +17,7 @@ MODULES=(
   engine_designer.physics.nozzle_shapes
   engine_designer.physics.geometry3d
   engine_designer.physics.combustion
+  engine_designer.physics.thermo_tables   # baked Cantera/CoolProp property tables load + sanity
   engine_designer.physics.mixture_ratio
   engine_designer.physics.cooling
   engine_designer.physics.combustion_stability
@@ -45,6 +46,8 @@ MODULES=(
   engine_designer.gui.injector_face
   engine_designer.gui.turbopump_diagram
   engine_designer.gui.project_io
+  engine_designer.validation_engines.run_corpus   # default --check: every corpus project
+                                                  # bit-identical to validation_engines/golden/
 )
 
 fail=0

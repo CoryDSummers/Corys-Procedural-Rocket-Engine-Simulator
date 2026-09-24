@@ -104,6 +104,9 @@ to `[Marquardt-5981]`'s figure-caption-derived numbers.
 - p.30 (leaf 30): Space Shuttle requirements / conclusion — read.
 - Remaining leaves (1, 3, 5, 7-10, 13-15, 17, 19, 21, 23-29, 31): blank or OCR-unreadable
   chart-only pages — skimmed, nothing extractable.
+  **Corrected 2026-09-23**: several of these are image-only pages that render legibly
+  (leaves 7, 8, 10, 14, 15, 17, 19, 21, 24-29) and DO carry data — see the re-read section
+  below.
 
 ## Caveats
 
@@ -123,3 +126,57 @@ to `[Marquardt-5981]`'s figure-caption-derived numbers.
 - Pre-hardware SSME context (design-point projections, not as-built/flown data) — the
   72 Btu/in²·sec and 3000 psia figures are design targets circa ~1970, not flight-validated
   SSME numbers (though they turned out to be close to the eventual real engine).
+
+## Regen passage geometry & coolant-side data (2026-09-23 re-read)
+
+Full re-read, every page rendered with `pymupdf` `get_pixmap` (the text layer is empty on
+all image-only leaves). **Page convention** (same as the rest of this note): "p.N" = 0-indexed
+PDF leaf N = 1-indexed PDF page N+1 = printed folio N+90 (e.g. p.15 = PDF page 16 = folio 105).
+
+**Bottom line: this source gives NO SSME-MCC or J-2 passage geometry at all** — no
+channel/tube count, width, depth, land width, aspect ratio, coolant mass flow/fraction,
+coolant inlet/outlet T or P, coolant velocity/Mach, h_c value or named correlation, or
+measured jacket dP. The only drawing of passages is an unscaled, undimensioned schematic
+(p.21: square-ish milled channels under an electroformed back wall; round brazed tubes).
+What it does carry:
+
+| Item | Value (orig.) | SI | Cite |
+|---|---|---|---|
+| SSE (SSME) design Pc | 3000 psi | 20.7 MPa | p.12 (folio 102) |
+| SSE max heat flux (design point) | 72 Btu/in²·s ("4× J-2") | 117.7 MW/m² | p.6, p.12; plotted on p.7 |
+| J-2 / J-2S / M-1 heat-flux range | 17–35 Btu/in²·s | 27.8–57.2 MW/m² | p.6 (not split per engine) |
+| Coolant-side wall temp used for conduction limits ("typical of the SSME throat") | 400 °F | 478 K | p.16 |
+| Max gas-side wall temp, Cu / NARloy | 1000 °F | 811 K | p.16, p.19 (chart header T_wg = 1000 F) |
+| Max gas-side wall temp, Ni / 347 SS | 1400 °F | 1033 K | p.16 |
+| Coolant dP practical limit (chart's "pressure drop limit" line) | 0.1 × Pc (→ ~300 psi at SSE Pc) | ~2.07 MPa at 20.7 MPa Pc | p.18 text, p.19 chart |
+| Hot-gas-wall thickness chart axis (all 4 materials) | 0–0.04 in | 0–1.02 mm | p.17 |
+| NARloy at ~3000 psi: stress-limit (min) / conduction-limit (max) wall thickness | ~0.01 in / ~0.04 in (digitized, ±0.003 in) | ~0.25 / ~1.0 mm | p.17 |
+| Feasibility chart (NARloy, T_wg 1000 F): dP-limit plateau / conduction-limit line at high thrust; SSE design point | ~7000 / ~10,000 psia; SSE ≈ 3000 psia at ≈4×10⁵ lbf (digitized) | ~48 / ~69 MPa; ≈20.7 MPa at ≈1.8 MN | p.19 |
+| Regen-cycle performance gain, SSE | "nearly one percent" | — | p.10 (folio 100) |
+| Roughness enhancement of H2 h_c (3 curves = 3 coolant mass velocities, unlabeled) | ~1.45–1.55 at 200 µin | at 5.1 µm | p.24 text, p.25 chart (digitized) |
+| Curvature enhancement vs turning angle | ~1.0 at 10° → ~1.9 at 80–90° (outside of bend highest) | — | p.24, p.25 (digitized) |
+| Combined claim | enhancements "more than double" H2 cooling capability in high-flux regions; "incorporated into the design of the Space Shuttle rocket engine" | — | p.24 |
+| Coolant property table: ρ (lbm/ft³) / cp (Btu/lbm·°R) / temp-rise rating / dP rating (% of H2) | H2 2.2/3.50/100/100; H2O 62.4/1.00/29/42; N2H4-UDMH 50-50 55.5/0.70/20/38; RP-1 52.0/0.44/13/34; CH4 27.8/0.80/23/61; O2 20.0/0.32/9/17 | ρ kg/m³: 35, 1000, 889, 833, 445, 320; cp kJ/kg·K: 14.65, 4.19, 2.93, 1.84, 3.35, 1.34 | p.15 (table), p.14 (text) |
+| Extended-life demo chamber (NOT the SSME; NARloy liner + electroformed Ni closeout, O2/H2 MR 6.0) | 516 hot-fire tests, no damage; T_gas > 6100 °F; T_wg max 1000 °F; each test cycles wall from H2 inlet temp to 1000 °F | >3644 K; 811 K | p.28, p.29 |
+
+Notes on the above:
+- p.14's text writes the temp-rise metric as "(1/ΔP_b)" — almost certainly a typo for
+  1/ΔT_b (bulk temperature rise); recorded verbatim. Same text: other coolants "require from
+  two to six times the amount of pressure drop" of H2 to cool a given heat flux, i.e. the
+  dP-rating column is the inverse of relative dP needed.
+- The 400 °F coolant-side wall temperature is an **analysis assumption** Rocketdyne calls
+  typical of the SSME throat, not a measured value; the p.17 thickness limits are
+  generic-channel design envelopes ("conservatively designed channel thrust chambers"), not
+  the SSME's as-designed liner thickness.
+- The unlabeled ▲ markers on p.17's x-axes (~1600 psi on 347 SS, ~3100 psi on Ni 200,
+  ~3700 psi on OFHC) are not explained anywhere in the text; do not cite them as values.
+- Channel fabrication sequence (p.26): groove the liner's outside, fill the grooves, apply a
+  striking agent, electroform the closeout over the whole liner, melt the filler out; liners
+  made by powder metallurgy, spinning, billet machining, electroforming or casting (cast
+  liners have integral grooves). Photos (p.27): Cu milled-channel/electroformed, Cu milled/
+  brazed closeout, NARloy cast-channel/electroformed, Ni milled/electroformed (one a combined
+  chamber/nozzle), Inco 625 spun liner/milled/electroformed.
+- **Nozzle cooling**: nothing in the source says how the SSME nozzle is cooled relative to
+  the MCC. The only chamber-vs-nozzle mention is p.27's caption on a Ni test article whose
+  channels run continuously through "CHAMBER/NOZZLE". The J-2 appears only as a firing photo
+  (p.1); p.3's cutaway is a generic, unlabeled regen chamber. No J-2 construction data.

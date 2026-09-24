@@ -1,0 +1,4232 @@
+{
+"bell_material_margin": {
+"assumed_wall_temp_k": {
+"__f__": "779.0947057397709"
+},
+"margin_ratio": {
+"__f__": "2.567082005904465"
+},
+"max_service_temp_k": {
+"__f__": "2000.0"
+},
+"warning": null
+},
+"bell_wall_mass_kg": {
+"__f__": "13.051534693771723"
+},
+"body_wall_thickness_m": {
+"__nd__": [
+{
+"__f__": "0.0009893463639100706"
+},
+{
+"__f__": "0.0009893463639100706"
+},
+{
+"__f__": "0.0005614430776247747"
+},
+{
+"__f__": "0.0005500700296888866"
+},
+{
+"__f__": "0.0005406443879093344"
+},
+{
+"__f__": "0.0005332378871114189"
+},
+{
+"__f__": "0.0005279068952383795"
+},
+{
+"__f__": "0.000524691984357311"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+}
+]
+},
+"chamber_acoustics": {
+"long_1l_hz": {
+"__f__": "2760.666577854988"
+},
+"rad_1r_hz": {
+"__f__": "6891.646838904023"
+},
+"sound_speed_ms": {
+"__f__": "1241.9354720258702"
+},
+"tang_1t_hz": {
+"__f__": "3332.845602420798"
+}
+},
+"chamber_flow": {
+"injector_end_pressure_ratio": {
+"__f__": "1.0167421659537788"
+},
+"mach": {
+"__f__": "0.16819520831484513"
+},
+"pc_loss_fraction": {
+"__f__": "0.01646648138967799"
+}
+},
+"chamber_heat_flux_factor": {
+"__f__": "0.6968724490157081"
+},
+"chamber_l_over_d": {
+"__f__": "1.0231026986152398"
+},
+"chamber_wall_mass_kg": {
+"__f__": "1.6487906497488485"
+},
+"checklist": [
+{
+"category": "propellant/cycle",
+"detail": "OK",
+"name": "Mixture ratio within table range",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "L* sufficient for a cylindrical section at this contraction ratio",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "Convergent half-angle within 20-45 deg",
+"passed": true
+},
+{
+"category": "materials",
+"detail": "Chamber cooling method 'ablative' is not physically possible on Stainless Steel (304/316) (it can only be built for: regenerative, dump, radiative, uncooled). BLOCKED - using its own 'regenerative' cooling instead.",
+"name": "Chamber cooling method compatible with material",
+"passed": false
+},
+{
+"category": "materials",
+"detail": "OK - ablative on Ablative Phenolic-Silica",
+"name": "Nozzle/bell cooling method compatible with material",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "No coolant property data for Aerozine-50/NTO's fuel - the regen jacket is solved with generic kerosene-like fallback properties (cp 2100 J/kg-K); treat its coolant rise, wall temperatures and jacket dP as rough.",
+"name": "Coolant property data for the jacket",
+"passed": false
+},
+{
+"category": "cooling",
+"detail": "OK",
+"name": "Actively-cooled nozzle has a coolant path",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 10 iterations",
+"name": "Thermal solve converged",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "OK - 0.60 MPa within the classic pressure-fed range",
+"name": "Pressure-fed chamber pressure plausibility",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - injector-end Pc ~1.017x nozzle Pc",
+"name": "Contraction ratio performance margin",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - 1.2 ms",
+"name": "Gas stay time within 1-40 ms",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - L/D 1.02",
+"name": "Chamber cylindrical L/D reasonable",
+"passed": true
+},
+{
+"category": "materials",
+"detail": "OK - 2.57x margin (ablative, local gas T 2226 K)",
+"name": "Nozzle-extension material thermal margin",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - ~206 K coolant rise",
+"name": "Regen jacket coolant capacity",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - ~55,460 thermal cycles",
+"name": "Throat thermal-fatigue cycle life",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - no dump-cooled nozzle slice",
+"name": "Dump-cooled nozzle coolant capacity",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - no nozzle slot film",
+"name": "Nozzle film slot on the nozzle wall",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - no film cooling",
+"name": "Total film-coolant fraction plausible",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - t/r 0.00",
+"name": "Fuel manifold thin-wall approximation validity",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - t/r 0.00",
+"name": "Ox manifold thin-wall approximation validity",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK",
+"name": "Fuel manifold bore vs. chamber packaging",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK",
+"name": "Ox manifold bore vs. chamber packaging",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 10.8 m/s",
+"name": "Fuel manifold feed velocity vs. SP-8087 limit",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 8.5 m/s",
+"name": "Ox manifold feed velocity vs. SP-8087 limit",
+"passed": true
+},
+{
+"category": "materials",
+"detail": "OK - 1.55x margin (coupled throat wall balance: gas h_g ~2.7 kW/m2K, T_aw ~3062 K, coolant ~13 m/s (coolant-side wall ~513 K), 0.50 mm wall)",
+"name": "Chamber material thermal margin",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - hottest station ~745 K in the convergent section (1.48x margin)",
+"name": "Peak wall temperature along the wall",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 13 m/s",
+"name": "Throat coolant velocity vs. SP-8087 limit",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - t/r 0.01",
+"name": "Jacket inlet manifold thin-wall approximation validity",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 9.4 m/s (= 1.00 x local coolant-passage velocity)",
+"name": "Jacket inlet manifold velocity vs. SP-8087 limit",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK",
+"name": "Jacket inlet manifold bore vs. chamber packaging",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK - beta +3.5 deg",
+"name": "Injector resultant beta angle",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Impingement angle within 20-45 deg",
+"passed": true
+},
+{
+"category": "stability",
+"detail": "OK - 1T ~3333 Hz, 1L ~2761 Hz",
+"name": "Combustion acoustic-mode margin",
+"passed": true
+},
+{
+"category": "stability",
+"detail": "n/a - no baffle",
+"name": "Baffle compartment count",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - only evaluated in \"channels\" regen mode with an active jacket",
+"name": "Jacket overpressure vs. channel-wall structural margin",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "n/a - only evaluated for tube_wall construction with an active jacket",
+"name": "Tube-wall longitudinal thermal buckling margin",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "n/a - no turbopump (pressure-fed)",
+"name": "Feed-system pump plausibility",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK - ~421 elements/m^2",
+"name": "Injector element crowding",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 0 kg",
+"name": "Manifold structural mass fraction",
+"passed": true
+},
+{
+"category": "manifold",
+"detail": "OK - 0 kg",
+"name": "Jacket manifold structural mass fraction",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK - 1.00x completeness",
+"name": "Combustion completeness vs. L*/atomization",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK - stable at floor throttle",
+"name": "Injector stiffness at throttle floor",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Injector practical minimum throttle",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Injector type suitability for propellant pair",
+"passed": true
+},
+{
+"category": "ignition",
+"detail": "OK",
+"name": "Ignition system plausibility",
+"passed": true
+},
+{
+"category": "injector",
+"detail": "OK",
+"name": "Injector type matches mono/bipropellant class",
+"passed": true
+},
+{
+"category": "propellant/cycle",
+"detail": "OK",
+"name": "Monopropellant requires pressure-fed cycle",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "Contraction ratio within typical range",
+"passed": true
+},
+{
+"category": "chamber geometry",
+"detail": "OK",
+"name": "L* within typical range",
+"passed": true
+},
+{
+"category": "nozzle/aero",
+"detail": "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.009) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage. sl Isp/thrust are nominal placeholders, not physical.",
+"name": "Sea-level nozzle flow attachment",
+"passed": false
+},
+{
+"category": "nozzle/aero",
+"detail": "OK",
+"name": "Expansion ratio validity",
+"passed": true
+},
+{
+"category": "gimbal",
+"detail": "OK - inherits host part's gimbal",
+"name": "Gimbal range plausibility",
+"passed": true
+}
+],
+"completeness_factor": {
+"__f__": "0.998442546598459"
+},
+"computed_dry_mass_kg": {
+"__f__": "16.416525665699456"
+},
+"convergent_half_angle_deg": {
+"__f__": "30.0"
+},
+"coolant_inlet_t_k": {
+"__f__": "290.0"
+},
+"cooling": {
+"bartz_sigma_profile": {
+"__nd__": [
+{
+"__f__": "1.4116266462179"
+},
+{
+"__f__": "1.4111698179936085"
+},
+{
+"__f__": "1.3685274195221704"
+},
+{
+"__f__": "1.376458590755561"
+},
+{
+"__f__": "1.3725319923259034"
+},
+{
+"__f__": "1.3684459579151806"
+},
+{
+"__f__": "1.3642895705940854"
+},
+{
+"__f__": "1.360222669439416"
+},
+{
+"__f__": "1.3562711916243986"
+},
+{
+"__f__": "1.3518216460094927"
+},
+{
+"__f__": "1.3473917755593563"
+},
+{
+"__f__": "1.3430179934579507"
+},
+{
+"__f__": "1.338657061815411"
+},
+{
+"__f__": "1.3341514876221596"
+},
+{
+"__f__": "1.3266806155449036"
+},
+{
+"__f__": "1.307179633030949"
+},
+{
+"__f__": "0.9359298130427853"
+},
+{
+"__f__": "0.9013451908685886"
+},
+{
+"__f__": "0.8728816786385307"
+},
+{
+"__f__": "0.8487474102004062"
+},
+{
+"__f__": "0.8278628027013456"
+},
+{
+"__f__": "0.8095155189368167"
+},
+{
+"__f__": "0.7932070469438416"
+},
+{
+"__f__": "0.7785735097599195"
+},
+{
+"__f__": "0.7653406476099032"
+},
+{
+"__f__": "0.7532964135239587"
+},
+{
+"__f__": "0.7422734077049016"
+},
+{
+"__f__": "0.7321371514254988"
+},
+{
+"__f__": "0.72277799621021"
+},
+{
+"__f__": "0.7141053854960996"
+},
+{
+"__f__": "0.7060436885173109"
+},
+{
+"__f__": "0.6985291140776232"
+},
+{
+"__f__": "0.6915073837300356"
+},
+{
+"__f__": "0.6849319500784156"
+},
+{
+"__f__": "0.6787626135400108"
+},
+{
+"__f__": "0.6729644350961118"
+},
+{
+"__f__": "0.6675068721129526"
+},
+{
+"__f__": "0.6623630844836088"
+},
+{
+"__f__": "0.657509372364856"
+},
+{
+"__f__": "0.6529247166912504"
+},
+{
+"__f__": "0.648590400757655"
+},
+{
+"__f__": "0.644489696333484"
+},
+{
+"__f__": "0.6406076015777451"
+},
+{
+"__f__": "0.6369306208628388"
+}
+]
+},
+"bell_wall_temp_eps": null,
+"bell_wall_temp_k": null,
+"chamber_cooling_method": "regenerative",
+"chamber_cooling_rejected": "ablative",
+"chamber_cooling_source": "material-default - explicit ablative BLOCKED",
+"chamber_film_inject_area_ratio": {
+"__f__": "0.0"
+},
+"chamber_film_profile": {
+"__nd__": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+}
+]
+},
+"chamber_tube_jacket": false,
+"channel_dh_profile_m": null,
+"channel_height_profile_m": null,
+"channel_land_fraction": null,
+"channel_width_profile_m": null,
+"coolant_channel_dh_throat_m": null,
+"coolant_channels": null,
+"coolant_channels_down": null,
+"coolant_delta_t_k": {
+"__f__": "206.01929182860567"
+},
+"coolant_exit_t_k": null,
+"coolant_inlet_t_k": {
+"__f__": "290.0"
+},
+"coolant_limit_k": null,
+"coolant_pressure_pa": {
+"__f__": "2708035.4743348565"
+},
+"coolant_property_source": "generic fallback",
+"coolant_side_wall_t_throat_k": null,
+"coolant_t_bulk_profile_k": null,
+"coolant_turnaround_t_k": null,
+"coolant_velocity_profile_ms": null,
+"coolant_velocity_throat_ms": {
+"__f__": "13.236976874145858"
+},
+"cooled_length_eps": {
+"__f__": "2.0"
+},
+"dump_coolant_dt_k": {
+"__f__": "0.0"
+},
+"dump_coolant_fraction": {
+"__f__": "0.0"
+},
+"dump_isp_penalty_fraction": {
+"__f__": "0.0"
+},
+"dump_jacket_dp_pa": {
+"__f__": "0.0"
+},
+"dump_mdot_kgs": {
+"__f__": "0.0"
+},
+"film_cooled_length_eps": {
+"__f__": "2.0"
+},
+"film_cooling_fraction": {
+"__f__": "0.0"
+},
+"film_effectiveness_profile": {
+"__nd__": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+}
+]
+},
+"film_flux_factor": {
+"__f__": "1.0"
+},
+"film_flux_factor_effective": {
+"__f__": "1.0"
+},
+"film_temperature_k": {
+"__f__": "496.0192918286057"
+},
+"flange_bolt_count": 0,
+"flange_thickness_m": {
+"__f__": "0.0"
+},
+"flange_width_m": {
+"__f__": "0.0"
+},
+"gas_cp_frozen_j_kgk": {
+"__f__": "2047.539801687833"
+},
+"gas_prandtl": {
+"__f__": "0.6149251204092909"
+},
+"gas_property_source": "chemical-equilibrium table",
+"gas_viscosity_pa_s": {
+"__f__": "9.181924816816731e-05"
+},
+"h_g_profile_w_m2k": {
+"__nd__": [
+{
+"__f__": "531.7834912185994"
+},
+{
+"__f__": "886.0189939098085"
+},
+{
+"__f__": "2382.2865070702314"
+},
+{
+"__f__": "2486.0026383993963"
+},
+{
+"__f__": "2557.244316524833"
+},
+{
+"__f__": "2613.72960784553"
+},
+{
+"__f__": "2653.3476807460847"
+},
+{
+"__f__": "2674.6862166617675"
+},
+{
+"__f__": "2676.7738717662787"
+},
+{
+"__f__": "2655.4782909200167"
+},
+{
+"__f__": "2610.065430417941"
+},
+{
+"__f__": "2542.8680066236416"
+},
+{
+"__f__": "2457.1048613434964"
+},
+{
+"__f__": "2356.4740723328628"
+},
+{
+"__f__": "2240.4982665985544"
+},
+{
+"__f__": "1490.2579293452516"
+},
+{
+"__f__": "776.6726997429569"
+},
+{
+"__f__": "573.4009464696088"
+},
+{
+"__f__": "442.11295569045467"
+},
+{
+"__f__": "352.2959022982435"
+},
+{
+"__f__": "288.08864652913365"
+},
+{
+"__f__": "240.5641807743798"
+},
+{
+"__f__": "204.380009890135"
+},
+{
+"__f__": "176.17764616413982"
+},
+{
+"__f__": "153.75875669854358"
+},
+{
+"__f__": "135.63486161178238"
+},
+{
+"__f__": "120.76867899836108"
+},
+{
+"__f__": "108.41919884961288"
+},
+{
+"__f__": "98.04549993223434"
+},
+{
+"__f__": "89.24515141532171"
+},
+{
+"__f__": "81.71367523605976"
+},
+{
+"__f__": "75.21721928742451"
+},
+{
+"__f__": "69.57373763033546"
+},
+{
+"__f__": "64.6397784257811"
+},
+{
+"__f__": "60.30104687249749"
+},
+{
+"__f__": "56.46555806814435"
+},
+{
+"__f__": "53.05859760362205"
+},
+{
+"__f__": "50.01896390165932"
+},
+{
+"__f__": "47.29613251984291"
+},
+{
+"__f__": "44.848092452994486"
+},
+{
+"__f__": "42.639678251991505"
+},
+{
+"__f__": "40.64127212086526"
+},
+{
+"__f__": "38.82778500033687"
+},
+{
+"__f__": "37.17785008703359"
+}
+]
+},
+"h_g_throat_effective_w_m2k": {
+"__f__": "2676.7738717662787"
+},
+"hatband_mass_kg": {
+"__f__": "0.0"
+},
+"hatbands": null,
+"hg_throat_w_m2k": {
+"__f__": "2676.7738717662787"
+},
+"hot_wall_thickness_m": {
+"__f__": "0.0005"
+},
+"jacket_dp_down_pa": null,
+"jacket_dp_pa": {
+"__f__": "1600000.0"
+},
+"jacket_inlet_velocity_ms": {
+"__f__": "9.369558523408017"
+},
+"mdot_coolant_jacket_kgs": {
+"__f__": "1.3359064231579174"
+},
+"nozzle_cooling_method": "ablative",
+"nozzle_cooling_rejected": null,
+"nozzle_cooling_source": "explicit",
+"nozzle_film_fraction": {
+"__f__": "0.0"
+},
+"nozzle_film_inject_eps": {
+"__f__": "10.0"
+},
+"nozzle_film_isp_penalty_fraction": {
+"__f__": "0.0"
+},
+"nozzle_film_profile": {
+"__nd__": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "1.0"
+}
+]
+},
+"peak_wall_margin_ratio": {
+"__f__": "1.4761583373452565"
+},
+"peak_wall_temp_eps": {
+"__f__": "1.1496958274913676"
+},
+"peak_wall_temp_k": {
+"__f__": "745.1775139367876"
+},
+"peak_wall_temp_zone": "convergent section",
+"q_chamber_avg_abs_w_m2": {
+"__f__": "2558703.2150690127"
+},
+"q_chamber_avg_anchor_w_m2": {
+"__f__": "1096081.9137164438"
+},
+"q_chamber_avg_w_m2": {
+"__f__": "2558703.2150690127"
+},
+"q_profile_abs_w_m2": {
+"__nd__": [
+{
+"__f__": "1316493.945100406"
+},
+{
+"__f__": "2191872.4032163983"
+},
+{
+"__f__": "5582743.528877364"
+},
+{
+"__f__": "5920843.071520035"
+},
+{
+"__f__": "6071043.4393837685"
+},
+{
+"__f__": "6186441.253648985"
+},
+{
+"__f__": "6263522.303195883"
+},
+{
+"__f__": "6301111.704013437"
+},
+{
+"__f__": "6297531.636839187"
+},
+{
+"__f__": "6241627.693819251"
+},
+{
+"__f__": "6132852.7613986945"
+},
+{
+"__f__": "5976502.2997215185"
+},
+{
+"__f__": "5778961.922678087"
+},
+{
+"__f__": "5546759.952741259"
+},
+{
+"__f__": "5256064.331718161"
+},
+{
+"__f__": "3574280.4504637965"
+},
+{
+"__f__": "726034.4478079817"
+},
+{
+"__f__": "523222.12776700174"
+},
+{
+"__f__": "395809.4068999895"
+},
+{
+"__f__": "310518.8553200918"
+},
+{
+"__f__": "250622.5251580592"
+},
+{
+"__f__": "206946.7577065371"
+},
+{
+"__f__": "174116.27247493406"
+},
+{
+"__f__": "148811.48284546306"
+},
+{
+"__f__": "128892.44648188754"
+},
+{
+"__f__": "112929.41977749618"
+},
+{
+"__f__": "99937.74412100275"
+},
+{
+"__f__": "89221.38633537584"
+},
+{
+"__f__": "80277.06884991763"
+},
+{
+"__f__": "72733.58818228485"
+},
+{
+"__f__": "66312.30154108122"
+},
+{
+"__f__": "60800.74594847684"
+},
+{
+"__f__": "56034.62951090225"
+},
+{
+"__f__": "51885.291003098406"
+},
+{
+"__f__": "48250.8095809163"
+},
+{
+"__f__": "45049.59920217792"
+},
+{
+"__f__": "42215.724761950354"
+},
+{
+"__f__": "39695.4307201474"
+},
+{
+"__f__": "37444.53635481706"
+},
+{
+"__f__": "35426.4589220021"
+},
+{
+"__f__": "33610.697504674536"
+},
+{
+"__f__": "31971.658810717774"
+},
+{
+"__f__": "30487.73953217264"
+},
+{
+"__f__": "29140.60313833043"
+}
+]
+},
+"q_profile_w_m2": {
+"__nd__": [
+{
+"__f__": "1316493.945100406"
+},
+{
+"__f__": "2191872.4032163983"
+},
+{
+"__f__": "5582743.528877364"
+},
+{
+"__f__": "5920843.071520035"
+},
+{
+"__f__": "6071043.4393837685"
+},
+{
+"__f__": "6186441.253648985"
+},
+{
+"__f__": "6263522.303195883"
+},
+{
+"__f__": "6301111.704013437"
+},
+{
+"__f__": "6297531.636839187"
+},
+{
+"__f__": "6241627.693819251"
+},
+{
+"__f__": "6132852.7613986945"
+},
+{
+"__f__": "5976502.2997215185"
+},
+{
+"__f__": "5778961.922678087"
+},
+{
+"__f__": "5546759.952741259"
+},
+{
+"__f__": "5256064.331718161"
+},
+{
+"__f__": "3574280.4504637965"
+},
+{
+"__f__": "726034.4478079817"
+},
+{
+"__f__": "523222.12776700174"
+},
+{
+"__f__": "395809.4068999895"
+},
+{
+"__f__": "310518.8553200918"
+},
+{
+"__f__": "250622.5251580592"
+},
+{
+"__f__": "206946.7577065371"
+},
+{
+"__f__": "174116.27247493406"
+},
+{
+"__f__": "148811.48284546306"
+},
+{
+"__f__": "128892.44648188754"
+},
+{
+"__f__": "112929.41977749618"
+},
+{
+"__f__": "99937.74412100275"
+},
+{
+"__f__": "89221.38633537584"
+},
+{
+"__f__": "80277.06884991763"
+},
+{
+"__f__": "72733.58818228485"
+},
+{
+"__f__": "66312.30154108122"
+},
+{
+"__f__": "60800.74594847684"
+},
+{
+"__f__": "56034.62951090225"
+},
+{
+"__f__": "51885.291003098406"
+},
+{
+"__f__": "48250.8095809163"
+},
+{
+"__f__": "45049.59920217792"
+},
+{
+"__f__": "42215.724761950354"
+},
+{
+"__f__": "39695.4307201474"
+},
+{
+"__f__": "37444.53635481706"
+},
+{
+"__f__": "35426.4589220021"
+},
+{
+"__f__": "33610.697504674536"
+},
+{
+"__f__": "31971.658810717774"
+},
+{
+"__f__": "30487.73953217264"
+},
+{
+"__f__": "29140.60313833043"
+}
+]
+},
+"q_throat_abs_w_m2": {
+"__f__": "6297531.636839187"
+},
+"q_throat_w_m2": {
+"__f__": "6297531.636839187"
+},
+"q_throat_wall_balance_w_m2": {
+"__f__": "6297531.636839187"
+},
+"recovery_factor": {
+"__f__": "0.8503689841653069"
+},
+"regen_channel_model": "flat",
+"regen_circuit_style": "single_pass_upflow",
+"regen_cooled": true,
+"regen_isp_bonus_fraction": {
+"__f__": "0.0"
+},
+"regen_nozzle_end_eps": {
+"__f__": "0.0"
+},
+"regen_ok": true,
+"station_treatment": {
+"__nd__": [
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"regen",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative",
+"ablative"
+]
+},
+"t_aw_chamber_k": {
+"__f__": "3109.241588424641"
+},
+"t_aw_film_profile_k": {
+"__nd__": [
+{
+"__f__": "3107.7724459338656"
+},
+{
+"__f__": "3107.7724459338656"
+},
+{
+"__f__": "3088.616689833014"
+},
+{
+"__f__": "3085.326437058363"
+},
+{
+"__f__": "3081.609578163481"
+},
+{
+"__f__": "3077.4489434929756"
+},
+{
+"__f__": "3072.836478772823"
+},
+{
+"__f__": "3067.7747228318276"
+},
+{
+"__f__": "3062.2777206196097"
+},
+{
+"__f__": "3055.5806803114565"
+},
+{
+"__f__": "3048.4233558308624"
+},
+{
+"__f__": "3040.8843416900654"
+},
+{
+"__f__": "3033.0550192799724"
+},
+{
+"__f__": "3025.034342650472"
+},
+{
+"__f__": "3016.9234707811675"
+},
+{
+"__f__": "2965.765931053247"
+},
+{
+"__f__": "2934.8010404489123"
+},
+{
+"__f__": "2912.4891247362693"
+},
+{
+"__f__": "2895.2676048179765"
+},
+{
+"__f__": "2881.414893827563"
+},
+{
+"__f__": "2869.9493304492803"
+},
+{
+"__f__": "2860.2559077597184"
+},
+{
+"__f__": "2851.924180689348"
+},
+{
+"__f__": "2844.667221327384"
+},
+{
+"__f__": "2838.277111817388"
+},
+{
+"__f__": "2832.5987761223637"
+},
+{
+"__f__": "2827.51376391522"
+},
+{
+"__f__": "2822.9297696539325"
+},
+{
+"__f__": "2818.7736194460977"
+},
+{
+"__f__": "2814.9864393618795"
+},
+{
+"__f__": "2811.520242474885"
+},
+{
+"__f__": "2808.335465262833"
+},
+{
+"__f__": "2805.399155190278"
+},
+{
+"__f__": "2802.6836147446375"
+},
+{
+"__f__": "2800.165371638396"
+},
+{
+"__f__": "2797.824386111808"
+},
+{
+"__f__": "2795.643433272132"
+},
+{
+"__f__": "2793.6076164670526"
+},
+{
+"__f__": "2791.7039800052858"
+},
+{
+"__f__": "2789.921198078441"
+},
+{
+"__f__": "2788.249322756199"
+},
+{
+"__f__": "2786.6795782286426"
+},
+{
+"__f__": "2785.2041915836335"
+},
+{
+"__f__": "2783.8162526911074"
+}
+]
+},
+"t_aw_profile_k": {
+"__nd__": [
+{
+"__f__": "3107.7724459338656"
+},
+{
+"__f__": "3107.7724459338656"
+},
+{
+"__f__": "3088.616689833014"
+},
+{
+"__f__": "3085.326437058363"
+},
+{
+"__f__": "3081.609578163481"
+},
+{
+"__f__": "3077.4489434929756"
+},
+{
+"__f__": "3072.836478772823"
+},
+{
+"__f__": "3067.7747228318276"
+},
+{
+"__f__": "3062.2777206196097"
+},
+{
+"__f__": "3055.5806803114565"
+},
+{
+"__f__": "3048.4233558308624"
+},
+{
+"__f__": "3040.8843416900654"
+},
+{
+"__f__": "3033.0550192799724"
+},
+{
+"__f__": "3025.034342650472"
+},
+{
+"__f__": "3016.9234707811675"
+},
+{
+"__f__": "2965.765931053247"
+},
+{
+"__f__": "2934.8010404489123"
+},
+{
+"__f__": "2912.4891247362693"
+},
+{
+"__f__": "2895.2676048179765"
+},
+{
+"__f__": "2881.414893827563"
+},
+{
+"__f__": "2869.9493304492803"
+},
+{
+"__f__": "2860.2559077597184"
+},
+{
+"__f__": "2851.924180689348"
+},
+{
+"__f__": "2844.667221327384"
+},
+{
+"__f__": "2838.277111817388"
+},
+{
+"__f__": "2832.5987761223637"
+},
+{
+"__f__": "2827.51376391522"
+},
+{
+"__f__": "2822.9297696539325"
+},
+{
+"__f__": "2818.7736194460977"
+},
+{
+"__f__": "2814.9864393618795"
+},
+{
+"__f__": "2811.520242474885"
+},
+{
+"__f__": "2808.335465262833"
+},
+{
+"__f__": "2805.399155190278"
+},
+{
+"__f__": "2802.6836147446375"
+},
+{
+"__f__": "2800.165371638396"
+},
+{
+"__f__": "2797.824386111808"
+},
+{
+"__f__": "2795.643433272132"
+},
+{
+"__f__": "2793.6076164670526"
+},
+{
+"__f__": "2791.7039800052858"
+},
+{
+"__f__": "2789.921198078441"
+},
+{
+"__f__": "2788.249322756199"
+},
+{
+"__f__": "2786.6795782286426"
+},
+{
+"__f__": "2785.2041915836335"
+},
+{
+"__f__": "2783.8162526911074"
+}
+]
+},
+"t_wc_profile_k": {
+"__nd__": [
+{
+"__f__": "590.9222088601713"
+},
+{
+"__f__": "565.3145997773679"
+},
+{
+"__f__": "570.6467388547928"
+},
+{
+"__f__": "518.5151452148222"
+},
+{
+"__f__": "517.7220500973583"
+},
+{
+"__f__": "517.1119608261818"
+},
+{
+"__f__": "516.3820348403108"
+},
+{
+"__f__": "514.9241582712392"
+},
+{
+"__f__": "512.7119325747755"
+},
+{
+"__f__": "509.9438544073995"
+},
+{
+"__f__": "506.9603306071145"
+},
+{
+"__f__": "503.694918338461"
+},
+{
+"__f__": "500.39259269046516"
+},
+{
+"__f__": "497.7221469520673"
+},
+{
+"__f__": "506.5993197158877"
+},
+{
+"__f__": "455.428237626012"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+}
+]
+},
+"t_wc_throat_k": {
+"__f__": "512.7119325747755"
+},
+"t_wg_profile_k": {
+"__nd__": [
+{
+"__f__": "632.1522605768196"
+},
+{
+"__f__": "633.9288621251894"
+},
+{
+"__f__": "745.1775139367876"
+},
+{
+"__f__": "703.6543583303419"
+},
+{
+"__f__": "707.5527075888253"
+},
+{
+"__f__": "710.547166400431"
+},
+{
+"__f__": "712.2252597279569"
+},
+{
+"__f__": "711.9426013810537"
+},
+{
+"__f__": "709.6204030690099"
+},
+{
+"__f__": "705.1085581474384"
+},
+{
+"__f__": "698.7302447211299"
+},
+{
+"__f__": "690.5844896513535"
+},
+{
+"__f__": "681.1155422166023"
+},
+{
+"__f__": "671.1956062666353"
+},
+{
+"__f__": "670.9880107650647"
+},
+{
+"__f__": "567.3351761609279"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+},
+{
+"__f__": "nan"
+}
+]
+},
+"t_wg_throat_k": {
+"__f__": "709.6204030690099"
+},
+"thermal_solve_converged": true,
+"thermal_solve_iterations": 10,
+"throat_fatigue_cycles": {
+"__f__": "55459.5709491453"
+},
+"throat_thermal_stress_pa": {
+"__f__": "461469065.4939879"
+},
+"through_wall_delta_t_k": {
+"__f__": "196.9084704942344"
+},
+"tube_hatband_count": 0,
+"tube_hatband_width_m": {
+"__f__": "0.0"
+},
+"tube_hatbands": false,
+"tube_hatbands_on_extension": false,
+"tube_split_eps": {
+"__f__": "0.0"
+},
+"tube_taper_ratio": {
+"__f__": "0.0"
+},
+"wall_construction": "milled_channel",
+"wall_heat_dump_w": {
+"__f__": "0.0"
+},
+"wall_heat_energy_fraction": {
+"__f__": "0.022526417532806365"
+},
+"wall_heat_regen_w": {
+"__f__": "578003.2741462375"
+},
+"wall_heat_total_w": {
+"__f__": "578003.2741462375"
+}
+},
+"cooling_flow_topology": "single_pass_countercurrent",
+"cstar_ms": {
+"__f__": "1583.0450126872727"
+},
+"cycle_result": {
+"cycle": "pressure_fed",
+"gg_dump_isp_fraction": {
+"__f__": "0.0"
+},
+"gg_flow_fraction": {
+"__f__": "0.0"
+},
+"gg_mdot_kgs": {
+"__f__": "0.0"
+},
+"has_turbopump": false,
+"required_tank_pressure_pa": {
+"__f__": "4008035.4743348565"
+},
+"turbine_specific_work_j_kg": {
+"__f__": "0.0"
+},
+"turbopump": null
+},
+"eps_for_transition": {
+"__f__": "2.0"
+},
+"eta_cstar": {
+"__f__": "0.9137696264341767"
+},
+"ext_wall_thickness_m": {
+"__nd__": [
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+},
+{
+"__f__": "0.0005"
+}
+]
+},
+"gamma": {
+"__f__": "1.2126812500000002"
+},
+"geometry": {
+"chamber_area_m2": {
+"__f__": "0.037963092030717446"
+},
+"chamber_dia_m": {
+"__f__": "0.21985474753557124"
+},
+"chamber_length_m": {
+"__f__": "0.22493398550701518"
+},
+"chamber_volume_m3": {
+"__f__": "0.010591383658990079"
+},
+"cylindrical_volume_clamped": false,
+"exit_area_m2": {
+"__f__": "0.531695966816771"
+},
+"exit_dia_m": {
+"__f__": "0.8227857137355434"
+},
+"implied_lstar_m": {
+"__f__": "0.9960000000000001"
+},
+"sizing_method": "lstar",
+"throat_area_m2": {
+"__f__": "0.01063391933633542"
+},
+"throat_dia_m": {
+"__f__": "0.11635947152916325"
+}
+},
+"hatband_mass_kg": {
+"__f__": "0.0"
+},
+"injector_dp_derived_pa": {
+"__f__": "1308035.4743348563"
+},
+"injector_dp_fuel_pa": {
+"__f__": "1308035.4743348563"
+},
+"injector_dp_nominal_pa": {
+"__f__": "120000.0"
+},
+"injector_dp_ox_pa": {
+"__f__": "1308035.4743348563"
+},
+"injector_dp_pa": {
+"__f__": "1308035.4743348563"
+},
+"injector_geometry": {
+"beta_deg": {
+"__f__": "3.5258173217607887"
+},
+"cd": {
+"__f__": "0.61"
+},
+"impingement_angle_band_deg": [
+{
+"__f__": "20.0"
+},
+{
+"__f__": "45.0"
+}
+],
+"included_angle_deg": {
+"__f__": "30.0"
+},
+"momentum_ratio": {
+"__f__": "1.597233929981246"
+},
+"n_elements": 16,
+"n_fuel_orifices": 12,
+"n_ox_orifices": 19,
+"note": "annular pintle slot, not discrete orifices - counts are equivalent-orifice figures for the same flow area",
+"orifice_dia_mm": {
+"__f__": "2.21"
+},
+"symmetric_pattern": false,
+"v_fuel_ms": {
+"__f__": "32.83301150546919"
+},
+"v_ox_ms": {
+"__f__": "26.0"
+}
+},
+"injector_plate_mass_kg": {
+"__f__": "1.7020694096596285"
+},
+"injector_stiffness_ok_at_floor": true,
+"inputs": {
+"acoustic_cavities": false,
+"acoustic_cavity_count": 12,
+"apply_chamber_pressure_loss": false,
+"baffle_compartments": 5,
+"bearing_material_key": "cronidur_30",
+"bell_material_key": "ablative_phenolic",
+"bell_percent_length": {
+"__f__": "70.0"
+},
+"chamber_cooling_method": "ablative",
+"chamber_film_inject_area_ratio": {
+"__f__": "0.0"
+},
+"chamber_pressure_pa": {
+"__f__": "600000.0"
+},
+"chamber_residence_time_ms": {
+"__f__": "0.0"
+},
+"chamber_sizing_method": "lstar",
+"chamber_tube_jacket": false,
+"chamber_wall_fillet_r_over_rt": {
+"__f__": "0.0"
+},
+"config_name": "TRW-270",
+"contraction_ratio": {
+"__f__": "3.57"
+},
+"controller_tech_key": "digital_fadec",
+"convergent_half_angle_deg": {
+"__f__": "30.0"
+},
+"cooling_flow_topology": "single_pass_countercurrent",
+"cooling_transition_eps": {
+"__f__": "2.0"
+},
+"cost": {
+"__f__": "1.0"
+},
+"cycle": "pressure_fed",
+"dump_coolant_fraction": {
+"__f__": "0.0"
+},
+"enforce_suction_limit": false,
+"entry_cost": {
+"__f__": "414.0"
+},
+"eta_pump_fuel": {
+"__f__": "0.0"
+},
+"eta_pump_ox": {
+"__f__": "0.0"
+},
+"expansion_ratio": {
+"__f__": "50.0"
+},
+"film_cooling_fraction": {
+"__f__": "0.0"
+},
+"flange_bolt_count": 0,
+"flange_thickness_m": {
+"__f__": "0.0"
+},
+"flange_width_m": {
+"__f__": "0.0"
+},
+"fuel_manifold_head_fraction": {
+"__f__": "0.04"
+},
+"fuel_manifold_taper_blend": {
+"__f__": "0.5"
+},
+"gimbal_mode": "inherit",
+"gimbal_range_deg": {
+"__f__": "6.0"
+},
+"gimbal_response_speed_deg_s": {
+"__f__": "0.0"
+},
+"host_model_engine_type": "LMDE",
+"host_model_reference_height_m": {
+"__f__": "0.0"
+},
+"ignition_system": "hypergolic_self_ignite",
+"ignitions": 30,
+"impingement_angle_deg": {
+"__f__": "30.0"
+},
+"injector_baffles": false,
+"injector_stiffness": "nominal",
+"injector_type": "pintle",
+"jacket_inlet_eps": {
+"__f__": "8.0"
+},
+"jacket_inlet_taper_blend": {
+"__f__": "0.5"
+},
+"jacket_inlet_velocity_mult": {
+"__f__": "1.0"
+},
+"lstar_m": {
+"__f__": "0.996"
+},
+"manifold_bypass_fraction": {
+"__f__": "0.3"
+},
+"material_key": "stainless_steel",
+"mixture_ratio": {
+"__f__": "2.017"
+},
+"new_part_description": "",
+"new_part_manufacturer": "Fictional",
+"new_part_name": "TRW-270",
+"new_part_title": "TRW",
+"nozzle_cooling_method": "ablative",
+"nozzle_film_fraction": {
+"__f__": "0.0"
+},
+"nozzle_film_inject_eps": {
+"__f__": "10.0"
+},
+"nozzle_half_angle_deg": {
+"__f__": "15.0"
+},
+"nozzle_type": "bell",
+"npsh_available_fuel_ft": {
+"__f__": "0.0"
+},
+"npsh_available_ox_ft": {
+"__f__": "0.0"
+},
+"orifice_type": "sharp_large",
+"output_mode": "new_part_standalone",
+"ox_manifold_head_fraction": {
+"__f__": "0.04"
+},
+"ox_manifold_taper_blend": {
+"__f__": "0.5"
+},
+"ox_preburner_tin_k": {
+"__f__": "0.0"
+},
+"plumbing_runs": [],
+"preburner_tin_k": {
+"__f__": "0.0"
+},
+"propellant_pair": "Aerozine-50/NTO",
+"pump_specific_power_w_kg": {
+"__f__": "36000.0"
+},
+"pump_stages_fuel": 0,
+"pump_stages_ox": 0,
+"regen_channel_aspect_ratio": {
+"__f__": "0.0"
+},
+"regen_channel_count": 0,
+"regen_channel_land_fraction": {
+"__f__": "0.0"
+},
+"regen_channel_model": "flat",
+"regen_circuit_style": "single_pass_upflow",
+"regen_coolant_velocity_ms": {
+"__f__": "0.0"
+},
+"regen_nozzle_end_eps": {
+"__f__": "0.0"
+},
+"target_vac_thrust_n": {
+"__f__": "12000.0"
+},
+"tech_node": "improvedLandingEngines",
+"throttle_floor": {
+"__f__": "0.1"
+},
+"tube_hatband_count": 0,
+"tube_hatband_material": "inconel_718",
+"tube_hatband_shape": "auto",
+"tube_hatband_width_m": {
+"__f__": "0.0"
+},
+"tube_hatbands": false,
+"tube_hatbands_on_extension": false,
+"tube_split_eps": {
+"__f__": "0.0"
+},
+"turbine_staging": "auto",
+"turbopump_arrangement": "auto",
+"turbopump_material_key": "inconel_718",
+"turbopump_tech_key": "mature",
+"wall_construction": "milled_channel"
+},
+"isp_sl_chamber_s": {
+"__f__": "1.0"
+},
+"isp_sl_engine_s": {
+"__f__": "1.0"
+},
+"isp_vac_chamber_s": {
+"__f__": "303.6052116354222"
+},
+"isp_vac_engine_s": {
+"__f__": "303.6052116354222"
+},
+"jacket_combined_stress_pa": null,
+"jacket_hoop_stress_pa": null,
+"jacket_inlet_eps_effective": null,
+"jacket_local_gas_pressure_at_worst_station_pa": null,
+"jacket_manifold_mass_kg": {
+"__f__": "0.005465813374613298"
+},
+"jacket_manifold_result": {
+"jacket_inlet": {
+"attach_angular_position_deg": {
+"__f__": "0.0"
+},
+"attach_axial_station_m": {
+"__f__": "0.3521570760944504"
+},
+"attach_direction_xyz": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+"attach_radial_offset_m": {
+"__f__": "0.10556335734566126"
+},
+"design_feed_velocity_ms": {
+"__f__": "9.369558523408017"
+},
+"feed_pressure_pa": {
+"__f__": "3508035.4743348565"
+},
+"feed_wall_thickness_m": {
+"__f__": "6.217468998828777e-05"
+},
+"flow_radius_m": {
+"__f__": "0.005012964689842594"
+},
+"inlet_flow_radius_m": {
+"__f__": "0.005012964689842594"
+},
+"inner_diameter_m": {
+"__f__": "0.014178805304145664"
+},
+"major_radius_m": {
+"__f__": "0.10556335734566126"
+},
+"mass_kg": {
+"__f__": "0.005465813374613298"
+},
+"mdot_kgs": {
+"__f__": "1.3359064231579174"
+},
+"min_flow_radius_m": {
+"__f__": "0.003544701326036416"
+},
+"outer_radius_m": {
+"__f__": "0.005056928834751483"
+},
+"ring_inlet_inner_diameter_m": {
+"__f__": "0.010025929379685187"
+},
+"taper_blend": {
+"__f__": "0.5"
+},
+"thin_wall_ratio": {
+"__f__": "0.008770088685837141"
+},
+"wall_thickness_m": {
+"__f__": "4.3964144908889624e-05"
+}
+},
+"jacket_return": null,
+"total_mass_kg": {
+"__f__": "0.005465813374613298"
+}
+},
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": null,
+"jacket_pressure_at_worst_station_pa": null,
+"jacket_return_split_fraction": {
+"__f__": "0.5"
+},
+"jacket_structure_mass_kg": {
+"__f__": "0.0"
+},
+"jacket_thermal_stress_pa": null,
+"jacket_worst_station_eps": null,
+"line_loss_computed": {
+"fuel": null,
+"ox": null
+},
+"line_loss_fuel_pa": {
+"__f__": "500000.0"
+},
+"line_loss_ox_pa": {
+"__f__": "500000.0"
+},
+"line_loss_residual_pa": {
+"__f__": "0.0"
+},
+"line_loss_source": {
+"fuel": "flat",
+"ox": "flat"
+},
+"m_molar": {
+"__f__": "21.142500000000002"
+},
+"manifold_bypass_fraction": {
+"__f__": "0.3"
+},
+"manifold_mass_kg": {
+"__f__": "0.008665099144644594"
+},
+"manifold_result": {
+"fuel": {
+"attach_angular_position_deg": {
+"__f__": "0.0"
+},
+"attach_axial_station_m": {
+"__f__": "0.014699108446556097"
+},
+"attach_direction_xyz": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+"attach_radial_offset_m": {
+"__f__": "0.1356192195911203"
+},
+"design_feed_velocity_ms": {
+"__f__": "10.764921805071868"
+},
+"feed_pressure_pa": {
+"__f__": "1908035.4743348563"
+},
+"feed_wall_thickness_m": {
+"__f__": "3.154933585033586e-05"
+},
+"flow_radius_m": {
+"__f__": "0.0046767996972343915"
+},
+"inlet_flow_radius_m": {
+"__f__": "0.0046767996972343915"
+},
+"inner_diameter_m": {
+"__f__": "0.013227987120662523"
+},
+"major_radius_m": {
+"__f__": "0.1356192195911203"
+},
+"mass_kg": {
+"__f__": "0.0033176296523268795"
+},
+"mdot_kgs": {
+"__f__": "1.3359064231579174"
+},
+"min_flow_radius_m": {
+"__f__": "0.003306996780165631"
+},
+"outer_radius_m": {
+"__f__": "0.0046991084465560955"
+},
+"ring_inlet_inner_diameter_m": {
+"__f__": "0.009353599394468783"
+},
+"taper_blend": {
+"__f__": "0.5"
+},
+"thin_wall_ratio": {
+"__f__": "0.004770088685837141"
+},
+"wall_thickness_m": {
+"__f__": "2.2308749321704336e-05"
+}
+},
+"ox": {
+"attach_angular_position_deg": {
+"__f__": "180.0"
+},
+"attach_axial_station_m": {
+"__f__": "0.03133703100035715"
+},
+"attach_direction_xyz": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "-1.0"
+},
+{
+"__f__": "1.2246467991473532e-16"
+}
+],
+"attach_radial_offset_m": {
+"__f__": "0.13685892525180915"
+},
+"design_feed_velocity_ms": {
+"__f__": "8.524590163934427"
+},
+"feed_pressure_pa": {
+"__f__": "1908035.4743348563"
+},
+"feed_wall_thickness_m": {
+"__f__": "3.987259348302574e-05"
+},
+"flow_radius_m": {
+"__f__": "0.005910619926009619"
+},
+"inlet_flow_radius_m": {
+"__f__": "0.005910619926009619"
+},
+"inner_diameter_m": {
+"__f__": "0.016717757722790924"
+},
+"major_radius_m": {
+"__f__": "0.13685892525180915"
+},
+"mass_kg": {
+"__f__": "0.005347469492317714"
+},
+"mdot_kgs": {
+"__f__": "2.6945232555095195"
+},
+"min_flow_radius_m": {
+"__f__": "0.004179439430697731"
+},
+"outer_radius_m": {
+"__f__": "0.005938814107244961"
+},
+"ring_inlet_inner_diameter_m": {
+"__f__": "0.011821239852019237"
+},
+"taper_blend": {
+"__f__": "0.5"
+},
+"thin_wall_ratio": {
+"__f__": "0.004770088685837141"
+},
+"wall_thickness_m": {
+"__f__": "2.819418123534204e-05"
+}
+},
+"total_mass_kg": {
+"__f__": "0.008665099144644594"
+}
+},
+"material_margin": {
+"assumed_wall_temp_k": {
+"__f__": "709.6204030690099"
+},
+"margin_ratio": {
+"__f__": "1.5501245387571334"
+},
+"max_service_temp_k": {
+"__f__": "1100.0"
+},
+"warning": null
+},
+"mdot_kgs": {
+"__f__": "4.030429678667437"
+},
+"nozzle_divergence_efficiency": {
+"__f__": "0.9912251988627548"
+},
+"nozzle_efficiency_vs_reference": {
+"__f__": "0.996072051228253"
+},
+"orifice_cd": {
+"__f__": "0.61"
+},
+"oxidizer_inlet_t_k": {
+"__f__": "290.0"
+},
+"pc_feed_pa": {
+"__f__": "600000.0"
+},
+"pe_pa": {
+"__f__": "895.7074451539537"
+},
+"pe_pc": {
+"__f__": "0.0014928457419232561"
+},
+"plumbing_mass_kg": {
+"__f__": "0.0"
+},
+"plumbing_results": [],
+"plumbing_total_length_m": {
+"__f__": "0.0"
+},
+"profile_meta": {
+"convergent_length_m": {
+"__f__": "0.08962953819323141"
+},
+"divergent_length_m": {
+"__f__": "0.9227465196999589"
+},
+"theta_e_deg": {
+"__f__": "10.75"
+},
+"theta_n_deg": {
+"__f__": "40.25"
+},
+"total_length_m": {
+"__f__": "1.2373100434002056"
+}
+},
+"profile_rs_m": {
+"__nd__": [
+{
+"__f__": "0.10992737376778562"
+},
+{
+"__f__": "0.10992737376778562"
+},
+{
+"__f__": "0.062382564180530516"
+},
+{
+"__f__": "0.06111889218765406"
+},
+{
+"__f__": "0.060071598656592715"
+},
+{
+"__f__": "0.059248654123490986"
+},
+{
+"__f__": "0.05865632169315328"
+},
+{
+"__f__": "0.058299109373034556"
+},
+{
+"__f__": "0.058179735764581623"
+},
+{
+"__f__": "0.05833189311548198"
+},
+{
+"__f__": "0.0587862817292994"
+},
+{
+"__f__": "0.05953667981720332"
+},
+{
+"__f__": "0.06057281243325577"
+},
+{
+"__f__": "0.06188049216575342"
+},
+{
+"__f__": "0.06344181340063332"
+},
+{
+"__f__": "0.07891912985582121"
+},
+{
+"__f__": "0.09414794598161667"
+},
+{
+"__f__": "0.10912826177801979"
+},
+{
+"__f__": "0.12386007724503048"
+},
+{
+"__f__": "0.1383433923826488"
+},
+{
+"__f__": "0.15257820719087478"
+},
+{
+"__f__": "0.16656452166970828"
+},
+{
+"__f__": "0.18030233581914945"
+},
+{
+"__f__": "0.1937916496391982"
+},
+{
+"__f__": "0.2070324631298546"
+},
+{
+"__f__": "0.22002477629111855"
+},
+{
+"__f__": "0.2327685891229902"
+},
+{
+"__f__": "0.24526390162546938"
+},
+{
+"__f__": "0.25751071379855617"
+},
+{
+"__f__": "0.2695090256422506"
+},
+{
+"__f__": "0.28125883715655264"
+},
+{
+"__f__": "0.29276014834146225"
+},
+{
+"__f__": "0.30401295919697957"
+},
+{
+"__f__": "0.31501726972310445"
+},
+{
+"__f__": "0.32577307991983695"
+},
+{
+"__f__": "0.336280389787177"
+},
+{
+"__f__": "0.34653919932512467"
+},
+{
+"__f__": "0.35654950853368006"
+},
+{
+"__f__": "0.3663113174128429"
+},
+{
+"__f__": "0.37582462596261346"
+},
+{
+"__f__": "0.3850894341829917"
+},
+{
+"__f__": "0.3941057420739774"
+},
+{
+"__f__": "0.40287354963557076"
+},
+{
+"__f__": "0.4113928568677717"
+}
+]
+},
+"profile_xs_m": {
+"__nd__": [
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.22493398550701518"
+},
+{
+"__f__": "0.2988783545164311"
+},
+{
+"__f__": "0.3013058458291008"
+},
+{
+"__f__": "0.3038342360755747"
+},
+{
+"__f__": "0.3064442826793934"
+},
+{
+"__f__": "0.3091161216099125"
+},
+{
+"__f__": "0.31182941855957036"
+},
+{
+"__f__": "0.3145635237002466"
+},
+{
+"__f__": "0.3171597013974899"
+},
+{
+"__f__": "0.31972033051603277"
+},
+{
+"__f__": "0.32221034923177905"
+},
+{
+"__f__": "0.32459566256487576"
+},
+{
+"__f__": "0.32684360923068245"
+},
+{
+"__f__": "0.32892340885963944"
+},
+{
+"__f__": "0.34779735684541674"
+},
+{
+"__f__": "0.3675605711931472"
+},
+{
+"__f__": "0.3882130519028311"
+},
+{
+"__f__": "0.40975479897446804"
+},
+{
+"__f__": "0.4321858124080585"
+},
+{
+"__f__": "0.4555060922036021"
+},
+{
+"__f__": "0.4797156383610989"
+},
+{
+"__f__": "0.504814450880549"
+},
+{
+"__f__": "0.5308025297619525"
+},
+{
+"__f__": "0.5576798750053091"
+},
+{
+"__f__": "0.5854464866106189"
+},
+{
+"__f__": "0.6141023645778823"
+},
+{
+"__f__": "0.6436475089070985"
+},
+{
+"__f__": "0.6740819195982682"
+},
+{
+"__f__": "0.7054055966513912"
+},
+{
+"__f__": "0.7376185400664674"
+},
+{
+"__f__": "0.7707207498434969"
+},
+{
+"__f__": "0.8047122259824797"
+},
+{
+"__f__": "0.8395929684834158"
+},
+{
+"__f__": "0.8753629773463052"
+},
+{
+"__f__": "0.9120222525711477"
+},
+{
+"__f__": "0.9495707941579433"
+},
+{
+"__f__": "0.9880086021066925"
+},
+{
+"__f__": "1.0273356764173949"
+},
+{
+"__f__": "1.0675520170900503"
+},
+{
+"__f__": "1.1086576241246595"
+},
+{
+"__f__": "1.1506524975212216"
+},
+{
+"__f__": "1.193536637279737"
+},
+{
+"__f__": "1.2373100434002056"
+}
+]
+},
+"rated_burn_time_s": {
+"__f__": "256.7231891035229"
+},
+"required_time_s": {
+"__f__": "9.812787081152778e-06"
+},
+"residence_time_s": {
+"__f__": "0.0005749138784016568"
+},
+"separated_at_100pct_sl": true,
+"separation_onset_throttle": null,
+"stability": {
+"advisory": null,
+"aid_mass_kg": {
+"__f__": "0.0"
+},
+"baffle_compartments": 5,
+"baffles": false,
+"cavities": false,
+"cavity_count": 12,
+"effective_dp_over_pc": {
+"__f__": "0.2"
+},
+"injector_stiffness": "nominal",
+"modes": {
+"long_1l_hz": {
+"__f__": "2760.666577854988"
+},
+"rad_1r_hz": {
+"__f__": "6891.646838904023"
+},
+"sound_speed_ms": {
+"__f__": "1241.9354720258702"
+},
+"tang_1t_hz": {
+"__f__": "3332.845602420798"
+}
+},
+"resolution": null,
+"resolved": true
+},
+"stability_aid_mass_kg": {
+"__f__": "0.0"
+},
+"stay_time_s": {
+"__f__": "0.001239656043421088"
+},
+"t_local_at_transition_k": {
+"__f__": "2225.984873542203"
+},
+"tc_k": {
+"__f__": "3234.25"
+},
+"theta_e_deg": {
+"__f__": "10.75"
+},
+"theta_n_deg": {
+"__f__": "40.25"
+},
+"throttle_sweep": [
+{
+"dp_inj_over_pc": {
+"__f__": "0.21800591238914277"
+},
+"dp_inj_pa": {
+"__f__": "13080.354743348566"
+},
+"pc_pa": {
+"__f__": "60000.0"
+},
+"pe_over_pa": {
+"__f__": "0.000883994517793194"
+},
+"pe_pa": {
+"__f__": "89.57074451539538"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.1"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.2616070948669713"
+},
+"dp_inj_pa": {
+"__f__": "18835.710830421933"
+},
+"pc_pa": {
+"__f__": "72000.0"
+},
+"pe_over_pa": {
+"__f__": "0.0010607934213518327"
+},
+"pe_pa": {
+"__f__": "107.48489341847444"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.12000000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.30520827734479977"
+},
+"dp_inj_pa": {
+"__f__": "25637.495296963185"
+},
+"pc_pa": {
+"__f__": "84000.00000000001"
+},
+"pe_over_pa": {
+"__f__": "0.0012375923249104716"
+},
+"pe_pa": {
+"__f__": "125.39904232155354"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.14"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.3488094598226284"
+},
+"dp_inj_pa": {
+"__f__": "33485.70814297233"
+},
+"pc_pa": {
+"__f__": "96000.00000000001"
+},
+"pe_over_pa": {
+"__f__": "0.0014143912284691105"
+},
+"pe_pa": {
+"__f__": "143.31319122463262"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.16000000000000003"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.3924106423004569"
+},
+"dp_inj_pa": {
+"__f__": "42380.34936844935"
+},
+"pc_pa": {
+"__f__": "108000.00000000001"
+},
+"pe_over_pa": {
+"__f__": "0.0015911901320277493"
+},
+"pe_pa": {
+"__f__": "161.2273401277117"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.18000000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.43601182477828554"
+},
+"dp_inj_pa": {
+"__f__": "52321.41897339426"
+},
+"pc_pa": {
+"__f__": "120000.0"
+},
+"pe_over_pa": {
+"__f__": "0.001767989035586388"
+},
+"pe_pa": {
+"__f__": "179.14148903079075"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.2"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.47961300725611394"
+},
+"dp_inj_pa": {
+"__f__": "63308.91695780706"
+},
+"pc_pa": {
+"__f__": "132000.00000000003"
+},
+"pe_over_pa": {
+"__f__": "0.001944787939145027"
+},
+"pe_pa": {
+"__f__": "197.05563793386986"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.22000000000000003"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.5232141897339426"
+},
+"dp_inj_pa": {
+"__f__": "75342.84332168773"
+},
+"pc_pa": {
+"__f__": "144000.0"
+},
+"pe_over_pa": {
+"__f__": "0.0021215868427036655"
+},
+"pe_pa": {
+"__f__": "214.96978683694888"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.24000000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.5668153722117711"
+},
+"dp_inj_pa": {
+"__f__": "88423.1980650363"
+},
+"pc_pa": {
+"__f__": "156000.0"
+},
+"pe_over_pa": {
+"__f__": "0.002298385746262304"
+},
+"pe_pa": {
+"__f__": "232.88393574002797"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.26"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.6104165546895995"
+},
+"dp_inj_pa": {
+"__f__": "102549.98118785274"
+},
+"pc_pa": {
+"__f__": "168000.00000000003"
+},
+"pe_over_pa": {
+"__f__": "0.002475184649820943"
+},
+"pe_pa": {
+"__f__": "250.79808464310707"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.28"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.6540177371674282"
+},
+"dp_inj_pa": {
+"__f__": "117723.19269013709"
+},
+"pc_pa": {
+"__f__": "180000.00000000003"
+},
+"pe_over_pa": {
+"__f__": "0.0026519835533795823"
+},
+"pe_pa": {
+"__f__": "268.71223354618616"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.30000000000000004"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.6976189196452568"
+},
+"dp_inj_pa": {
+"__f__": "133942.83257188933"
+},
+"pc_pa": {
+"__f__": "192000.00000000003"
+},
+"pe_over_pa": {
+"__f__": "0.002828782456938221"
+},
+"pe_pa": {
+"__f__": "286.62638244926524"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.32000000000000006"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.7412201021230853"
+},
+"dp_inj_pa": {
+"__f__": "151208.90083310945"
+},
+"pc_pa": {
+"__f__": "204000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.0030055813604968596"
+},
+"pe_pa": {
+"__f__": "304.5405313523443"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.3400000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.7848212846009139"
+},
+"dp_inj_pa": {
+"__f__": "169521.39747379746"
+},
+"pc_pa": {
+"__f__": "216000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.0031823802640554987"
+},
+"pe_pa": {
+"__f__": "322.4546802554234"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.3600000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.8284224670787423"
+},
+"dp_inj_pa": {
+"__f__": "188880.32249395325"
+},
+"pc_pa": {
+"__f__": "228000.0"
+},
+"pe_over_pa": {
+"__f__": "0.003359179167614137"
+},
+"pe_pa": {
+"__f__": "340.3688291585024"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.38"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.8720236495565711"
+},
+"dp_inj_pa": {
+"__f__": "209285.67589357705"
+},
+"pc_pa": {
+"__f__": "240000.0"
+},
+"pe_over_pa": {
+"__f__": "0.003535978071172776"
+},
+"pe_pa": {
+"__f__": "358.2829780615815"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.4"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.9156248320343994"
+},
+"dp_inj_pa": {
+"__f__": "230737.45767266868"
+},
+"pc_pa": {
+"__f__": "252000.00000000003"
+},
+"pe_over_pa": {
+"__f__": "0.0037127769747314146"
+},
+"pe_pa": {
+"__f__": "376.1971269646606"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.42000000000000004"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "0.9592260145122279"
+},
+"dp_inj_pa": {
+"__f__": "253235.66783122823"
+},
+"pc_pa": {
+"__f__": "264000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.003889575878290054"
+},
+"pe_pa": {
+"__f__": "394.1112758677397"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.44000000000000006"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.0028271969900564"
+},
+"dp_inj_pa": {
+"__f__": "276780.30636925565"
+},
+"pc_pa": {
+"__f__": "276000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.004066374781848693"
+},
+"pe_pa": {
+"__f__": "412.0254247708188"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.4600000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.0464283794678853"
+},
+"dp_inj_pa": {
+"__f__": "301371.373286751"
+},
+"pc_pa": {
+"__f__": "288000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.004243173685407332"
+},
+"pe_pa": {
+"__f__": "429.9395736738979"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.4800000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.0900295619457137"
+},
+"dp_inj_pa": {
+"__f__": "327008.8685837142"
+},
+"pc_pa": {
+"__f__": "300000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.00441997258896597"
+},
+"pe_pa": {
+"__f__": "447.8537225769769"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.5000000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.1336307444235425"
+},
+"dp_inj_pa": {
+"__f__": "353692.7922601453"
+},
+"pc_pa": {
+"__f__": "312000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.004596771492524609"
+},
+"pe_pa": {
+"__f__": "465.767871480056"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.5200000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.1772319269013707"
+},
+"dp_inj_pa": {
+"__f__": "381423.1443160441"
+},
+"pc_pa": {
+"__f__": "324000.0"
+},
+"pe_over_pa": {
+"__f__": "0.004773570396083247"
+},
+"pe_pa": {
+"__f__": "483.682020383135"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.54"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.220833109379199"
+},
+"dp_inj_pa": {
+"__f__": "410199.92475141096"
+},
+"pc_pa": {
+"__f__": "336000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.004950369299641886"
+},
+"pe_pa": {
+"__f__": "501.59616928621415"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.56"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.264434291857028"
+},
+"dp_inj_pa": {
+"__f__": "440023.1335662458"
+},
+"pc_pa": {
+"__f__": "348000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.0051271682032005255"
+},
+"pe_pa": {
+"__f__": "519.5103181892932"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.5800000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.3080354743348563"
+},
+"dp_inj_pa": {
+"__f__": "470892.77076054836"
+},
+"pc_pa": {
+"__f__": "360000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.005303967106759165"
+},
+"pe_pa": {
+"__f__": "537.4244670923723"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.6000000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.351636656812685"
+},
+"dp_inj_pa": {
+"__f__": "502808.8363343189"
+},
+"pc_pa": {
+"__f__": "372000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.005480766010317803"
+},
+"pe_pa": {
+"__f__": "555.3386159954514"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.6200000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.3952378392905136"
+},
+"dp_inj_pa": {
+"__f__": "535771.3302875573"
+},
+"pc_pa": {
+"__f__": "384000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.005657564913876442"
+},
+"pe_pa": {
+"__f__": "573.2527648985305"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.6400000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.4388390217683422"
+},
+"dp_inj_pa": {
+"__f__": "569780.2526202635"
+},
+"pc_pa": {
+"__f__": "396000.0"
+},
+"pe_over_pa": {
+"__f__": "0.005834363817435079"
+},
+"pe_pa": {
+"__f__": "591.1669138016094"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.66"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.4824402042461706"
+},
+"dp_inj_pa": {
+"__f__": "604835.6033324377"
+},
+"pc_pa": {
+"__f__": "408000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.006011162720993719"
+},
+"pe_pa": {
+"__f__": "609.0810627046886"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.68"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.526041386723999"
+},
+"dp_inj_pa": {
+"__f__": "640937.3824240797"
+},
+"pc_pa": {
+"__f__": "420000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.006187961624552358"
+},
+"pe_pa": {
+"__f__": "626.9952116077677"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7000000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.5696425692018277"
+},
+"dp_inj_pa": {
+"__f__": "678085.5898951896"
+},
+"pc_pa": {
+"__f__": "432000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.006364760528110997"
+},
+"pe_pa": {
+"__f__": "644.9093605108468"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7200000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.6132437516796565"
+},
+"dp_inj_pa": {
+"__f__": "716280.2257457676"
+},
+"pc_pa": {
+"__f__": "444000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.006541559431669635"
+},
+"pe_pa": {
+"__f__": "662.8235094139258"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7400000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.656844934157485"
+},
+"dp_inj_pa": {
+"__f__": "755521.2899758132"
+},
+"pc_pa": {
+"__f__": "456000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.006718358335228274"
+},
+"pe_pa": {
+"__f__": "680.7376583170048"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7600000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.7004461166353135"
+},
+"dp_inj_pa": {
+"__f__": "795808.7825853268"
+},
+"pc_pa": {
+"__f__": "468000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.006895157238786913"
+},
+"pe_pa": {
+"__f__": "698.6518072200839"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.7800000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.744047299113142"
+},
+"dp_inj_pa": {
+"__f__": "837142.7035743083"
+},
+"pc_pa": {
+"__f__": "480000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.007071956142345553"
+},
+"pe_pa": {
+"__f__": "716.5659561231631"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8000000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.7876484815909706"
+},
+"dp_inj_pa": {
+"__f__": "879523.0529427577"
+},
+"pc_pa": {
+"__f__": "492000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.007248755045904192"
+},
+"pe_pa": {
+"__f__": "734.4801050262422"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8200000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.8312496640687987"
+},
+"dp_inj_pa": {
+"__f__": "922949.8306906747"
+},
+"pc_pa": {
+"__f__": "504000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.007425553949462829"
+},
+"pe_pa": {
+"__f__": "752.3942539293212"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8400000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.8748508465466274"
+},
+"dp_inj_pa": {
+"__f__": "967423.0368180599"
+},
+"pc_pa": {
+"__f__": "516000.00000000006"
+},
+"pe_over_pa": {
+"__f__": "0.007602352853021468"
+},
+"pe_pa": {
+"__f__": "770.3084028324002"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8600000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.9184520290244558"
+},
+"dp_inj_pa": {
+"__f__": "1012942.6713249129"
+},
+"pc_pa": {
+"__f__": "528000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.007779151756580108"
+},
+"pe_pa": {
+"__f__": "788.2225517354794"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.8800000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "1.9620532115022846"
+},
+"dp_inj_pa": {
+"__f__": "1059508.734211234"
+},
+"pc_pa": {
+"__f__": "540000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.007955950660138747"
+},
+"pe_pa": {
+"__f__": "806.1367006385585"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9000000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "2.005654393980113"
+},
+"dp_inj_pa": {
+"__f__": "1107121.2254770226"
+},
+"pc_pa": {
+"__f__": "552000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.008132749563697386"
+},
+"pe_pa": {
+"__f__": "824.0508495416376"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9200000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "2.049255576457942"
+},
+"dp_inj_pa": {
+"__f__": "1155780.1451222794"
+},
+"pc_pa": {
+"__f__": "564000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.008309548467256024"
+},
+"pe_pa": {
+"__f__": "841.9649984447167"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9400000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "2.0928567589357705"
+},
+"dp_inj_pa": {
+"__f__": "1205485.493147004"
+},
+"pc_pa": {
+"__f__": "576000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.008486347370814664"
+},
+"pe_pa": {
+"__f__": "859.8791473477958"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9600000000000002"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "2.1364579414135987"
+},
+"dp_inj_pa": {
+"__f__": "1256237.2695511961"
+},
+"pc_pa": {
+"__f__": "588000.0"
+},
+"pe_over_pa": {
+"__f__": "0.0086631462743733"
+},
+"pe_pa": {
+"__f__": "877.7932962508746"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "0.9800000000000001"
+}
+},
+{
+"dp_inj_over_pc": {
+"__f__": "2.1800591238914273"
+},
+"dp_inj_pa": {
+"__f__": "1308035.4743348567"
+},
+"pc_pa": {
+"__f__": "600000.0000000001"
+},
+"pe_over_pa": {
+"__f__": "0.00883994517793194"
+},
+"pe_pa": {
+"__f__": "895.7074451539538"
+},
+"separated_sl": true,
+"throttle": {
+"__f__": "1.0000000000000002"
+}
+}
+],
+"thrust_sl_n": {
+"__f__": "39.52501320830402"
+},
+"thrust_vac_floor_n": {
+"__f__": "1200.0"
+},
+"thrust_vac_n": {
+"__f__": "12000.0"
+},
+"turbopump_ports": null,
+"turbopump_sizing": null,
+"warnings": [
+"Chamber cooling method 'ablative' is not physically possible on Stainless Steel (304/316) (it can only be built for: regenerative, dump, radiative, uncooled). BLOCKED - using its own 'regenerative' cooling instead.",
+"No coolant property data for Aerozine-50/NTO's fuel - the regen jacket is solved with generic kerosene-like fallback properties (cp 2100 J/kg-K); treat its coolant rise, wall temperatures and jacket dP as rough.",
+"Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.009) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage. sl Isp/thrust are nominal placeholders, not physical."
+]
+}

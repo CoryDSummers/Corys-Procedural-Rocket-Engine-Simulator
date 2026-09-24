@@ -340,6 +340,22 @@ not the construction concept or materials, which `[Ch12-Materials]` now covers.
 (need MoSi2 coating on Mo for emissivity + oxidation); Ti alloys and Haynes 25 to 2600 °R.
 Iridium coating on rhenium walls for oxidation resistance `[Sutton §8.2 p.287]`.
 
+**H2 coolant-side enhancement built into the SSME design** `[Wieseneck-J2 p.24-25]`
+(2026-09-23 re-read): wall roughness raised H2 h_c ~1.45-1.55x at 200 µin (5.1 µm; three
+mass-velocity curves), and passage curvature from ~1.0 (10° turn) to ~1.9 (80-90° turn);
+combined "more than doubled" in high-flux regions and "incorporated in the SSME design".
+The same page set gives the generic channel-wall envelope for NARloy near 3000 psi: hot
+wall ~0.01 in (stress minimum) to ~0.04 in (conduction maximum) `[p.17, read off chart]`,
+and a practical coolant dP limit of ~0.1·Pc `[p.18-19]`. **No SSME or J-2 channel
+count / dimension / flow split appears anywhere in the document**; nor in `[SECA-HT]`,
+`[SP-8087]`, `[Sutton]`, `[Huzel]` (its A-1/A-2 are textbook examples, not hardware),
+`[J2X-Overview]`, `[AEDC-J2S]`, `[ChannelWall-IAC19]` or `[Merkle-RegenCFD]` (re-read the
+same day). Cited real passage data found: J-2S 180 down / 360 up tubes `[AEDC-J2S]`; F-1
+Inconel-X 0.018 in tube wall, 2-pass `[SP-8087 Table I/III]`; J-2 and RL10 1½-pass CRES 347
+`[SP-8087 Table I]`; LE-7 288 channels × 0.05 in, 540 psi jacket dP; RS-27 292 tubes ×
+0.45 in, 100 psi; RL10B-2 253 psi `[Sutton Table 8-1 p.273]`; generic throat coolant
+velocity 6-24 m/s `[Sutton §8.3 p.292]`.
+
 **Real heat-flux anchors, J-2-class vs. SSME design point** `[Wieseneck-J2 p.6, 12]`: current
 (~1970) O2/H2 engines (J-2, J-2S, M-1) run **17-35 Btu/in²·sec**; the Space Shuttle Main
 Engine design point is **72 Btu/in²·sec at 3000 psia Pc** ("four times as high" as J-2) —
@@ -540,6 +556,13 @@ near-injection effectiveness. Relevant context (not a portable number) for the s
   removal capacity. A minimal real model would (a) use recovery factor `r ≈ 0.90` instead of
   1.0 (the tool currently assumes `T_aw ≈ Tc`, which is ~10 % pessimistic), and (b) compute
   `h_g` from Bartz at the throat and scale by `(At/A)^0.9` along the contour.
+  **CORRECTION (2026-09-23 cooling audit):** (a) was implemented as `T_aw = 0.9·Tc`, which
+  misreads the recovery factor - it applies to the DYNAMIC part only,
+  `T_aw = T_s + r (T0 − T_s)`, i.e. ≈ T0 in the chamber and ≈ 0.99·T0 at the throat (the
+  "~10 % pessimistic" remark applies to a high-Mach station, not the throat). engine_designer
+  now uses the per-station form with `r = Pr^(1/3)`, the full Bartz σ, and chemical-
+  equilibrium transport properties; with those, raw Bartz meets `[Wieseneck-J2]`'s J-2 and
+  SSME throat fluxes with no calibration (engine_designer/COOLING_AUDIT.md).
 - **`materials.py` `BARTZ_AREA_RATIO_EXPONENT = 0.9`** is not an approximation — it is the
   literal `(At/A)^0.9` term in `[Huzel eq. 4-13]`. ASSUMPTIONS.md item #12 can note "the 0.9
   exponent is the exact Bartz area-ratio term (Huzel eq. 4-13); only the `WALL_TEMP_DAMPING

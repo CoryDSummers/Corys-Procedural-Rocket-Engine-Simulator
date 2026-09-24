@@ -214,3 +214,27 @@ combustion or `[KBKhA]`'s real RD-0110/RD-0124 tables for GG vs. staged combusti
   reconstructing a garbled table.
 - Figures are plots; OCR captures captions/axis labels only, not plotted values (same
   limitation as `[Marquardt-5981]` and other scanned reports in this reference set).
+
+## Regen passage geometry data (2026-09-23 re-read)
+
+Keyword search (tubes, jacket, coolant, cooling, PFJ/TFJ instrument tags) of all 118 leaves.
+The only passage geometry remains `[AEDC-J2S §2.1.1 p.1-2]`: fuel flows "downward from the
+fuel manifold through **180 tubes** and then upward through **360 tubes** to the injector",
+plus film cooling inside the chamber (J-2S: 18.6 in / 0.472 m chamber dia, 12.192 in /
+0.3097 m throat dia, eps 39.62). No inlet eps for the fuel manifold is stated.
+
+Additional hardware facts found:
+- **Film-coolant circuit is separately metered** `[AEDC-J2S Table II p.73]`: film coolant
+  orifice **0.581 in (14.8 mm)** dia; film coolant venturi **1.027 in (26.1 mm) inlet / 0.744
+  in (18.9 mm) throat, Cd = 0.97**. No film flow rate or fraction stated.
+- **Thrust-chamber bypass**: a Thrust Chamber Bypass Valve/Duct/Manifold routes fuel around
+  the tube bundle when the tapoff valve is closed (idle mode) (Table I, Fig. 5); "Fuel
+  Bypass" orifice 1.750 -> 1.500 in (44.5 -> 38.1 mm) `[AEDC-J2S Table II p.73]`. Main-stage
+  bypass flow fraction not stated.
+- Instrumented but only plotted (idle-mode transients, not tabulated): fuel jacket manifold
+  inlet pressure (PFJMI), fuel injection P/T (PFJ/TFJ), throat external skin temperatures.
+- Hairline cracks in "several of the thrust chamber tubes" in the combustion zone after test
+  07A; earlier tube damage repaired with leaks remaining `[AEDC-J2S §4.3 p.16]`.
+
+**NOT in this report**: tube diameter, wall thickness, tube material, land/braze width,
+jacket coolant flow or fraction, main-stage jacket inlet/outlet T or P, coolant velocity.

@@ -180,3 +180,15 @@ sizing rule anywhere in the text.
 - Single-team (NASA MSFC) authorship, IAC conference paper (not journal-peer-reviewed at the
   same bar as an AIAA journal article) — treat as credible NASA-program-status reporting, not
   an independently-validated design-criteria document.
+
+## Regen passage geometry data (2026-09-23 re-read)
+
+Full-text keyword search of all 16 leaves (channel width/height/depth, land, rib, hotwall
+thickness, aspect, coolant, in./mm, RS-25/SSME/J-2X/RL10/RS-68/Vulcain). **Null result**: the
+paper gives no channel count, width, depth, land width, hot-wall thickness, coolant flow,
+coolant inlet/outlet T or P, or coolant velocity for either its subscale test nozzles or any
+flight engine, and names no flight engine's channel-wall nozzle. Only qualitative geometry:
+Fig. 1 labels (inner liner / hotwall / coolant channel / lands (ribs) / closeout-jacket /
+coldwall) `[ChannelWall-IAC19 p.2]`; WJM early process gave tapered sidewalls (narrower at the
+hotwall), later squared `[p.6]`. The existing hot-wall temperatures (~1,350 °F / ~1,300 °F,
+Fig. 16 p.10) remain the only numbers here relevant to the coolant-side model.

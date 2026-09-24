@@ -246,6 +246,34 @@ def prandtl(gamma):
     return 4.0 * gamma / (9.0 * gamma - 5.0)
 
 
+def heat_transfer_gas_properties(pair, mr, pc_pa):
+    """Combustion-gas properties for the WALL HEAT TRANSFER side (Bartz h_g,
+    recovery temperature) - 2026-09-23 cooling audit, G1/G2.
+
+    Bipropellants read the generated chemical-equilibrium tables
+    (physics/thermo_tables.py, from tools/property_tables/): chamber Tc,
+    FROZEN cp / gamma, mixture-averaged viscosity and frozen Prandtl number at
+    the actual (MR, Pc). The PERFORMANCE path (combustion_state, whose
+    (Tc, gamma, M) set Isp via combustion.DEFAULT_ETA_CSTAR calibrated against
+    real engines) is deliberately left alone: its LOX/LH2 gamma/M columns are
+    effective performance values, not physical gas properties - which is
+    exactly why feeding them into cp = g/(g-1) R/M, the Bartz viscosity fit and
+    Eucken Pr made LOX/LH2 heat transfer wrong and swing ~1.7x across MR.
+    Monopropellants (no table) keep the old derived values, flagged
+    source="legacy". Returns dict(tc_k, gamma, cp_j_kgk, mu_pa_s, prandtl,
+    source, mr_clamped)."""
+    from . import thermo_tables
+    st = thermo_tables.gas_state(pair, mr, pc_pa)
+    if st is None:
+        tc, g, m = combustion_state(pair, mr)
+        return dict(tc_k=tc, gamma=g, cp_j_kgk=mixture_cp_j_kgk(g, m),
+                    mu_pa_s=gas_viscosity_pa_s(m, tc), prandtl=prandtl(g),
+                    source="legacy (no equilibrium table)", mr_clamped=False)
+    return dict(tc_k=st["tc_k"], gamma=st["gamma_frozen"], cp_j_kgk=st["cp_frozen_j_kgk"],
+                mu_pa_s=st["mu_pa_s"], prandtl=st["pr_frozen"],
+                source="chemical-equilibrium table", mr_clamped=st["mr_clamped"])
+
+
 # --- finite-contraction-ratio chamber flow (C1) ------------------------------
 # The chamber is NOT a true stagnation reservoir: the gas has to accelerate from
 # ~0 at the injector face to a finite Mach at the chamber end (nozzle entrance),
