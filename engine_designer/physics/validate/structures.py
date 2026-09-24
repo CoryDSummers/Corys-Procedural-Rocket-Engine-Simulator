@@ -228,7 +228,44 @@ def run_jacket_overpressure_sample_calc_check():
               f"[{'OK' if window_ok else 'FAIL'}]")
         print(f"  tool-sized t {t_sized:.4f} in ({_limit}) vs Huzel {t_in:.3f} in, "
               f"{sized_err_pct:.0f}% (tol {sized_t_tol_pct:.0f}%)   [{'OK' if sized_ok else 'FAIL'}]")
-        all_ok = all_ok and ok and window_ok and sized_ok
+        # What design.py's row now gates on (2026-09-24): PRIMARY hoop vs
+        # allowable/SF; the thermal-restraint term is secondary (fatigue).
+        # Huzel's real tube carries its hoop load with margin, and his own
+        # elastic rule (combined <= F_ty, no SF) holds for his sample.
+        primary_ok = hoop <= f_ty_psi / mass_model.SAFETY_FACTOR
+        huzel_rule_ok = combined <= f_ty_psi
+        print(f"  primary hoop {hoop:,.0f} psi <= F_ty/SF {f_ty_psi / mass_model.SAFETY_FACTOR:,.0f} psi   "
+              f"[{'OK' if primary_ok else 'FAIL'}];  Huzel's elastic rule combined <= F_ty "
+              f"{f_ty_psi:,.0f} psi   [{'OK' if huzel_rule_ok else 'FAIL'}]")
+        all_ok = all_ok and ok and window_ok and sized_ok and primary_ok and huzel_rule_ok
+
+    # Real tube-wall engines from the validation corpus must NOT trip the
+    # structural row (convention #1: every one of them did while the row held
+    # hoop + thermal-restraint to allowable/SF - F-1 423 vs 133 MPa, J-2 990 vs
+    # 67, RL10 761 vs 67). A coax_shell J-2 (full-radius hoop lever) must still
+    # trip it, so the row is not simply disabled.
+    import os
+    from ...gui.project_io import load_design
+    eng_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), "validation_engines", "engines")
+    print()
+    for name in ("F-1", "J-2", "RL10A-3-3"):
+        d = load_design(os.path.join(eng_dir, f"{name}.json"))
+        r = d.compute()
+        eng_ok = bool(r["jacket_overpressure_ok"]) and d.wall_construction == "tube_wall"
+        print(f"  real {name} (tube_wall): structural row passes, governing station "
+              f"{r['jacket_overpressure_worst_station']}: hoop "
+              f"~{r['jacket_hoop_stress_pa']/1e6:.0f} MPa, thermal-restraint "
+              f"~{r['jacket_thermal_stress_pa']/1e6:.0f} MPa (secondary)   "
+              f"[{'OK' if eng_ok else 'FAIL'}]")
+        all_ok = all_ok and eng_ok
+    d = load_design(os.path.join(eng_dir, "J-2.json"))
+    d.wall_construction = "coax_shell"
+    r = d.compute()
+    coax_trips = not bool(r["jacket_overpressure_ok"])
+    print(f"  J-2 rebuilt as coax_shell: hoop ~{r['jacket_hoop_stress_pa']/1e6:.0f} MPa "
+          f"trips the row   [{'OK' if coax_trips else 'FAIL'}]")
+    all_ok = all_ok and coax_trips
 
     print()
     print("ALL JACKET-OVERPRESSURE SAMPLE-CALC SPOT CHECKS OK" if all_ok else

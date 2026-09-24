@@ -403,7 +403,7 @@
 },
 {
 "category": "cooling",
-"detail": "OK - stress stays within margin at the evaluated stations",
+"detail": "OK - primary hoop stress ~55 MPa (~14.6 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~73 MPa allowable at the end of active cooling (area ratio ~18.0) (NARloy-Z Copper Alloy (Cu-Ag-Zr), SF 1.5, wall ~1.50 mm). The thermal-restraint stress (~28 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load.",
 "name": "Jacket overpressure vs. channel-wall structural margin",
 "passed": true
 },

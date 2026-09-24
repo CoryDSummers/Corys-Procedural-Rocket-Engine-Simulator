@@ -325,9 +325,9 @@
 },
 {
 "category": "cooling",
-"detail": "At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~761 MPa (hoop ~37 MPa from a ~9.9 MPa net jacket-vs-gas differential + thermal-restraint ~724 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
+"detail": "OK - primary hoop stress ~43 MPa (~12.6 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~67 MPa allowable at the end of active cooling (area ratio ~61.0) (Stainless Steel (304/316), SF 1.5, wall ~0.48 mm). The thermal-restraint stress (~724 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Stainless Steel (304/316)'s ~100 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row.",
 "name": "Jacket overpressure vs. channel-wall structural margin",
-"passed": false
+"passed": true
 },
 {
 "category": "cooling",
@@ -3353,10 +3353,10 @@
 "__f__": "453.522853022104"
 },
 "jacket_combined_stress_pa": {
-"__f__": "761013712.085154"
+"__f__": "86039504.60255072"
 },
 "jacket_hoop_stress_pa": {
-"__f__": "36604331.323078655"
+"__f__": "43019752.30127535"
 },
 "jacket_inlet_eps_effective": null,
 "jacket_local_gas_pressure_at_worst_station_pa": {
@@ -3438,8 +3438,8 @@
 "__f__": "2.160034201644482"
 }
 },
-"jacket_overpressure_ok": false,
-"jacket_overpressure_worst_station": "throat",
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": "cooled_length_end",
 "jacket_pressure_at_worst_station_pa": {
 "__f__": "12599113.954689251"
 },
@@ -3450,7 +3450,7 @@
 "__f__": "2.6421954901557134"
 },
 "jacket_thermal_stress_pa": {
-"__f__": "724409380.7620754"
+"__f__": "43019752.30127536"
 },
 "jacket_worst_station_eps": {
 "__f__": "61.0"
@@ -4905,7 +4905,6 @@
 "Combustion-gas stay time 1.0 ms is outside the typical 1-40 ms band [Sutton 8.10] - too short, combustion may not complete.",
 "Chamber cylindrical L/D 3.68 is long/narrow (non-isentropic pressure loss, injector-hole crowding) [claude_lit topic 04].",
 "Resultant injection beta angle +4.1 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negative beta (~0 or below). Adjust the impingement angle or element momentum ratio.",
-"At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~761 MPa (hoop ~37 MPa from a ~9.9 MPa net jacket-vs-gas differential + thermal-restraint ~724 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
 "A single cooling tube must taper 7.8:1 along its run - past SP-8087's 6:1 limit for a swaged (3:1) + expanded (2:1) tube. Add a tube bifurcation (Tube split area ratio) so the tube count doubles downstream.",
 "[turbopump] required head/tip-speed combination implies wanting ~12 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).",

@@ -190,6 +190,26 @@ def min_combined_stress_thickness_m(net_dp_pa, radius_m, thermal_per_m_pa, t_min
     return t_star, "optimum"
 
 
+def regen_hot_wall_thickness_m(net_dp_pa, radius_m, thermal_per_m_pa, allowable_stress_pa,
+                               t_min_m, t_max_m):
+    """Regen hot-gas wall thickness: the min-combined-stress gauge t*
+    (min_combined_stress_thickness_m - reproduces Huzel A-1's real tube gauge,
+    see validate.py), but never thinner than the gauge that carries the
+    PRIMARY hoop load, t_hoop = SAFETY_FACTOR*|dP|*r/allowable. The thermal-
+    restraint term is a secondary (self-limiting, strain-driven) stress whose
+    consequence is low-cycle fatigue, not burst, so a hoop-limited wall is
+    thickened even though that raises the thermal term (2026-09-24).
+    Returns (t_m, limit): the min_combined_stress_thickness_m tags, or "hoop"
+    when t_hoop governs."""
+    t_m, limit = min_combined_stress_thickness_m(
+        net_dp_pa, radius_m, thermal_per_m_pa, t_min_m, t_max_m)
+    if allowable_stress_pa > 0 and limit != "cap":
+        t_hoop = SAFETY_FACTOR * abs(net_dp_pa) * radius_m / allowable_stress_pa
+        if t_hoop > t_m:
+            return (t_max_m, "cap") if t_hoop >= t_max_m else (t_hoop, "hoop")
+    return t_m, limit
+
+
 def longitudinal_buckling_stress_pa(e_t_pa, e_c_pa, thickness_m, radius_m, nu=POISSON_RATIO):
     """Critical stress for longitudinal thermal INELASTIC BUCKLING of a
     regen tube's hot-gas-side "zone I" (restrained by the cooler, much more

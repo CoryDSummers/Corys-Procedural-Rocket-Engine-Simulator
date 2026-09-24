@@ -382,9 +382,9 @@
 },
 {
 "category": "cooling",
-"detail": "At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~669 MPa (hoop ~29 MPa from a ~2.7 MPa net jacket-vs-gas differential + thermal-restraint ~640 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
+"detail": "OK - primary hoop stress ~133 MPa (~14.6 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~133 MPa allowable at the end of active cooling (area ratio ~12.0) (Inconel 718 Nickel Superalloy, SF 1.5, wall ~0.52 mm). The thermal-restraint stress (~640 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Inconel 718 Nickel Superalloy's ~200 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row.",
 "name": "Jacket overpressure vs. channel-wall structural margin",
-"passed": false
+"passed": true
 },
 {
 "category": "cooling",
@@ -3780,10 +3780,10 @@
 "__f__": "312.88753907239055"
 },
 "jacket_combined_stress_pa": {
-"__f__": "668848624.8877355"
+"__f__": "291590635.0881701"
 },
 "jacket_hoop_stress_pa": {
-"__f__": "28821685.496983293"
+"__f__": "133333333.33333333"
 },
 "jacket_inlet_eps_effective": null,
 "jacket_local_gas_pressure_at_worst_station_pa": {
@@ -3931,8 +3931,8 @@
 "__f__": "4.892636253738231"
 }
 },
-"jacket_overpressure_ok": false,
-"jacket_overpressure_worst_station": "throat",
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": "cooled_length_end",
 "jacket_pressure_at_worst_station_pa": {
 "__f__": "14677816.221413106"
 },
@@ -3943,7 +3943,7 @@
 "__f__": "56.778486380525266"
 },
 "jacket_thermal_stress_pa": {
-"__f__": "640026939.3907522"
+"__f__": "158257301.7548368"
 },
 "jacket_worst_station_eps": {
 "__f__": "12.0"
@@ -5379,7 +5379,6 @@
 "The nozzle is set to 'regenerative' but part of it has no coolant: active cooling past the material transition (eps 12.0) only reaches regen_nozzle_end_eps (12.0), and a regen nozzle also needs a regen/dump chamber jacket to feed it. Those stations are solved as UNCOOLED (radiation equilibrium) - set regen_nozzle_end_eps to the exit for a full-length jacket.",
 "[nozzle extension] Stainless Steel (304/316): computed wall temp 2166 K EXCEEDS its 1100 K max service temp (Tc 1565 K, regenerative cooling). Marginal/unsuitable as designed. (hottest extension station eps 12.6, radiation equilibrium ~2166 K)",
 "Inconel 718 Nickel Superalloy: computed wall temp 1328 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerative cooling). Marginal/unsuitable as designed. Basis: coupled throat wall balance: gas h_g ~11.3 kW/m2K incl. carbon-deposit credit, T_aw ~3623 K, coolant ~36 m/s (coolant-side wall ~983 K), 0.20 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
-"Hottest wall station is in the nozzle (area ratio ~12.6, radiative): wall ~2166 K, 0.51x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
-"At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~669 MPa (hoop ~29 MPa from a ~2.7 MPa net jacket-vs-gas differential + thermal-restraint ~640 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc)."
+"Hottest wall station is in the nozzle (area ratio ~12.6, radiative): wall ~2166 K, 0.51x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling."
 ]
 }

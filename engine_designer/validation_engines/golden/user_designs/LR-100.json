@@ -331,9 +331,9 @@
 },
 {
 "category": "cooling",
-"detail": "At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~538 MPa (hoop ~17 MPa from a ~2.4 MPa net jacket-vs-gas differential + thermal-restraint ~521 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
+"detail": "OK - primary hoop stress ~66 MPa (~8.3 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~67 MPa allowable at the end of active cooling (area ratio ~14.0) (Stainless Steel (304/316), SF 1.5, wall ~0.32 mm). The thermal-restraint stress (~521 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Stainless Steel (304/316)'s ~100 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row.",
 "name": "Jacket overpressure vs. channel-wall structural margin",
-"passed": false
+"passed": true
 },
 {
 "category": "cooling",
@@ -3811,10 +3811,10 @@
 "__f__": "328.61476367910495"
 },
 "jacket_combined_stress_pa": {
-"__f__": "537502796.687625"
+"__f__": "131183275.37073565"
 },
 "jacket_hoop_stress_pa": {
-"__f__": "16867370.343011633"
+"__f__": "65591637.685367815"
 },
 "jacket_inlet_eps_effective": null,
 "jacket_local_gas_pressure_at_worst_station_pa": {
@@ -3896,8 +3896,8 @@
 "__f__": "2.9475238747484074"
 }
 },
-"jacket_overpressure_ok": false,
-"jacket_overpressure_worst_station": "throat",
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": "cooled_length_end",
 "jacket_pressure_at_worst_station_pa": {
 "__f__": "8379413.3802715475"
 },
@@ -3908,7 +3908,7 @@
 "__f__": "45.2959196110636"
 },
 "jacket_thermal_stress_pa": {
-"__f__": "520635426.3446134"
+"__f__": "65591637.68536782"
 },
 "jacket_worst_station_eps": {
 "__f__": "14.0"
@@ -4939,7 +4939,6 @@
 "Nozzle/bell cooling method 'regenerative' is not physically possible on Ablative Phenolic-Silica (it can only be built for: ablative). BLOCKED - using its own 'ablative' cooling instead.",
 "Stainless Steel (304/316): only 14% thermal margin (computed wall temp 969 K vs 1100 K max). Thin margin. Basis: coupled throat wall balance: gas h_g ~6.8 kW/m2K incl. carbon-deposit credit, T_aw ~3589 K, coolant ~36 m/s (coolant-side wall ~747 K), 0.20 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
 "Hottest wall station is in the convergent section (area ratio ~1.2, regen): wall ~988 K, 1.11x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
-"At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~538 MPa (hoop ~17 MPa from a ~2.4 MPa net jacket-vs-gas differential + thermal-restraint ~521 MPa) against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.049) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]
 }

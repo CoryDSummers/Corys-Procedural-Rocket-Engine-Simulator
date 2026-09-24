@@ -622,6 +622,17 @@ near-injection effectiveness. Relevant context (not a portable number) for the s
   `milled_channel` still has no citable formula (the closest is `[Sutton §8.3]`,
   flagged above as unread) — the current plate-bending proxy is the most defensible
   stand-in for that construction only, not the other two.
+- **How the eq. 4-27 + 4-28 sum is judged (2026-09-24)**: Huzel's Sample Calc 4-4 holds
+  the combined stress to `F_ty` *at wall temperature with no safety factor* (82 ksi A-1,
+  81 ksi A-2, p.110-113). That is an elastic design rule for his sample, not a burst
+  criterion. The thermal term is a secondary, imposed-strain stress: once the hot face
+  yields it stops growing and becomes cyclic plastic strain, a low-cycle-fatigue limit.
+  `structure_stage.py` therefore gates on the PRIMARY hoop term (eq. 4-27) vs allowable/SF
+  only and routes the thermal term to the throat fatigue row. Holding the sum to the
+  tool's max-service-temperature `allowable_stress_pa`/1.5 had failed the real F-1, J-2
+  and RL10. The primary/secondary split itself (ASME Sec. III practice) has no citation in
+  this collection yet; SP-8087 §2.1.5/§3.1.5 (structural analysis, not yet distilled) is
+  the likely source.
 - **A real longitudinal thermal-buckling check is now addable** (`[Huzel eq. 4-29]`,
   `S_c = 4·E_t·E_c·t / [(√E_t+√E_c)²·√(3(1−v²))·r]`, design rule `S_1 < 0.9·S_c`) — a
   genuinely different failure mode from the pressure-reversal check (thermal-restraint-

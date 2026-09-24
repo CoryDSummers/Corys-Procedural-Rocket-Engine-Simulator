@@ -379,9 +379,9 @@
 },
 {
 "category": "cooling",
-"detail": "At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~423 MPa (hoop ~35 MPa from a ~1.8 MPa net jacket-vs-gas differential + thermal-restraint ~388 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc).",
+"detail": "OK - primary hoop stress ~105 MPa (~8.5 MPa net jacket-vs-gas differential, Huzel eq 4-27/4-28, tube_wall) vs a ~133 MPa allowable at the end of active cooling (area ratio ~10.0) (Inconel 718 Nickel Superalloy, SF 1.5, wall ~0.57 mm). The thermal-restraint stress (~388 MPa at the throat, dT = q*t/k across the wall) is a self-limiting secondary stress, not a burst load: with the hoop load it exceeds Inconel 718 Nickel Superalloy's ~200 MPa hot yield, so the hot face yields a little each firing - expected for a regen tube wall (the real F-1/J-2/RL10 do the same in this model). Its life limit is the 'Throat thermal-fatigue cycle life' row.",
 "name": "Jacket overpressure vs. channel-wall structural margin",
-"passed": false
+"passed": true
 },
 {
 "category": "cooling",
@@ -3329,10 +3329,10 @@
 "__f__": "299.4225409153631"
 },
 "jacket_combined_stress_pa": {
-"__f__": "422958277.3939428"
+"__f__": "209462659.45595616"
 },
 "jacket_hoop_stress_pa": {
-"__f__": "35313490.0895229"
+"__f__": "104731329.72797807"
 },
 "jacket_inlet_eps_effective": null,
 "jacket_local_gas_pressure_at_worst_station_pa": {
@@ -3480,8 +3480,8 @@
 "__f__": "16.419275678919487"
 }
 },
-"jacket_overpressure_ok": false,
-"jacket_overpressure_worst_station": "throat",
+"jacket_overpressure_ok": true,
+"jacket_overpressure_worst_station": "cooled_length_end",
 "jacket_pressure_at_worst_station_pa": {
 "__f__": "8595714.433259558"
 },
@@ -3492,7 +3492,7 @@
 "__f__": "1603.6246784981158"
 },
 "jacket_thermal_stress_pa": {
-"__f__": "387644787.3044199"
+"__f__": "104731329.72797808"
 },
 "jacket_worst_station_eps": {
 "__f__": "10.0"
@@ -4944,7 +4944,6 @@
 "warnings": [
 "[nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 1430 K EXCEEDS its 1250 K max service temp (Tc 1604 K, regenerative cooling). Marginal/unsuitable as designed. (hottest extension station eps 16.0, radiation equilibrium ~1430 K)",
 "Hottest wall station is in the nozzle (area ratio ~16.0, radiative): wall ~1430 K, 0.87x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
-"First tangential mode ~658 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.",
-"At the throat, combined hoop + thermal-restraint stress (Huzel eq 4-27/4-28, tube_wall) is ~423 MPa (hoop ~35 MPa from a ~1.8 MPa net jacket-vs-gas differential + thermal-restraint ~388 MPa) against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5), with the wall at its minimum-stress thickness ~0.20 mm. This uses a real handbook stress formula (Huzel eq 4-27/4-28, tube_wall), not a proxy - worth a closer structural look. The thermal-restraint term dominates and grows with wall thickness (dT = q*t/k), so the wall is already at its ~0.2 mm minimum - consider a higher-conductivity liner (a copper alloy such as GRCop-84/NARloy-Z) or less throat heat flux (film cooling, lower Pc)."
+"First tangential mode ~658 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices."
 ]
 }
