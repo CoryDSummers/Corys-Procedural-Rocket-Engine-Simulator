@@ -139,6 +139,7 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._heat_flux_mode = False
         self._flat_shade = False
         self._xray = False
+        self._flow = False
         self._xray_opacity = preview3d_gl_core.XRAY_DEFAULT_OPACITY
         self._duct_bend_radius_mult = None  # None = use DUCT_BEND_RADIUS_TUBE_DIA_MULT
         self._last_result = None
@@ -224,6 +225,17 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         if enabled != self._xray:
             self._xray = enabled
             self._dirty = True  # layer assignment changed -> re-batch/upload
+        self._request_redraw()
+
+    def set_flow(self, enabled):
+        """Pure render-state toggle for the propellant-flow visualization
+        (physics/flow_network.py streams, built into every mesh rebuild as
+        role "flow" pieces): shows/hides the flow layer by re-batching - no
+        mesh rebuild."""
+        enabled = bool(enabled)
+        if enabled != self._flow:
+            self._flow = enabled
+            self._dirty = True
         self._request_redraw()
 
     def set_heat_flux_mode(self, enabled):
@@ -341,6 +353,16 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
             if mesh["layer"] == preview3d_gl_core.LAYER_OPAQUE:
                 self._draw_batch(mesh)
 
+        # Pass 1b - flow layer: solid, unlit (reads as emissive), depth-tested
+        # and depth-writing like the opaque pass, so the translucent pass
+        # below blends over it.
+        flow = [m for m in self._gl_meshes if m["layer"] == preview3d_gl_core.LAYER_FLOW]
+        if flow:
+            GL.glUniform1f(loc["u_flat_shade"], 1.0)
+            for mesh in flow:
+                self._draw_batch(mesh)
+            GL.glUniform1f(loc["u_flat_shade"], 1.0 if self._flat_shade else 0.0)
+
         # Pass 2 - translucent (X-ray) layer: depth-tested against the opaque
         # pass but not writing depth, alpha-blended back to front; each batch
         # twice (far-facing fragments, then near-facing) so a revolved shell's
@@ -420,7 +442,8 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._gl_meshes = []
         # Batch per render layer/role/material (render_layers.build_batches):
         # a tube bundle's hundreds of pieces become one draw call.
-        for batch in preview3d_gl_core.build_batches(self._pending_mesh_data, self._xray):
+        for batch in preview3d_gl_core.build_batches(self._pending_mesh_data, self._xray,
+                                                     flow_enabled=self._flow):
             buf = batch.buffers
             interleaved = np.concatenate([buf.vertices, buf.normals, buf.colors], axis=1)
             interleaved = np.ascontiguousarray(interleaved, dtype=np.float32)

@@ -13,9 +13,10 @@ Pass structure (preview3d_gl.EnginePreviewGLFrame.redraw):
                          the eye, then facing it - split in the shader on
                          sign(dot(N, V)), so it doesn't depend on triangle
                          winding, which isn't consistent across the builders).
-  (LAYER_FLOW is reserved for the planned flow visualization - animated,
-  temperature-colored propellant paths drawn between the two passes above -
-  and isn't produced by anything yet.)
+  Between them, LAYER_FLOW - the propellant-flow visualization (pieces with
+  role FLOW_ROLE, built by gui/mesh_builder.build_flow_pieces): depth write
+  on, no blend, drawn unlit/emissive. Flow pieces are always built; when the
+  Flow toggle is off they're simply skipped here (no rebuild).
 
 X-ray is purely a render-state choice: pieces whose `role` is in XRAY_ROLES
 move to LAYER_TRANSLUCENT when it's on; nothing is rebuilt.
@@ -28,7 +29,8 @@ from .mesh_primitives import MeshBuffers
 
 LAYER_OPAQUE = "opaque"
 LAYER_TRANSLUCENT = "translucent"
-LAYER_FLOW = "flow"  # reserved - see module docstring
+LAYER_FLOW = "flow"
+FLOW_ROLE = "flow"
 
 #: Draw order of the layers within one frame.
 LAYER_ORDER = (LAYER_OPAQUE, LAYER_FLOW, LAYER_TRANSLUCENT)
@@ -52,8 +54,11 @@ class RenderBatch:
     centroid: np.ndarray  # (3,) vertex mean - back-to-front sort key
 
 
-def layer_for(piece, xray_enabled):
-    """Which layer this piece draws in."""
+def layer_for(piece, xray_enabled, flow_enabled=False):
+    """Which layer this piece draws in, or None = not drawn (a flow piece
+    while the Flow toggle is off)."""
+    if piece.role == FLOW_ROLE:
+        return LAYER_FLOW if flow_enabled else None
     if xray_enabled and piece.role in XRAY_ROLES:
         return LAYER_TRANSLUCENT
     return LAYER_OPAQUE
@@ -71,6 +76,10 @@ def merge_buffers(pieces):
         return MeshBuffers(empty, empty, empty, np.zeros((0, 3), dtype=np.uint32))
     offsets = np.cumsum([0] + [p.vertices.shape[0] for p in pieces[:-1]])
     first = pieces[0]
+    extra = {}
+    for name in ("scalar", "flow_s"):   # carried only when every piece has it
+        if all(getattr(p, name) is not None for p in pieces):
+            extra[name] = np.concatenate([getattr(p, name) for p in pieces]).astype(np.float32)
     return MeshBuffers(
         vertices=np.concatenate([p.vertices for p in pieces]).astype(np.float32),
         normals=np.concatenate([p.normals for p in pieces]).astype(np.float32),
@@ -78,10 +87,10 @@ def merge_buffers(pieces):
         indices=np.concatenate([np.asarray(p.indices, dtype=np.int64).reshape(-1, 3) + off
                                 for p, off in zip(pieces, offsets)]).astype(np.uint32),
         specular_strength=first.specular_strength, shininess=first.shininess,
-        role=first.role)
+        role=first.role, **extra)
 
 
-def build_batches(pieces, xray_enabled):
+def build_batches(pieces, xray_enabled, flow_enabled=False):
     """
     Group pieces by (layer, role, specular_strength, shininess) and merge each
     group into one RenderBatch - collapses e.g. a discrete tube bundle's
@@ -93,7 +102,10 @@ def build_batches(pieces, xray_enabled):
     for piece in pieces:
         if piece.vertices.shape[0] == 0 or np.asarray(piece.indices).size == 0:
             continue
-        key = (layer_for(piece, xray_enabled), piece.role,
+        layer = layer_for(piece, xray_enabled, flow_enabled)
+        if layer is None:
+            continue
+        key = (layer, piece.role,
                float(piece.specular_strength), float(piece.shininess))
         groups.setdefault(key, []).append(piece)
     batches = []
@@ -156,6 +168,18 @@ def self_test():
     # a role outside XRAY_ROLES stays opaque and is ordered first
     mixed = build_batches([_quad(0.0, role="wall"), _quad(1.0, role="flow_probe")], True)
     assert [bt.layer for bt in mixed] == [LAYER_OPAQUE, LAYER_TRANSLUCENT]
+    # flow pieces: skipped while Flow is off, their own layer (drawn between) when on;
+    # per-vertex scalar/flow_s survive the merge
+    fl = [_quad(0.0, role=FLOW_ROLE), _quad(2.0, role=FLOW_ROLE)]
+    for q in fl:
+        q.scalar = np.full(4, 300.0, dtype=np.float32)
+        q.flow_s = np.arange(4, dtype=np.float32)
+    assert build_batches(fl + [_quad(0.0, role="wall")], True)[0].layer == LAYER_TRANSLUCENT
+    assert len(build_batches(fl, True, flow_enabled=False)) == 0
+    fb = build_batches(fl + [_quad(0.0, role="wall")], True, flow_enabled=True)
+    assert [bt.layer for bt in fb] == [LAYER_FLOW, LAYER_TRANSLUCENT]
+    assert fb[0].buffers.scalar.shape == (8,) and fb[0].buffers.flow_s.shape == (8,)
+    assert fb[1].buffers.scalar is None
 
     # back-to-front
     order = back_to_front_order([[0, 0, 0], [10, 0, 0], [5, 0, 0]], eye=[-1, 0, 0])

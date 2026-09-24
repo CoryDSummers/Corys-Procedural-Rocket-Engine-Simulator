@@ -96,7 +96,9 @@ File menu.
    `mesh_primitives.py`/`duct_meshes.py`/`tube_bundle.py`/`shell_mesh.py`/
    `camera_color.py`/`render_layers.py` (opaque/translucent "X-ray" layer assignment,
    per-layer draw batching, back-to-front sort, rim-alpha reference - the multi-pass
-   pipeline's testable half; `LAYER_FLOW` reserved for the planned flow visualization),
+   pipeline's testable half) / `flow_meshes.py` (flow visualization: fixed log-T 20-4000 K
+   "turbo" colormap, stream tubes, ring loops, hot-gas core; per-vertex `scalar`/`flow_s`
+   on `MeshBuffers` for the legend and a future animated-flow shader),
    re-exported unchanged through `__init__.py`, with `__main__.py`
    running every submodule's own self-test as one combined banner), and its per-part
    mesh assembly (what used to be `preview3d_gl.py`'s own ~830-line `_build_mesh_data`
@@ -141,6 +143,10 @@ File menu.
    python3 -m engine_designer.physics.turbopump_materials
    python3 -m engine_designer.physics.turbopump_efficiency
    python3 -m engine_designer.physics.turbopump_sizing
+   python3 -m engine_designer.physics.flow_network  # flow-visualization data contract: per-
+                                                     # stream temperature along feed line ->
+                                                     # rings -> jacket pass(es) -> injector, +
+                                                     # hot gas (Tc + isentropic static T)
    python3 -m engine_designer.physics.validate      # the important one - 7 real engines
                                                      # (incl. Raptor-2 methalox, Sprite HTP),
                                                      # both isolated and full-pipeline;
@@ -309,6 +315,13 @@ draws the sized sections, and `tube_bundle.py` draws tubes as CONTIGUOUS swaged 
 the pitch (neighbours touch across a braze seam) [Huzel p.113-114; SP-8087 Sec.2.1.1.3];
 `mass_model.py` also carries the throat
 low-cycle thermal-fatigue estimate and the injector-plate mass; `staged_combustion.py` = FRSC/ORSC/FFSC preburner model: preburner Tin is a design input (`EngineDesign.preburner_tin_k`/`ox_preburner_tin_k`, 0 = pair default), the turbine PR is SOLVED (`solve_staged_power_balance`) and pump discharge is BUILT from the real pressure chain [SP-8107 3.1.1.1] - no PR closes = warn-only Pc ceiling; the expander fuel leg likewise carries its series turbine dP, GG flow is pumped too (`design.GG_MIXTURE_RATIO`), and dual-shaft turbine work splits by topology (`turbopump_sizing.split_turbine_work`),
+`flow_network.py` = the 3D preview's flow-visualization data contract (ordered per-stream
+`FlowSegment`s: temperature per sample + a geometry ANCHOR - profile stations or a manifold/
+plumbing host - no 3D; jacket T = the march's exported `cooling.coolant_t_bulk_profile_k` in
+"channels" mode, else a heat-weighted approximation of `coolant_delta_t_k`, flagged
+`approximate`; `gui/mesh_builder.build_flow_pieces` maps anchors onto the drawn shells/rings/
+plumbing centrelines as role "flow" pieces, shown by the preview's Flow toggle + `gui/
+flow_legend.py` colorbar),
 `electric_pump.py` = battery+motor mass model, `expander.py` = regen-heat turbine,
 `turbopump_efficiency.py` = DERIVED pump & turbine efficiency (Ns / staging / pitchline),
 `turbopump_sizing.py` = 1-D Ns/tip-speed/stage/turbine-count sizing + envelope + mass,

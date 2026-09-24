@@ -147,6 +147,19 @@ COOLANT_INLET_TEMP_K = {
     "Hydrazine": 290.0,
     "H2O2": 290.0,
 }
+# Representative OXIDIZER inlet temperature at the engine, per pair - used ONLY
+# by physics/flow_network.py (the 3D preview's flow visualization), never by
+# any sizing/performance calc. LOX at its normal boiling point (90.2 K, a
+# physical property); storable oxidizers at ambient. Tier 3, same caveat as
+# COOLANT_INLET_TEMP_K above (no pump-discharge heating, no subcooling).
+# Monopropellants have no oxidizer stream (absent -> None).
+OXIDIZER_INLET_TEMP_K = {
+    "LOX/LH2": 90.0,
+    "LOX/RP-1": 90.0,
+    "LOX/CH4": 90.0,
+    "N2O4/MMH": 290.0,
+    "Aerozine-50/NTO": 290.0,
+}
 CONTRACTION_RATIO_TYPICAL = (1.3, 6.0)
 LSTAR_TYPICAL_M = (0.02, 3.0)   # widened from (0.5, 3.0) - verified: a 100N-class thruster needs
                                 # L*~0.02m for a sane chamber aspect ratio, a 10kN-class needs
@@ -2161,6 +2174,10 @@ class EngineDesign:
             "coolant_turnaround_t_k": (coolant_march.get("coolant_turnaround_t_k")
                                        if coolant_march else None),
             "coolant_channels_down": (coolant_march.get("n_channels_down") if coolant_march else None),
+            # Per-station bulk coolant temperature from the march (NaN outside the
+            # cooled length; two-pass = the UP pass) - exported for
+            # physics/flow_network.py, None outside "channels" mode.
+            "coolant_t_bulk_profile_k": (coolant_march["t_bulk_profile_k"] if coolant_march else None),
         }
 
         # Dry-mass estimate: chamber/nozzle wall mass from a real thin-wall pressure-vessel
@@ -3062,6 +3079,9 @@ class EngineDesign:
             "plumbing_mass_kg": plumbing_mass_kg,
             "plumbing_total_length_m": plumbing_total_length_m,
             "cooling_flow_topology": self.cooling_flow_topology,
+            # Stream inlet temperatures (flow visualization only - see the tables).
+            "coolant_inlet_t_k": COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0),
+            "oxidizer_inlet_t_k": OXIDIZER_INLET_TEMP_K.get(self.propellant_pair),
             "jacket_inlet_eps_effective": jacket_inlet_eps_eff,
             "jacket_return_split_fraction": jacket_return_split_fraction,
             "manifold_bypass_fraction": self.manifold_bypass_fraction,

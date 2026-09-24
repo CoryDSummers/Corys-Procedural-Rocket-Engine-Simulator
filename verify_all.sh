@@ -33,6 +33,7 @@ MODULES=(
   engine_designer.physics.turbopump_efficiency
   engine_designer.physics.turbopump_sizing
   engine_designer.physics.validate
+  engine_designer.physics.flow_network
   engine_designer.catalog.build_catalog
   engine_designer.catalog.build_roengines_models
   engine_designer.export.cfg_writer
@@ -62,7 +63,7 @@ for m in "${MODULES[@]}"; do
   fi
 done
 
-for f in gui/app.py gui/preview3d_gl.py gui/shape_lab.py; do
+for f in gui/app.py gui/preview3d_gl.py gui/shape_lab.py gui/flow_legend.py; do
   path="engine_designer/$f"
   if python3 -c "import ast; ast.parse(open('$path').read())" >> "$LOG" 2>&1; then
     echo "PASS  syntax-check $path"

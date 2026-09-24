@@ -30,6 +30,10 @@ class MeshBuffers:
     role: str = ""                  # which engine part this piece is ("wall", "turbopump",
                                      # ...), stamped by mesh_builder.build_mesh_data; "" =
                                      # untagged. Picks the render layer (render_layers.py).
+    scalar: np.ndarray = None       # optional (N,) per-vertex temperature, K - flow pieces
+                                     # only (flow_meshes.py); legend range + Phase-2 shader
+    flow_s: np.ndarray = None       # optional (N,) arc length along the stream, m - flow
+                                     # pieces only; drives the Phase-2 flow animation
 
 def triangulate_grid(n_theta, n_stations):
     """

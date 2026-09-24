@@ -21,6 +21,8 @@ axis, one directory up) into:
   - camera_color.py         - heat-flux colormap, bounds, orbit camera
   - render_layers.py        - opaque/translucent (X-ray) layer assignment,
                              per-layer batching, back-to-front sort
+  - flow_meshes.py          - flow visualization: fixed log-T colormap, stream
+                             tubes, ring loops, hot-gas core
 
 This __init__.py re-exports every public name from all of the above, so
 external code (gui/mesh_builder.py's ~100 call sites) keeps using the exact
@@ -121,6 +123,7 @@ from .render_layers import (
     LAYER_TRANSLUCENT,
     LAYER_FLOW,
     LAYER_ORDER,
+    FLOW_ROLE,
     XRAY_ROLES,
     XRAY_DEFAULT_OPACITY,
     XRAY_RIM_POWER,
@@ -130,6 +133,19 @@ from .render_layers import (
     build_batches,
     back_to_front_order,
     rim_alpha,
+)
+from .flow_meshes import (
+    FLOW_T_MIN_K,
+    FLOW_T_MAX_K,
+    FLOW_CMAP,
+    FLOW_LEGEND_TICKS_K,
+    FLOW_N_THETA,
+    temperature_unit,
+    temperature_colors,
+    resample_polyline,
+    flow_tube_mesh,
+    ring_loop_points,
+    gas_core_mesh,
 )
 
 __all__ = [
@@ -211,6 +227,7 @@ __all__ = [
     "LAYER_TRANSLUCENT",
     "LAYER_FLOW",
     "LAYER_ORDER",
+    "FLOW_ROLE",
     "XRAY_ROLES",
     "XRAY_DEFAULT_OPACITY",
     "XRAY_RIM_POWER",
@@ -220,4 +237,15 @@ __all__ = [
     "build_batches",
     "back_to_front_order",
     "rim_alpha",
+    "FLOW_T_MIN_K",
+    "FLOW_T_MAX_K",
+    "FLOW_CMAP",
+    "FLOW_LEGEND_TICKS_K",
+    "FLOW_N_THETA",
+    "temperature_unit",
+    "temperature_colors",
+    "resample_polyline",
+    "flow_tube_mesh",
+    "ring_loop_points",
+    "gas_core_mesh",
 ]

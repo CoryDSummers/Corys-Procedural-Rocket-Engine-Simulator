@@ -48,9 +48,28 @@ view (and in the Shape Lab toolbar) moves the structural parts into the
 translucent pass: they fade by viewing angle, so faces go clear while
 silhouettes stay visible. The opacity slider sets how see-through the faces
 are. Pieces are batched per layer and material, so a tube-wall bundle is one
-draw call instead of hundreds. This is the foundation for the planned
-propellant-flow visualization. With X-ray off, the render is pixel-identical
-to the old single-pass renderer (checked headlessly under Xvfb + Mesa).
+draw call instead of hundreds. With X-ray and Flow off, the render is
+pixel-identical to the old single-pass renderer (checked headlessly under
+Xvfb + Mesa).
+
+The **Flow** checkbox draws the propellant streams inside the engine, colored
+by temperature on a fixed log scale from 20 to 4000 K, with a colorbar above
+the view. Ticking it also turns on X-ray, which can be unticked again. The
+streams are:
+- the fuel feed duct, jacket-inlet ring, coolant streams through the regen
+  jacket and the injector fuel ring;
+- the oxidizer ring;
+- the hot-gas core, from chamber temperature out to the exit static
+  temperature.
+
+The colors come from `physics/flow_network.py`. In "channels" regen mode the
+jacket temperatures are the coolant march's own values. In any other mode only
+the total coolant temperature rise is known, so it is spread along the jacket
+by absorbed heat, and the legend says "approx.". Because the scale is fixed,
+a color means the same temperature on every design. The flip side is that a
+small rise, such as RP-1's ~80 K through the jacket, barely changes color.
+Feed lines appear only where a plumbing run or the default jacket-inlet duct
+is drawn.
 
 Before first use (or after `Engine_Configs/` changes), rebuild the host-model
 catalog:

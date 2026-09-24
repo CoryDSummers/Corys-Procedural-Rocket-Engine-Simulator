@@ -32,8 +32,8 @@ place of its old self._build_mesh_data(...); everything genuinely OpenGL/Tk
 import numpy as np
 
 from . import preview3d_gl_core
-from ..physics import (geometry, geometry3d, hatbands, manifold, materials, plumbing,
-                       turbopump_materials)
+from ..physics import (flow_network, geometry, geometry3d, hatbands, manifold, materials,
+                       plumbing, turbopump_materials)
 
 _N_THETA = 32
 
@@ -152,6 +152,9 @@ def build_plumbing_pieces(run, hook, ring_center_r_m, ring_tube_r_m, base_rgb,
             pieces.extend(preview3d_gl_core.pipe_flange_pieces(
                 joint["pos"], joint["t"], joint["n"], joint["b"], joint["r_m"],
                 fl["lip_m"], fl["width_m"], fl["bolt_count"], n_theta, PLUMBING_FLANGE_RGB, **kw))
+    # The drawn centreline + bore (ring -> outward), for the flow visualization.
+    resolved["render_centerline_xyz"] = centerline
+    resolved["render_station_r_m"] = station_r
     return pieces, resolved
 
 
@@ -416,10 +419,13 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
 def build_injector_head_pieces(body_rs, result, chamber_rgb, construction, n_channels_physical,
                                 body_shell, ext_shell, has_extension,
                                 duct_bend_radius_mult=None, return_band_drawn=False,
-                                chamber_shell=None):
+                                chamber_shell=None, flow_anchors=None):
     """domed cap + manifold collar. `return_band_drawn`: the f1_double_pass
     end-cap band (build_far_end_cover_pieces) is being drawn and stands in as
-    the fuel RETURN manifold, so the jacket_return torus itself is skipped."""
+    the fuel RETURN manifold, so the jacket_return torus itself is skipped.
+    `flow_anchors`: optional dict filled with where rings/feed lines were
+    DRAWN ({"rings": {host: (ring, inner_edge_r)}, "feed_lines": {host:
+    (centerline, station_r)}}) for build_flow_pieces."""
     pieces = []
     # Injector-head hardware (domed cap + manifold collar), same shapes as
     # draw_3d_preview - flat material colors always, heat-flux data
@@ -473,6 +479,7 @@ def build_injector_head_pieces(body_rs, result, chamber_rgb, construction, n_cha
         # emerge from the ring exactly where it is DRAWN, not where the
         # physics nominally puts it.
         _ring_render = {}
+        _feed_lines = {}
         # LH2 fuel: SP-8087's liquid-velocity advisory doesn't apply to its pipes.
         _lh2_fuel = result.get("inputs", {}).get("propellant_pair") == "LOX/LH2"
         manifold_result = result.get("manifold_result")
@@ -554,9 +561,12 @@ def build_injector_head_pieces(body_rs, result, chamber_rgb, construction, n_cha
                 _jrr, _jrt = ring_local_render(_jhk, _jedge_in, _jang)
                 _legacy_run = plumbing.default_run_for_host(
                     _jhk, _jrt, "jacket_inlet", bend_radius_dia_mult=duct_bend_radius_mult)
-                _lp, _ = build_plumbing_pieces(_legacy_run, _jhk, _jrr, _jrt, _JACKET_RGB,
-                                               supercritical=_lh2_fuel)
+                _lp, _lres = build_plumbing_pieces(_legacy_run, _jhk, _jrr, _jrt, _JACKET_RGB,
+                                                   supercritical=_lh2_fuel)
                 pieces.extend(_lp)
+                if _lp:
+                    _feed_lines["jacket_inlet"] = (_lres["render_centerline_xyz"],
+                                                   _lres["render_station_r_m"])
 
         # Baked procedural plumbing runs (physics/plumbing.py) on whichever
         # ring each is rooted on - a run whose host ring doesn't exist for
@@ -567,10 +577,16 @@ def build_injector_head_pieces(body_rs, result, chamber_rgb, construction, n_cha
             if _host in _ring_render:
                 _hk, _edge, _rgb = _ring_render[_host]
                 _rr, _rt = ring_local_render(_hk, _edge, plumbing.run_from_dict(_run).attach_angle_deg)
-                _pp, _ = build_plumbing_pieces(_run, _hk, _rr, _rt, _rgb,
-                                               supercritical=_lh2_fuel and _host != "ox",
-                                               port=run_port_for_result(result, _run))
+                _pp, _pres = build_plumbing_pieces(_run, _hk, _rr, _rt, _rgb,
+                                                   supercritical=_lh2_fuel and _host != "ox",
+                                                   port=run_port_for_result(result, _run))
                 pieces.extend(_pp)
+                if _pp and _host not in _feed_lines:
+                    _feed_lines[_host] = (_pres["render_centerline_xyz"],
+                                          _pres["render_station_r_m"])
+    if flow_anchors is not None and chamber_head_r > 0:
+        flow_anchors["rings"] = {k: (v[0], v[1]) for k, v in _ring_render.items()}
+        flow_anchors["feed_lines"] = _feed_lines
     return pieces
 
 
@@ -990,6 +1006,102 @@ def _tag(pieces, role):
     return pieces
 
 
+# Flow visualization (cosmetic only - how the physics/flow_network.py streams
+# are DRAWN; the temperatures themselves all come from that module).
+FLOW_JACKET_STREAMS = 16          # visual coolant streams round the jacket
+FLOW_GAS_CORE_R_FRACTION = 0.85   # hot-gas core radius / local gas-side wall radius
+FLOW_TUBE_BORE_FRACTION = 0.45    # ring / feed-line flow tube radius / its drawn bore
+FLOW_JACKET_TUBE_GAP_FRACTION = 0.35  # jacket stream radius / local wall-to-jacket gap
+FLOW_JACKET_TUBE_DT_CLAMP = (0.006, 0.02)  # ... clamped to this fraction of throat dia
+
+
+def build_flow_pieces(result, flow_anchors, body_shell, ext_shell, has_extension,
+                      chamber_shell=None, network=None):
+    """
+    Flow-visualization pieces (untagged - build_mesh_data tags them "flow")
+    for physics/flow_network.build_flow_network's segments, mapped onto the
+    RENDERED geometry:
+      - jacket passes -> FLOW_JACKET_STREAMS tubes midway between the gas-side
+        contour and the drawn outer wall, in flow order (a two-pass design
+        alternates down/up streams round the circumference);
+      - manifold rings -> a loop at the drawn ring's own centreline;
+      - feed lines -> the drawn plumbing run's centreline, reversed so it runs
+        pump -> ring (hosts with no drawn run get none);
+      - hot gas -> a revolved core at FLOW_GAS_CORE_R_FRACTION of the wall.
+    """
+    network = network if network is not None else flow_network.build_flow_network(result)
+    xs = np.asarray(result["profile_xs_m"], dtype=float)
+    rs = np.asarray(result["profile_rs_m"], dtype=float)
+    dt = float(result["geometry"]["throat_dia_m"])
+    rings = (flow_anchors or {}).get("rings", {})
+    feeds = (flow_anchors or {}).get("feed_lines", {})
+    pieces = []
+    s_run = {"fuel": 0.0, "ox": 0.0, "gas": 0.0}   # arc length travelled per stream
+
+    def _add(piece):
+        if piece is not None:
+            pieces.append(piece)
+
+    for seg in sorted(network, key=lambda sg: (sg.propellant, sg.order)):
+        host = seg.anchor.get("host")
+        if seg.kind == "chamber_gas":
+            _add(preview3d_gl_core.gas_core_mesh(xs, FLOW_GAS_CORE_R_FRACTION * rs, seg.t_k))
+        elif seg.kind == "feed_line" and host in feeds:
+            line, bore = feeds[host]
+            r = FLOW_TUBE_BORE_FRACTION * float(np.median(bore))
+            tube = preview3d_gl_core.flow_tube_mesh(line[::-1], seg.t_k[0], r,
+                                                    s_offset_m=s_run[seg.propellant])
+            _add(tube)
+            if tube is not None:
+                s_run[seg.propellant] = float(tube.flow_s.max())
+        elif seg.kind == "manifold_ring" and host in rings:
+            ring, edge = rings[host]
+            ang0 = float(ring.get("attach_angular_position_deg", 0.0))
+            angles = ang0 + np.linspace(0.0, 360.0, 97)
+            rr = np.array([ring_local_render(ring, edge, a)[0] for a in angles])
+            tube_r = FLOW_TUBE_BORE_FRACTION * float(ring["outer_radius_m"])
+            loop = preview3d_gl_core.ring_loop_points(ring["attach_axial_station_m"], rr, ang0,
+                                                      n=angles.size)
+            tube = preview3d_gl_core.flow_tube_mesh(loop, seg.t_k[0], tube_r,
+                                                    s_offset_m=s_run[seg.propellant])
+            _add(tube)
+            if tube is not None:
+                s_run[seg.propellant] = float(tube.flow_s.max())
+        elif seg.kind == "jacket_pass":
+            idx = np.asarray(seg.anchor["stations"])
+            x = xs[idx]
+            r_in = rs[idx]
+            r_out = np.array([_lookup_r(body_shell, ext_shell, has_extension, xq, chamber_shell)
+                              for xq in x])
+            gap = np.maximum(r_out - r_in, 0.0)
+            lo, hi = FLOW_JACKET_TUBE_DT_CLAMP
+            tube_r = float(np.clip(FLOW_JACKET_TUBE_GAP_FRACTION * np.median(gap), lo * dt, hi * dt))
+            # Mid-jacket, but never closer than one stream radius to the gas-side
+            # wall: a thin aft jacket (~1 mm) is narrower than a VISIBLE stream,
+            # so there the stream may stand proud of the drawn outer wall instead.
+            # (Clearance measured along the wall normal: a sloped wall needs
+            # tube_r * sqrt(1 + (dr/dx)^2) of radial standoff.)
+            slope = np.gradient(r_in, x) if x.size > 1 else np.zeros_like(x)
+            r_mid = np.maximum(r_in + 0.5 * gap, r_in + tube_r * np.sqrt(1.0 + slope ** 2))
+            n = FLOW_JACKET_STREAMS
+            ks = range(n)
+            if seg.anchor.get("pass") == "down":
+                ks = range(0, n, 2)
+            elif seg.anchor.get("pass") == "up":
+                ks = range(1, n, 2)
+            s_end = s_run[seg.propellant]
+            for k in ks:
+                th = 2.0 * np.pi * (k + 0.5) / n
+                line = np.stack([x, r_mid * np.cos(th), r_mid * np.sin(th)], axis=1)
+                tube = preview3d_gl_core.flow_tube_mesh(line, seg.t_k, tube_r,
+                                                        s_offset_m=s_run[seg.propellant])
+                _add(tube)
+                if tube is not None:
+                    s_end = max(s_end, float(tube.flow_s.max()))
+            s_run[seg.propellant] = s_end
+    return pieces
+
+
 def build_mesh_data(result, heat_flux_mode, duct_bend_radius_mult=None, return_context=False):
     """
     Build every mesh piece for one EngineDesign.compute() result - the
@@ -1280,6 +1392,7 @@ def build_mesh_data(result, heat_flux_mode, duct_bend_radius_mult=None, return_c
         n_channels_for_piece, x_tube_end, q_colors, spec_for, cooling_result,
         down_tube_start_x_m=down_tube_start_x_m)
     pieces.extend(_tag(chamber_pieces, "wall"))
+    flow_anchors = {}
 
     pieces.extend(_tag(build_injector_head_pieces(
         body_rs, result, chamber_rgb, construction, n_channels_physical,
@@ -1288,7 +1401,7 @@ def build_mesh_data(result, heat_flux_mode, duct_bend_radius_mult=None, return_c
         return_band_drawn=(construction == "tube_wall" and n_channels_physical > 0
                            and x_tube_cutoff is not None
                            and preview3d_gl_core.is_double_pass(regen_circuit_style)),
-        chamber_shell=chamber_shell), "injector_head"))
+        chamber_shell=chamber_shell, flow_anchors=flow_anchors), "injector_head"))
 
     pieces.extend(_tag(build_far_end_cover_pieces(
         construction, n_channels_physical, x_tube_cutoff, regen_circuit_style, throat_dia_m,
@@ -1303,6 +1416,12 @@ def build_mesh_data(result, heat_flux_mode, duct_bend_radius_mult=None, return_c
         flange_half_width, flange_height_m, cooling_result), "flange"))
 
     pieces.extend(_tag(build_turbopump_pieces(result), "turbopump"))
+
+    # Flow visualization - always built, only drawn while the preview's Flow
+    # toggle is on (render_layers skips "flow" pieces otherwise; no rebuild).
+    pieces.extend(_tag(build_flow_pieces(result, flow_anchors, body_shell, ext_shell,
+                                         has_extension, chamber_shell),
+                       preview3d_gl_core.FLOW_ROLE))
 
     if return_context:
         return pieces, {"body_shell": body_shell, "ext_shell": ext_shell,
@@ -1407,11 +1526,35 @@ def self_test():
         # every piece carries a render role, and X-ray batching conserves geometry
         assert all(p.role for p in pieces), sorted({p.role for p in pieces})
         for xray in (False, True):
-            batches = preview3d_gl_core.build_batches(pieces, xray)
+            batches = preview3d_gl_core.build_batches(pieces, xray, flow_enabled=True)
             assert sum(b.buffers.vertices.shape[0] for b in batches) == \
                 sum(p.vertices.shape[0] for p in pieces if p.indices.size)
             assert len(batches) < len(pieces)
     print("build_mesh_data self-check (tube_wall, real joint, turbopump): OK")
+
+    # Flow visualization pieces: present, every vertex carries a finite
+    # temperature/arc length, and the drawn temperature range is the network's.
+    _flow = [p for p in build_mesh_data(result, False) if p.role == preview3d_gl_core.FLOW_ROLE]
+    _net = flow_network.build_flow_network(result)
+    _n_jacket = sum(1 for sg in _net if sg.kind == "jacket_pass")
+    assert _n_jacket and len(_flow) >= 1 + FLOW_JACKET_STREAMS, len(_flow)
+    _all_t = np.concatenate([p.scalar for p in _flow])
+    assert np.all(np.isfinite(_all_t)) and all(np.all(np.isfinite(p.flow_s)) for p in _flow)
+    _lo, _hi = flow_network.temperature_range(_net)
+    assert abs(_all_t.min() - _lo) < 1.0 and abs(_all_t.max() - _hi) < 1.0, (_all_t.min(), _lo)
+    # jacket streams sit radially between the gas-side contour and the drawn outer wall
+    _, _ctx = build_mesh_data(result, False, return_context=True)
+    _xs, _rs = result["profile_xs_m"], result["profile_rs_m"]
+    _jnet = [sg for sg in _net if sg.kind == "jacket_pass"]
+    _jet = build_flow_pieces(result, {}, _ctx["body_shell"], _ctx["ext_shell"],
+                             _ctx["has_extension"], _ctx["chamber_shell"], network=_jnet)
+    assert len(_jet) == FLOW_JACKET_STREAMS * len(_jnet)
+    for _p in _jet:
+        _r = np.hypot(_p.vertices[:, 1], _p.vertices[:, 2])
+        _rin = np.interp(_p.vertices[:, 0], _xs, _rs)
+        assert np.all(_r > _rin - 1e-4), ("jacket stream inside the gas-side wall",
+                                          float((_r - _rin).min()), _p.vertices[np.argmin(_r - _rin)])
+    print(f"flow pieces: OK ({len(_flow)} pieces, {_lo:.0f}-{_hi:.0f} K)")
 
     # A second, simpler design (milled_channel, no forced material split via
     # matching chamber/bell materials) - covers the has_real_joint=False path
