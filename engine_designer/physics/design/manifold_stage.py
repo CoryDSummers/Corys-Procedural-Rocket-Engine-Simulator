@@ -353,6 +353,8 @@ def jacket_manifolds_and_stability(self, s):
         "film_effectiveness_profile": s.film_phi,               # COMBINED (both sites)
         "chamber_film_profile": s.chamber_film_phi,
         "nozzle_film_profile": s.nozzle_film_phi,
+        "gas_film_profile": s.gas_film_phi,                     # turbine-exhaust gas film
+        "gas_film_temperature_k": s.gas_film_t_k,                # (nozzle_injection) or None
         "chamber_film_inject_area_ratio": self.chamber_film_inject_area_ratio,
         "nozzle_film_fraction": (self.nozzle_film_fraction if s.nozzle_film_active else 0.0),
         "nozzle_film_inject_eps": self.nozzle_film_inject_eps,

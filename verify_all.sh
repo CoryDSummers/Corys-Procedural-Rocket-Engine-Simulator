@@ -27,6 +27,7 @@ MODULES=(
   engine_designer.physics.mass_model
   engine_designer.physics.hatbands
   engine_designer.physics.staged_combustion
+  engine_designer.physics.turbine_exhaust   # GG/tap-off exhaust: back pressure, exhaust Isp, modes
   engine_designer.physics.electric_pump
   engine_designer.physics.reliability
   engine_designer.physics.cost_model

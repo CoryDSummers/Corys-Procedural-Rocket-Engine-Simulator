@@ -1,5 +1,5 @@
 {
-  "schema_version": 8,
+  "schema_version": 9,
   "design": {
     "propellant_pair": "LOX/LH2",
     "mixture_ratio": 5.0,
@@ -23,6 +23,13 @@
     "chamber_film_inject_area_ratio": 0.0,
     "nozzle_film_fraction": 0.0,
     "nozzle_film_inject_eps": 10.0,
+    "turbine_exhaust_mode": "overboard_duct",
+    "turbine_exhaust_nozzle_eps": 1.0,
+    "turbine_exhaust_cant_deg": 0.0,
+    "turbine_exhaust_inject_eps": 10.0,
+    "aspirator_fwd_length_frac": 0.3,
+    "aspirator_overhang_frac": 0.05,
+    "turbine_exhaust_hx_gox_kgs": 0.0,
     "regen_channel_model": "channels",
     "regen_channel_count": 0,
     "regen_channel_aspect_ratio": 0.0,

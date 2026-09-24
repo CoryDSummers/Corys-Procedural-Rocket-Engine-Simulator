@@ -56,6 +56,15 @@ def thermal(self, s):
     # the lowered adiabatic-wall temperature.
     s.film_phi, s.chamber_film_phi, s.nozzle_film_phi = self._film_phi(s.xs, s.rs, s.geo["throat_dia_m"])
     s.nozzle_film_active = bool(np.any(s.nozzle_film_phi < 1.0))
+    # Turbine-exhaust gas film (nozzle_injection mode): the GG/tap-off flow and
+    # exhaust temperature only exist after the pump stage, so it arrives as the
+    # previous pass's carry (EngineDesign.compute's second pass). None = off.
+    s.gas_film_phi = s.gas_film_t_k = None
+    _carry = getattr(s, "te_film_carry", None)
+    if _carry:
+        s.gas_film_phi = cooling.nozzle_film_effectiveness_profile(
+            s.xs, s.rs, s.geo["throat_dia_m"], _carry["film_ratio"], _carry["inject_eps"])
+        s.gas_film_t_k = float(_carry["t_k"])
 
     treat, section, regen_cut, notes = cooling.station_treatments(
         s.rs, s.geo["throat_dia_m"], s.chamber_cooling, s.nozzle_cooling,
@@ -100,6 +109,7 @@ def thermal(self, s):
             treatment=treat, k_wall=k_wall, emissivity=emis,
             t_wall_m=np.full(len(s.rs), s.hot_wall_thickness_m), t_surface_k=t_surf,
             film_phi=s.film_phi, film_post_jacket=regen_chamber,
+            gas_film_phi=s.gas_film_phi, gas_film_t_k=s.gas_film_t_k,
             coolant_inlet_k=s.coolant_inlet_k, coolant_p_pa=p_cool,
             regen_mdot_kgs=s.mdot_coolant_jacket_kgs if regen_chamber else 0.0,
             regen_cut_eps=regen_cut, two_pass=s.two_pass, inlet_eps=s.jacket_inlet_eps_eff,

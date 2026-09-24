@@ -173,6 +173,9 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.hatbands       # structural tube-bundle retaining bands
                                                      # (section polygons, span march, sizing)
    python3 -m engine_designer.physics.staged_combustion  # solved preburner power balance / pressure chain
+   python3 -m engine_designer.physics.turbine_exhaust    # GG/tap-off exhaust disposal: overboard duct /
+                                                     # H-1 aspirator / F-1-J-2 nozzle injection -
+                                                     # back pressure (turbine PR), exhaust Isp, HX
    python3 -m engine_designer.physics.electric_pump
    python3 -m engine_designer.physics.reliability
    python3 -m engine_designer.physics.cost_model
@@ -247,7 +250,9 @@ touching any cooling number.** What changed structurally:
    PRESSURE-CHAIN CHECKS OK" (solved staged-combustion power balance vs SSME/RD-0124/NK-33 +
    RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (193
    pair x method x construction combos compute finite + converged - the cooling audit's
-   crash/NaN guard, 2026-09-23) (26 banners
+   crash/NaN guard, 2026-09-23) and "ALL TURBINE-EXHAUST CHECKS OK" (H-1 back pressure/aspirator
+   slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24)
+   (27 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 

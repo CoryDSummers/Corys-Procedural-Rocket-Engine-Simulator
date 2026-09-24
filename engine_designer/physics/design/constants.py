@@ -35,8 +35,11 @@ GG_ETA_TURBINE = 0.62         # FALLBACK ONLY - GG/tap-off turbine efficiency is
                               # per design (physics/turbopump_efficiency.py: staging ceiling
                               # x pitchline x admission x PR); this is the seed / degenerate
                               # fallback. Fleet 46-70%, most 55-66% ([SP-8107 Table III]).
-GG_PRESSURE_RATIO = 22.0      # GG/tap-off turbine pressure ratio - fleet 15.7-29, mean ~20
-                              # ([SP-8107 Table III]; J-2 overall 19, F-1 16.4). Also shared.
+GG_PRESSURE_RATIO = 22.0      # GG turbine pressure-ratio CAP - fleet 15.7-29, mean ~20
+                              # ([SP-8107 Table III]; J-2 overall 19, F-1 16.4). Since
+                              # 2026-09-24 the actual PR is min(this, turbine inlet / the
+                              # outlet pressure the exhaust's back pressure needs) -
+                              # physics/turbine_exhaust.py (H-1: 17.7 [H1-Man]).
 EXPANDER_TURBINE_PR = 1.4            # ACTUAL expander turbine PR (RL10 1.42) - efficiency only.
 # Turbine drive-gas thermodynamic properties, PER PROPELLANT PAIR, for the GG /
 # tap-off / staged-combustion-preburner turbine-work model in turbopump.py
@@ -81,8 +84,12 @@ GG_MIXTURE_RATIO = {
     "LOX/RP-1": 0.3, "LOX/CH4": 0.3, "LOX/LH2": 0.9,
     "N2O4/MMH": 0.15, "Aerozine-50/NTO": 0.15, "Hydrazine": 0.15, "H2O2": 0.15,
 }
+# RETIRED 2026-09-24: the turbine-exhaust Isp is now COMPUTED per disposal mode
+# (physics/turbine_exhaust.py: overboard duct / aspirator / nozzle injection) and
+# stored as cycle_result["gg_dump_isp_fraction"]. These flat values are only the
+# placeholder cycles.gas_generator_result stores before feed_stage overwrites it.
 GG_DUMP_ISP_FRACTION = 0.55
-TAP_OFF_DUMP_ISP_FRACTION = 0.80   # tapped chamber-region gas is much closer to design MR than a GG mix
+TAP_OFF_DUMP_ISP_FRACTION = 0.80
 # Tap-off drive gas: MAIN-CHAMBER combustion products (chamber MR), tapped near
 # the injector face and film-cooled down to a turbine-tolerable temperature
 # ([SP-8107]: "tapped near injector face where gas is relatively cool"). tin_k =
@@ -90,7 +97,8 @@ TAP_OFF_DUMP_ISP_FRACTION = 0.80   # tapped chamber-region gas is much closer to
 # combustion state (combustion.mixture_cp_j_kgk), NOT the fuel-rich GG_GAS_PROPERTIES.
 TAP_OFF_TEMP_FRACTION = 0.55
 TAP_OFF_TURBINE_LIMIT_K = 1150.0
-TAP_OFF_PRESSURE_RATIO = 18.0      # "slightly < GG" ([SP-8107 Table VI]); GG is 22
+TAP_OFF_PRESSURE_RATIO = 18.0      # "slightly < GG" ([SP-8107 Table VI]); GG is 22. A CAP since
+                                   # 2026-09-24, like GG_PRESSURE_RATIO (turbine_exhaust.py)
 SEPARATION_K = 0.4
 CONVERGENT_HALF_ANGLE_DEG = 30.0
 ETA_CSTAR_CEILING = 0.99

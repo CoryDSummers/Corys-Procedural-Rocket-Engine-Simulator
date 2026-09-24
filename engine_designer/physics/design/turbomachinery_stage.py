@@ -6,9 +6,7 @@ import numpy as np
 
 from .. import (cycles, geometry3d, manifold, plumbing, turbopump_sizing)
 from .constants import (
-    GG_PRESSURE_RATIO,
     EXPANDER_TURBINE_PR,
-    TAP_OFF_PRESSURE_RATIO,
 )
 from .checklist import _check
 
@@ -33,7 +31,7 @@ def turbopump_and_plumbing(self, s):
         elif self.cycle == cycles.TAP_OFF:
             turbine_inlet_k = s.drive_gas["tin_k"]
             turbine_mdot = max(s.cyc["gg_mdot_kgs"], 1e-6)
-            turbine_pr = TAP_OFF_PRESSURE_RATIO
+            turbine_pr = s.cyc["turbine_pressure_ratio"]      # exhaust back pressure (turbine_exhaust.py)
         elif self.cycle == cycles.EXPANDER:
             turbine_inlet_k = 250.0  # heated-hydrogen expander turbine, far below combustion
             turbine_mdot = max(s.cyc["turbopump"]["mdot_fuel_kgs"], 1e-6)
@@ -45,7 +43,7 @@ def turbopump_and_plumbing(self, s):
         else:  # GAS_GENERATOR
             turbine_inlet_k = s.gg_gas["tin_k"]
             turbine_mdot = max(s.cyc["gg_mdot_kgs"], 1e-6)
-            turbine_pr = GG_PRESSURE_RATIO
+            turbine_pr = s.cyc["turbine_pressure_ratio"]      # exhaust back pressure (turbine_exhaust.py)
         # Actual specific work the turbine delivers = shaft power / turbine mass flow
         # (what pitchline sizing needs). Zero for electric pump-fed (no turbine).
         turbine_specific_work = (0.0 if self.cycle == cycles.ELECTRIC_PUMP

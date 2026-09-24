@@ -3,6 +3,7 @@
 Split verbatim out of the former single-file design.py; a value shared
 between stages lives on the PassState `s` (see design/state.py)."""
 from .. import (combustion, combustion_stability, cooling, cycles, electric_pump,
+                turbine_exhaust,
                 geometry, injectors, materials, staged_combustion, turbopump_materials,
                 turbopump_sizing, turbopump_tech, isentropic as iso, turbopump as tp)
 from .constants import (
@@ -141,24 +142,26 @@ def turbomachinery_cycle(self, s):
     if self.cycle == cycles.GAS_GENERATOR:
         s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - TANK_HEAD_PA
         s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - TANK_HEAD_PA
+        # Turbine PR: the flat cap, unless the exhaust's back pressure leaves
+        # less (physics/turbine_exhaust.py).
+        _pr = _exhaust_back_pressure(self, s, s.gg_gas["gamma"],
+                                     turbine_exhaust.GG_TURBINE_INLET_PC_FRACTION,
+                                     GG_PRESSURE_RATIO)
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_efficiencies(
             s.mdot, self.mixture_ratio, s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox,
             self.turbopump_material_key, eff_staging, s.gg_gas["tin_k"], s.gg_gas["cp"],
-            s.gg_gas["gamma"], GG_PRESSURE_RATIO, GG_PRESSURE_RATIO, s.build_quality,
+            s.gg_gas["gamma"], _pr, _pr, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
             enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
         s.cyc = cycles.gas_generator_result(
             s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
-            s.gg_gas["tin_k"], s.gg_gas["cp"], s.eta_turb, GG_PRESSURE_RATIO, s.gg_gas["gamma"],
+            s.gg_gas["tin_k"], s.gg_gas["cp"], s.eta_turb, _pr, s.gg_gas["gamma"],
             GG_DUMP_ISP_FRACTION, cycle_name=cycles.GAS_GENERATOR,
             gg_mixture_ratio=GG_MIXTURE_RATIO[self.propellant_pair],
         )
-        s.isp_vac_eng = tp.engine_isp_with_gg_dump(s.isp_vac_chamber, s.cyc["gg_flow_fraction"],
-                                                  GG_DUMP_ISP_FRACTION)
-        s.isp_sl_eng = tp.engine_isp_with_gg_dump(s.isp_sl_chamber, s.cyc["gg_flow_fraction"],
-                                                 GG_DUMP_ISP_FRACTION)
+        _apply_exhaust(self, s, s.gg_gas, _pr)
         _check(s.checklist, s.warnings, "turbopump", "Gas-generator flow-fraction plausibility",
                s.cyc["gg_flow_fraction"] <= GG_FLOW_FRACTION_TYPICAL_MAX,
                f"GG flow fraction {s.cyc['gg_flow_fraction']*100:.1f}% is unusually high (typical "
@@ -176,24 +179,24 @@ def turbomachinery_cycle(self, s):
         tap_tin_k = min(s.tc * TAP_OFF_TEMP_FRACTION, TAP_OFF_TURBINE_LIMIT_K)
         tap_gas = dict(tin_k=tap_tin_k, cp=combustion.mixture_cp_j_kgk(s.gamma, s.m_molar),
                        gamma=s.gamma)
+        _pr = _exhaust_back_pressure(self, s, tap_gas["gamma"],
+                                     turbine_exhaust.TAP_OFF_TURBINE_INLET_PC_FRACTION,
+                                     TAP_OFF_PRESSURE_RATIO)
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_efficiencies(
             s.mdot, self.mixture_ratio, s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox,
             self.turbopump_material_key, eff_staging, tap_gas["tin_k"], tap_gas["cp"],
-            tap_gas["gamma"], TAP_OFF_PRESSURE_RATIO, TAP_OFF_PRESSURE_RATIO, s.build_quality,
+            tap_gas["gamma"], _pr, _pr, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
             enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
         s.cyc = cycles.gas_generator_result(
             s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
-            tap_gas["tin_k"], tap_gas["cp"], s.eta_turb, TAP_OFF_PRESSURE_RATIO, tap_gas["gamma"],
+            tap_gas["tin_k"], tap_gas["cp"], s.eta_turb, _pr, tap_gas["gamma"],
             TAP_OFF_DUMP_ISP_FRACTION, cycle_name=cycles.TAP_OFF,
         )
         s.cyc["drive_gas"] = tap_gas
-        s.isp_vac_eng = tp.engine_isp_with_gg_dump(s.isp_vac_chamber, s.cyc["gg_flow_fraction"],
-                                                  TAP_OFF_DUMP_ISP_FRACTION)
-        s.isp_sl_eng = tp.engine_isp_with_gg_dump(s.isp_sl_chamber, s.cyc["gg_flow_fraction"],
-                                                 TAP_OFF_DUMP_ISP_FRACTION)
+        _apply_exhaust(self, s, tap_gas, _pr)
         _check(s.checklist, s.warnings, "turbopump", "Gas-generator flow-fraction plausibility",
                s.cyc["gg_flow_fraction"] <= GG_FLOW_FRACTION_TYPICAL_MAX,
                f"GG flow fraction {s.cyc['gg_flow_fraction']*100:.1f}% is unusually high (typical "
@@ -349,6 +352,16 @@ def turbomachinery_cycle(self, s):
     else:
         raise ValueError(f"unknown cycle {self.cycle!r}; choices: {cycles.CYCLES}")
 
+    s.turbine_exhaust = getattr(s, "turbine_exhaust", None)
+    if (self.cycle not in (cycles.GAS_GENERATOR, cycles.TAP_OFF)
+            and turbine_exhaust.effective_mode(self.turbine_exhaust_mode)
+            != turbine_exhaust.DEFAULT_MODE):
+        _check(s.checklist, s.warnings, "turbopump", "Turbine exhaust handling",
+               False,
+               f"turbine_exhaust_mode '{self.turbine_exhaust_mode}' only applies to open cycles "
+               f"(gas generator / tap-off); a {self.cycle.replace('_', ' ')} engine sends its "
+               f"turbine exhaust into the main chamber - ignored.", "")
+
     # Total engine flow: an open cycle's GG / tap-off draw is EXTRA propellant on
     # top of the chamber flow s.mdot (dumped overboard, not through the throat);
     # staged/expander/electric/pressure-fed engines put everything through the
@@ -360,3 +373,102 @@ def turbomachinery_cycle(self, s):
     s.thrust_vac_floor = s.thrust_vac * self.throttle_floor
 
     s.separated_100pct = iso.is_separated(s.pe_pa, PA_SEA_LEVEL, SEPARATION_K)
+
+
+def _exhaust_back_pressure(self, s, gamma, inlet_pc_fraction, pr_cap):
+    """Turbine PR for an open cycle (physics/turbine_exhaust.py): the exhaust
+    must leave sonic into its discharge (sea-level or vacuum ambient for an
+    overboard duct / aspirator, the local main-nozzle static pressure for
+    nozzle injection), which sets the turbine outlet pressure; PR = inlet /
+    outlet, capped at the old flat value. Stashes the pieces on s for
+    _apply_exhaust."""
+    s.te_mode = turbine_exhaust.effective_mode(self.turbine_exhaust_mode)
+    s.te_separated_sl = iso.is_separated(s.pe_pa, PA_SEA_LEVEL, SEPARATION_K)
+    s.te_ambient_pa = turbine_exhaust.design_ambient_pa(s.te_separated_sl)
+    s.te_inject_eps = min(max(float(self.turbine_exhaust_inject_eps), 1.5),
+                          float(self.expansion_ratio))
+    s.te_local_static_pa = (self.chamber_pressure_pa
+                            * iso.pe_over_pc_from_eps(s.te_inject_eps, s.gamma))
+    s.te_discharge_pa = turbine_exhaust.discharge_pressure_pa(
+        s.te_mode, s.te_ambient_pa, s.te_local_static_pa)
+    s.te_p_in_pa = inlet_pc_fraction * self.chamber_pressure_pa
+    s.te_p_out_req_pa = turbine_exhaust.required_turbine_outlet_pa(gamma, s.te_discharge_pa)
+    pr, s.te_pr_limited = turbine_exhaust.turbine_pressure_ratio(
+        s.te_p_in_pa, s.te_p_out_req_pa, pr_cap)
+    s.te_pr_cap = pr_cap
+    return pr
+
+
+def _apply_exhaust(self, s, gas, pr):
+    """Build the turbine-exhaust stream for the solved GG / tap-off flow and
+    fold its thrust into the engine Isp (total-flow average; replaces the
+    flat GG/TAP_OFF_DUMP_ISP_FRACTION)."""
+    exh = turbine_exhaust.exhaust_stream(
+        s.te_mode, mdot_kgs=s.cyc["gg_mdot_kgs"], tin_k=gas["tin_k"], cp=gas["cp"],
+        gamma=gas["gamma"], dh_actual_j_kg=s.cyc["turbine_specific_work_j_kg"],
+        p_turbine_out_pa=s.te_p_in_pa / pr, discharge_pa=s.te_discharge_pa,
+        main_exit_static_pa=s.pe_pa, main_exit_dia_m=s.geo["exit_dia_m"],
+        nozzle_eps=self.turbine_exhaust_nozzle_eps, cant_deg=self.turbine_exhaust_cant_deg,
+        hx_gox_kgs=max(0.0, float(self.turbine_exhaust_hx_gox_kgs or 0.0)),
+        lox_pair=self.propellant_pair.startswith("LOX/"))
+    exh.update(turbine_inlet_pa=s.te_p_in_pa, turbine_pressure_ratio=pr,
+               pr_cap=s.te_pr_cap, back_pressure_limited=s.te_pr_limited,
+               inject_eps=s.te_inject_eps if s.te_mode == "nozzle_injection" else None,
+               design_ambient_pa=s.te_ambient_pa)
+    k_vac = exh["isp_vac_s"] / s.isp_vac_chamber
+    k_sl = exh["isp_sl_s"] / s.isp_sl_chamber if s.isp_sl_chamber > 0 else 0.0
+    exh["isp_fraction_vac"], exh["isp_fraction_sl"] = k_vac, k_sl
+    if exh["mode"] == "nozzle_injection":
+        # the gas film this stream lays on the nozzle wall downstream of the
+        # manifold - applied by the NEXT pass's thermal solve (compute())
+        exh["film_carry"] = dict(
+            film_ratio=turbine_exhaust.film_mdot_ratio_to_fuel(exh["mdot_kgs"], s.mdot_fuel_kgs),
+            inject_eps=s.te_inject_eps, t_k=exh["t_exhaust_k"], mdot_kgs=exh["mdot_kgs"])
+        exh["gas_film_applied"] = getattr(s, "gas_film_phi", None) is not None
+    s.cyc["gg_dump_isp_fraction"] = k_vac           # now computed, not the flat 0.55 / 0.80
+    s.cyc["turbine_pressure_ratio"] = pr
+    s.cyc["turbine_exhaust"] = exh
+    s.turbine_exhaust = exh
+    x = s.cyc["gg_flow_fraction"]
+    s.isp_vac_eng = tp.engine_isp_with_gg_dump(s.isp_vac_chamber, x, k_vac)
+    s.isp_sl_eng = tp.engine_isp_with_gg_dump(s.isp_sl_chamber, x, k_sl)
+
+    _p = lambda pa: f"{pa/1e3:.0f} kPa"
+    _check(s.checklist, s.warnings, "turbopump", "Turbine exhaust back pressure",
+           pr >= turbine_exhaust.TURBINE_PR_LOW_WARN,
+           f"The {exh['mode'].replace('_', ' ')} exhaust has to leave sonic into "
+           f"{_p(s.te_discharge_pa)}, which holds the turbine outlet at {_p(exh['p_turbine_out_pa'])} "
+           f"and leaves the turbine only PR {pr:.1f} (inlet {_p(s.te_p_in_pa)}): each kg of drive "
+           f"gas does little work, so the GG flow balloons. Raise Pc, or inject the exhaust into "
+           f"the nozzle further downstream (lower static pressure).",
+           (f"OK - PR {pr:.1f}, "
+            + (f"back-pressure limited (outlet {_p(exh['p_turbine_out_pa'])}, exhaust leaves sonic "
+               f"into {_p(s.te_discharge_pa)})" if s.te_pr_limited
+               else f"at the {s.te_pr_cap:.0f} cap (discharge {_p(s.te_discharge_pa)})")))
+    if exh["hx_on"]:
+        _check(s.checklist, s.warnings, "turbopump", "Exhaust heat-exchanger outlet temperature",
+               exh["t_exhaust_k"] >= turbine_exhaust.EXHAUST_T_FLOOR_K,
+               f"The LOX->GOX heat exchanger ({exh['hx_gox_kgs']:.2f} kg/s GOX, "
+               f"{exh['hx_duty_w']/1e3:.0f} kW) chills the turbine exhaust to "
+               f"{exh['t_exhaust_k']:.0f} K, below ~{turbine_exhaust.EXHAUST_T_FLOOR_K:.0f} K "
+               f"where fuel-rich exhaust starts condensing heavy species/water in the duct. "
+               f"Heat less GOX.",
+               f"OK - exhaust {exh['t_turbine_exit_k']:.0f} -> {exh['t_exhaust_k']:.0f} K "
+               f"({exh['hx_gox_kgs']:.2f} kg/s GOX)")
+    elif (self.turbine_exhaust_hx_gox_kgs or 0.0) > 0.0:
+        _check(s.checklist, s.warnings, "turbopump", "Exhaust heat exchanger",
+               False,
+               f"A LOX->GOX exhaust heat exchanger was requested but {self.propellant_pair} has "
+               f"no liquid oxygen to heat - ignored.", "")
+    if exh["mode"] == "nozzle_injection":
+        _inj_ok = float(self.turbine_exhaust_inject_eps) < float(self.expansion_ratio)
+        _check(s.checklist, s.warnings, "cooling", "Turbine-exhaust injection station",
+               _inj_ok,
+               f"turbine_exhaust_inject_eps {self.turbine_exhaust_inject_eps:.1f} is at or past "
+               f"the nozzle exit (eps {self.expansion_ratio:.1f}) - clamped to the exit; pick "
+               f"an area ratio inside the nozzle (F-1: 10 on a 16:1 bell).",
+               f"OK - exhaust enters the nozzle at eps {s.te_inject_eps:.1f} "
+               f"(local static {_p(s.te_local_static_pa)}); "
+               + ("fuel is non-cryogenic: drain the exhaust manifold - an Atlas looped-tube "
+                  "exhaust manifold trapped RP-1 that detonated on the next start [SP-8120]"
+                  if not self.propellant_pair.startswith("LOX/LH2") else "cryogenic fuel"))

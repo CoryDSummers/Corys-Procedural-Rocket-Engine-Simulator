@@ -214,6 +214,7 @@ def checks_and_result(self, s):
         "thrust_vac_floor_n": s.thrust_vac_floor,
         "separated_at_100pct_sl": s.separated_100pct,
         "cycle_result": s.cyc,
+        "turbine_exhaust": getattr(s, "turbine_exhaust", None),   # open cycles only
         "geometry": s.geo,
         "profile_xs_m": s.xs, "profile_rs_m": s.rs, "profile_meta": s.profile_meta,
         "throttle_sweep": s.rows,

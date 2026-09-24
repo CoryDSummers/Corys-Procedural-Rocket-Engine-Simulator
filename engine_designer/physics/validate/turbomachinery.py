@@ -474,15 +474,20 @@ def run_cycle_model_check():
     ])
 
     # --- J-2X (J-2S data): tap-off, LOX/LH2 ------------------------------
+    # The J-2X's turbine exhaust is injected supersonically into its nozzle
+    # extension through a manifold [J2X-Overview leaf 10-11, 13] -> nozzle_injection
+    # (at the J-2's cited 10.9 - the J-2X's own station isn't in the paper).
     r = _design(propellant_pair="LOX/LH2", mixture_ratio=5.5, chamber_pressure_pa=9.22e6,
-                expansion_ratio=92.0, cycle="tap_off", target_vac_thrust_n=1_307_000.0)
+                expansion_ratio=92.0, cycle="tap_off", target_vac_thrust_n=1_307_000.0,
+                turbine_exhaust_mode="nozzle_injection", turbine_exhaust_inject_eps=10.9)
     c = r["cycle_result"]
     tin = c["drive_gas"]["tin_k"]
     isp_loss_pct = 100.0 * (1.0 - r["isp_vac_engine_s"] / r["isp_vac_chamber_s"])
     _report("J-2X (tap-off, LOX/LH2, 9.22 MPa, MR 5.5)", [
         ("tap gas below chamber Tc", tin < r["tc_k"], f"{tin:.0f} K vs Tc {r['tc_k']:.0f} K"),
         ("tap gas in 850-1200 K", 850.0 <= tin <= 1200.0, f"{tin:.0f} K"),
-        ("dump Isp fraction == 0.80", abs(c["gg_dump_isp_fraction"] - 0.80) < 1e-9,
+        # computed by physics/turbine_exhaust.py since 2026-09-24 (was a flat 0.80)
+        ("dump Isp fraction computed, 0.3-0.9", 0.3 <= c["gg_dump_isp_fraction"] <= 0.9,
          f"{c['gg_dump_isp_fraction']:.2f}"),
         ("engine Isp loss 0.1-2.0 %", 0.1 <= isp_loss_pct <= 2.0, f"{isp_loss_pct:.3f} %"),
     ])

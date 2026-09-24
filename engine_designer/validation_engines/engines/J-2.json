@@ -1,5 +1,5 @@
 {
-  "schema_version": 8,
+  "schema_version": 9,
   "design": {
     "propellant_pair": "LOX/LH2",
     "mixture_ratio": 5.5,
@@ -23,6 +23,13 @@
     "chamber_film_inject_area_ratio": 0.0,
     "nozzle_film_fraction": 0.0,
     "nozzle_film_inject_eps": 10.0,
+    "turbine_exhaust_mode": "nozzle_injection",
+    "turbine_exhaust_nozzle_eps": 1.0,
+    "turbine_exhaust_cant_deg": 0.0,
+    "turbine_exhaust_inject_eps": 10.9,
+    "aspirator_fwd_length_frac": 0.3,
+    "aspirator_overhang_frac": 0.05,
+    "turbine_exhaust_hx_gox_kgs": 0.0,
     "regen_channel_model": "channels",
     "regen_channel_count": 360,
     "regen_channel_aspect_ratio": 0.0,
@@ -102,7 +109,8 @@
     "source": "[RO J2_Config.cfg \"J-2 230K (1968)\"]",
     "notes": [
       "347-stainless tube wall, full-length regen, two-pass with a mid-nozzle inlet (validate.run_two_pass_cooling_check's J-2 layout).",
-      "Tubes: 180 down then 360 up [AEDC-J2S s2.1.1 p.1-2] (J-2S; same circuit as the J-2's 1-1/2-pass layout [SP-8087 Table I p.5]) -> regen_channel_count=360 (the up count; the down count follows as 180). jacket_inlet_eps 8 is NOT cited."
+      "Tubes: 180 down then 360 up [AEDC-J2S s2.1.1 p.1-2] (J-2S; same circuit as the J-2's 1-1/2-pass layout [SP-8087 Table I p.5]) -> regen_channel_count=360 (the up count; the down count follows as 180). jacket_inlet_eps 8 is NOT cited.",
+      "Turbine exhaust enters the nozzle through eyelets ('cat-eyes') between the tubes, 115 in2 total at eps 10.45-11.40 [J-2 history, literature/; SP-8120] -> nozzle_injection at eps 10.9 (the band's middle)."
     ],
     "gaps": [
       "coolant dT",

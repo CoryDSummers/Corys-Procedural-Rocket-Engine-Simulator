@@ -920,6 +920,8 @@
 "gas_cp_frozen_j_kgk": {
 "__f__": "2164.93882369573"
 },
+"gas_film_profile": null,
+"gas_film_temperature_k": null,
 "gas_prandtl": {
 "__f__": "0.5798024936236043"
 },
@@ -2380,6 +2382,12 @@
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
+"aspirator_fwd_length_frac": {
+"__f__": "0.3"
+},
+"aspirator_overhang_frac": {
+"__f__": "0.05"
+},
 "baffle_compartments": 5,
 "bearing_material_key": "cronidur_30",
 "bell_material_key": "refrasil_phenolic",
@@ -2561,6 +2569,19 @@
 "tube_hatbands_on_extension": false,
 "tube_split_eps": {
 "__f__": "0.0"
+},
+"turbine_exhaust_cant_deg": {
+"__f__": "0.0"
+},
+"turbine_exhaust_hx_gox_kgs": {
+"__f__": "0.0"
+},
+"turbine_exhaust_inject_eps": {
+"__f__": "10.0"
+},
+"turbine_exhaust_mode": "overboard_duct",
+"turbine_exhaust_nozzle_eps": {
+"__f__": "1.0"
 },
 "turbine_staging": "auto",
 "turbopump_arrangement": "auto",
@@ -3682,6 +3703,7 @@
 "thrust_vac_n": {
 "__f__": "15570.0"
 },
+"turbine_exhaust": null,
 "turbopump_ports": null,
 "turbopump_sizing": null,
 "warnings": [

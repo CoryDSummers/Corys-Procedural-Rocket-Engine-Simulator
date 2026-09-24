@@ -123,6 +123,31 @@ class EngineDesign:
     nozzle_film_inject_eps: float = 10.0          # supersonic area ratio of that slot. 10.0 = the
                                                    # F-1's real film-cooled-extension start
                                                    # (10:1 -> 16:1 exit) [SP-8120].
+    # Turbine-exhaust handling, open cycles only (gas generator / tap-off) -
+    # physics/turbine_exhaust.py. Closed cycles ignore it (warn row if set).
+    turbine_exhaust_mode: str = "overboard_duct"  # "overboard_duct" (RS-68 / LR-87 / LR-91 /
+                                                   # H-1C) | "aspirator" (H-1D shroud + annular
+                                                   # exit slot [H1-Man]) | "nozzle_injection"
+                                                   # (F-1 / J-2: into the main nozzle + a gas
+                                                   # film on the wall downstream).
+    turbine_exhaust_nozzle_eps: float = 1.0       # overboard only: 1.0 = plain sonic duct exit;
+                                                   # > 1 = shaped exhaust nozzle (LR-87/LR-91).
+    turbine_exhaust_cant_deg: float = 0.0         # overboard only: exhaust-nozzle cant off the
+                                                   # engine axis - axial thrust x cos, side force
+                                                   # / roll torque reported (LR-91 roll nozzle).
+    turbine_exhaust_inject_eps: float = 10.0      # nozzle_injection: supersonic area ratio of the
+                                                   # exhaust manifold (F-1 10:1 [SP-8120]; J-2
+                                                   # 10.45-11.40 cat-eyes).
+    aspirator_fwd_length_frac: float = 0.30       # aspirator: shroud start, as a fraction of the
+                                                   # throat-to-exit length forward of the exit
+                                                   # (H-1D: ~20 in forward of the exit on its
+                                                   # 8:1 bell [H1-Man §1-51]). Geometry only.
+    aspirator_overhang_frac: float = 0.05         # aspirator: shroud extension past the exit, as
+                                                   # a fraction of the exit diameter (Tier 3 -
+                                                   # [H1-Man] says "extending beyond", no size).
+    turbine_exhaust_hx_gox_kgs: float = 0.0       # LOX->GOX pressurant heat exchanger in the
+                                                   # exhaust (H-1 [H1-Man §1-47]): GOX flow it
+                                                   # heats, kg/s. 0 = none. LOX pairs only.
     # Regenerative coolant-channel design (physics/cooling.py). "flat" keeps the
     # legacy flat JACKET_DP_PA (1.6 MPa) - the neutral default, so no existing
     # design or spot check moves. "channels" runs the 1-D counterflow coolant
@@ -348,7 +373,10 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 8   # 8 (2026-09-23): film became an OVERLAY - "film" is no longer a
+    SCHEMA_VERSION = 9   # 9 (2026-09-24): turbine_exhaust_* / aspirator_* fields added
+                         # (physics/turbine_exhaust.py) - no key migration; a v8 file's
+                         # new fields take defaults (overboard duct, sonic exit, no HX).
+                         # 8 (2026-09-23): film became an OVERLAY - "film" is no longer a
                          # section cooling method (migrated in from_dict below); new
                          # chamber_film_inject_area_ratio / nozzle_film_* fields default off.
                          # 7 (2026-09-23): tube_hatband_shape/_material added; hatband
@@ -427,30 +455,68 @@ class EngineDesign:
         return cooling.combined_film_phi(phi_c, phi_n), phi_c, phi_n
 
     def compute(self):
-        """The one entry point. A design with a plumbing run connected to a
-        turbopump port (plumbing.PlumbingRun.connect_to_pump) has a circular
-        dependency - line loss -> pump dP -> pump size -> port position -> run
-        geometry -> line loss - broken with ONE extra pass: pass 1 uses the
-        flat LINE_LOSS_PA, pass 2 re-runs with pass 1's computed per-leg
-        losses (the pump barely moves, so it converges; the residual is
-        reported as line_loss_residual_pa). No connected run -> one pass,
-        bit-identical to before."""
-        result = self._compute_pass(None)
-        computed = result.get("line_loss_computed") or {}
-        if any(v is not None for v in computed.values()):
-            result = self._compute_pass(computed)
-            again = result.get("line_loss_computed") or {}
-            result["line_loss_residual_pa"] = max(
-                (abs((again.get(k) or 0.0) - (computed.get(k) or 0.0)) for k in computed),
-                default=0.0)
+        """The one entry point. Two circular dependencies are broken with ONE
+        extra pass each (both ride the same second pass):
+        - a plumbing run connected to a turbopump port (plumbing.PlumbingRun.
+          connect_to_pump): line loss -> pump dP -> pump size -> port position
+          -> run geometry -> line loss. Pass 1 uses the flat LINE_LOSS_PA, pass
+          2 pass 1's computed per-leg losses (residual: line_loss_residual_pa).
+        - turbine exhaust injected into the nozzle (turbine_exhaust_mode
+          "nozzle_injection"): its gas film cools the nozzle wall, but the
+          GG/tap-off flow and exhaust temperature are only known after the
+          pump stage, which runs after the thermal solve. Pass 2 applies pass
+          1's film (residual: turbine_exhaust["film_residual_kgs"]).
+        Neither -> one pass, bit-identical to before.
+
+        Open cycles (gas generator / tap-off) then CLOSE ON THE TARGET THRUST:
+        their turbine flow is extra propellant whose exhaust adds (a little)
+        thrust, so the chamber flow is rescaled until chamber + exhaust thrust
+        (with every Isp adjustment) equals target_vac_thrust_n (thrust is ~linear
+        in chamber flow: 2-3 iterations; reported as thrust_closure_scale).
+        Closed cycles keep target = chamber-flow sizing, unchanged."""
+        from .. import cycles as _cycles
+        open_cycle = self.cycle in (_cycles.GAS_GENERATOR, _cycles.TAP_OFF)
+        scale = 1.0
+        for _ in range(6 if open_cycle else 1):
+            result = self._compute_passes(scale)
+            if not open_cycle:
+                break
+            err = self.target_vac_thrust_n / result["thrust_vac_n"]
+            if abs(err - 1.0) < 1e-9:
+                break
+            scale *= err
+        if open_cycle:
+            result["thrust_closure_scale"] = scale
         return result
 
-    def _compute_pass(self, line_loss_override):
+    def _compute_passes(self, mdot_scale):
+        """One (or two - see compute()) full pipeline passes at a chamber-flow scale."""
+        result = self._compute_pass(None, mdot_scale=mdot_scale)
+        computed = result.get("line_loss_computed") or {}
+        need_ll = any(v is not None for v in computed.values())
+        te = result.get("turbine_exhaust") or {}
+        te_carry = te.get("film_carry")
+        if need_ll or te_carry:
+            result = self._compute_pass(computed if need_ll else None, te_film=te_carry,
+                                        mdot_scale=mdot_scale)
+            if need_ll:
+                again = result.get("line_loss_computed") or {}
+                result["line_loss_residual_pa"] = max(
+                    (abs((again.get(k) or 0.0) - (computed.get(k) or 0.0)) for k in computed),
+                    default=0.0)
+            if te_carry and result.get("turbine_exhaust"):
+                result["turbine_exhaust"]["film_residual_kgs"] = abs(
+                    result["turbine_exhaust"]["mdot_kgs"] - te_carry["mdot_kgs"])
+        return result
+
+    def _compute_pass(self, line_loss_override, te_film=None, mdot_scale=1.0):
         """One full compute pass, as an ordered pipeline of stage functions
         (physics/design/*_stage.py). Values handed from one stage to a later
         one live on the PassState `s`; see design/state.py."""
         s = PassState()
         s.line_loss_override = line_loss_override
+        s.te_film_carry = te_film
+        s.mdot_scale = mdot_scale
         combustion_stage.combustion_setup(self, s)
         combustion_stage.nozzle_performance(self, s)
         geometry_stage.contour(self, s)
