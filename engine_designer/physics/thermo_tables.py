@@ -152,6 +152,34 @@ def coolant_state(pair, t_k, p_pa):
     return out
 
 
+def coolant_column(pair, p_pa):
+    """Every coolant property on the table's full temperature grid at ONE
+    pressure (linear in ln P between the bracketing isobars; CoolProp holes
+    filled by linear interpolation along T). Returns dict(t_k, rho_kg_m3,
+    cp_j_kgk, mu_pa_s, k_w_mk, h_j_kg) of 1-D arrays, or None - what a coolant
+    march needs to evaluate properties with plain np.interp calls."""
+    tab = _coolant_db().get(pair)
+    if tab is None:
+        return None
+    i, wi, _ = _bracket(tab["lnp"], math.log(max(p_pa, 1.0)))
+    out = {"t_k": tab["t"]}
+    for k in COOLANT_KEYS:
+        lo, hi = tab[k][i], tab[k][min(i + 1, len(tab["lnp"]) - 1)]
+        col = (1.0 - wi) * lo + wi * hi
+        bad = ~np.isfinite(col)
+        if bad.any():
+            # fall back to the finite isobar, then fill any remaining holes along T
+            col = np.where(bad & np.isfinite(lo), lo, col)
+            col = np.where(~np.isfinite(col) & np.isfinite(hi), hi, col)
+            good = np.isfinite(col)
+            col = np.interp(tab["t"], tab["t"][good], col[good])
+        out[k] = col
+    # enthalpy must be monotonic in T for the inversion (it is physically;
+    # guard against interpolation round-off across the pseudo-critical kink)
+    out["h_j_kg"] = np.maximum.accumulate(out["h_j_kg"])
+    return out
+
+
 def coolant_temperature_from_enthalpy(pair, h_j_kg, p_pa):
     """Temperature at which h(T, p) == h_j_kg, by bisection on the (monotonic)
     interpolated enthalpy; clamps to the table's T range."""

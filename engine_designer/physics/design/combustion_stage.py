@@ -29,7 +29,8 @@ def combustion_setup(self, s):
            mr_lo <= self.mixture_ratio <= mr_hi,
            f"Mixture ratio {self.mixture_ratio:.2f} is outside the "
            f"literature-anchored table range [{mr_lo}, {mr_hi}] for "
-           f"{self.propellant_pair} - combustion numbers are extrapolated.")
+           f"{self.propellant_pair} - the tables are CLAMPED at that edge, so combustion "
+           f"numbers are the edge value, not extrapolated.")
 
     s.tc, s.gamma, s.m_molar = combustion.combustion_state(self.propellant_pair, self.mixture_ratio)
     s.rho_fuel, s.rho_ox = combustion.propellant_densities(self.propellant_pair)
@@ -57,7 +58,12 @@ def combustion_setup(self, s):
         s.eta_cstar *= staged_combustion.STAGED_ETA_CSTAR_PENALTY[self.cycle]
     s.film_fraction = max(0.0, self.film_cooling_fraction)
     if s.film_fraction > 0.0:
-        s.eta_cstar *= (1.0 - FILM_COOLING_ETA_CSTAR_PENALTY * s.film_fraction)
+        # film_cooling_fraction is a fraction of FUEL flow; its share of the
+        # TOTAL flow (the c* basis) is f/(1+MR) - the old code applied it to
+        # total flow, overstating the curtain's cost (1+MR)x vs the nozzle-slot
+        # film and dump bleed, which were already on this basis (audit W3).
+        s.eta_cstar *= (1.0 - FILM_COOLING_ETA_CSTAR_PENALTY * s.film_fraction
+                        / (1.0 + self.mixture_ratio))
     if self.injector_baffles:
         # Baffle blades span the injector face and consume film coolant -
         # a small c* hit [claude_lit/topics/14].
@@ -70,10 +76,19 @@ def combustion_setup(self, s):
     # regen-jacket pre-march below (for the pump-feed jacket dP estimate) now
     # needs them for the same computed-absolute Bartz flux the authoritative
     # cooling model further down uses; both must agree.
-    s.mu_gas = combustion.gas_viscosity_pa_s(s.m_molar, s.tc)
-    s.pr_gas = combustion.prandtl(s.gamma)
-    s.cp_gas = combustion.mixture_cp_j_kgk(s.gamma, s.m_molar)
-    s.t_aw_chamber_k = cooling.recovery_temperature(s.tc)
+    # 2026-09-23: from the chemical-equilibrium tables at the ACTUAL (MR, Pc) -
+    # frozen cp / viscosity / Prandtl, and the equilibrium Tc as the heat-
+    # transfer stagnation temperature (see heat_transfer_gas_properties).
+    s.ht_gas = combustion.heat_transfer_gas_properties(
+        self.propellant_pair, self.mixture_ratio, self.chamber_pressure_pa)
+    s.mu_gas = s.ht_gas["mu_pa_s"]
+    s.pr_gas = s.ht_gas["prandtl"]
+    s.cp_gas = s.ht_gas["cp_j_kgk"]
+    s.tc_ht = s.ht_gas["tc_k"]
+    s.gamma_ht = s.ht_gas["gamma"]
+    # chamber (M ~ 0) recovery temperature = the stagnation temperature; the
+    # per-station T_aw(M) lives in the thermal solve.
+    s.t_aw_chamber_k = s.tc_ht
 
     # Chamber sizing method (physics/geometry.chamber_geometry). "lstar" is the
     # historical path. "residence_time" sizes Vc from a target combustion stay

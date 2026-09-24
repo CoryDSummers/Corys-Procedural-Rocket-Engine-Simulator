@@ -95,9 +95,9 @@ from .radiation import (  # noqa: F401
     radiative_wall_temperature,
 )
 from .regen_credit import (  # noqa: F401
-    REGEN_ISP_BONUS_MIN,
     REGEN_ISP_BONUS_MAX,
-    regen_isp_bonus_fraction,
+    REGEN_ISP_ENERGY_TO_ISP,
+    regen_isp_bonus_from_heat,
 )
 from .film import (  # noqa: F401
     FILM_ETA0_PER_FRACTION,
@@ -120,9 +120,12 @@ from .channels import (  # noqa: F401
     TARGET_COOLANT_VELOCITY_MS,
     _TARGET_COOLANT_VELOCITY_FALLBACK,
     CHANNEL_ASPECT_RATIO_MAX,
-    DITTUS_BOELTER_C,
-    DITTUS_BOELTER_M,
-    DITTUS_BOELTER_N,
+    SIEDER_TATE_C,
+    SIEDER_TATE_RE_EXP,
+    SIEDER_TATE_PR_EXP,
+    SIEDER_TATE_VISC_EXP,
+    LAMINAR_NU,
+    RE_LAMINAR,
     CHANNEL_DP_CALIBRATION,
     WALL_CONSTRUCTIONS,
     H_C_CONSTRUCTION_FACTOR,
@@ -151,4 +154,24 @@ from .march import (  # noqa: F401
     two_pass_tube_counts,
     down_pass_velocity_ms,
     march_coolant_two_pass,
+)
+# 2026-09-23 cooling audit: unified per-station thermal solve + its building blocks
+from .gas_side import (  # noqa: F401
+    BARTZ_OMEGA,
+    adiabatic_wall_temperature_profile,
+    bartz_hg_raw_profile,
+    bartz_sigma,
+    mach_profile,
+    recovery_factor_from_prandtl,
+)
+from .channels import FIN_CONSTRUCTIONS, rib_fin_factor  # noqa: F401
+from .coolant_state import CP_FALLBACK_J_KGK, CoolantModel  # noqa: F401
+from .thermal_solve import (  # noqa: F401
+    ABLATIVE,
+    ACTIVE_METHODS,
+    DUMP,
+    RADIATIVE,
+    REGEN,
+    solve_thermal,
+    station_treatments,
 )

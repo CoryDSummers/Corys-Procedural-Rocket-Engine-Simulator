@@ -121,8 +121,10 @@ def injector_and_cooling_routing(self, s):
     s.split_eps_eff = 0.0 if s.two_pass else self.tube_split_eps
 
 
-def cycle_and_geometry(self, s):
-    """Turbomachinery cycle branches (pump dP / efficiencies / GG), thrust, chamber geometry, real contour, deferred expander cycle."""
+def turbomachinery_cycle(self, s):
+    """Turbomachinery cycle branches (pump dP / efficiencies / GG) and thrust. The
+    jacket dP they use is the real-contour thermal solve's (cooling_stage.thermal
+    runs first); the expander cycle is completed in geometry_stage.chamber_detail."""
     # Per-propellant-pair turbine drive-gas properties (fuel-rich GG / preburner
     # gas), shared by every turbopump cycle branch below. See GG_GAS_PROPERTIES.
     s.gg_gas = GG_GAS_PROPERTIES[self.propellant_pair]
@@ -306,7 +308,12 @@ def cycle_and_geometry(self, s):
         s.isp_sl_eng = s.isp_sl_chamber
 
     elif self.cycle == cycles.PRESSURE_FED:
-        s.cyc = cycles.pressure_fed_result(s.pc_feed, s.dp_injector, LINE_LOSS_PA)
+        # The tanks feed the regen jacket too: its dP (0 without a jacket) and
+        # the computed feed-line loss (== LINE_LOSS_PA with no plumbing run)
+        # belong in the required tank pressure (audit W10).
+        s.cyc = cycles.pressure_fed_result(
+            s.pc_feed, s.dp_injector + s.jacket_dp_pa,
+            max(s.line_loss_fuel_pa, s.line_loss_ox_pa))
         s.isp_vac_eng = s.isp_vac_chamber
         s.isp_sl_eng = s.isp_sl_chamber
         _check(s.checklist, s.warnings, "turbopump", "Pressure-fed chamber pressure plausibility",
@@ -347,20 +354,3 @@ def cycle_and_geometry(self, s):
     s.thrust_vac_floor = s.thrust_vac * self.throttle_floor
 
     s.separated_100pct = iso.is_separated(s.pe_pa, PA_SEA_LEVEL, SEPARATION_K)
-
-    s.conv_half_angle = self.convergent_half_angle_deg
-    s.geo = geometry.chamber_geometry(s.mdot, s.cstar, self.chamber_pressure_pa,
-                                     self.expansion_ratio, self.lstar_m, self.contraction_ratio,
-                                     s.conv_half_angle, self.chamber_wall_fillet_r_over_rt,
-                                     self.chamber_sizing_method, s.chamber_sizing_rt_s, s.tc, s.m_molar)
-    _check(s.checklist, s.warnings, "chamber geometry",
-           "L* sufficient for a cylindrical section at this contraction ratio",
-           not s.geo["cylindrical_volume_clamped"],
-           f"L* {self.lstar_m:.2f} m is too small for a cylindrical chamber "
-           f"section at contraction ratio {self.contraction_ratio:.2f} - the "
-           f"convergent cone alone already accounts for that much volume. "
-           f"Chamber length clamped to the convergent section only.")
-    _check(s.checklist, s.warnings, "chamber geometry", "Convergent half-angle within 20-45 deg",
-           20.0 <= s.conv_half_angle <= 45.0,
-           f"Convergent-cone half-angle {s.conv_half_angle:.0f} deg is outside the "
-           f"[Huzel 4.3] 20-45 deg range.")

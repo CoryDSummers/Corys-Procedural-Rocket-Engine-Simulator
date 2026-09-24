@@ -39,7 +39,10 @@ def burn_time_and_mass(self, s):
         s.rated_burn_time_s = mass_model.ablative_rated_burn_time_s(
             chamber_wall_thickness_m, consumption_rate_m_s)
     else:
-        margin_mult = s.margin["margin_ratio"] / materials.THIN_MARGIN_THRESHOLD
+        # the WORST of the throat row and the full-length peak row (the throat
+        # alone used to set it even when another station ran hotter - audit W7)
+        _margin = min(s.margin["margin_ratio"], s.peak_wall_margin_ratio or float("inf"))
+        margin_mult = _margin / materials.THIN_MARGIN_THRESHOLD
         margin_mult = max(RATED_TIME_MARGIN_MULT_MIN, min(RATED_TIME_MARGIN_MULT_MAX, margin_mult))
         s.rated_burn_time_s = BASE_RATED_BURN_TIME_S * margin_mult
 

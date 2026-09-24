@@ -215,11 +215,15 @@ def _consistency(r):
     out = []
     c = r.get("cooling") or {}
     inp = r.get("inputs") or {}
-    # 1. throat energy balance closure: q = h_g_eff * (T_aw - T_wg) at the throat
+    # 1. throat energy balance closure: q = h_g_eff * (T_aw,film - T_wg) at the throat
     q = _get(r, "cooling", "q_throat_w_m2")
     hg = _get(r, "cooling", "hg_throat_w_m2k")
     twg = _get(r, "cooling", "t_wg_throat_k")
-    taw = _get(r, "cooling", "t_aw_chamber_k")
+    taw = None
+    _prof = c.get("t_aw_film_profile_k")
+    _rs = r.get("profile_rs_m")
+    if _prof is not None and _rs is not None:
+        taw = float(np.asarray(_prof)[int(np.argmin(np.asarray(_rs)))])
     if None not in (q, hg, twg, taw) and hg > 0:
         implied = hg * (taw - twg)
         ratio = q / implied if implied else float("nan")
@@ -227,24 +231,20 @@ def _consistency(r):
     # 2. T_wg as a fraction of T_aw (the circular-inversion fingerprint)
     if None not in (twg, taw) and taw:
         out.append(("Twg/Taw", f"{twg / taw:.3f}", None))
-    # 3. jacket heat balance: Q_wall ~= mdot_cool * cp * dT
-    qw = _get(r, "cooling", "wall_heat_total_w")
+    # 3. jacket heat balance: Q_regen == mdot_jacket * (h(T_in + dT) - h(T_in)),
+    #    enthalpy-exact with the same coolant model the march uses
+    qw = _get(r, "cooling", "wall_heat_regen_w")
     dt = _get(r, "cooling", "coolant_delta_t_k")
-    mdot = _get(r, "mdot_kgs")
-    mr = _get(r, "inputs", "mixture_ratio")
+    mj = _get(r, "cooling", "mdot_coolant_jacket_kgs")
+    tin = _get(r, "cooling", "coolant_inlet_t_k")
+    pc = _get(r, "cooling", "coolant_pressure_pa")
     regen = bool(c.get("regen_cooled"))
-    if regen and None not in (qw, dt, mdot, mr) and dt > 0:
-        try:
-            from engine_designer.physics import cooling as _cool
-            cp = _cool.FUEL_CP_J_KGK.get(inp.get("propellant_pair"))
-        except Exception:
-            cp = None
-        byp = 0.0
-        if r.get("cooling_flow_topology") == "f1_split_reverse_flow":
-            byp = _get(r, "manifold_bypass_fraction") or 0.0
-        if cp:
-            q_cool = mdot / (1.0 + mr) * (1.0 - byp) * cp * dt
-            out.append(("Qwall/(m cp dT)", f"{qw / q_cool:.2f}", abs(qw / q_cool - 1.0) < 0.15))
+    if regen and None not in (qw, dt, mj, tin, pc) and dt > 0 and mj > 0:
+        from engine_designer.physics.cooling import CoolantModel
+        cm = CoolantModel(inp.get("propellant_pair"), pc)
+        q_cool = mj * cm.heat_capacity_to(tin, dt)
+        if q_cool > 0:
+            out.append(("Qregen/(m dh)", f"{qw / q_cool:.3f}", abs(qw / q_cool - 1.0) < 0.03))
     # 4. throat margin row vs full-length peak row consistency
     m_thr = _get(r, "material_margin", "margin_ratio")
     m_pk = _get(r, "cooling", "peak_wall_margin_ratio")

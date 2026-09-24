@@ -14,6 +14,50 @@ from .constants import (
 from .checklist import _check
 
 
+def contour(self, s):
+    """Chamber geometry + the real nozzle contour. Runs right after the nozzle-
+    performance stage: it depends only on the chamber mass flow and c* (known
+    there), not on the cycle - which is what lets the unified thermal solve run
+    on the REAL contour before the pump chain needs the jacket dP (2026-09-23
+    audit; previously the pumps used a cheap conical pre-march)."""
+    s.conv_half_angle = self.convergent_half_angle_deg
+    s.geo = geometry.chamber_geometry(s.mdot, s.cstar, self.chamber_pressure_pa,
+                                     self.expansion_ratio, self.lstar_m, self.contraction_ratio,
+                                     s.conv_half_angle, self.chamber_wall_fillet_r_over_rt,
+                                     self.chamber_sizing_method, s.chamber_sizing_rt_s, s.tc, s.m_molar)
+    _check(s.checklist, s.warnings, "chamber geometry",
+           "L* sufficient for a cylindrical section at this contraction ratio",
+           not s.geo["cylindrical_volume_clamped"],
+           f"L* {self.lstar_m:.2f} m is too small for a cylindrical chamber "
+           f"section at contraction ratio {self.contraction_ratio:.2f} - the "
+           f"convergent cone alone already accounts for that much volume. "
+           f"Chamber length clamped to the convergent section only.")
+    _check(s.checklist, s.warnings, "chamber geometry", "Convergent half-angle within 20-45 deg",
+           20.0 <= s.conv_half_angle <= 45.0,
+           f"Convergent-cone half-angle {s.conv_half_angle:.0f} deg is outside the "
+           f"[Huzel 4.3] 20-45 deg range.")
+    xs_conv, rs_conv, x_throat, conv_len = geometry.convergent_profile(
+        s.geo["chamber_dia_m"], s.geo["throat_dia_m"], s.geo["chamber_length_m"], s.conv_half_angle,
+        self.chamber_wall_fillet_r_over_rt)
+    if self.nozzle_type == "bell":
+        div_len = nozzle_shapes.bell_length(s.geo["throat_dia_m"] / 2.0, s.geo["exit_dia_m"] / 2.0,
+                                             self.bell_percent_length)
+        xs_div, rs_div, _ = nozzle_shapes.bell_profile_points(
+            s.geo["throat_dia_m"] / 2.0, s.geo["exit_dia_m"] / 2.0, x_throat,
+            s.theta_n_deg, s.theta_e_deg, div_len, n=30)
+        s.xs = np.concatenate([xs_conv, xs_div[1:]])  # skip duplicate throat point
+        s.rs = np.concatenate([rs_conv, rs_div[1:]])
+        s.profile_meta = {"convergent_length_m": conv_len, "divergent_length_m": div_len,
+                         "total_length_m": x_throat + div_len,
+                         "theta_n_deg": s.theta_n_deg, "theta_e_deg": s.theta_e_deg}
+    else:
+        s.xs, s.rs, s.profile_meta = geometry.nozzle_profile(
+            s.geo["chamber_dia_m"], s.geo["throat_dia_m"], s.geo["exit_dia_m"], s.geo["chamber_length_m"],
+            s.conv_half_angle, self.nozzle_half_angle_deg,
+            self.chamber_wall_fillet_r_over_rt,
+        )
+
+
 def chamber_detail(self, s):
     """Chamber-detail checks C1/C2: finite-contraction-ratio loss, stay time, L/D."""
     # C1 - finite-contraction-ratio chamber pressure loss.
@@ -46,27 +90,6 @@ def chamber_detail(self, s):
            f"[claude_lit topic 04].",
            f"OK - L/D {s.chamber_l_over_d:.2f}")
 
-    xs_conv, rs_conv, x_throat, conv_len = geometry.convergent_profile(
-        s.geo["chamber_dia_m"], s.geo["throat_dia_m"], s.geo["chamber_length_m"], s.conv_half_angle,
-        self.chamber_wall_fillet_r_over_rt)
-    if self.nozzle_type == "bell":
-        div_len = nozzle_shapes.bell_length(s.geo["throat_dia_m"] / 2.0, s.geo["exit_dia_m"] / 2.0,
-                                             self.bell_percent_length)
-        xs_div, rs_div, s._ = nozzle_shapes.bell_profile_points(
-            s.geo["throat_dia_m"] / 2.0, s.geo["exit_dia_m"] / 2.0, x_throat,
-            s.theta_n_deg, s.theta_e_deg, div_len, n=30)
-        s.xs = np.concatenate([xs_conv, xs_div[1:]])  # skip duplicate throat point
-        s.rs = np.concatenate([rs_conv, rs_div[1:]])
-        s.profile_meta = {"convergent_length_m": conv_len, "divergent_length_m": div_len,
-                         "total_length_m": x_throat + div_len,
-                         "theta_n_deg": s.theta_n_deg, "theta_e_deg": s.theta_e_deg}
-    else:
-        s.xs, s.rs, s.profile_meta = geometry.nozzle_profile(
-            s.geo["chamber_dia_m"], s.geo["throat_dia_m"], s.geo["exit_dia_m"], s.geo["chamber_length_m"],
-            s.conv_half_angle, self.nozzle_half_angle_deg,
-            self.chamber_wall_fillet_r_over_rt,
-        )
-
     if self.cycle == cycles.EXPANDER:
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_expander_efficiencies(
             s.mdot, self.mixture_ratio, s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox,
@@ -79,7 +102,13 @@ def chamber_detail(self, s):
             s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po,
             self.pump_specific_power_w_kg,
             s.xs, s.rs, s.geo["throat_dia_m"], s.cstar, s.mu_gas, s.cp_gas, s.pr_gas, s.t_aw_chamber_k,
-            cutoff_area_ratio=s.cooled_length_eps, eta_turbine=s.eta_turb,
+            cutoff_area_ratio=s.regen_cut_eps, eta_turbine=s.eta_turb,
+            # The turbine is driven by the heat the regen jacket actually picks
+            # up in the unified thermal solve - film-corrected, method-aware
+            # (0 without a regen chamber), bypass- and dump-aware - so it can
+            # no longer exceed the reported wall heat (audit W9).
+            heat_w=s.thermal["wall_heat_regen_w"], coolant_model=s.thermal["coolant_model"],
+            t_inlet_k=s.coolant_inlet_k,
         )
         s.cyc["pump_discharge_fuel_pa"] = s.dp_fuel + TANK_HEAD_PA
         s.cyc["pump_discharge_ox_pa"] = s.dp_ox + TANK_HEAD_PA

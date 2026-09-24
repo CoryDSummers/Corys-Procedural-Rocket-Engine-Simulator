@@ -1,0 +1,554 @@
+
+=== engines/AJ10-137  [Aerozine-50/NTO MR 1.6 Pc 0.68 MPa eps 62.5 pressure_fed ch=ablative noz=radiative]
+  Isp vac            313.9 s        ref 314.5 [298.77-330.23] ok  validated [RO AJ10_137_Config.cfg first block]
+  Isp SL                 1 s      
+  F vac              97.42 kN       ref 97.42 [96.442-98.39] ok  validated [RO AJ10_137_Config.cfg first block]
+  Tc                  3060 K      
+  q throat           2.077 MW/m2   (was 3.185, -34.8%)
+  h_g throat         2.081 kW/m2K  (was 1.542, +35.0%)
+  T_w peak            1641 K      
+  margin             1.867 x      
+  Q wall                 0 MW      (was 2.263, -100.0%)
+  coolant dT             0 K      
+  jacket dP              0 MPa    
+  regen bonus            0 %      
+  dump frac              0 %      
+  burn time           26.7 s      
+  ~ peak<=throat margin   1.01/1.87 ok 
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Niobium C-103 (radiative): only 1% thermal margin (computed wall temp 1641 K vs 1650 K 
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~7.1, radiative): wall ~1641 K, 1.01x that section's material 
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~1874 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for Aerozine-50/NTO (typically used with LOX/RP-1).
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.007) - this is a vacuum/high-altitude nozzle, no
+
+=== engines/Aestus  [N2O4/MMH MR 1.9 Pc 1.10 MPa eps 84.0 pressure_fed ch=regenerative noz=radiative]
+  Isp vac            308.1 s        ref 306 [290.7-321.3] ok  validated [RO Aestus_Config.cfg first block]
+  Isp SL                 1 s        ref 113 [107.35-118.65] OUT plausibility [RO Aestus_Config.cfg first block]
+  F vac               27.8 kN       ref 27.8 [27.522-28.078] ok  validated [RO Aestus_Config.cfg first block]
+  Tc                  3195 K      
+  q throat           9.882 MW/m2   (was 5.935, +66.5%)
+  h_g throat         4.366 kW/m2K  (was 2.752, +58.7%)
+  T_wg throat          847 K       (was 812.9, +4.2%)
+  T_w peak            1853 K       (was 812.9, +127.9%)
+  margin             1.299 x       (was 1.353, -4.0%)
+  Q wall             2.273 MW      (was 1.296, +75.4%)
+  coolant dT           247 K       (was 140.8, +75.4%)
+  jacket dP          4.463 MPa     (was 3.906, +14.3%)
+  v cool thr         23.12 m/s    
+  regen bonus            0 %      
+  dump frac              0 %      
+  burn time          154.9 s       (was 235.3, -34.2%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.272 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.89/1.30 ok 
+  ! checklist: [turbopump] Pressure-fed chamber pressure plausibility: Chamber pressure 1.10 MPa is unusually high for a pressure-fed design - classic real examples (Apollo SP
+  ! checklist: [chamber geometry] Chamber cylindrical L/D reasonable: Chamber cylindrical L/D 3.67 is long/narrow (non-isentropic pressure loss, injector-hole crowding) [claud
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Niobium C-103 (radiative): computed wall temp 1853 K EXCEEDS its 1650 K max service tem
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~6.7, radiative): wall ~1853 K, 0.89x that section's material 
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~6.0), estimated jacket/coolant pressure (~6.7 MPa)
+  ! checklist: [injector] Injector type suitability for propellant pair: Coaxial swirl / shear coaxial is unusual for N2O4/MMH; it's typically used for LOX/LH2. Efficiency num
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for N2O4/MMH (typically used with LOX/RP-1).
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.008) - this is a vacuum/high-altitude nozzle, no
+
+=== engines/F-1  [LOX/RP-1 MR 2.27 Pc 6.77 MPa eps 16.0 gas_generator ch=regenerative noz=uncooled]
+  Isp vac            299.4 s       (was 302.1, -0.9%)  ref 301 [285.95-316.05] ok  validated [RO F1_Config.cfg "SA-501..503"]
+  Isp SL             259.2 s       (was 261.5, -0.9%)  ref 262.1 [249.0-275.21] ok  plausibility [RO F1_Config.cfg "SA-501..503"]
+  F vac               7601 kN      (was 7670, -0.9%)  ref 7775 [7697.735-7853.245] OUT validated [RO F1_Config.cfg "SA-501..503"]
+  Tc                  3583 K      
+  q throat            14.6 MW/m2   (was 17.1, -14.6%)
+  h_g throat          6.08 kW/m2K  (was 7.073, -14.0%)
+  T_wg throat         1097 K       (was 868.8, +26.2%)
+  T_w peak            1430 K       (was 879.7, +62.6%)
+  margin              1.14 x       (was 1.439, -20.8%)
+  Q wall             86.83 MW      (was 99.38, -12.6%)
+  coolant dT         67.26 K       (was 85.39, -21.2%)
+  jacket dP          1.282 MPa     (was 0.6452, +98.7%)
+  v cool thr         36.67 m/s     (was 34.99, +4.8%)
+  regen bonus       0.2251 %       (was 1.096, -79.5%)
+  dump frac              0 %      
+  burn time            152 s       (was 250.2, -39.2%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.314 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.87/1.14 ok 
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 1430 K EXCEEDS its 1250 K max service
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: only 14% thermal margin (computed wall temp 1097 K vs 1250 K max). Thin margin. Basi
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~16.0, radiative): wall ~1430 K, 0.87x that section's material
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~658 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/
+
+=== engines/J-2  [LOX/LH2 MR 5.5 Pc 5.26 MPa eps 27.5 gas_generator ch=regenerative noz=regenerative]
+  Isp vac            421.5 s       (was 418, +0.8%)  ref 425 [403.75-446.25] ok  validated [RO J2_Config.cfg "J-2 230K (1968)"]
+  Isp SL             302.7 s       (was 300.2, +0.8%)  ref 304 [288.8-319.2] ok  plausibility [RO J2_Config.cfg "J-2 230K (1968)"]
+  F vac               1028 kN      (was 1020, +0.8%)  ref 1023 [1012.86-1033.322] ok  validated [RO J2_Config.cfg "J-2 230K (1968)"]
+  Tc                  3465 K      
+  q throat            38.5 MW/m2   (was 14.13, +172.6%)  ref  [27.8-57.2] ok  plausibility [Wieseneck-J2 p.6, 12] J-2/J-2S/M-1 17-35 Btu/in2-s
+  h_g throat         17.42 kW/m2K  (was 10.98, +58.6%)
+  T_wg throat         1119 K       (was 548.4, +104.1%)
+  T_w peak            1130 K       (was 549.6, +105.6%)
+  margin            0.9829 x       (was 2.006, -51.0%)
+  Q wall             75.14 MW      (was 23.19, +224.0%)
+  coolant dT         120.6 K       (was 42.38, +184.5%)
+  jacket dP          2.851 MPa     (was 1.544, +84.7%)
+  v cool thr           362 m/s     (was 94.97, +281.2%)
+  regen bonus        1.131 %       (was 0.2187, +417.0%)
+  dump frac              0 %      
+  burn time          169.3 s       (was 348.8, -51.5%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.336 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.97/0.98 ok 
+  ~ dP_down/dP_total           0.19 ok 
+  ! checklist: [chamber geometry] Gas stay time within 1-40 ms: Combustion-gas stay time 1.0 ms is outside the typical 1-40 ms band [Sutton 8.10] - too short, combustion may n
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Stainless Steel (304/316): only 9% thermal margin (computed wall temp 1013 K vs 1100 K 
+  ! checklist: [materials] Chamber material thermal margin: Stainless Steel (304/316): computed wall temp 1119 K EXCEEDS its 1100 K max service temp (Tc 3465 K, regenerative c
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~1130 K, 0.97x that section's m
+  ! checklist: [injector] Injector resultant beta angle: Resultant injection beta angle +4.7 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negativ
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~2062 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.194) - this is a vacuum/high-altitude nozzle, no
+
+=== engines/LMAE  [Aerozine-50/NTO MR 1.6 Pc 0.83 MPa eps 45.6 pressure_fed ch=ablative noz=ablative]
+  Isp vac            310.2 s        ref 311 [295.45-326.55] ok  validated [RO LMAE_Config.cfg first block]
+  Isp SL                 1 s      
+  F vac              15.57 kN       ref 15.57 [15.414-15.726] ok  validated [RO LMAE_Config.cfg first block]
+  Tc                  3060 K      
+  q throat           2.534 MW/m2   (was 4.572, -44.6%)
+  h_g throat          2.93 kW/m2K  (was 2.214, +32.4%)
+  margin             1.849 x      
+  Q wall                 0 MW      (was 0.8622, -100.0%)
+  coolant dT             0 K      
+  jacket dP              0 MPa    
+  regen bonus            0 %      
+  dump frac              0 %      
+  burn time          54.93 s      
+  ! checklist: [chamber geometry] Chamber cylindrical L/D reasonable: Chamber cylindrical L/D 4.23 is long/narrow (non-isentropic pressure loss, injector-hole crowding) [claud
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for Aerozine-50/NTO (typically used with LOX/RP-1).
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.013) - this is a vacuum/high-altitude nozzle, no
+
+=== engines/Merlin-1D  [LOX/RP-1 MR 2.34 Pc 9.72 MPa eps 21.4 gas_generator ch=regenerative noz=regenerative]
+  Isp vac            299.1 s       (was 301.8, -0.9%)  ref 311 [295.45-326.55] ok  validated [RO Merlin1_Config.cfg "Merlin 1D"]
+  Isp SL             262.2 s       (was 264.6, -0.9%)  ref 282 [267.9-296.1] OUT plausibility [RO Merlin1_Config.cfg "Merlin 1D"]
+  F vac              734.7 kN      (was 741.4, -0.9%)  ref 742.4 [734.976-749.824] OUT validated [RO Merlin1_Config.cfg "Merlin 1D"]
+  Tc                  3606 K      
+  q throat           31.64 MW/m2   (was 30.91, +2.4%)
+  h_g throat         11.39 kW/m2K  (was 12.7, -10.3%)
+  T_wg throat        799.1 K       (was 944.1, -15.4%)
+  T_w peak             817 K       (was 958.4, -14.8%)
+  margin             1.001 x       (was 0.8474, +18.1%)
+  Q wall              22.7 MW      (was 23.43, -3.1%)
+  coolant dT         124.5 K       (was 148.7, -16.3%)
+  jacket dP          1.753 MPa     (was 1.688, +3.9%)
+  v cool thr         37.26 m/s     (was 34.99, +6.5%)
+  regen bonus       0.5983 %       (was 1.5, -60.1%)
+  dump frac              0 %      
+  burn time          170.3 s       (was 147.4, +15.6%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.223 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.98/1.00 ok 
+  ! checklist: [cooling] Regen jacket coolant capacity: Regen-jacket coolant temperature rise (~124 K) exceeds ~120 K limit for LOX/RP-1: this chamber pressure/size drives mor
+  ! checklist: [materials] Chamber material thermal margin: NARloy-Z Copper Alloy (Cu-Ag-Zr): only 0% thermal margin (computed wall temp 799 K vs 800 K max). Thin margin. Basi
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~817 K, 0.98x that section's ma
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~21.4), estimated jacket/coolant pressure (~13.4 MP
+
+=== engines/RD-180  [LOX/RP-1 MR 2.72 Pc 26.66 MPa eps 36.87 orsc ch=regenerative noz=regenerative]
+  Isp vac            318.1 s       (was 322.6, -1.4%)  ref 338.4 [321.48-355.32] OUT validated [RO RD180_Config.cfg first block]
+  Isp SL             294.3 s       (was 298.4, -1.4%)  ref 311.9 [296.3-327.5] OUT plausibility [RO RD180_Config.cfg first block]
+  F vac               4156 kN      (was 4214, -1.4%)  ref 4152 [4110.48-4193.52] ok  validated [RO RD180_Config.cfg first block]
+  Tc                  3688 K      
+  q throat           53.93 MW/m2   (was 65.02, -17.1%)
+  h_g throat         21.01 kW/m2K  (was 26.12, -19.5%)
+  T_wg throat         1272 K       (was 1424, -10.6%)
+  T_w peak            1302 K       (was 1444, -9.8%)
+  margin            0.6288 x       (was 0.5618, +11.9%)
+  Q wall             77.44 MW      (was 95.9, -19.2%)
+  coolant dT         91.63 K       (was 127.5, -28.2%)
+  jacket dP         0.9995 MPa     (was 0.8559, +16.8%)
+  v cool thr         36.76 m/s     (was 34.99, +5.1%)
+  regen bonus       0.3691 %       (was 1.5, -75.4%)
+  dump frac              0 %      
+  burn time          106.9 s       (was 97.71, +9.4%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.331 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.61/0.63 ok 
+  ! checklist: [turbopump] Staged-combustion power balance: The preburner drive gas cannot power the pumps at this chamber pressure: best achievable power margin 0.91 (oxidize
+  ! checklist: [turbopump] Staged-combustion turbine PR / discharge plausibility: Turbine PR 2.73 / drive-pump discharge 3.63 x Pc is outside real staged-combustion practice (
+  ! checklist: [propellant/cycle] ORSC turbine-material caution: Oxidizer-rich staged combustion needs an oxidizer-resistant turbine (hot O2-rich gas is highly corrosive/erosi
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Inconel 718 Nickel Superalloy: only 2% thermal margin (computed wall temp 1221 K vs 125
+  ! checklist: [materials] Chamber material thermal margin: NARloy-Z Copper Alloy (Cu-Ag-Zr): computed wall temp 1272 K EXCEEDS its 800 K max service temp (Tc 3688 K, regenera
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~1302 K, 0.61x that section's m
+  ! checklist: [injector] Injector resultant beta angle: Resultant injection beta angle +6.0 deg is outside the -2 to +6 deg band LOX/RP-1 prefers - it wants a slightly negati
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~1805 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~36.9), estimated jacket/coolant pressure (~31.7 MP
+  ! checklist: [turbopump] Feed-system pump plausibility: required pump discharge dP (~96 MPa) exceeds ~55 MPa, beyond real flight-turbopump historical practice [SP-8107 Table
+  ! checklist: [turbopump] Turbopump sizing / material feasibility: [turbopump] Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (N
+  ! checklist: [injector] Injector type suitability for propellant pair: Coaxial swirl / shear coaxial is unusual for LOX/RP-1; it's typically used for LOX/LH2. Efficiency num
+
+=== engines/RL10A-3-3  [LOX/LH2 MR 5.0 Pc 2.72 MPa eps 61.0 expander ch=regenerative noz=regenerative]
+  Isp vac            453.5 s       (was 448.5, +1.1%)  ref 442.2 [420.09-464.31] ok  validated [RO RL10_Config.cfg "RL10A-3-3"]
+  Isp SL             1.015 s       (was 1.004, +1.1%)  ref 186 [176.7-195.3] OUT plausibility [RO RL10_Config.cfg "RL10A-3-3"]
+  F vac               71.1 kN      (was 70.32, +1.1%)  ref 70.05 [69.349-70.751] OUT validated [RO RL10_Config.cfg "RL10A-3-3"]
+  Tc                  3390 K      
+  q throat           31.67 MW/m2   (was 10.74, +194.8%)
+  h_g throat         13.58 kW/m2K  (was 8.535, +59.1%)
+  T_wg throat          834 K       (was 442.7, +88.4%)
+  T_w peak             841 K       (was 443, +89.8%)
+  margin             1.319 x       (was 2.485, -46.9%)
+  Q wall             12.42 MW      (was 3.825, +224.7%)
+  coolant dT         291.3 K       (was 100.4, +190.2%)
+  jacket dP          11.53 MPa     (was 3.047, +278.5%)
+  v cool thr         477.1 m/s     (was 94.97, +402.3%)
+  regen bonus          1.5 %       (was 0.3811, +293.6%)
+  dump frac              0 %      
+  burn time          227.5 s       (was 432.2, -47.4%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.263 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   1.31/1.32 ok 
+  ! checklist: [chamber geometry] Gas stay time within 1-40 ms: Combustion-gas stay time 1.0 ms is outside the typical 1-40 ms band [Sutton 8.10] - too short, combustion may n
+  ! checklist: [chamber geometry] Chamber cylindrical L/D reasonable: Chamber cylindrical L/D 3.68 is long/narrow (non-isentropic pressure loss, injector-hole crowding) [claud
+  ! checklist: [injector] Injector resultant beta angle: Resultant injection beta angle +4.1 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negativ
+  ! checklist: [cooling] Tube taper within swage/expand limit (SP-8087): A single cooling tube must taper 7.8:1 along its run - past SP-8087's 6:1 limit for a swaged (3:1) + e
+  ! checklist: [turbopump] Turbopump sizing / material feasibility: [turbopump] required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.039) - this is a vacuum/high-altitude nozzle, no
+
+=== engines/RS-25  [LOX/LH2 MR 6.0 Pc 20.48 MPa eps 77.5 frsc ch=regenerative noz=regenerative]
+  Isp vac            426.5 s       (was 423.6, +0.7%)  ref 455.2 [432.44-477.96] OUT validated [RO SSME_Config.cfg first block]
+  Isp SL             343.2 s       (was 340.8, +0.7%)  ref 363.2 [345.04-381.36] OUT plausibility [RO SSME_Config.cfg first block]
+  F vac               2109 kN      (was 2095, +0.7%)  ref 2090 [2069.1-2110.9] ok  validated [RO SSME_Config.cfg first block]
+  Tc                  3520 K      
+  q throat           142.2 MW/m2   (was 43.31, +228.2%)  ref 117.7 [82.4-153.0] ok  plausibility [Wieseneck-J2 p.6] SSME design point 72 Btu/in2-s @3000 psia (band +/-30%)
+  h_g throat         56.03 kW/m2K  (was 33.14, +69.1%)
+  T_wg throat         1019 K       (was 816.5, +24.9%)  ref  [0.0-811.0] OUT plausibility [Wieseneck-J2] 1000 F copper gas-side max
+  T_w peak            1040 K       (was 824.7, +26.1%)
+  margin            0.7848 x       (was 0.9798, -19.9%)
+  Q wall             162.3 MW      (was 48.8, +232.6%)
+  coolant dT         140.9 K       (was 47.37, +197.4%)
+  jacket dP          1.715 MPa     (was 0.6825, +151.2%)
+  v cool thr         215.7 m/s     (was 102.9, +109.6%)
+  regen bonus        1.176 %       (was 0.2326, +405.4%)
+  dump frac              0 %      
+  burn time          133.8 s       (was 170.4, -21.5%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.287 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.77/0.78 ok 
+  ! checklist: [turbopump] Preburner temperature vs turbine material: Preburner/turbine-inlet temperature 1113 K exceeds Inconel 718 (nickel superalloy)'s 980 K service limit 
+  ! checklist: [chamber geometry] Gas stay time within 1-40 ms: Combustion-gas stay time 1.0 ms is outside the typical 1-40 ms band [Sutton 8.10] - too short, combustion may n
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Stainless Steel (304/316): computed wall temp 1112 K EXCEEDS its 1100 K max service tem
+  ! checklist: [materials] Chamber material thermal margin: NARloy-Z Copper Alloy (Cu-Ag-Zr): computed wall temp 1019 K EXCEEDS its 800 K max service temp (Tc 3520 K, regenera
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~1040 K, 0.77x that section's m
+  ! checklist: [manifold] Jacket inlet manifold bore vs. chamber packaging: Jacket inlet manifold flow bore (338 mm) exceeds the chamber diameter (325 mm) it feeds - not a bui
+  ! checklist: [injector] Injector resultant beta angle: Resultant injection beta angle +5.3 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negativ
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~2867 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~77.5), estimated jacket/coolant pressure (~25.3 MP
+  ! checklist: [turbopump] Turbopump sizing / material feasibility: [turbopump] required head/tip-speed combination implies wanting ~32 pump stages, beyond this tool's 8-stage
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.201) - this is a vacuum/high-altitude nozzle, no
+
+=== engines/Raptor-2  [LOX/CH4 MR 3.55 Pc 30.00 MPa eps 40.0 ffsc ch=regenerative noz=regenerative]
+  Isp vac            347.1 s       (was 349.7, -0.7%)  ref 347 [329.65-364.35] ok  validated [RO Raptor_Config.cfg "Raptor-2"]
+  Isp SL             322.9 s       (was 325.3, -0.7%)  ref 326.4 [310.04-342.67] ok  plausibility [RO Raptor_Config.cfg "Raptor-2"]
+  F vac               2256 kN      (was 2272, -0.7%)  ref 2256 [2232.975-2278.085] ok  validated [RO Raptor_Config.cfg "Raptor-2"]
+  Tc                  3589 K      
+  q throat             125 MW/m2   (was 72.83, +71.6%)
+  h_g throat         52.82 kW/m2K  (was 40.09, +31.8%)
+  T_wg throat         1350 K       (was 1296, +4.2%)
+  T_w peak            1380 K       (was 1308, +5.5%)
+  margin            0.6669 x       (was 0.6946, -4.0%)
+  Q wall             101.4 MW      (was 56.42, +79.7%)
+  coolant dT           206 K       (was 112.3, +83.5%)
+  jacket dP          1.673 MPa     (was 0.9109, +83.7%)
+  v cool thr          64.8 m/s     (was 46.88, +38.2%)
+  regen bonus       0.8782 %       (was 0.7289, +20.5%)
+  dump frac              0 %      
+  burn time          113.4 s       (was 120.8, -6.1%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.363 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.65/0.67 ok 
+  ! checklist: [turbopump] Staged-combustion power balance: The preburner drive gas cannot power the pumps at this chamber pressure: best achievable power margin 0.89 (fuel-ri
+  ! checklist: [turbopump] Staged-combustion turbine PR / discharge plausibility: Turbine PR 2.43 / drive-pump discharge 3.23 x Pc is outside real staged-combustion practice (
+  ! checklist: [propellant/cycle] FFSC development complexity: Full-flow staged combustion uses TWO preburners (one fuel-rich, one oxidizer-rich), one per turbopump, with near
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 1361 K EXCEEDS its 1250 K max service
+  ! checklist: [materials] Chamber material thermal margin: GRCop-84 Copper-Chromium-Niobium Alloy: computed wall temp 1350 K EXCEEDS its 900 K max service temp (Tc 3589 K, re
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~1380 K, 0.65x that section's m
+  ! checklist: [cooling] Throat coolant velocity vs. SP-8087 limit: Throat coolant-passage velocity ~65 m/s exceeds SP-8087's 61 m/s liquid-coolant limit [SP-8087 Sec.3.1.1.5.
+  ! checklist: [injector] Injector resultant beta angle: Resultant injection beta angle +5.6 deg is outside the -3 to +3 deg band LOX/CH4 prefers - it wants a slightly negativ
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~2634 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~40.0), estimated jacket/coolant pressure (~36.2 MP
+  ! checklist: [turbopump] Feed-system pump plausibility: required pump discharge dP (~97 MPa) exceeds ~55 MPa, beyond real flight-turbopump historical practice [SP-8107 Table
+  ! checklist: [turbopump] Turbopump sizing / material feasibility: [turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage 
+  ! checklist: [injector] Injector type suitability for propellant pair: Coaxial swirl / shear coaxial is unusual for LOX/CH4; it's typically used for LOX/LH2. Efficiency numb
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for LOX/CH4 (typically used with LOX/RP-1).
+
+=== engines/Rutherford  [LOX/RP-1 MR 2.5 Pc 12.00 MPa eps 10.5 electric_pump ch=regenerative noz=regenerative]
+  Isp vac            302.8 s        ref 317 [301.15-332.85] ok  validated [RO Rutherford_Config.cfg first block (Pc "12?", eps "10.5?")]
+  Isp SL             287.4 s        ref 311 [295.45-326.55] OUT plausibility [RO Rutherford_Config.cfg first block (Pc "12?", eps "10.5?")]
+  F vac              26.58 kN       ref 26.19 [25.928-26.452] OUT validated [RO Rutherford_Config.cfg first block (Pc "12?", eps "10.5?")]
+  Tc                  3648 K      
+  q throat           28.97 MW/m2   (was 51.39, -43.6%)
+  h_g throat         15.81 kW/m2K  (was 20.87, -24.3%)
+  T_wg throat         1839 K       (was 2038, -9.8%)
+  T_w peak            1847 K       (was 2038, -9.4%)
+  margin            0.6797 x       (was 0.6134, +10.8%)
+  Q wall             2.228 MW      (was 3.22, -30.8%)
+  coolant dT         314.9 K       (was 599.7, -47.5%)
+  jacket dP          6.169 MPa     (was 6.458, -4.5%)
+  v cool thr         36.96 m/s     (was 34.99, +5.6%)
+  regen bonus          1.5 %      
+  dump frac              0 %      
+  burn time          117.7 s       (was 106.7, +10.3%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.501 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.68/0.68 ok 
+  ! checklist: [chamber geometry] Chamber cylindrical L/D reasonable: Chamber cylindrical L/D 12.21 is long/narrow (non-isentropic pressure loss, injector-hole crowding) [clau
+  ! checklist: [cooling] Regen jacket coolant capacity: Regen-jacket coolant temperature rise (~315 K) exceeds ~120 K limit for LOX/RP-1: this chamber pressure/size drives mor
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1839 K EXCEEDS its 1250 K max service temp (Tc 3648 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~1847 K, 0.68x that section's m
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~10.5), estimated jacket/coolant pressure (~20.3 MP
+
+=== engines/Vulcain  [LOX/LH2 MR 5.25 Pc 11.00 MPa eps 45.0 gas_generator ch=regenerative noz=dump]
+  Isp vac            429.1 s       (was 429.9, -0.2%)  ref 431.5 [409.92-453.08] ok  validated [RO Vulcain_Config.cfg first block]
+  Isp SL               337 s       (was 337.7, -0.2%)  ref 315 [299.25-330.75] OUT plausibility [RO Vulcain_Config.cfg first block]
+  F vac               1129 kN      (was 1131, -0.2%)  ref 1145 [1133.55-1156.45] OUT validated [RO Vulcain_Config.cfg first block]
+  Tc                  3428 K      
+  q throat           91.65 MW/m2   (was 27.84, +229.1%)
+  h_g throat         36.13 kW/m2K  (was 21.88, +65.1%)
+  T_wg throat        801.1 K       (was 622.3, +28.7%)
+  T_w peak           821.7 K       (was 629.1, +30.6%)
+  margin            0.9986 x       (was 1.286, -22.3%)
+  Q wall             93.34 MW      (was 28.84, +223.7%)
+  coolant dT         92.91 K       (was 46.98, +97.8%)
+  jacket dP          1.082 MPa     (was 0.5689, +90.2%)
+  v cool thr         154.8 m/s     (was 94.97, +63.0%)
+  regen bonus       0.7576 %       (was 0.2315, +227.2%)
+  dump frac          11.26 %       (was 4.291, +162.5%)
+  burn time          169.3 s       (was 223.6, -24.3%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.240 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.97/1.00 ok 
+  ! checklist: [chamber geometry] Gas stay time within 1-40 ms: Combustion-gas stay time 1.0 ms is outside the typical 1-40 ms band [Sutton 8.10] - too short, combustion may n
+  ! checklist: [materials] Chamber material thermal margin: NARloy-Z Copper Alloy (Cu-Ag-Zr): computed wall temp 801 K EXCEEDS its 800 K max service temp (Tc 3428 K, regenerat
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~822 K, 0.97x that section's ma
+  ! checklist: [injector] Injector resultant beta angle: Resultant injection beta angle +4.4 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negativ
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~2876 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~45.0), estimated jacket/coolant pressure (~13.7 MP
+  ! checklist: [turbopump] Turbopump sizing / material feasibility: [turbopump] required head/tip-speed combination implies wanting ~11 pump stages, beyond this tool's 8-stage
+  ! checklist: [ignition] Ignition system plausibility: TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.223) - this is a vacuum/high-altitude nozzle, no
+
+=== user_designs/AJ-90k  [LOX/LH2 MR 3.6 Pc 3.10 MPa eps 46.0 frsc ch=uncooled noz=regenerative]
+  Isp vac            454.3 s       (was 445.4, +2.0%)
+  Isp SL               107 s       (was 104.8, +2.0%)
+  F vac                400 kN      (was 400, -0.0%)
+  Tc                  2997 K      
+  q throat          0.8216 MW/m2   (was 9.659, -91.5%)
+  h_g throat         11.35 kW/m2K  (was 10.67, +6.4%)
+  T_wg throat         2131 K       (was 1308, +62.9%)
+  T_w peak            2131 K      
+  margin            0.5865 x       (was 0.9556, -38.6%)
+  Q wall                 0 MW      (was 7.318, -100.0%)
+  coolant dT             0 K       (was 25.7, -100.0%)
+  jacket dP              0 MPa    
+  regen bonus            0 %      
+  dump frac              0 %      
+  burn time            102 s       (was 166.2, -38.6%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.967 
+  ~ peak<=throat margin   0.59/0.59 ok 
+  ! checklist: [cooling] Actively-cooled nozzle has a coolant path: The nozzle is set to 'regenerative' but part of it has no coolant: active cooling past the material transit
+  ! checklist: [turbopump] Preburner temperature vs turbine material: Preburner/turbine-inlet temperature 1113 K exceeds Inconel 718 (nickel superalloy)'s 980 K service limit 
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Stainless Steel (304/316): computed wall temp 1747 K EXCEEDS its 1100 K max service tem
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 2131 K EXCEEDS its 1250 K max service temp (Tc 2997 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the throat (area ratio ~1.0, radiative): wall ~2131 K, 0.59x that section's material 
+  ! checklist: [turbopump] Turbopump sizing / material feasibility: [turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service lim
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.068) - this is a vacuum/high-altitude nozzle, no
+
+=== user_designs/LR-100  [LOX/RP-1 MR 2.75 Pc 6.00 MPa eps 80.0 gas_generator ch=regenerative noz=ablative]
+  Isp vac            328.6 s       (was 331.8, -1.0%)
+  Isp SL             95.82 s       (was 96.75, -1.0%)
+  F vac                596 kN      (was 602.4, -1.1%)
+  Tc                  3692 K      
+  q throat           17.11 MW/m2   (was 20.22, -15.4%)
+  h_g throat         6.708 kW/m2K  (was 8.182, -18.0%)
+  T_wg throat         1039 K       (was 865.1, +20.1%)
+  T_w peak            1072 K       (was 893.5, +20.0%)
+  margin             1.059 x       (was 1.272, -16.7%)
+  Q wall             10.74 MW      (was 11.99, -10.4%)
+  coolant dT         91.71 K       (was 115.6, -20.7%)
+  jacket dP          1.299 MPa     (was 0.8287, +56.8%)
+  v cool thr         36.38 m/s     (was 34.95, +4.1%)
+  regen bonus       0.3946 %       (was 1.449, -72.8%)
+  dump frac              0 %      
+  burn time          178.4 s       (was 221.1, -19.3%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.289 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   1.03/1.06 ok 
+  ! checklist: [materials] Nozzle/bell cooling method compatible with material: Nozzle/bell cooling method 'regenerative' is not physically possible on Ablative Phenolic-Silic
+  ! checklist: [materials] Chamber material thermal margin: Stainless Steel (304/316): only 6% thermal margin (computed wall temp 1039 K vs 1100 K max). Thin margin. Basis: co
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.2, regen): wall ~1072 K, 1.03x that section's m
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.049) - this is a vacuum/high-altitude nozzle, no
+
+=== user_designs/RS-29  [LOX/RP-1 MR 2.38 Pc 12.00 MPa eps 18.0 tap_off ch=regenerative noz=regenerative]
+  Isp vac            312.9 s       (was 315.7, -0.9%)
+  Isp SL             286.4 s       (was 289, -0.9%)
+  F vac               1595 kN      (was 1610, -0.9%)
+  Tc                  3618 K      
+  q throat           23.85 MW/m2   (was 33.42, -28.6%)
+  h_g throat         11.04 kW/m2K  (was 13.68, -19.3%)
+  T_wg throat         1464 K       (was 1155, +26.7%)
+  T_w peak            2166 K       (was 1173, +84.6%)
+  margin            0.8541 x       (was 1.082, -21.1%)
+  Q wall             25.55 MW      (was 31.31, -18.4%)
+  coolant dT         71.22 K       (was 96.94, -26.5%)
+  jacket dP          1.036 MPa     (was 0.6099, +69.8%)
+  v cool thr         36.27 m/s     (was 34.97, +3.7%)
+  regen bonus       0.3214 %       (was 1.231, -73.9%)
+  dump frac              0 %      
+  burn time          88.31 s       (was 188.2, -53.1%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.404 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.51/0.85 ok 
+  ! checklist: [cooling] Actively-cooled nozzle has a coolant path: The nozzle is set to 'regenerative' but part of it has no coolant: active cooling past the material transit
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Stainless Steel (304/316): computed wall temp 2166 K EXCEEDS its 1100 K max service tem
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1464 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~12.6, radiative): wall ~2166 K, 0.51x that section's material
+
+=== user_designs/RS-29A  [LOX/RP-1 MR 2.38 Pc 12.00 MPa eps 18.0 tap_off ch=regenerative noz=regenerative]
+  Isp vac              313 s       (was 316.3, -1.0%)
+  Isp SL             286.5 s       (was 289.6, -1.0%)
+  F vac               1596 kN      (was 1613, -1.0%)
+  Tc                  3618 K      
+  q throat           23.58 MW/m2   (was 33.42, -29.5%)
+  h_g throat         11.01 kW/m2K  (was 13.68, -19.5%)
+  T_wg throat         1483 K       (was 1181, +25.5%)
+  T_w peak            1516 K       (was 1199, +26.4%)
+  margin            0.8431 x       (was 1.058, -20.3%)
+  Q wall              29.9 MW      (was 36.6, -18.3%)
+  coolant dT         82.63 K       (was 113.3, -27.1%)
+  jacket dP          1.001 MPa     (was 0.5096, +96.4%)
+  v cool thr         36.68 m/s     (was 34.97, +4.9%)
+  regen bonus       0.3761 %       (was 1.422, -73.6%)
+  dump frac              0 %      
+  burn time          143.4 s       (was 184.1, -22.1%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.409 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.82/0.84 ok 
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1483 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.1, regen): wall ~1516 K, 0.82x that section's m
+  ! checklist: [cooling] Hatband structural adequacy (SP-8120): Hatbands: Unsupported tube length between hatbands exceeds the allowable span (tube bending at wall pressure, S
+
+=== user_designs/RS-29C  [LOX/RP-1 MR 2.0 Pc 12.00 MPa eps 18.0 tap_off ch=regenerative noz=regenerative]
+  Isp vac            308.8 s       (was 305.8, +1.0%)
+  Isp SL             282.5 s       (was 279.8, +1.0%)
+  F vac               1596 kN      (was 1607, -0.7%)
+  Tc                  3480 K      
+  q throat           26.64 MW/m2   (was 27.93, -4.6%)
+  h_g throat         12.83 kW/m2K  (was 13.97, -8.2%)
+  T_wg throat        794.9 K       (was 904.7, -12.1%)
+  T_w peak            1013 K       (was 929.5, +9.0%)
+  margin             1.006 x       (was 0.8843, +13.8%)
+  Q wall             29.29 MW      (was 31.73, -7.7%)
+  coolant dT         71.48 K       (was 84.55, -15.5%)
+  jacket dP          1.024 MPa     (was 0.587, +74.4%)
+  v cool thr         36.47 m/s     (was 34.97, +4.3%)
+  regen bonus        0.383 %       (was 1.086, -64.7%)
+  dump frac              0 %      
+  burn time          137.3 s       (was 153.8, -10.7%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.277 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.79/1.01 ok 
+  ! checklist: [materials] Chamber material thermal margin: NARloy-Z Copper Alloy (Cu-Ag-Zr): only 1% thermal margin (computed wall temp 795 K vs 800 K max). Thin margin. Basi
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~18.0, regen): wall ~1013 K, 0.79x that section's material lim
+
+=== user_designs/RS-30  [LOX/RP-1 MR 2.38 Pc 14.00 MPa eps 20.0 tap_off ch=regenerative noz=uncooled]
+  Isp vac            312.4 s       (was 314.8, -0.8%)
+  Isp SL             287.3 s       (was 289.6, -0.8%)
+  F vac               1583 kN      (was 1596, -0.8%)
+  Tc                  3618 K      
+  q throat           22.63 MW/m2   (was 38.42, -41.1%)
+  h_g throat         12.16 kW/m2K  (was 15.73, -22.7%)
+  T_wg throat         1782 K       (was 1841, -3.2%)
+  T_w peak            2218 K       (was 1841, +20.5%)
+  margin            0.7016 x       (was 0.679, +3.3%)
+  Q wall             18.36 MW      (was 24.68, -25.6%)
+  coolant dT         52.27 K       (was 76.84, -32.0%)
+  jacket dP         0.8515 MPa     (was 0.5669, +50.2%)
+  v cool thr         35.59 m/s     (was 34.97, +1.8%)
+  regen bonus        0.231 %       (was 0.9964, -76.8%)
+  dump frac              0 %      
+  burn time          98.02 s       (was 118.1, -17.0%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.489 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.56/0.70 ok 
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 2218 K EXCEEDS its 1250 K max service
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1782 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~6.2, radiative): wall ~2218 K, 0.56x that section's material 
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~6.0), estimated jacket/coolant pressure (~17.4 MPa
+
+=== user_designs/TRW-270  [Aerozine-50/NTO MR 2.017 Pc 0.60 MPa eps 50.0 pressure_fed ch=regenerative noz=ablative]
+  Isp vac            303.6 s      
+  Isp SL                 1 s      
+  F vac                 12 kN     
+  Tc                  3234 K      
+  q throat           6.155 MW/m2   (was 3.754, +64.0%)
+  h_g throat         2.658 kW/m2K  (was 1.72, +54.6%)
+  T_wg throat        746.4 K       (was 676.2, +10.4%)
+  T_w peak             794 K      
+  margin             1.474 x       (was 1.627, -9.4%)
+  Q wall             0.569 MW      (was 0.328, +73.4%)
+  coolant dT         202.8 K       (was 0, +inf%)
+  jacket dP            1.6 MPa    
+  v cool thr         13.24 m/s    
+  regen bonus            0 %      
+  dump frac              0 %      
+  burn time            241 s       (was 282.9, -14.8%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.244 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   1.39/1.47 ok 
+  ! checklist: [materials] Chamber cooling method compatible with material: Chamber cooling method 'ablative' is not physically possible on Stainless Steel (304/316) (it can o
+  ! checklist: [cooling] Coolant property data for the jacket: No coolant property data for Aerozine-50/NTO's fuel - the regen jacket is solved with generic kerosene-like fall
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.009) - this is a vacuum/high-altitude nozzle, no
+
+=== user_designs/j-2_test_bed  [LOX/LH2 MR 5.25 Pc 8.00 MPa eps 27.5 gas_generator ch=regenerative noz=regenerative]
+  Isp vac            417.1 s       (was 415.3, +0.4%)
+  Isp SL             339.7 s       (was 338.2, +0.4%)
+  F vac               1032 kN      (was 1027, +0.4%)
+  Tc                  3428 K      
+  q throat           47.92 MW/m2   (was 21.25, +125.5%)
+  h_g throat         24.96 kW/m2K  (was 16.7, +49.5%)
+  T_wg throat         1393 K       (was 717.3, +94.2%)
+  T_w peak            2296 K       (was 717.9, +219.8%)
+  margin            0.8973 x       (was 1.743, -48.5%)
+  Q wall             45.78 MW      (was 16.59, +176.0%)
+  coolant dT         71.86 K       (was 28.75, +149.9%)
+  jacket dP          1.166 MPa     (was 0.4847, +140.5%)
+  v cool thr         204.4 m/s     (was 94.97, +115.2%)
+  regen bonus       0.6652 %       (was 0.1805, +268.5%)
+  dump frac              0 %      
+  burn time          94.69 s       (was 303.1, -68.8%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.420 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.54/0.90 ok 
+  ! checklist: [cooling] Actively-cooled nozzle has a coolant path: The nozzle is set to 'regenerative' but part of it has no coolant: active cooling past the material transit
+  ! checklist: [chamber geometry] Gas stay time within 1-40 ms: Combustion-gas stay time 0.7 ms is outside the typical 1-40 ms band [Sutton 8.10] - too short, combustion may n
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 2296 K EXCEEDS its 1250 K max service
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1393 K EXCEEDS its 1250 K max service temp (Tc 3428 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~14.4, radiative): wall ~2296 K, 0.54x that section's material
+  ! checklist: [injector] Injector resultant beta angle: Resultant injection beta angle +2.1 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negativ
+  ! checklist: [stability] Combustion acoustic-mode margin: First tangential mode ~2544 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP
+  ! checklist: [turbopump] Turbopump sizing / material feasibility: [turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage 
+  ! checklist: [nozzle/aero] Sea-level nozzle flow attachment: Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.300) - this is a vacuum/high-altitude nozzle, no

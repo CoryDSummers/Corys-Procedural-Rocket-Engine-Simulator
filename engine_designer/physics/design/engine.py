@@ -453,11 +453,12 @@ class EngineDesign:
         s.line_loss_override = line_loss_override
         combustion_stage.combustion_setup(self, s)
         combustion_stage.nozzle_performance(self, s)
+        geometry_stage.contour(self, s)
         feed_stage.injector_and_cooling_routing(self, s)
-        cooling_stage.jacket_premarch(self, s)
-        feed_stage.cycle_and_geometry(self, s)
+        cooling_stage.thermal(self, s)             # unified thermal solve, before the pumps
+        feed_stage.turbomachinery_cycle(self, s)
         geometry_stage.chamber_detail(self, s)
-        cooling_stage.heat_flux_and_march(self, s)
+        cooling_stage.thermal_reporting(self, s)
         cooling_stage.nozzle_extension_thermal(self, s)
         cooling_stage.coolant_capacity_and_isp(self, s)
         manifold_stage.injector_and_manifolds(self, s)

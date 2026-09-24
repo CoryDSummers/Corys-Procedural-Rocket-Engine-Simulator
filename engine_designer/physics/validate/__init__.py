@@ -84,13 +84,14 @@ from .cooling_flux import (  # noqa: F401
 from .cooling_methods import (  # noqa: F401
     run_explicit_cooling_check,
     run_cooling_compatibility_check,
+    run_cooling_robustness_sweep,
 )
 from .cooling_layouts import (  # noqa: F401
     run_manifold_bypass_check,
     run_two_pass_cooling_check,
 )
 from .cooling_wall_film import (  # noqa: F401
-    FLAT_MODE_TWG_PINNED_K,
+    FLAT_JACKET_DP_PA,
     WIESENECK_SSME_T_WC_K,
     WIESENECK_COPPER_T_WG_MAX_K,
     run_coupled_wall_temperature_check,
@@ -122,6 +123,7 @@ ALL_CHECKS = (
     run_hatband_plausibility_check,
     run_coupled_wall_temperature_check,
     run_cooling_compatibility_check,
+    run_cooling_robustness_sweep,
     run_film_overlay_check,
     run_pump_pressure_chain_check,
 )

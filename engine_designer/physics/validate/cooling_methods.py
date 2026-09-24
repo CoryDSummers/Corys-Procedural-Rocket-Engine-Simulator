@@ -309,3 +309,59 @@ def run_cooling_compatibility_check():
           "/ cooling.resolve_cooling_method_checked ***")
     print("=" * 78)
     return all_ok
+
+
+def run_cooling_robustness_sweep():
+    """
+    2026-09-23 cooling audit: every propellant pair x every chamber method x
+    every nozzle method (material chosen to allow it), plus every wall
+    construction x both channel models on a regen chamber, must compute with
+    finite cooling numbers and a converged unified thermal solve. Catches the
+    old silent-zero / TypeError / KeyError class (pairs with no coolant data:
+    Aerozine-50, hydrazine, H2O2) and any non-converging treatment mix.
+    """
+    import itertools
+    import math
+    from .. import combustion
+    print()
+    print("=" * 78)
+    print("COOLING ROBUSTNESS SWEEP (pair x method x construction, no crash / NaN)")
+    print("=" * 78)
+    mats = {"regenerative": "stainless_steel", "dump": "stainless_steel",
+            "radiative": "niobium_c103", "uncooled": "inconel_718",
+            "ablative": "ablative_phenolic"}
+    combos = [(p, ch, nz, "milled_channel", "channels")
+              for p, ch, nz in itertools.product(combustion.available_pairs(), mats, mats)]
+    combos += [(p, "regenerative", "regenerative", wc, model)
+               for p in ("LOX/RP-1", "LOX/LH2", "Aerozine-50/NTO")
+               for wc, model in itertools.product(cooling.WALL_CONSTRUCTIONS, ("flat", "channels"))]
+    bad = []
+    for pair, ch, nz, wc, model in combos:
+        lo, hi = combustion.mr_bounds(pair)
+        mono = combustion.is_monopropellant(pair)
+        d = EngineDesign(propellant_pair=pair, mixture_ratio=0.5 * (lo + hi),
+                         chamber_cooling_method=ch, nozzle_cooling_method=nz,
+                         material_key=mats[ch], bell_material_key=mats[nz],
+                         wall_construction=wc, regen_channel_model=model,
+                         regen_nozzle_end_eps=10.0, nozzle_type="bell",
+                         cycle="pressure_fed" if mono else "gas_generator",
+                         chamber_pressure_pa=3.0e6)
+        try:
+            r = d.compute()
+            c = r["cooling"]
+            vals = (c["q_throat_w_m2"], c["wall_heat_total_w"], r["isp_vac_engine_s"],
+                    r["rated_burn_time_s"])
+            if (not all(v is not None and math.isfinite(v) for v in vals)
+                    or not c["thermal_solve_converged"]):
+                bad.append(f"{pair} {ch}/{nz} {wc} {model}: nonfinite or not converged")
+        except Exception as e:      # a crash is exactly what this sweep exists to catch
+            bad.append(f"{pair} {ch}/{nz} {wc} {model}: {e!r}"[:160])
+    for b in bad[:20]:
+        print("  " + b)
+    ok = not bad
+    print(f"  {len(combos)} combinations, {len(bad)} bad   [{'OK' if ok else 'FAIL'}]")
+    print()
+    print("ALL COOLING ROBUSTNESS CHECKS OK" if ok else
+          "*** COOLING ROBUSTNESS SWEEP FAILED - review cooling/thermal_solve.py ***")
+    print("=" * 78)
+    return ok

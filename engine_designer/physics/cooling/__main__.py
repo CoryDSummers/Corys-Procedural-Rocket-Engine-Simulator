@@ -13,7 +13,13 @@ from engine_designer.physics.cooling import (  # noqa: F401
     FUEL_CP_J_KGK,
     J2_DOWN_TO_UP_TUBE_RATIO,
     REGEN_ISP_BONUS_MAX,
-    REGEN_ISP_BONUS_MIN,
+    REGEN_ISP_ENERGY_TO_ISP,
+    CoolantModel,
+    bartz_sigma,
+    mach_profile,
+    rib_fin_factor,
+    solve_thermal,
+    station_treatments,
     STEFAN_BOLTZMANN_W_M2K4,
     WALL_TEMP_FRACTION_DEFAULT,
     _frustum_area,
@@ -40,7 +46,7 @@ from engine_designer.physics.cooling import (  # noqa: F401
     recovery_temperature,
     reference_area_avg_flux_w_m2,
     regen_feasible,
-    regen_isp_bonus_fraction,
+    regen_isp_bonus_from_heat,
     size_dump_coolant_fraction,
     solve_wall_balance,
     solve_wall_balance_profile,
@@ -111,8 +117,10 @@ if __name__ == "__main__":
     hg_throat = bartz_hg(0.9, 7.0e6, 1720.0, 7.6e-5, 2100.0, 0.77, area_ratio=1.0)
     hg_up = bartz_hg(0.9, 7.0e6, 1720.0, 7.6e-5, 2100.0, 0.77, area_ratio=4.0)
     assert hg_throat > hg_up > 0.0, (hg_throat, hg_up)          # h_g peaks at the throat
-    t_aw = recovery_temperature(3600.0)
-    assert 3100.0 < t_aw < 3400.0, t_aw                         # r ~ 0.9
+    # recovery acts on the DYNAMIC part only: T0 in the chamber, ~0.99 T0 at the throat
+    assert recovery_temperature(3600.0) == 3600.0
+    t_aw = recovery_temperature(3600.0, r=0.9, mach=1.0, gamma=1.2)
+    assert 3550.0 < t_aw < 3600.0, t_aw
     q_throat_bartz = hg_throat * (t_aw - 800.0)                  # 800 K copper wall
     t_wg = wall_gas_temperature(q_throat_bartz, hg_throat, t_aw)
     assert abs(t_wg - 800.0) < 1.0, t_wg                        # inverts cleanly
@@ -130,10 +138,10 @@ if __name__ == "__main__":
     assert abs(imbalance) / convective < 1e-3, (t_rad, imbalance, convective)  # balance solved
 
     # --- regen Isp credit -------------------------------------------------
-    b_lo = regen_isp_bonus_fraction(5.0, "LOX/RP-1")
-    b_hi = regen_isp_bonus_fraction(500.0, "LOX/RP-1")
-    assert REGEN_ISP_BONUS_MIN <= b_lo < b_hi <= REGEN_ISP_BONUS_MAX
-    assert regen_isp_bonus_fraction(100.0, "unknown/pair") == 0.0
+    # credit ~ 0.5 x recovered heat / chamber enthalpy flow, capped
+    assert regen_isp_bonus_from_heat(0.0, 1e9) == 0.0
+    assert abs(regen_isp_bonus_from_heat(1e7, 1e9) - REGEN_ISP_ENERGY_TO_ISP * 0.01) < 1e-15
+    assert regen_isp_bonus_from_heat(1e9, 1e9) == REGEN_ISP_BONUS_MAX
 
     # --- coolant-side channel model -------------------------------------------
     # A representative regen contour: injector face -> chamber end -> throat -> exit.
@@ -229,10 +237,8 @@ if __name__ == "__main__":
     # contour are exactly as computed above, whether or not this function ran.
     m_recheck = march_coolant(cx, cr, cq, ct_dia, 60.0, "LOX/RP-1", transition_area_ratio=6.0,
                               t_inlet_k=300.0)
-    assert {k: v for k, v in m_recheck.items() if not k.endswith("_profile_w_m2k")
-            and not k.endswith("_profile_k")} == {
-        k: v for k, v in m1.items() if not k.endswith("_profile_w_m2k")
-        and not k.endswith("_profile_k")}
+    assert {k: v for k, v in m_recheck.items() if not isinstance(v, np.ndarray)} == {
+        k: v for k, v in m1.items() if not isinstance(v, np.ndarray)}
     assert np.array_equal(m_recheck["h_c_profile_w_m2k"], m1["h_c_profile_w_m2k"], equal_nan=True)
     # per-station march profiles: finite over the cooled length, NaN past the
     # transition; the vectorised wall balance reproduces the scalar one.
@@ -324,3 +330,64 @@ if __name__ == "__main__":
           f"wall heat {total/1e6:.2f} MW, coolant dT {dt:.0f} K; "
           f"Bartz h_g throat {hg_throat:.0f} W/m^2/K -> q {q_throat_bartz/1e6:.1f} MW/m^2, "
           f"T_aw {t_aw:.0f} K; radiative T_wg {t_rad:.0f} K")
+
+    # --- 2026-09-23 cooling audit: unified thermal solve + its building blocks ---
+    # station Mach: subsonic upstream of the throat, 1 at it, supersonic after
+    _m = mach_profile(cr, ct_dia, 1.2)
+    _ti = int(np.argmin(cr))
+    assert np.all(_m[:_ti] < 1.0) and _m[_ti] == 1.0 and np.all(_m[_ti + 1:] > 1.0), _m
+    # Bartz sigma: < 1 for a hot wall, rises as the wall cools, ~1.2-1.4 for a cold throat
+    _s_cold, _s_hot = bartz_sigma(0.2, 1.0, 1.2), bartz_sigma(0.8, 1.0, 1.2)
+    assert 1.1 < _s_cold < 1.5 and _s_hot < _s_cold, (_s_cold, _s_hot)
+    # rib/fin factor [EUCASS-2023 Eq.24-25]: tall conductive lands help, degenerate -> 1
+    _f_cu = float(rib_fin_factor(1e5, 1e-3, 2e-3, 4e-3, 325.0))
+    _f_ss = float(rib_fin_factor(1e5, 1e-3, 2e-3, 4e-3, 16.0))
+    # copper lands are good fins (>1); a stainless land (k 16) is a poor one and its
+    # unwetted land area can even pull the hot-wall-referred factor below 1
+    assert _f_cu > 1.0 > _f_ss > 0.0 and float(rib_fin_factor(1e5, 1e-3, 1e-3, 4e-3, 325.0)) == 1.0
+    # coolant model: enthalpy round-trip; LH2 table sensible at a 45 K inlet
+    _cm = CoolantModel("LOX/LH2", 10e6)
+    assert _cm.table and abs(_cm.t_from_h(_cm.h(150.0)) - 150.0) < 0.5
+    assert 40.0 < _cm.props(45.0)[0] < 80.0 and _cm.props(300.0)[0] < 15.0
+    _cf = CoolantModel("Hydrazine", 5e6)
+    assert not _cf.has_data and _cf.source == "generic fallback"
+    # full solve on the demo contour: regen chamber + radiative extension
+    _tr, _sec, _cut, _notes = station_treatments(cr, ct_dia, "regenerative", "radiative", 6.0, 6.0)
+    _n = len(cr)
+    _sol = solve_thermal(
+        xs_m=cx, rs_m=cr, throat_dia_m=ct_dia, pc_pa=8e6, cstar_ms=1720.0, t0_k=3600.0,
+        gamma=1.2, cp_gas=2100.0, mu_gas=1e-4, pr_gas=0.6, pair="LOX/RP-1", treatment=_tr,
+        k_wall=np.full(_n, 325.0), emissivity=np.full(_n, 0.8), t_wall_m=np.full(_n, 0.8e-3),
+        t_surface_k=np.full(_n, 1500.0), film_phi=np.ones(_n), film_post_jacket=True,
+        coolant_inlet_k=300.0, coolant_p_pa=10e6, regen_mdot_kgs=60.0, regen_cut_eps=_cut,
+        march_kw=dict(construction="milled_channel"), mdot_fuel_kgs=60.0, coolant_limit_k=120.0,
+        deposit_factor=0.5)
+    assert _sol["converged"], _sol["iterations"]
+    # closure: q = h_g (T_aw,f - T_wg) at EVERY station (one flux, no circular inversion)
+    assert np.allclose(_sol["q_w_m2"], _sol["h_g_w_m2k"] * (_sol["t_aw_film_k"] - _sol["t_wg_k"]),
+                       rtol=1e-9)
+    # jacket energy balance: regen heat == mdot * (h_out - h_in) of the march
+    _mr = _sol["march"]
+    _cm2 = _sol["coolant_model"]
+    _dh = _cm2.h(300.0 + _mr["coolant_delta_t_k"]) - _cm2.h(300.0)
+    assert abs(_sol["wall_heat_regen_w"] - 60.0 * _dh) < 0.03 * _sol["wall_heat_regen_w"]
+    # radiative stations satisfy h_g (T_aw - T_wg) = e sigma T_wg^4
+    _rad = _sol["radiative_mask"]
+    if _rad.any():
+        _bal = _sol["q_w_m2"][_rad] - 0.8 * STEFAN_BOLTZMANN_W_M2K4 * _sol["t_wg_k"][_rad] ** 4
+        assert np.all(np.abs(_bal) < 2e-3 * _sol["q_w_m2"][_rad] + 50.0), _bal
+    # dump slice: its own bleed, rise held to the limit, heat not double-counted in the jacket
+    _tr2, _, _cut2, _ = station_treatments(cr, ct_dia, "regenerative", "dump", 2.0, 6.0)
+    _sol2 = solve_thermal(
+        xs_m=cx, rs_m=cr, throat_dia_m=ct_dia, pc_pa=8e6, cstar_ms=1720.0, t0_k=3600.0,
+        gamma=1.2, cp_gas=2100.0, mu_gas=1e-4, pr_gas=0.6, pair="LOX/RP-1", treatment=_tr2,
+        k_wall=np.full(_n, 325.0), emissivity=np.full(_n, 0.8), t_wall_m=np.full(_n, 0.8e-3),
+        t_surface_k=np.full(_n, 1500.0), film_phi=np.ones(_n), film_post_jacket=True,
+        coolant_inlet_k=300.0, coolant_p_pa=10e6, regen_mdot_kgs=60.0, regen_cut_eps=_cut2,
+        march_kw=dict(construction="milled_channel"), mdot_fuel_kgs=60.0, coolant_limit_k=120.0)
+    if _sol2["dump_mask"].any():
+        assert _sol2["dump"]["mdot_kgs"] > 0 and _sol2["dump"]["delta_t_k"] <= 120.0 + 1.0
+        assert _cut2 == 2.0      # regen jacket stops at the transition; the slice is the dump's
+    print(f"unified thermal solve: {_sol['iterations']} it, throat q "
+          f"{_sol['q_w_m2'][_ti]/1e6:.1f} MW/m^2, T_wg {_sol['t_wg_k'][_ti]:.0f} K, sigma "
+          f"{_sol['sigma'][_ti]:.2f}, r {_sol['recovery_factor']:.3f}, fin x{_f_cu:.2f}: OK")

@@ -151,7 +151,12 @@ def run_gg_flow_fraction_check():
         x = r["cycle_result"]["gg_flow_fraction"]
         bleed_ok = check["bleed_lo"] <= x <= check["bleed_hi"]
 
-        isp_loss = (r["isp_vac_chamber_s"] - r["isp_vac_engine_s"]) / r["isp_vac_chamber_s"]
+        # [SP-8107]'s figure is the GG DUMP loss alone: back out the regen-cooling
+        # Isp credit design.py adds to the chamber stream (2026-09-23: now sized by
+        # the recovered heat, ~0.3-0.8 % on a regen LH2 engine - enough to mask
+        # the dump loss in a plain chamber-minus-engine difference).
+        _credit = r["cooling"]["regen_isp_bonus_fraction"] * (1.0 - x) * r["isp_vac_chamber_s"]
+        isp_loss = (r["isp_vac_chamber_s"] - (r["isp_vac_engine_s"] - _credit)) / r["isp_vac_chamber_s"]
         pc_psia = check["pc_pa"] / 6894.76
         # [SP-8107 Table VI]: GG engine Isp loss ~= 1/3 to 1% at 1000 psia Pc,
         # proportional to Pc. Widen x2 for the coarse turbine model.

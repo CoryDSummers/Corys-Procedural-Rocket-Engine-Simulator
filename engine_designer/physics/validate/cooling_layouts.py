@@ -133,8 +133,13 @@ def run_two_pass_cooling_check():
         r = _j2("j2_mid_nozzle_inlet", inlet_eps=e)
         results[e] = r
         c = r["cooling"]
+        # 2026-09-23: the flux is now SOLVED against the coolant (unified thermal
+        # solve): moving the inlet upstream puts colder down-pass coolant under
+        # the nozzle wall, which lowers T_wg and so draws slightly MORE heat
+        # (~+7 % at eps 4 on this J-2). A 10 % energy-consistency tolerance
+        # replaces the old 1e-6 identity (exact only for a prescribed flux).
         if abs(c["coolant_delta_t_k"] - single["cooling"]["coolant_delta_t_k"]) > \
-                1e-6 * single["cooling"]["coolant_delta_t_k"]:
+                0.10 * single["cooling"]["coolant_delta_t_k"]:
             energy_ok = False
         if prev_dp is not None and c["jacket_dp_pa"] < prev_dp - 1.0:
             mono_ok = False
@@ -142,12 +147,16 @@ def run_two_pass_cooling_check():
         print(f"  inlet eps {e:5.1f}: jacket dP {c['jacket_dp_pa']/1e6:5.2f} MPa (down "
               f"{(c['jacket_dp_down_pa'] or 0)/1e6:4.2f}), dT {c['coolant_delta_t_k']:6.1f} K, "
               f"turnaround {c['coolant_turnaround_t_k']:6.1f} K")
-    print(f"(2) coolant dT independent of the inlet station   [{'OK' if energy_ok else 'FAIL'}]")
+    print(f"(2) coolant dT within 10 % across inlet stations   [{'OK' if energy_ok else 'FAIL'}]")
     print(f"(3) jacket dP rises as the inlet moves upstream   [{'OK' if mono_ok else 'FAIL'}]")
 
     ref = results[8.0]
     c = ref["cooling"]
-    dp_band_ok = 0.2e6 <= c["jacket_dp_pa"] <= 5.0e6
+    # Order-of-magnitude band. Widened 5 -> 8 MPa (2026-09-23): with REAL
+    # temperature-dependent H2 density the down-pass dP ~ G^2/rho grows as the
+    # hydrogen expands, and the passages are auto-sized (not the J-2's real
+    # tube bundle) - the old constant liquid-density model understated it.
+    dp_band_ok = 0.2e6 <= c["jacket_dp_pa"] <= 8.0e6
     dt_ok = 0.0 < c["coolant_delta_t_k"] <= cooling.MAX_COOLANT_DELTA_T_K.get("LOX/LH2", 500.0)
     ji = ref["jacket_manifold_result"]["jacket_inlet"]
     single_v = cooling.passage_velocity_ms(
@@ -155,7 +164,7 @@ def run_two_pass_cooling_check():
         ref["geometry"]["throat_dia_m"], ji["mdot_kgs"], "LOX/LH2")
     n_up, n_down = cooling.two_pass_tube_counts(ref["geometry"]["throat_dia_m"])
     v_ok = abs(ji["design_feed_velocity_ms"] / single_v - (n_up + n_down) / n_down) < 0.05
-    print(f"(4) J-2 @ inlet eps 8: jacket dP {c['jacket_dp_pa']/1e6:.2f} MPa in [0.2, 5.0], "
+    print(f"(4) J-2 @ inlet eps 8: jacket dP {c['jacket_dp_pa']/1e6:.2f} MPa in [0.2, 8.0], "
           f"dT {c['coolant_delta_t_k']:.0f} K; inlet ring {ji['design_feed_velocity_ms']:.0f} m/s "
           f"= {ji['design_feed_velocity_ms']/single_v:.2f}x single-pass, ring ID "
           f"{ji['ring_inlet_inner_diameter_m']*1000:.0f} mm   "

@@ -121,12 +121,15 @@ REGEN_CIRCUIT_STYLE_BY_TOPOLOGY = {
 }
 
 # Representative coolant (fuel) inlet temperature into the regen jacket, per
-# pair - used only as the base of the coolant-side wall-temperature estimate
-# for the chamber material check. Cryogenic fuels enter cold; storables and
-# kerosene near ambient. Coarse (Tier 3): a real jacket inlet also sees pump
-# discharge heating.
+# pair - the inlet state of the coolant march (and of the real-property coolant
+# tables it reads). Cryogenic fuels enter cold; storables and kerosene near
+# ambient. A real jacket inlet also sees pump-discharge heating.
+# LOX/LH2 (2026-09-23 audit, C2): 45 K, the warm end of [TN-Dump]'s measured
+# ~57-85 R (32-47 K) LH2 jacket inlet (pump-discharge H2 is a few K above the
+# tank). The old 100 K (unsourced) is already a thin supercritical gas
+# (~19 kg/m3 at 8 MPa vs ~53 at 45 K), which mis-sized every LH2 jacket.
 COOLANT_INLET_TEMP_K = {
-    "LOX/LH2": 100.0,
+    "LOX/LH2": 45.0,
     "LOX/RP-1": 300.0,
     "LOX/CH4": 112.0,          # liquid methane near its boiling point
     "N2O4/MMH": 290.0,

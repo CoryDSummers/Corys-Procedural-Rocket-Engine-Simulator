@@ -96,7 +96,7 @@ def injector_and_manifolds(self, s):
     # Share of the jacket dP spent before the return/turnaround ring: the
     # two-pass march's REAL down-pass share when it ran; the Tier-3
     # symmetric split otherwise (f1_split_reverse_flow, or flat mode).
-    _march_for_split = s.coolant_march or s.coolant_march_pre
+    _march_for_split = s.thermal["march"]    # the one real-contour march
     if (s.two_pass and _march_for_split and _march_for_split.get("jacket_dp_pa", 0) > 0
             and "jacket_dp_down_pa" in _march_for_split):
         s.jacket_return_split_fraction = (_march_for_split["jacket_dp_down_pa"]
@@ -125,6 +125,11 @@ def jacket_manifolds_and_stability(self, s):
     # J-2 layout: the mid-nozzle inlet station, and the DOWN-tube velocity
     # there (down + up tubes share the circumference -> ~3x faster).
     x_jacket_mid_inlet_m, jacket_mid_inlet_dia_m = None, None
+    # Passages are sized at the REAL coolant inlet density (the thermal solve's
+    # march), so the rings see the same passage velocities the march does.
+    _m = s.thermal["march"]
+    _rho_in = (_m["rho_inlet_kg_m3"] if (_m is not None and s.thermal["coolant_model"].table)
+               else None)
     if s.two_pass:
         _jin_xs, _jin_rs, s._, s._, s._ = geometry.split_profile_by_area_ratio(
             s.xs, s.rs, s.geo["throat_dia_m"], s.jacket_inlet_eps_eff)
@@ -135,7 +140,7 @@ def jacket_manifolds_and_stability(self, s):
             self.propellant_pair, n_channels=self.regen_channel_count,
             aspect_ratio=self.regen_channel_aspect_ratio,
             target_velocity_ms=self.regen_coolant_velocity_ms,
-            land_fraction=self.regen_channel_land_fraction)
+            land_fraction=self.regen_channel_land_fraction, rho_kg_m3=_rho_in)
     else:
         _jin_station_dia_m = (s.geo["chamber_dia_m"]
                               if self.cooling_flow_topology == "f1_split_reverse_flow"
@@ -145,7 +150,8 @@ def jacket_manifolds_and_stability(self, s):
             self.propellant_pair, n_channels=self.regen_channel_count,
             aspect_ratio=self.regen_channel_aspect_ratio,
             target_velocity_ms=self.regen_coolant_velocity_ms,
-            land_fraction=self.regen_channel_land_fraction, split_eps=s.split_eps_eff)
+            land_fraction=self.regen_channel_land_fraction, split_eps=s.split_eps_eff,
+            rho_kg_m3=_rho_in)
     # User trim on the matched velocity (1.0 = Fagherazzi's match).
     _jin_vmult = min(max(self.jacket_inlet_velocity_mult, 0.5), 2.0)
     jacket_inlet_velocity_ms *= _jin_vmult
@@ -164,7 +170,7 @@ def jacket_manifolds_and_stability(self, s):
             aspect_ratio=self.regen_channel_aspect_ratio,
             target_velocity_ms=self.regen_coolant_velocity_ms,
             land_fraction=self.regen_channel_land_fraction,
-            split_eps=s.split_eps_eff))
+            split_eps=s.split_eps_eff, rho_kg_m3=_rho_in))
     s.jacket_manifold_mass_kg = s.jacket_manifold_result["total_mass_kg"]
 
     _jin_thin_warn = manifold.thin_wall_warning(
@@ -353,7 +359,27 @@ def jacket_manifolds_and_stability(self, s):
         "nozzle_film_isp_penalty_fraction": s.nozzle_film_isp_penalty_fraction,
         "film_temperature_k": s._t_film_k,                       # post-jacket film fuel temp
         "t_aw_film_profile_k": s.t_aw_film_profile_k,
-        "film_cooled_length_eps": s.eps_for_transition,
+        "film_cooled_length_eps": s.cooled_length_eps,
+        # unified per-station thermal solve (cooling/thermal_solve.py)
+        "wall_heat_regen_w": s.thermal["wall_heat_regen_w"],
+        "wall_heat_dump_w": s.thermal["dump"]["heat_w"],
+        "dump_jacket_dp_pa": s.thermal["dump"]["jacket_dp_pa"],
+        "t_aw_profile_k": s.thermal["t_aw_k"],
+        "bartz_sigma_profile": s.thermal["sigma"],
+        "h_g_profile_w_m2k": s.thermal["h_g_w_m2k"],
+        "t_wc_profile_k": s.thermal["t_wc_k"],
+        "station_treatment": s.thermal["treatment"],
+        "recovery_factor": s.thermal["recovery_factor"],
+        "thermal_solve_iterations": s.thermal["iterations"],
+        "thermal_solve_converged": s.thermal["converged"],
+        "coolant_property_source": s.thermal["coolant_source"],
+        "gas_property_source": s.ht_gas["source"],
+        "gas_cp_frozen_j_kgk": s.cp_gas,
+        "gas_viscosity_pa_s": s.mu_gas,
+        "gas_prandtl": s.pr_gas,
+        "coolant_inlet_t_k": s.coolant_inlet_k,
+        "coolant_pressure_pa": s.coolant_p_pa,
+        "mdot_coolant_jacket_kgs": s.mdot_coolant_jacket_kgs,
         # full-length coupled wall balance ("channels" regen only, else None)
         "t_wg_profile_k": s.t_wg_profile_k,
         "peak_wall_temp_k": s.peak_wall_temp_k,
@@ -370,18 +396,17 @@ def jacket_manifolds_and_stability(self, s):
         "coolant_channels": (s.coolant_march["n_channels"] if s.coolant_march else None),
         "coolant_channel_dh_throat_m": (s.coolant_march["channel_dh_throat_m"] if s.coolant_march else None),
         "coolant_exit_t_k": (s.coolant_march["coolant_exit_t_k"] if s.coolant_march else None),
-        "coolant_side_wall_t_throat_k": (s.coolant_march["t_wc_throat_k"] if s.coolant_march else None),
+        # the SOLVED coolant-side throat wall (fin-corrected, the one the margin
+        # uses) - was the march's own uncoupled t_bulk + q/h_c (audit W6)
+        "coolant_side_wall_t_throat_k": (s.t_wc_throat_coupled_k if s.coolant_march else None),
         "channel_land_fraction": (s._land_fraction_visual if s.channel_geometry else None),
         "channel_width_profile_m": (s.channel_geometry["width_m"] if s.channel_geometry else None),
         "channel_height_profile_m": (s.channel_geometry["height_m"] if s.channel_geometry else None),
         "channel_dh_profile_m": (s.channel_geometry["dh_m"] if s.channel_geometry else None),
-        # Per-station bulk coolant velocity mdot/(rho*total passage area) -
-        # the same expression march_coolant uses per segment.
-        "coolant_velocity_profile_ms": (
-            s.mdot_coolant_jacket_kgs / (cooling.COOLANT_DENSITY_KG_M3.get(
-                self.propellant_pair, cooling._COOLANT_DENSITY_FALLBACK)
-                * np.maximum(s.channel_geometry["total_area_m2"], 1e-12))
-            if s.channel_geometry else None),
+        # Per-station bulk coolant velocity straight from the march (local
+        # REAL density - supercritical H2 speeds up as it heats).
+        "coolant_velocity_profile_ms": (s.coolant_march.get("velocity_profile_ms")
+                                        if s.coolant_march else None),
         "jacket_inlet_velocity_ms": jacket_inlet_velocity_ms,
         "jacket_dp_down_pa": (s.coolant_march.get("jacket_dp_down_pa") if s.coolant_march else None),
         "coolant_turnaround_t_k": (s.coolant_march.get("coolant_turnaround_t_k")

@@ -70,7 +70,11 @@ def run_mass_model_sensitivity_check():
 
     d_ref = EngineDesign(material_key="narloy_z", **base)
     r_ref = d_ref.compute()
-    ref_mult = r_ref["material_margin"]["margin_ratio"] / materials.THIN_MARGIN_THRESHOLD
+    # 2026-09-23: burn time scales with the WORST of the throat and full-length
+    # peak margins (the throat alone used to set it - cooling audit W7).
+    _worst = min(r_ref["material_margin"]["margin_ratio"],
+                 r_ref["cooling"]["peak_wall_margin_ratio"] or float("inf"))
+    ref_mult = _worst / materials.THIN_MARGIN_THRESHOLD
     ref_mult_clamped = max(0.3, min(3.0, ref_mult))
     expected_rated = 200.0 * ref_mult_clamped
     ok_rated_matches = abs(r_ref["rated_burn_time_s"] - expected_rated) < 1e-6

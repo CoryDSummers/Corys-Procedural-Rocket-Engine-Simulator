@@ -53,9 +53,20 @@ TARGET_COOLANT_VELOCITY_MS = {
 }
 _TARGET_COOLANT_VELOCITY_FALLBACK = 35.0
 CHANNEL_ASPECT_RATIO_MAX = 8.0         # cap on the derived height/width
-DITTUS_BOELTER_C = 0.023
-DITTUS_BOELTER_M = 0.8
-DITTUS_BOELTER_N = 0.4                 # heating (coolant colder than wall)
+# Coolant-side Nusselt number (2026-09-23 audit, C1): Sieder-Tate turbulent
+#   Nu = 0.027 Re^0.8 Pr^(1/3) (mu_bulk / mu_wall)^0.14
+# [EUCASS-2023 Eq.11; Fagherazzi-2019 eq. 2.50] - the Dittus-Boelter family
+# [Huzel eq. 4-12] PLUS the wall/bulk property-variation term that matters for
+# a gas-like supercritical H2 layer heated to several times the bulk
+# temperature, evaluated on REAL temperature-dependent properties
+# (cooling/coolant_state.py). Below Re 2300 the fully-developed laminar floor
+# Nu = 4.36 (uniform heat flux, textbook) replaces the turbulent form.
+SIEDER_TATE_C = 0.027
+SIEDER_TATE_RE_EXP = 0.8
+SIEDER_TATE_PR_EXP = 1.0 / 3.0
+SIEDER_TATE_VISC_EXP = 0.14
+LAMINAR_NU = 4.36
+RE_LAMINAR = 2300.0
 CHANNEL_DP_CALIBRATION = 0.93          # single free multiplier on the summed straight-channel
                                        # Darcy dP - folds together the manifold entry/exit and
                                        # throat U-turn losses this 1-D single-pass march omits
@@ -109,17 +120,19 @@ def channel_count(throat_dia_m, override=0):
 
 def channel_target_height_m(throat_dia_m, n_channels, mdot_coolant_kgs, pair,
                              land_fraction, aspect_ratio_override=0.0,
-                             target_velocity_ms=0.0):
+                             target_velocity_ms=0.0, rho_kg_m3=None):
     """Channel height that makes the THROAT coolant velocity equal
     TARGET_COOLANT_VELOCITY_MS (so jacket dP is scale-invariant), unless the
     user pins an aspect ratio. `target_velocity_ms>0` replaces the per-pair
-    target (EngineDesign.regen_coolant_velocity_ms). Returns (height_m,
+    target (EngineDesign.regen_coolant_velocity_ms). `rho_kg_m3` = the coolant
+    density the channel is sized at (the real inlet-state density from
+    CoolantModel); None -> the legacy per-pair constant. Returns (height_m,
     throat_width_m)."""
     pitch = math.pi * throat_dia_m / n_channels if n_channels > 0 else throat_dia_m
     width = max(1e-5, pitch * (1.0 - land_fraction))
     if aspect_ratio_override and aspect_ratio_override > 0:
         return width * aspect_ratio_override, width
-    rho = COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
+    rho = rho_kg_m3 if rho_kg_m3 else COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
     v_target = (target_velocity_ms if target_velocity_ms and target_velocity_ms > 0
                 else TARGET_COOLANT_VELOCITY_MS.get(pair, _TARGET_COOLANT_VELOCITY_FALLBACK))
     total_area_needed = mdot_coolant_kgs / (rho * v_target) if rho > 0 and v_target > 0 else 0.0
@@ -160,7 +173,7 @@ def channel_hydraulic_geometry(local_dia_m, n_channels, channel_height_m, land_f
 
 def passage_velocity_ms(local_dia_m, throat_dia_m, mdot_coolant_kgs, pair, *,
                         n_channels=0, aspect_ratio=0.0, land_fraction=0.0, split_eps=0.0,
-                        target_velocity_ms=0.0):
+                        target_velocity_ms=0.0, rho_kg_m3=None):
     """Bulk coolant velocity in the jacket passages at a station of wall
     diameter `local_dia_m`: V = mdot / (rho * total passage flow area) - the
     exact expression march_coolant() uses per segment, but as a pure function
@@ -179,12 +192,13 @@ def passage_velocity_ms(local_dia_m, throat_dia_m, mdot_coolant_kgs, pair, *,
     lf = land_fraction if land_fraction and land_fraction > 0 else CHANNEL_LAND_FRACTION_DEFAULT
     height, _ = channel_target_height_m(throat_dia_m, n_ch, mdot_coolant_kgs, pair, lf,
                                         aspect_ratio_override=aspect_ratio,
-                                        target_velocity_ms=target_velocity_ms)
+                                        target_velocity_ms=target_velocity_ms,
+                                        rho_kg_m3=rho_kg_m3)
     n_station = (channel_count_at_station(n_ch, _local_area_ratio(local_dia_m / 2.0,
                                                                   throat_dia_m / 2.0), split_eps)
                  if split_eps and split_eps > 0 else n_ch)
     g = channel_hydraulic_geometry(local_dia_m, n_station, height, lf)
-    rho = COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
+    rho = rho_kg_m3 if rho_kg_m3 else COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
     if g["total_area_m2"] <= 0 or rho <= 0:
         return 0.0
     return mdot_coolant_kgs / (rho * g["total_area_m2"])
@@ -234,20 +248,57 @@ def channel_geometry_profile(xs_m, rs_m, n_channels, channel_height_m, land_frac
 
 
 def coolant_side_htc(mdot_coolant_kgs, total_area_m2, dh_m, pair,
-                     construction="milled_channel"):
+                     construction="milled_channel", *, props=None, mu_wall_pa_s=None):
     """Coolant-side convective coefficient h_c [W/m^2/K] and channel Reynolds
-    number from the Dittus-Boelter correlation Nu = 0.023 Re^0.8 Pr^0.4, scaled
-    by the wall-construction factor (milled_channel = 1.0 reference)."""
-    k, mu = COOLANT_TRANSPORT.get(pair, _COOLANT_TRANSPORT_FALLBACK)
-    cp = FUEL_CP_J_KGK.get(pair, 2100.0)
+    number: Sieder-Tate turbulent / laminar floor (see SIEDER_TATE_C), scaled by
+    the wall-construction factor (milled_channel = 1.0 reference).
+    `props` = (rho, cp, mu, k) at the local bulk state (CoolantModel.props);
+    None -> the legacy per-pair constants. `mu_wall_pa_s` = coolant viscosity
+    at the coolant-side wall temperature (None -> ratio 1)."""
+    if props is not None:
+        _, cp, mu, k = props
+    else:
+        k, mu = COOLANT_TRANSPORT.get(pair, _COOLANT_TRANSPORT_FALLBACK)
+        cp = FUEL_CP_J_KGK.get(pair, 2100.0)
     if total_area_m2 <= 0 or dh_m <= 0 or mu <= 0 or k <= 0:
         return 0.0, 0.0
     g_flux = mdot_coolant_kgs / total_area_m2          # coolant mass flux [kg/m^2/s]
     re = g_flux * dh_m / mu
     pr = mu * cp / k
-    nu = DITTUS_BOELTER_C * re ** DITTUS_BOELTER_M * pr ** DITTUS_BOELTER_N
+    visc = (mu / mu_wall_pa_s) ** SIEDER_TATE_VISC_EXP if mu_wall_pa_s and mu_wall_pa_s > 0 else 1.0
+    nu_turb = SIEDER_TATE_C * re ** SIEDER_TATE_RE_EXP * pr ** SIEDER_TATE_PR_EXP * visc
+    nu = LAMINAR_NU if re < RE_LAMINAR else max(LAMINAR_NU, nu_turb)
     h_c = nu * k / dh_m * H_C_CONSTRUCTION_FACTOR.get(construction, 1.0)
     return h_c, re
+
+
+def rib_fin_factor(h_c_w_m2k, width_m, pitch_m, height_m, k_wall_w_mk):
+    """Rib / fin correction of the coolant-side coefficient, referred to the
+    hot-wall area [EUCASS-2023 Eq. 24-25]: the lands (mid-walls) between
+    channels conduct heat down into the coolant like fins, so
+        eta_f  = tanh(m h_ch) / (m h_ch),  m = sqrt(2 h_c / (k_wall t_mw))
+        h_c,f  = h_c (w_ch + 2 eta_f h_ch) / (w_ch + t_mw)
+    with t_mw = pitch - width. Array-friendly; returns 1.0 where the geometry
+    is degenerate. [SP-8087 Sec.3.1.1.4.3] makes the same point qualitatively
+    ("enhanced two-dimensional (fin) cooling" through conductive lands)."""
+    h = np.asarray(h_c_w_m2k, dtype=float)
+    w = np.asarray(width_m, dtype=float)
+    p = np.asarray(pitch_m, dtype=float)
+    hc = np.asarray(height_m, dtype=float)
+    k = np.asarray(k_wall_w_mk, dtype=float)
+    t_mw = p - w
+    ok = (np.isfinite(h) & np.isfinite(w) & np.isfinite(p) & (h > 0) & (w > 0)
+          & (t_mw > 0) & (hc > 0) & (k > 0))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        mh = np.sqrt(2.0 * h / (k * t_mw)) * hc
+        eta = np.where(mh > 1e-9, np.tanh(mh) / mh, 1.0)
+        f = (w + 2.0 * eta * hc) / (w + t_mw)
+    return np.where(ok, f, 1.0)
+
+
+# Constructions whose passages are separated by conducting lands/tube walls
+# (the fin correction applies); a coax shell is one open annulus - no ribs.
+FIN_CONSTRUCTIONS = ("milled_channel", "tube_wall")
 
 
 def _darcy_friction(re, dh_m, roughness_m=None):

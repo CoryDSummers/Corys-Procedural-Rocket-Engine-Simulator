@@ -26,11 +26,11 @@ BARTZ_SIGMA = 1.0            # [Huzel Fig 4-24] property-variation correction, c
 BARTZ_RC_OVER_DT = 1.0       # throat curvature radius / throat dia; a real throat runs
                              # ~0.5-1.5, and (Dt/rc)^0.1 stays within ~3% of 1 across that
 
-RECOVERY_FACTOR = 0.9            # turbulent recovery factor, T_aw = r * Tc
-                                  # [Huzel 4.4: 0.90-0.98; TN-Dump App.B: 0.88].
-                                  # Carried for annotation/context; the anchored
-                                  # magnitude already bakes in a representative
-                                  # (T_aw - T_wall).
+RECOVERY_FACTOR = 0.9            # turbulent recovery factor fallback [Huzel 4.4:
+                                  # 0.90-0.98; TN-Dump App.B: 0.88]. The unified
+                                  # thermal solve uses r = Pr^(1/3) from the real
+                                  # frozen Prandtl number instead; this is only the
+                                  # default of recovery_temperature().
 
 # --- real gas-side Bartz coefficient + computed wall temperature ---------------
 
@@ -52,11 +52,14 @@ def bartz_hg(throat_dia_m, pc_pa, cstar_ms, mu_pa_s, cp_j_kgk, prandtl,
     return core * area_ratio ** (-BARTZ_AREA_RATIO_EXPONENT)
 
 
-def recovery_temperature(tc_k, r=RECOVERY_FACTOR):
-    """Adiabatic (recovery) wall temperature T_aw = r * Tc, r ~ 0.90 for a
-    turbulent boundary layer [Huzel 4.4]. Replaces the implicit T_aw = Tc
-    (recovery factor 1.0) that materials.py's proxy assumes."""
-    return r * tc_k
+def recovery_temperature(tc_k, r=RECOVERY_FACTOR, mach=0.0, gamma=1.2):
+    """Adiabatic (recovery) wall temperature at local Mach `mach`:
+    T_aw = T_s + r (T0 - T_s), T_s = T0 / (1 + (g-1)/2 M^2) [Huzel 4.4].
+    2026-09-23: this used to return r * Tc - the recovery factor applied to the
+    whole stagnation temperature (~350 K low at the throat). At M = 0 (the
+    chamber) it is T0; at the throat (M = 1, g ~1.2) ~0.99 T0."""
+    t_s = tc_k / (1.0 + 0.5 * (gamma - 1.0) * mach * mach)
+    return t_s + r * (tc_k - t_s)
 
 
 def wall_gas_temperature(q_w_m2, h_g_w_m2k, t_aw_k):
@@ -106,13 +109,26 @@ def wall_gas_temperature(q_w_m2, h_g_w_m2k, t_aw_k):
 # against real engines; the rest interpolate/default (Tier 3) - see
 # ASSUMPTIONS.md.
 WALL_TEMP_FRACTION_DEFAULT = 0.25
+# 2026-09-23 cooling audit: ALL 1.0 - raw Bartz. The old LOX/LH2 0.55 / LOX/CH4
+# 0.75 were compensating for bugs, not physics: LOX/LH2 cp/mu/Pr came from the
+# performance table's effective gamma/M (cp too high, mu ~half, Eucken Pr 0.84
+# vs the real frozen ~0.62), T_aw was 0.9*Tc instead of the recovery form, and
+# sigma was fixed at 1. With chemical-equilibrium transport properties
+# (physics/thermo_tables.py), the recovery T_aw and the real sigma, the UNSCALED
+# unified thermal solve reproduces both cited LOX/LH2 anchors:
+#   J-2   throat ~38 MW/m2 vs 17-35 Btu/in2-s = 28-57 MW/m2 [Wieseneck-J2 p.6,12]
+#   SSME  throat ~140 MW/m2 vs design point 72 Btu/in2-s = 118 MW/m2 [Wieseneck-J2 p.6]
+#   (validation_engines/ corpus, run_corpus --report). LOX/RP-1's real
+# carbon-deposit reduction is carried by GAS_SIDE_DEPOSIT_FACTOR ([TP2862],
+# 40-60 % below clean Bartz), now applied to the one h_g everywhere. Kept as a
+# per-pair dict so a future CITED calibration can land here.
 BARTZ_ABS_FLUX_CALIBRATION = {
-    "LOX/RP-1": 1.00,        # F-1-anchored
-    "LOX/LH2": 0.55,         # SSME- and RL10-class-anchored
-    "LOX/CH4": 0.75,         # interpolated (molar mass between RP-1 and LH2) - not independently anchored
-    "N2O4/MMH": 1.00,        # storable, combustion-product molar mass close to RP-1's
+    "LOX/RP-1": 1.00,
+    "LOX/LH2": 1.00,
+    "LOX/CH4": 1.00,
+    "N2O4/MMH": 1.00,
     "Aerozine-50/NTO": 1.00,
-    "Hydrazine": 1.00,       # monopropellant decomposition products, RP-1-like molar mass order
+    "Hydrazine": 1.00,
     "H2O2": 1.00,
 }
 _BARTZ_ABS_FLUX_CALIBRATION_FALLBACK = 1.00
@@ -167,6 +183,90 @@ def _injector_face_taper(xs, rs, throat_idx):
             frac = (cyl_x - cyl_x[0]) / span
             return cyl_mask, INJECTOR_FLUX_FRACTION + (1.0 - INJECTOR_FLUX_FRACTION) * frac
     return None
+
+
+# --- station Mach, recovery temperature and Bartz sigma (2026-09-23 audit) -----
+# The recovery temperature used to be T_aw = 0.9 * Tc everywhere - the recovery
+# factor applied to the WHOLE stagnation temperature. Correct boundary-layer
+# recovery only acts on the dynamic part: T_aw = T_s + r*(T0 - T_s), which is
+# ~T0 in the chamber and ~0.99*T0 at the throat, not 0.9*T0 [Huzel 4.4; the
+# nozzle-extension check already used this form]. r = Pr^(1/3), the turbulent
+# flat-plate value, with Pr the FROZEN combustion-gas Prandtl number from the
+# equilibrium tables (physics/thermo_tables.py).
+# BARTZ sigma is the real property-variation correction [Huzel eq. 4-14, Bartz
+# 1957; omega = 0.6 viscosity-temperature exponent]:
+#   sigma = 1 / { [0.5*(Twg/T0)*(1 + (g-1)/2 M^2) + 0.5]^(0.8 - w/5)
+#                 * [1 + (g-1)/2 M^2]^(w/5) }
+# evaluated per station against the SOLVED wall temperature
+# (cooling/thermal_solve.py iterates it) instead of the old constant 1.0.
+BARTZ_OMEGA = 0.6
+
+
+def recovery_factor_from_prandtl(prandtl):
+    """Turbulent boundary-layer recovery factor r = Pr^(1/3)."""
+    return max(prandtl, 1e-6) ** (1.0 / 3.0)
+
+
+def _mach_subsonic(eps, gamma):
+    from ..isentropic import area_ratio_from_mach
+    from scipy.optimize import brentq
+    if eps <= 1.0 + 1e-9:
+        return 1.0
+    return brentq(lambda m: area_ratio_from_mach(m, gamma) - eps, 1e-7, 1.0 - 1e-12)
+
+
+def mach_profile(rs_m, throat_dia_m, gamma):
+    """Isentropic Mach number at each contour station: the SUBSONIC root of
+    A/A* upstream of the throat (chamber + convergent), the supersonic root
+    downstream, exactly 1 at the throat station."""
+    from ..isentropic import mach_from_area_ratio
+    rs = np.asarray(rs_m, dtype=float)
+    rt = throat_dia_m / 2.0
+    ti = int(np.argmin(rs))
+    out = np.empty(len(rs))
+    for i, r in enumerate(rs):
+        eps = max(_local_area_ratio(r, rt), 1.0)
+        if i == ti or eps <= 1.0 + 1e-9:
+            out[i] = 1.0
+        elif i < ti:
+            out[i] = _mach_subsonic(eps, gamma)
+        else:
+            out[i] = mach_from_area_ratio(eps, gamma)
+    return out
+
+
+def adiabatic_wall_temperature_profile(t0_k, gamma, mach, recovery_factor):
+    """T_aw = T_s + r (T0 - T_s), T_s = T0 / (1 + (g-1)/2 M^2), per station."""
+    m = np.asarray(mach, dtype=float)
+    t_s = t0_k / (1.0 + 0.5 * (gamma - 1.0) * m * m)
+    return t_s + recovery_factor * (t0_k - t_s)
+
+
+def bartz_sigma(t_wg_over_t0, mach, gamma, omega=BARTZ_OMEGA):
+    """Bartz boundary-layer property-variation correction (array-friendly)."""
+    tw = np.asarray(t_wg_over_t0, dtype=float)
+    m = np.asarray(mach, dtype=float)
+    stag = 1.0 + 0.5 * (gamma - 1.0) * m * m
+    return 1.0 / ((0.5 * tw * stag + 0.5) ** (0.8 - omega / 5.0) * stag ** (omega / 5.0))
+
+
+def bartz_hg_raw_profile(xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, mu_pa_s, cp_j_kgk,
+                         prandtl, sigma=None):
+    """Per-station Bartz h_g [W/m^2K] x the injector-face taper x `sigma` (array or
+    scalar; None = 1.0) - WITHOUT the per-class calibration or the carbon-deposit
+    factor (the unified thermal solve applies each exactly once)."""
+    xs = np.asarray(xs_m, dtype=float)
+    rs = np.asarray(rs_m, dtype=float)
+    n = len(xs)
+    if throat_dia_m <= 0 or n < 2:
+        return np.zeros(max(n, 1))
+    rt = throat_dia_m / 2.0
+    hg = np.array([bartz_hg(throat_dia_m, pc_pa, cstar_ms, mu_pa_s, cp_j_kgk, prandtl,
+                            area_ratio=_local_area_ratio(r, rt), sigma=1.0) for r in rs])
+    taper = _injector_face_taper(xs, rs, int(np.argmin(rs)))
+    if taper is not None:
+        hg[taper[0]] *= taper[1]
+    return hg * (1.0 if sigma is None else np.asarray(sigma, dtype=float))
 
 
 def bartz_hg_profile(xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, mu_pa_s, cp_j_kgk,

@@ -79,15 +79,21 @@ def heat_pickup_w(xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, mu_pa_s, cp_j_kgk, 
     return total_w, mean_flux
 
 
-def available_turbine_power_w(pair, mdot_fuel_kgs, heat_available_w, eta_turbine=None):
+def available_turbine_power_w(pair, mdot_fuel_kgs, heat_available_w, eta_turbine=None,
+                              coolant_model=None, t_inlet_k=None):
     """Available shaft power is capped by BOTH how much heat the wall gives
     up (heat_available_w) AND how much the coolant flow can absorb before
     its coking/thermal-stability limit. `eta_turbine` is the DERIVED reaction-
     turbine efficiency (physics/turbopump_efficiency.py); falls back to the flat
-    ETA_EXPANDER_TURBINE when not supplied."""
-    cp = FUEL_CP_J_KGK[pair]
-    delta_t_max = MAX_COOLANT_DELTA_T_K[pair]
-    max_absorbable_w = mdot_fuel_kgs * cp * delta_t_max
+    ETA_EXPANDER_TURBINE when not supplied. With a CoolantModel (+ inlet
+    temperature) the absorbable heat is the real ENTHALPY rise to the limit
+    (supercritical H2's cp is far from constant); pairs with no tabulated
+    limit/cp use the kerosene-like fallbacks instead of raising KeyError."""
+    delta_t_max = MAX_COOLANT_DELTA_T_K.get(pair, 200.0)
+    if coolant_model is not None and t_inlet_k is not None:
+        max_absorbable_w = mdot_fuel_kgs * coolant_model.heat_capacity_to(t_inlet_k, delta_t_max)
+    else:
+        max_absorbable_w = mdot_fuel_kgs * FUEL_CP_J_KGK.get(pair, 2100.0) * delta_t_max
     heat_to_turbine = min(heat_available_w, max_absorbable_w)
     eta = eta_turbine if (eta_turbine or 0.0) > 0.0 else ETA_EXPANDER_TURBINE
     return heat_to_turbine * eta, max_absorbable_w
@@ -96,14 +102,22 @@ def available_turbine_power_w(pair, mdot_fuel_kgs, heat_available_w, eta_turbine
 def expander_result(pair, mdot, mr, pc, dp_fuel, dp_ox, rho_fuel, rho_ox,
                      eta_fuel, eta_ox, specific_power_w_kg,
                      xs_m, rs_m, throat_dia_m, cstar_ms, mu_pa_s, cp_j_kgk, prandtl, t_aw_k,
-                     cutoff_area_ratio=COOLED_AREA_CUTOFF_EPS, eta_turbine=None):
+                     cutoff_area_ratio=COOLED_AREA_CUTOFF_EPS, eta_turbine=None,
+                     heat_w=None, coolant_model=None, t_inlet_k=None):
+    """`heat_w` = the regen-jacket heat from design's unified thermal solve
+    (physics/cooling/thermal_solve.py) - pass it so the turbine drive IS the
+    reported wall heat; None falls back to the standalone Bartz integral."""
     tpump = tp.turbopump_power(mdot, mr, dp_fuel, dp_ox, rho_fuel, rho_ox, eta_fuel, eta_ox,
                                 specific_power_w_kg)
-    heat_w, flux = heat_pickup_w(xs_m, rs_m, throat_dia_m, pc, cstar_ms, mu_pa_s, cp_j_kgk,
-                                 prandtl, t_aw_k, pair, cutoff_area_ratio)
     cooled_area_m2 = cooled_surface_area(xs_m, rs_m, throat_dia_m, cutoff_area_ratio)
+    if heat_w is None:
+        heat_w, flux = heat_pickup_w(xs_m, rs_m, throat_dia_m, pc, cstar_ms, mu_pa_s, cp_j_kgk,
+                                     prandtl, t_aw_k, pair, cutoff_area_ratio)
+    else:
+        flux = heat_w / cooled_area_m2 if cooled_area_m2 > 0 else 0.0
     avail_w, max_absorbable_w = available_turbine_power_w(
-        pair, tpump["mdot_fuel_kgs"], heat_w, eta_turbine)
+        pair, tpump["mdot_fuel_kgs"], heat_w, eta_turbine,
+        coolant_model=coolant_model, t_inlet_k=t_inlet_k)
     required_w = tpump["power_total_w"]
     margin = avail_w / required_w if required_w > 0 else float("inf")
     # Specific work per kg of turbine (fuel) flow, for physics/turbopump_sizing.py.

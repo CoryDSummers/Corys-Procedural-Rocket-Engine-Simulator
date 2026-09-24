@@ -25,6 +25,51 @@ def _passage_v(mdot_kgs, rho, total_area_m2):
     return mdot_kgs / (rho * total_area_m2) if rho > 0 and total_area_m2 > 0 else 0.0
 
 
+class _Bulk:
+    """Coolant bulk state carried along a march: temperature + (with a real
+    CoolantModel) enthalpy, so heat is added as enthalpy - exact across the
+    supercritical H2/CH4 cp peak - instead of the constant-cp cp*dT step."""
+
+    def __init__(self, pair, t_k, model):
+        self.pair, self.t, self.model = pair, float(t_k), model
+        self.h = model.h(self.t) if model is not None else None
+        self._cp = FUEL_CP_J_KGK.get(pair, 2100.0)
+        self._rho = COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
+
+    def props(self):
+        """(rho, cp, props-or-None) at the current bulk temperature."""
+        if self.model is None:
+            return self._rho, self._cp, None
+        p = self.model.props(self.t)
+        return p[0], p[1], p
+
+    def mu_wall(self, t_wall_k):
+        if self.model is None or t_wall_k is None or not np.isfinite(t_wall_k):
+            return None
+        return self.model.props(float(t_wall_k))[2]
+
+    def add_heat(self, q_w, mdot):
+        if mdot <= 0 or q_w == 0.0:
+            return 0.0
+        t0 = self.t
+        if self.model is None:
+            self.t += q_w / (mdot * self._cp)
+        else:
+            self.h += q_w / mdot
+            self.t = self.model.t_from_h(self.h)
+        return self.t - t0
+
+
+def _seg_wall_t(t_wall_profile, i):
+    """Mean coolant-side wall temperature of segment i from a per-station
+    profile (None / NaN-safe)."""
+    if t_wall_profile is None:
+        return None
+    a, b = t_wall_profile[i], t_wall_profile[i + 1]
+    vals = [v for v in (a, b) if v is not None and np.isfinite(v)]
+    return sum(vals) / len(vals) if vals else None
+
+
 def _segments_to_stations(seg_vals, n):
     """Map per-segment march values (length n-1, NaN = segment not cooled) onto
     the n contour stations: each station takes the mean of its cooled adjacent
@@ -43,7 +88,8 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
                   *, n_channels=0, aspect_ratio=0.0, land_fraction=0.0,
                   transition_area_ratio=None, t_inlet_k=None,
                   construction="milled_channel", split_eps=0.0,
-                  target_velocity_ms=0.0):
+                  target_velocity_ms=0.0, coolant_model=None, t_wall_coolant_profile_k=None,
+                  rho_sizing_kg_m3=None):
     """
     Counterflow 1-D coolant march over the actively-cooled contour (injector face
     through the throat and out to `transition_area_ratio`). The coolant enters at
@@ -59,6 +105,13 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
     flow area hence h_c/Re/dP downstream of the split station. `n_channels` in
     the returned dict stays the BASE (pre-split) count, unchanged in meaning.
     Default 0.0 reproduces the prior single-count-throughout behavior exactly.
+
+    `coolant_model` (cooling.coolant_state.CoolantModel): real temperature-
+    dependent coolant properties per segment + an enthalpy march; channels are
+    sized at the INLET-state density. `t_wall_coolant_profile_k`: per-station
+    coolant-side wall temperature (from the previous thermal-solve iteration)
+    for the Sieder-Tate wall-viscosity term. Both None -> the legacy constant-
+    property march.
     """
     xs = np.asarray(xs_m, dtype=float)
     rs = np.asarray(rs_m, dtype=float)
@@ -67,15 +120,19 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
     throat_idx = int(np.argmin(rs))
     n_ch = channel_count(throat_dia_m, n_channels)
     lf = land_fraction if land_fraction and land_fraction > 0 else CHANNEL_LAND_FRACTION_DEFAULT
+    bulk = _Bulk(pair, t_inlet_k if t_inlet_k is not None else 290.0, coolant_model)
+    rho_inlet = bulk.props()[0]
     # Fixed channel height, sized at the throat to hit the target coolant
     # velocity (or the user's aspect-ratio override). Channels then widen away
     # from the throat as the circumference grows.
     ch_height_m, _ = channel_target_height_m(throat_dia_m, n_ch, mdot_coolant_kgs,
                                               pair, lf, aspect_ratio_override=aspect_ratio,
-                                              target_velocity_ms=target_velocity_ms)
-    cp = FUEL_CP_J_KGK.get(pair, 2100.0)
-    rho = COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
-    t_bulk = t_inlet_k if t_inlet_k is not None else 290.0
+                                              target_velocity_ms=target_velocity_ms,
+                                              rho_kg_m3=(rho_sizing_kg_m3 or rho_inlet) if coolant_model else None)
+    t_bulk = bulk.t
+    v_seg = np.full(max(len(rs) - 1, 0), np.nan)
+    w_seg = np.full(max(len(rs) - 1, 0), np.nan)       # channel width (fin correction)
+    p_seg = np.full(max(len(rs) - 1, 0), np.nan)       # channel pitch
 
     # Segment indices upstream of the transition area ratio, in COOLANT-flow
     # order (from the nozzle/transition end toward the injector).
@@ -101,24 +158,28 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
         g = channel_hydraulic_geometry(local_dia, n_ch_station, ch_height_m, lf)
         a_seg = _frustum_area(xs[i], rs[i], xs[i + 1], rs[i + 1])
         q_seg = 0.5 * (q[i] + q[i + 1])
+        rho, _cp, props = bulk.props()
         h_c, re = coolant_side_htc(mdot_coolant_kgs, g["total_area_m2"], g["dh_m"], pair,
-                                   construction=construction)
+                                   construction=construction, props=props,
+                                   mu_wall_pa_s=bulk.mu_wall(_seg_wall_t(t_wall_coolant_profile_k, i)))
 
-        d_t = (q_seg * a_seg / (mdot_coolant_kgs * cp)
-               if mdot_coolant_kgs > 0 and cp > 0 else 0.0)
-        t_bulk += d_t
+        d_t = bulk.add_heat(q_seg * a_seg, mdot_coolant_kgs)
+        t_bulk = bulk.t
         delta_t += d_t
 
         t_wc = t_bulk + (q_seg / h_c if h_c > 0 else 0.0)
+        v = _passage_v(mdot_coolant_kgs, rho, g["total_area_m2"])
         if abs(i - throat_idx) <= 1 and (t_wc_throat is None or t_wc > t_wc_throat):
             t_wc_throat = t_wc
             dh_throat = g["dh_m"]
-            throat_state = (t_bulk, h_c, _passage_v(mdot_coolant_kgs, rho, g["total_area_m2"]))
+            throat_state = (t_bulk, h_c, v)
         h_c_seg[i] = h_c
         t_bulk_seg[i] = t_bulk
+        v_seg[i] = v
+        w_seg[i] = g["width_m"]
+        p_seg[i] = math.pi * local_dia / n_ch_station if n_ch_station > 0 else np.nan
 
         if g["total_area_m2"] > 0 and g["dh_m"] > 0 and rho > 0:
-            v = mdot_coolant_kgs / (rho * g["total_area_m2"])
             length = math.hypot(xs[i + 1] - xs[i], rs[i + 1] - rs[i])
             f = _darcy_friction(re, g["dh_m"])
             dp_total += f * (length / g["dh_m"]) * 0.5 * rho * v * v
@@ -130,11 +191,15 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
                 jacket_dp_pa=dp_total, n_channels=n_ch,
                 channel_dh_throat_m=dh_throat, t_wc_throat_k=t_wc_throat,
                 t_bulk_throat_k=throat_state[0], h_c_throat_w_m2k=throat_state[1],
-                v_throat_ms=throat_state[2],
+                v_throat_ms=throat_state[2], channel_height_m=ch_height_m,
+                rho_inlet_kg_m3=rho_inlet,
                 # per-STATION (NaN outside the cooled length) - additive, for
                 # the full-length coupled wall balance
                 h_c_profile_w_m2k=_segments_to_stations(h_c_seg, len(rs)),
-                t_bulk_profile_k=_segments_to_stations(t_bulk_seg, len(rs)))
+                t_bulk_profile_k=_segments_to_stations(t_bulk_seg, len(rs)),
+                velocity_profile_ms=_segments_to_stations(v_seg, len(rs)),
+                channel_width_profile_m=_segments_to_stations(w_seg, len(rs)),
+                channel_pitch_profile_m=_segments_to_stations(p_seg, len(rs)))
 
 
 # Real J-2 regen circuit: "LH2 fuel from the fuel manifold circulated downward
@@ -158,7 +223,7 @@ def two_pass_tube_counts(throat_dia_m, n_channels=0):
 
 def down_pass_velocity_ms(local_dia_m, throat_dia_m, mdot_coolant_kgs, pair, *,
                           n_channels=0, aspect_ratio=0.0, land_fraction=0.0,
-                          target_velocity_ms=0.0):
+                          target_velocity_ms=0.0, rho_kg_m3=None):
     """Bulk coolant velocity in the DOWN tubes of the two-pass circuit at a
     station of wall diameter `local_dia_m` in the shared (down+up) region -
     pure, like passage_velocity_ms, so the mid-nozzle jacket-inlet ring can be
@@ -172,9 +237,10 @@ def down_pass_velocity_ms(local_dia_m, throat_dia_m, mdot_coolant_kgs, pair, *,
     lf = land_fraction if land_fraction and land_fraction > 0 else CHANNEL_LAND_FRACTION_DEFAULT
     height, _ = channel_target_height_m(throat_dia_m, n_up, mdot_coolant_kgs, pair, lf,
                                         aspect_ratio_override=aspect_ratio,
-                                        target_velocity_ms=target_velocity_ms)
+                                        target_velocity_ms=target_velocity_ms,
+                                        rho_kg_m3=rho_kg_m3)
     g = channel_hydraulic_geometry(local_dia_m, n_up + n_down, height, lf)
-    rho = COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
+    rho = rho_kg_m3 if rho_kg_m3 else COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
     area_down = g["area_m2"] * n_down
     return mdot_coolant_kgs / (rho * area_down) if area_down > 0 and rho > 0 else 0.0
 
@@ -182,7 +248,9 @@ def down_pass_velocity_ms(local_dia_m, throat_dia_m, mdot_coolant_kgs, pair, *,
 def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pair,
                            *, inlet_area_ratio, n_channels=0, aspect_ratio=0.0,
                            land_fraction=0.0, transition_area_ratio=None, t_inlet_k=None,
-                           construction="milled_channel", target_velocity_ms=0.0):
+                           construction="milled_channel", target_velocity_ms=0.0,
+                           coolant_model=None, t_wall_coolant_profile_k=None,
+                  rho_sizing_kg_m3=None):
     """
     J-2-style two-pass regen march (EngineDesign.cooling_flow_topology =
     "j2_mid_nozzle_inlet"): the coolant enters a manifold partway down the
@@ -216,12 +284,13 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
     n_up, n_down = two_pass_tube_counts(throat_dia_m, n_channels)
     n_tot = n_up + n_down
     lf = land_fraction if land_fraction and land_fraction > 0 else CHANNEL_LAND_FRACTION_DEFAULT
+    bulk = _Bulk(pair, t_inlet_k if t_inlet_k is not None else 290.0, coolant_model)
+    rho_inlet = bulk.props()[0]
     ch_height_m, _ = channel_target_height_m(throat_dia_m, n_up, mdot_coolant_kgs,
                                               pair, lf, aspect_ratio_override=aspect_ratio,
-                                              target_velocity_ms=target_velocity_ms)
-    cp = FUEL_CP_J_KGK.get(pair, 2100.0)
-    rho = COOLANT_DENSITY_KG_M3.get(pair, _COOLANT_DENSITY_FALLBACK)
-    t0 = t_inlet_k if t_inlet_k is not None else 290.0
+                                              target_velocity_ms=target_velocity_ms,
+                                              rho_kg_m3=(rho_sizing_kg_m3 or rho_inlet) if coolant_model else None)
+    t0 = bulk.t
 
     seg = []
     for i in range(len(rs) - 1):
@@ -248,17 +317,15 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
         t = (r_inlet - r0) / (r1 - r0)            # r is linear along the segment
         return 1.0 - t, (r_inlet + r1) * (1.0 - t) / (r0 + r1), r0 + r_inlet, r_inlet + r1
 
-    def _dp(mdot, area, dh, re, length):
+    def _dp(mdot, area, dh, re, length, rho):
         if area <= 0 or dh <= 0 or rho <= 0:
             return 0.0
         v = mdot / (rho * area)
         return _darcy_friction(re, dh) * (length / dh) * 0.5 * rho * v * v
 
     dp_scale = CHANNEL_DP_CALIBRATION * DP_CONSTRUCTION_FACTOR.get(construction, 1.0)
-    heat_to = (1.0 / (mdot_coolant_kgs * cp)) if mdot_coolant_kgs > 0 and cp > 0 else 0.0
 
     # --- down pass: inlet -> cooled end (increasing x), shared parts only.
-    t_bulk = t0
     dp_down = 0.0
     v_down_inlet = 0.0
     for i in seg:
@@ -267,15 +334,17 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
             continue
         g = channel_hydraulic_geometry(dia_sh, n_tot, ch_height_m, lf)
         area = g["area_m2"] * n_down
+        rho, _cp, props = bulk.props()
         if v_down_inlet == 0.0 and area > 0 and rho > 0:
             v_down_inlet = mdot_coolant_kgs / (rho * area)
         a_seg = _frustum_area(xs[i], rs[i], xs[i + 1], rs[i + 1])
         q_seg = 0.5 * (q[i] + q[i + 1])
         _, re = coolant_side_htc(mdot_coolant_kgs, area, g["dh_m"], pair,
-                                 construction=construction)
-        t_bulk += q_seg * a_seg * f_area * (n_down / n_tot) * heat_to
+                                 construction=construction, props=props)
+        bulk.add_heat(q_seg * a_seg * f_area * (n_down / n_tot), mdot_coolant_kgs)
         dp_down += _dp(mdot_coolant_kgs, area, g["dh_m"], re,
-                       f_len * math.hypot(xs[i + 1] - xs[i], rs[i + 1] - rs[i]))
+                       f_len * math.hypot(xs[i + 1] - xs[i], rs[i + 1] - rs[i]), rho)
+    t_bulk = bulk.t
     t_turn = t_bulk
 
     # --- up pass: cooled end -> injector; within a split segment the coolant
@@ -288,6 +357,9 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
     # warmer, returning coolant - the conservative wall in the shared region).
     h_c_seg = np.full(max(len(rs) - 1, 0), np.nan)
     t_bulk_seg = np.full(max(len(rs) - 1, 0), np.nan)
+    v_seg = np.full(max(len(rs) - 1, 0), np.nan)
+    w_seg = np.full(max(len(rs) - 1, 0), np.nan)
+    p_seg = np.full(max(len(rs) - 1, 0), np.nan)
     for i in reversed(seg):
         f_len, f_area, dia_up, dia_sh = _split(i)
         a_seg = _frustum_area(xs[i], rs[i], xs[i + 1], rs[i + 1])
@@ -296,22 +368,31 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
         parts = []
         if f_len > 0.0:
             g = channel_hydraulic_geometry(dia_sh, n_tot, ch_height_m, lf)
-            parts.append((g, g["area_m2"] * n_up, f_area * n_up / n_tot, f_len))
+            parts.append((g, g["area_m2"] * n_up, f_area * n_up / n_tot, f_len,
+                          math.pi * dia_sh / n_tot))
         if f_len < 1.0:
             g = channel_hydraulic_geometry(dia_up, n_up, ch_height_m, lf)
-            parts.append((g, g["total_area_m2"], 1.0 - f_area, 1.0 - f_len))
-        for g, area, heat_share, len_share in parts:
-            h_c, re = coolant_side_htc(mdot_coolant_kgs, area, g["dh_m"], pair,
-                                       construction=construction)
-            t_bulk += q_seg * a_seg * heat_share * heat_to
+            parts.append((g, g["total_area_m2"], 1.0 - f_area, 1.0 - f_len,
+                          math.pi * dia_up / n_up))
+        for g, area, heat_share, len_share, pitch in parts:
+            rho, _cp, props = bulk.props()
+            h_c, re = coolant_side_htc(
+                mdot_coolant_kgs, area, g["dh_m"], pair, construction=construction,
+                props=props, mu_wall_pa_s=bulk.mu_wall(_seg_wall_t(t_wall_coolant_profile_k, i)))
+            bulk.add_heat(q_seg * a_seg * heat_share, mdot_coolant_kgs)
+            t_bulk = bulk.t
             t_wc = t_bulk + (q_seg / h_c if h_c > 0 else 0.0)
+            v = _passage_v(mdot_coolant_kgs, rho, area)
             h_c_seg[i] = h_c
             t_bulk_seg[i] = t_bulk
+            v_seg[i] = v
+            w_seg[i] = g["width_m"]
+            p_seg[i] = pitch
             if abs(i - throat_idx) <= 1 and (t_wc_throat is None or t_wc > t_wc_throat):
                 t_wc_throat = t_wc
                 dh_throat = g["dh_m"]
-                throat_state = (t_bulk, h_c, _passage_v(mdot_coolant_kgs, rho, area))
-            dp_up += _dp(mdot_coolant_kgs, area, g["dh_m"], re, len_share * seg_len)
+                throat_state = (t_bulk, h_c, v)
+            dp_up += _dp(mdot_coolant_kgs, area, g["dh_m"], re, len_share * seg_len, rho)
 
     if t_wc_throat is None:
         t_wc_throat = t_bulk
@@ -321,6 +402,10 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
                 jacket_dp_down_pa=dp_down * dp_scale, coolant_turnaround_t_k=t_turn,
                 down_pass_inlet_velocity_ms=v_down_inlet, n_channels_down=n_down,
                 t_bulk_throat_k=throat_state[0], h_c_throat_w_m2k=throat_state[1],
-                v_throat_ms=throat_state[2],
+                v_throat_ms=throat_state[2], channel_height_m=ch_height_m,
+                rho_inlet_kg_m3=rho_inlet,
                 h_c_profile_w_m2k=_segments_to_stations(h_c_seg, len(rs)),
-                t_bulk_profile_k=_segments_to_stations(t_bulk_seg, len(rs)))
+                t_bulk_profile_k=_segments_to_stations(t_bulk_seg, len(rs)),
+                velocity_profile_ms=_segments_to_stations(v_seg, len(rs)),
+                channel_width_profile_m=_segments_to_stations(w_seg, len(rs)),
+                channel_pitch_profile_m=_segments_to_stations(p_seg, len(rs)))
