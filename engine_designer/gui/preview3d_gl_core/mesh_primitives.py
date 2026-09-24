@@ -27,6 +27,12 @@ class MeshBuffers:
                                      # today's pure-Lambertian look for any caller that
                                      # doesn't pass a material-derived value explicitly.
     shininess: float = 32.0         # Blinn-Phong exponent - cosmetic/rendering only
+    metallic: float = None           # PBR metalness/roughness (shading.py) - None = derive
+    roughness: float = None          # from the Blinn-Phong pair above (shading.blinn_to_pbr);
+                                     # a material-backed piece gets explicit values stamped
+                                     # by gui/mesh_builder (shading.stamp_pbr)
+    data_colors: bool = False        # vertex colors are a data readout (heat-flux colormap),
+                                     # not a material look - shaded without tone mapping
     role: str = ""                  # which engine part this piece is ("wall", "turbopump",
                                      # ...), stamped by mesh_builder.build_mesh_data; "" =
                                      # untagged. Picks the render layer (render_layers.py).

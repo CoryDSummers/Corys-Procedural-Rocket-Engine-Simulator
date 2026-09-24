@@ -157,7 +157,18 @@ class Material:
     shininess: float            # 3D-preview Blinn-Phong exponent - cosmetic/rendering
                                  # only, same tier as color_hex. Higher = tighter/more
                                  # polished highlight, lower = broader/duller highlight.
+                                 # Legacy Blinn-Phong pair - metallic/roughness below
+                                 # are what the PBR preview shader actually reads.
     notes: str
+    metallic: float = None       # 3D-preview PBR metalness (0 dielectric .. 1 bare metal) -
+                                 # cosmetic/rendering only, same tier as color_hex. Coated
+                                 # refractories (silicide on Nb/TZM) sit low: the visible
+                                 # surface is the coating, not the metal. None = derive
+                                 # from specular_strength/shininess (preview3d_gl_core.
+                                 # blinn_to_pbr). Also the value a future mesh/texture
+                                 # export would bake into its metalness map.
+    roughness: float = None      # 3D-preview PBR perceptual roughness (0 mirror .. 1 matte),
+                                 # same tier/None rule as metallic.
     allowed_cooling_methods: tuple = ()  # the ONLY section cooling methods this material
                                  # can physically be built for (cooling.COOLING_METHODS
                                  # subset; its own cooling_method is always one). An explicit
@@ -218,6 +229,8 @@ MATERIALS = {
         cte_per_k=1.85e-05,
         specular_strength=0.65,
         shininess=96.0,
+        metallic=1.0,
+        roughness=0.3,
         notes="High thermal conductivity regen-chamber baseline (SSME/most modern engines). "
               "Needs active regen cooling; poor choice uncooled.",
     ),
@@ -239,6 +252,8 @@ MATERIALS = {
         cte_per_k=1.3e-05,
         specular_strength=0.40,
         shininess=45.0,
+        metallic=1.0,
+        roughness=0.42,
         notes="Higher-temp, higher-strength, lower thermal conductivity than copper alloys. "
               "Common for nozzle extensions and structural jackets.",
     ),
@@ -261,6 +276,8 @@ MATERIALS = {
         cte_per_k=1.7e-05,
         specular_strength=0.70,
         shininess=110.0,
+        metallic=1.0,
+        roughness=0.28,
         notes="Cheap, easy to work, moderate temperature capability. Common on early/cheap "
               "pressure-fed and hypergolic engines, and as brazed regen tube walls (J-2's "
               "347 SS tubes) - hence its regenerative default. A film-cooled-only SS "
@@ -284,6 +301,8 @@ MATERIALS = {
         cte_per_k=7.5e-06,
         specular_strength=0.30,
         shininess=35.0,
+        metallic=0.2,
+        roughness=0.65,
         notes="Radiatively-cooled nozzle-extension material (Apollo SPS, LMDE skirt). No "
               "active cooling needed but requires an oxidation-protective coating.",
     ),
@@ -305,6 +324,8 @@ MATERIALS = {
         cte_per_k=1.0e-05,
         specular_strength=0.04,
         shininess=8.0,
+        metallic=0.0,
+        roughness=0.88,
         notes="Sacrificial char layer, no active cooling plumbing. Light, cheap, but "
               "consumed over the burn - a burn-time/life limiter, not modeled here.",
     ),
@@ -327,6 +348,8 @@ MATERIALS = {
         cte_per_k=1.2e-05,
         specular_strength=0.05,
         shininess=8.0,
+        metallic=0.0,
+        roughness=0.85,
         ablative_consumption_rate_m_s=_REFRASIL_CONSUMPTION_RATE_M_S,
         notes="Real 3-layer Apollo-era ablative chamber construction (Bell Aerosystems "
               "Lunar Module Ascent Engine, Engine_Configs/LMAE_Config.cfg): a Refrasil "
@@ -359,6 +382,8 @@ MATERIALS = {
         cte_per_k=1.75e-05,
         specular_strength=0.63,
         shininess=90.0,
+        metallic=1.0,
+        roughness=0.32,
         notes="NASA GRC Cu-8Cr-4Nb alloy. Better high-temperature creep/fatigue resistance "
               "than NARloy-Z at similar conductivity, at higher processing cost (powder "
               "metallurgy) - used on advanced regen-chamber test articles/RS-25 upgrade "
@@ -382,6 +407,8 @@ MATERIALS = {
         cte_per_k=6.6e-06,
         specular_strength=0.45,
         shininess=55.0,
+        metallic=1.0,
+        roughness=0.35,
         notes="Iridium-coated rhenium radiative chamber/nozzle, as used on small hypergolic "
               "apogee/upper-stage thrusters (R-4D lineage, Aestus). Extremely expensive "
               "(rhenium is one of the rarest/costliest engineering metals) - realistic only "
@@ -405,6 +432,8 @@ MATERIALS = {
         cte_per_k=1.4e-05,
         specular_strength=0.38,
         shininess=42.0,
+        metallic=1.0,
+        roughness=0.45,
         notes="Ni-Cr-W-Mo superalloy (a NICKEL superalloy, not cobalt-based) - better "
               "high-temperature oxidation resistance and fabricability than Inconel 718, at "
               "higher cost. A step up from Inconel 718 for hot structure/nozzle extensions "
@@ -429,6 +458,8 @@ MATERIALS = {
         cte_per_k=1.5e-06,
         specular_strength=0.03,
         shininess=8.0,
+        metallic=0.0,
+        roughness=0.7,
         notes="Lightweight radiatively-cooled composite (Shuttle RCC/SRM-nozzle lineage), "
               "used on some hypergolic upper-stage engine nozzle extensions (e.g. OMS-class "
               "engines). Needs an oxidation-protective coating (e.g. SiC) for repeated use "
@@ -455,6 +486,8 @@ MATERIALS = {
         cte_per_k=5.3e-06,
         specular_strength=0.42,
         shininess=48.0,
+        metallic=0.2,
+        roughness=0.65,
         notes="Mo-0.5Ti-0.08Zr alloy. Needs oxidation protection or a reducing/fuel-rich "
               "environment above ~800 K. Legitimate historical radiative-nozzle option, "
               "largely superseded by niobium/rhenium alloys for flight hardware specifically "
@@ -467,6 +500,8 @@ MATERIALS = {
 # a new material that forgets allowed_cooling_methods fails loudly here).
 for _m in MATERIALS.values():
     assert _m.cooling_method in _m.allowed_cooling_methods, (_m.key, _m.cooling_method)
+    assert _m.metallic is None or 0.0 <= _m.metallic <= 1.0, _m.key
+    assert _m.roughness is None or 0.0 <= _m.roughness <= 1.0, _m.key
 
 
 def available_materials():

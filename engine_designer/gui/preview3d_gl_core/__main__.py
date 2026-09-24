@@ -13,6 +13,7 @@ from . import shell_mesh
 from . import camera_color
 from . import render_layers
 from . import flow_meshes
+from . import shading
 
 if __name__ == "__main__":
     profile_geometry.self_test()
@@ -23,4 +24,5 @@ if __name__ == "__main__":
     camera_color.self_test()
     render_layers.self_test()
     flow_meshes.self_test()
+    shading.self_test()
     print("ALL PREVIEW3D_GL_CORE CHECKS OK")

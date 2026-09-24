@@ -94,7 +94,9 @@ File menu.
    colormap math lives separately in the `gui/preview3d_gl_core/` package (split by
    geometry-operation kind: `hardware_constants.py`/`profile_geometry.py`/
    `mesh_primitives.py`/`duct_meshes.py`/`tube_bundle.py`/`shell_mesh.py`/
-   `camera_color.py`/`render_layers.py` (opaque/translucent "X-ray" layer assignment,
+   `camera_color.py`/`shading.py` (PBR metallic/roughness GLSL + its numpy reference twin;
+   its fragment shader also carries the X-ray `u_alpha`/`u_rim_power`/`u_facing_pass` inputs)/
+   `render_layers.py` (opaque/translucent "X-ray" layer assignment,
    per-layer draw batching, back-to-front sort, rim-alpha reference - the multi-pass
    pipeline's testable half) / `flow_meshes.py` (flow visualization: fixed log-T 20-4000 K
    "turbo" colormap, stream tubes, ring loops, `stream_inside_tube` = a drawn tube's own grid

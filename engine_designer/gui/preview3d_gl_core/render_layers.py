@@ -26,6 +26,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .mesh_primitives import MeshBuffers
+from .shading import resolve_pbr
 
 LAYER_OPAQUE = "opaque"
 LAYER_TRANSLUCENT = "translucent"
@@ -75,8 +76,9 @@ def layer_for(piece, xray_enabled, flow_enabled=False):
 def merge_buffers(pieces):
     """
     Concatenate pieces into one MeshBuffers, offsetting each piece's indices
-    by the running vertex count. Specular/shininess/role come from the first
-    piece - callers group by those first (build_batches does).
+    by the running vertex count. Material (specular/shininess, PBR metallic/
+    roughness/data_colors) and role come from the first piece - callers group
+    by those first (build_batches does).
     """
     pieces = [p for p in pieces if p.vertices.shape[0] > 0]
     if not pieces:
@@ -89,6 +91,7 @@ def merge_buffers(pieces):
         if all(getattr(p, name) is not None for p in pieces):
             extra[name] = np.concatenate([getattr(p, name) for p in pieces]).astype(np.float32)
     return MeshBuffers(
+        metallic=first.metallic, roughness=first.roughness, data_colors=first.data_colors,
         vertices=np.concatenate([p.vertices for p in pieces]).astype(np.float32),
         normals=np.concatenate([p.normals for p in pieces]).astype(np.float32),
         colors=np.concatenate([p.colors for p in pieces]).astype(np.float32),
@@ -115,11 +118,16 @@ def build_batches(pieces, xray_enabled, flow_enabled=False):
             continue
         tinted = flow_enabled and piece.flow_colors is not None and piece.role != FLOW_ROLE
         if tinted:
+            # the temperature tint is a data readout (like the heat-flux map):
+            # shaded without the PBR tone mapping so the colormap stays true
             piece = MeshBuffers(piece.vertices, piece.normals, piece.flow_colors, piece.indices,
                                 specular_strength=piece.specular_strength,
-                                shininess=piece.shininess, role=piece.role)
+                                shininess=piece.shininess, role=piece.role,
+                                metallic=piece.metallic, roughness=piece.roughness,
+                                data_colors=True)
         key = (layer, piece.role,
-               float(piece.specular_strength), float(piece.shininess), tinted)
+               float(piece.specular_strength), float(piece.shininess),
+               resolve_pbr(piece), bool(piece.data_colors), tinted)
         groups.setdefault(key, []).append(piece)
     batches = []
     for layer in LAYER_ORDER:
@@ -129,7 +137,7 @@ def build_batches(pieces, xray_enabled, flow_enabled=False):
             merged = merge_buffers(group)
             batches.append(RenderBatch(layer=layer, buffers=merged,
                                        centroid=merged.vertices.mean(axis=0),
-                                       alpha=FLOW_TINT_OPACITY if key[4] else None))
+                                       alpha=FLOW_TINT_OPACITY if key[-1] else None))
     return batches
 
 
@@ -206,6 +214,14 @@ def self_test():
     assert np.allclose(tb[0].buffers.colors, [1.0, 0.0, 0.0])
     assert [b.layer for b in on_b if b is not tb[0]] == [LAYER_OPAQUE]
     assert np.allclose(tube.colors, 0.5), "source piece must not be mutated"
+    assert tb[0].buffers.data_colors and not tube.data_colors
+    # PBR material is part of the batch key and survives the merge
+    ma, mb_ = _quad(0.0, role="wall"), _quad(1.0, role="wall")
+    ma.metallic, ma.roughness = 1.0, 0.3
+    mb_.metallic, mb_.roughness = 0.0, 0.8
+    mbat = build_batches([ma, mb_, _quad(2.0, role="wall")], False)
+    assert len(mbat) == 3
+    assert (mbat[0].buffers.metallic, mbat[0].buffers.roughness) == (1.0, 0.3)
 
     # back-to-front
     order = back_to_front_order([[0, 0, 0], [10, 0, 0], [5, 0, 0]], eye=[-1, 0, 0])

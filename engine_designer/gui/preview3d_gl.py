@@ -51,6 +51,9 @@ void main() {
 }
 """
 
+# Legacy Blinn-Phong fragment shader - kept ONLY as the compile fallback for
+# the PBR shader (preview3d_gl_core.PBR_FRAGMENT_SHADER, same vertex shader)
+# on a driver that rejects it; see initgl.
 _FRAGMENT_SHADER = """
 varying vec3 v_normal;
 varying vec3 v_color;
@@ -122,6 +125,10 @@ void main() {
 _GIZMO_MAX_PX = 80
 _GIZMO_MARGIN_PX = 8
 
+#: Multisample count for the offscreen anti-aliasing framebuffer (see
+#: _ensure_msaa). 0 disables it outright.
+_MSAA_SAMPLES = 4
+
 
 class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
     """
@@ -152,6 +159,11 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         self._locs = {}  # attrib/uniform locations of self._program, cached in initgl
         self._gizmo_program = None
         self._gizmo_vbo = None
+        self._pbr = False           # True = PBR shader compiled; False = legacy fallback
+        self._bg_program = None
+        self._bg_vbo = None
+        self._msaa = None           # {"fbo", "rbos", "size"} offscreen multisample target
+        self._msaa_failed = False
         self._drag_last = None
 
         self.bind("<Button-1>", self._on_mouse_down)
@@ -208,7 +220,7 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
     def set_flat_shade(self, enabled):
         """Pure render-state toggle (Shape Lab's "Engineering shading" checkbox):
         no mesh rebuild needed, just a shader uniform - see u_flat_shade in
-        _FRAGMENT_SHADER, which outputs each vertex's own baked color
+        preview3d_gl_core.PBR_FRAGMENT_SHADER (and the legacy fallback), which outputs each vertex's own baked color
         unlit instead of the usual ambient+diffuse+specular blend, so
         per-part colors stay but the shading gradient/gloss goes away."""
         self._flat_shade = bool(enabled)
@@ -280,23 +292,51 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         # preview came back drawing stale/invalid buffers.
         self._gl_meshes = []
         self._gizmo_vbo = None
+        self._bg_vbo = None
+        self._msaa = None           # same forget-don't-delete rule as the buffers above
+        self._msaa_failed = False
         self._dirty = True
-        try:
-            self._program = shaders.compileProgram(
-                shaders.compileShader(_VERTEX_SHADER, GL.GL_VERTEX_SHADER),
-                shaders.compileShader(_FRAGMENT_SHADER, GL.GL_FRAGMENT_SHADER))
-        except Exception as exc:  # shader compile failure - degrade, don't crash Tk's loop
-            print(f"preview3d_gl: shader compile failed, GL preview disabled: {exc}")
-            self._program = None
+        # PBR shader first; on a driver that rejects it, the legacy Blinn-Phong
+        # one (same vertex shader/attributes) - and only if BOTH fail is the
+        # preview disabled.
+        self._program = None
+        for pbr, frag in ((True, preview3d_gl_core.PBR_FRAGMENT_SHADER), (False, _FRAGMENT_SHADER)):
+            try:
+                self._program = shaders.compileProgram(
+                    shaders.compileShader(_VERTEX_SHADER, GL.GL_VERTEX_SHADER),
+                    shaders.compileShader(frag, GL.GL_FRAGMENT_SHADER))
+                self._pbr = pbr
+                break
+            except Exception as exc:  # shader compile failure - degrade, don't crash Tk's loop
+                print(f"preview3d_gl: {'PBR' if pbr else 'legacy'} shader compile failed: {exc}")
+        if self._program is None:
+            print("preview3d_gl: no shader compiled, GL preview disabled")
             return
+        if not self._pbr:
+            print("preview3d_gl: using legacy Blinn-Phong shading fallback")
         prog = self._program
         self._locs = {name: GL.glGetAttribLocation(prog, name)
                       for name in ("in_position", "in_normal", "in_color")}
         self._locs.update({name: GL.glGetUniformLocation(prog, name) for name in (
             "u_view", "u_proj", "u_light_dir", "u_ambient", "u_eye_pos", "u_flat_shade",
-            "u_specular_strength", "u_shininess", "u_alpha", "u_rim_power", "u_facing_pass")})
+            "u_specular_strength", "u_shininess", "u_metallic", "u_roughness", "u_data_colors",
+            "u_alpha", "u_rim_power", "u_facing_pass")})
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glClearColor(*self._clear_color, 1.0)
+
+        try:
+            self._bg_program = shaders.compileProgram(
+                shaders.compileShader(preview3d_gl_core.BACKGROUND_VERTEX_SHADER,
+                                      GL.GL_VERTEX_SHADER),
+                shaders.compileShader(preview3d_gl_core.BACKGROUND_FRAGMENT_SHADER,
+                                      GL.GL_FRAGMENT_SHADER))
+            tri = np.ascontiguousarray(preview3d_gl_core.background_triangle(), dtype=np.float32)
+            self._bg_vbo = GL.glGenBuffers(1)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._bg_vbo)
+            GL.glBufferData(GL.GL_ARRAY_BUFFER, tri.nbytes, tri, GL.GL_STATIC_DRAW)
+        except Exception as exc:  # cosmetic - plain clear color instead
+            print(f"preview3d_gl: background gradient disabled: {exc}")
+            self._bg_program = None
 
         try:
             self._gizmo_program = shaders.compileProgram(
@@ -321,9 +361,105 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._gizmo_vbo)
         GL.glBufferData(GL.GL_ARRAY_BUFFER, interleaved.nbytes, interleaved, GL.GL_STATIC_DRAW)
 
+    def _ensure_msaa(self, width, height):
+        """
+        Offscreen multisample color+depth framebuffer the scene renders into,
+        resolved to the window's own framebuffer by _resolve_msaa - 4x MSAA
+        without having to request a multisample pixel format from pyopengltk
+        (not something its OpenGLFrame exposes). (Re)built on resize; any
+        failure (pre-GL-3.0 context, driver refusal) disables it for the life
+        of this context and the scene just draws directly, un-antialiased.
+        Returns True if the MSAA target is bound.
+        """
+        if _MSAA_SAMPLES <= 0 or self._msaa_failed:
+            return False
+        try:
+            if self._msaa is None or self._msaa["size"] != (width, height):
+                if self._msaa is not None:
+                    GL.glDeleteFramebuffers(1, [self._msaa["fbo"]])
+                    GL.glDeleteRenderbuffers(2, self._msaa["rbos"])
+                fbo = GL.glGenFramebuffers(1)
+                rbos = GL.glGenRenderbuffers(2)
+                GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, fbo)
+                for rbo, fmt, attach in ((rbos[0], GL.GL_RGBA8, GL.GL_COLOR_ATTACHMENT0),
+                                         (rbos[1], GL.GL_DEPTH_COMPONENT24,
+                                          GL.GL_DEPTH_ATTACHMENT)):
+                    GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, rbo)
+                    GL.glRenderbufferStorageMultisample(GL.GL_RENDERBUFFER, _MSAA_SAMPLES,
+                                                        fmt, width, height)
+                    GL.glFramebufferRenderbuffer(GL.GL_FRAMEBUFFER, attach,
+                                                 GL.GL_RENDERBUFFER, rbo)
+                status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
+                self._msaa = {"fbo": fbo, "rbos": list(rbos), "size": (width, height)}
+                if status != GL.GL_FRAMEBUFFER_COMPLETE:
+                    raise RuntimeError(f"framebuffer incomplete (0x{int(status):x})")
+            GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self._msaa["fbo"])
+            return True
+        except Exception as exc:
+            print(f"preview3d_gl: MSAA disabled, drawing un-antialiased: {exc}")
+            self._msaa_failed = True
+            self._msaa = None
+            try:
+                GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+            except Exception:
+                pass
+            return False
+
+    def _resolve_msaa(self, width, height):
+        GL.glBindFramebuffer(GL.GL_READ_FRAMEBUFFER, self._msaa["fbo"])
+        GL.glBindFramebuffer(GL.GL_DRAW_FRAMEBUFFER, 0)
+        GL.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height,
+                             GL.GL_COLOR_BUFFER_BIT, GL.GL_NEAREST)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+
+    def _draw_background(self):
+        """Vertical gradient behind the scene (depth test off, so it never
+        occludes anything); falls back to the plain clear color."""
+        if self._bg_program is None or self._bg_vbo is None or self._flat_shade:
+            return
+        GL.glDisable(GL.GL_DEPTH_TEST)
+        GL.glUseProgram(self._bg_program)
+        GL.glUniform3f(GL.glGetUniformLocation(self._bg_program, "u_top"),
+                       *preview3d_gl_core.BACKGROUND_TOP)
+        GL.glUniform3f(GL.glGetUniformLocation(self._bg_program, "u_bottom"),
+                       *preview3d_gl_core.BACKGROUND_BOTTOM)
+        loc = GL.glGetAttribLocation(self._bg_program, "in_ndc")
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self._bg_vbo)
+        GL.glEnableVertexAttribArray(loc)
+        GL.glVertexAttribPointer(loc, 2, GL.GL_FLOAT, GL.GL_FALSE, 8, GL.GLvoidp(0))
+        GL.glDrawArrays(GL.GL_TRIANGLES, 0, 3)
+        GL.glDisableVertexAttribArray(loc)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+
+    def _set_lighting_uniforms(self):
+        prog = self._program
+        if not self._pbr:
+            GL.glUniform3f(GL.glGetUniformLocation(prog, "u_light_dir"), *self._light_dir)
+            GL.glUniform3f(GL.glGetUniformLocation(prog, "u_ambient"), 0.25, 0.25, 0.28)
+            return
+        from .preview3d_gl_core import shading
+        # World-fixed rig (key follows this widget's configurable light_dir;
+        # fill/rim/back stay as the rig defines them) + the camera-relative
+        # fill, re-aimed every frame so the side being viewed is never unlit.
+        lights = shading.full_light_list(self._camera.eye_position(), self._camera.target)
+        dirs = [self._light_dir] + [d for d, _ in lights[1:]]
+        rgbs = [c for _, c in lights]
+        GL.glUniform3fv(GL.glGetUniformLocation(prog, "u_light_dir"), shading.N_LIGHTS,
+                        np.asarray(dirs, dtype=np.float32).ravel())
+        GL.glUniform3fv(GL.glGetUniformLocation(prog, "u_light_rgb"), shading.N_LIGHTS,
+                        np.asarray(rgbs, dtype=np.float32).ravel())
+        for name, val in (("u_env_up", shading.ENV_UP), ("u_env_sky", shading.ENV_SKY),
+                          ("u_env_ground", shading.ENV_GROUND),
+                          ("u_env_horizon", shading.ENV_HORIZON)):
+            GL.glUniform3f(GL.glGetUniformLocation(prog, name), *val)
+        for name, val in (("u_env_horizon_width", shading.ENV_HORIZON_WIDTH),
+                          ("u_env_horizon_rough_widen", shading.ENV_HORIZON_ROUGH_WIDEN),
+                          ("u_exposure", shading.EXPOSURE)):
+            GL.glUniform1f(GL.glGetUniformLocation(prog, name), float(val))
+
     def redraw(self):
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         if self._program is None:
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
             return
         if self._dirty:
             self._upload_meshes()
@@ -331,7 +467,10 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
 
         width = max(int(self.winfo_width()), 1)
         height = max(int(self.winfo_height()), 1)
+        msaa = self._ensure_msaa(width, height)
         GL.glViewport(0, 0, width, height)
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        self._draw_background()
 
         GL.glUseProgram(self._program)
         loc = self._locs
@@ -339,8 +478,7 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
         proj = self._camera.projection_matrix(aspect=width / height).astype(np.float32)
         GL.glUniformMatrix4fv(loc["u_view"], 1, GL.GL_TRUE, view)
         GL.glUniformMatrix4fv(loc["u_proj"], 1, GL.GL_TRUE, proj)
-        GL.glUniform3f(loc["u_light_dir"], *self._light_dir)
-        GL.glUniform3f(loc["u_ambient"], 0.25, 0.25, 0.28)
+        self._set_lighting_uniforms()
         eye = self._camera.eye_position()
         GL.glUniform3f(loc["u_eye_pos"], float(eye[0]), float(eye[1]), float(eye[2]))
         GL.glUniform1f(loc["u_flat_shade"], 1.0 if self._flat_shade else 0.0)
@@ -387,13 +525,22 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
             GL.glDepthMask(GL.GL_TRUE)
 
         self._draw_gizmo(width, height)
+        if msaa:
+            self._resolve_msaa(width, height)
 
     def _draw_batch(self, mesh):
         """Bind one uploaded batch's buffers and draw it with the current uniforms."""
         loc = self._locs
         stride = 9 * 4  # 9 floats/vertex (pos, normal, color), 4 bytes each
-        GL.glUniform1f(loc["u_specular_strength"], mesh["specular_strength"])
-        GL.glUniform1f(loc["u_shininess"], mesh["shininess"])
+        # Per-batch material uniforms: the PBR shader's metallic/roughness/
+        # data-readout flag, or the legacy fallback's Blinn-Phong pair.
+        if self._pbr:
+            GL.glUniform1f(loc["u_metallic"], mesh["metallic"])
+            GL.glUniform1f(loc["u_roughness"], mesh["roughness"])
+            GL.glUniform1f(loc["u_data_colors"], mesh["data_colors"])
+        else:
+            GL.glUniform1f(loc["u_specular_strength"], mesh["specular_strength"])
+            GL.glUniform1f(loc["u_shininess"], mesh["shininess"])
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, mesh["vbo"])
         for name, offset in (("in_position", 0), ("in_normal", 12), ("in_color", 24)):
             GL.glEnableVertexAttribArray(loc[name])
@@ -460,11 +607,15 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
             GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, ibo)
             GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL.GL_STATIC_DRAW)
 
+            metallic, roughness = preview3d_gl_core.resolve_pbr(buf)
             self._gl_meshes.append({"vbo": vbo, "ibo": ibo, "n_indices": indices.size,
                                      "specular_strength": float(buf.specular_strength),
                                      "shininess": float(buf.shininess),
                                      "layer": batch.layer, "centroid": batch.centroid,
-                                     "alpha": batch.alpha})
+                                     "alpha": batch.alpha,
+                                     "metallic": metallic, "roughness": roughness,
+                                     "data_colors": 1.0 if getattr(buf, "data_colors", False)
+                                     else 0.0})
 
     def _request_redraw(self):
         # See module docstring's note: unconfirmed against the actually-
