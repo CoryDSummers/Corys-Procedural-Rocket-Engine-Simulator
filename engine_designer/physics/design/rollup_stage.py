@@ -90,7 +90,7 @@ def burn_time_and_mass(self, s):
                             + battery_motor_mass_kg + s.stability_aid_mass_kg
                             + s.injector_plate_mass_kg + s.jacket_structure_mass_kg
                             + s.manifold_mass_kg + s.jacket_manifold_mass_kg + s.plumbing_mass_kg
-                            + s.hatband_mass_kg)
+                            + s.hatband_mass_kg + s.te_hardware_mass_kg)
 
     _check(s.checklist, s.warnings, "manifold", "Manifold structural mass fraction",
            s.manifold_mass_kg <= manifold.MANIFOLD_MASS_DRY_FRACTION_WARN
@@ -248,6 +248,8 @@ def checks_and_result(self, s):
         "jacket_manifold_mass_kg": s.jacket_manifold_mass_kg,
         "plumbing_results": s.plumbing_results,
         "turbopump_ports": s.turbopump_ports,
+        "turbine_exhaust_hardware": s.te_hardware,
+        "turbine_exhaust_hardware_mass_kg": s.te_hardware_mass_kg,
         "line_loss_fuel_pa": s.line_loss_fuel_pa,
         "line_loss_ox_pa": s.line_loss_ox_pa,
         "line_loss_source": {"fuel": "computed" if s._llo.get("fuel") is not None else "flat",

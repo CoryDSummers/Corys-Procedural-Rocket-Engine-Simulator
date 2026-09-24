@@ -144,7 +144,8 @@ PUMP_NAMES = ("fuel_pump", "ox_pump")
 PORT_STUB_DIA_MULT = 0.75
 
 
-def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None):
+def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None,
+                    turbine_exhaust_dia_m=0.0):
     """
     Per-pump inlet / discharge hook points, in engine coordinates:
       {"fuel_pump": {"inlet": {"pos", "dir", "dia_m"},
@@ -159,6 +160,10 @@ def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None)
       downstream ring's full-flow feed bore, from design.py), 0 if not given.
     `dir` is always the direction flow LEAVES the port (out of the pump at the
     discharge, into the suction line at the inlet - i.e. outward normal).
+    turbine_exhaust_dia_m > 0 (open cycles - physics/turbine_exhaust.py) adds
+      {"turbine": {"exhaust": {"base", "pos", "dir", "dia_m"}}}: the centre of
+      the (first) turbine body's end face AWAY from the rest of its unit, `dir`
+      axially out along the shaft - where the exhaust duct leaves the turbine.
     Each port also carries `base` (the point on the body surface); `pos` sits
     PORT_STUB_DIA_MULT x bore further out along `dir` - the nozzle stub's face,
     where a pipe run lands.
@@ -187,6 +192,17 @@ def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None)
                                "pos": inlet_pos + PORT_STUB_DIA_MULT * eye * inlet_dir},
                      "discharge": {"base": dis_pos, "dir": dis_dir, "dia_m": dis_dia,
                                    "pos": dis_pos + PORT_STUB_DIA_MULT * dis_dia * dis_dir}}
+    turbines = [c for c in centers if c["kind"] == "turbine"]
+    if turbine_exhaust_dia_m > 0 and turbines:
+        c = turbines[0]
+        others = [o for o in centers if o is not c and o["center"] == c["center"]]
+        ref_x = float(np.mean([o["pos"][0] for o in others])) if others else c["pos"][0] - 1.0
+        sx = 1.0 if c["pos"][0] > ref_x else -1.0
+        ex_dir = np.array([sx, 0.0, 0.0])
+        ex_base = c["pos"] + 0.5 * c["length_m"] * ex_dir
+        d = float(turbine_exhaust_dia_m)
+        out["turbine"] = {"exhaust": {"base": ex_base, "dir": ex_dir, "dia_m": d,
+                                      "pos": ex_base + PORT_STUB_DIA_MULT * d * ex_dir}}
     return out
 
 
@@ -336,6 +352,12 @@ if __name__ == "__main__":
                       -ports["ox_pump"]["discharge"]["base"][2])
     assert np.allclose(ports["fuel_pump"]["discharge"]["dir"], -ports["ox_pump"]["discharge"]["dir"])
     assert ports["fuel_pump"]["inlet"]["dia_m"] == 0.1 and ports["ox_pump"]["discharge"]["dia_m"] == 0.09
+    assert "turbine" not in ports                     # closed cycle / no exhaust bore
+    ports_te = turbopump_ports(bodies, origin, None, None, turbine_exhaust_dia_m=0.2)
+    ex = ports_te["turbine"]["exhaust"]
+    tc = [cc for cc in centers if cc["kind"] == "turbine"][0]
+    assert np.isclose(abs(ex["base"][0] - tc["pos"][0]), 0.5 * tc["length_m"])   # axial end face
+    assert np.allclose(ex["pos"], ex["base"] + PORT_STUB_DIA_MULT * 0.2 * ex["dir"])
     print("turbopump placement helpers self-check: OK")
 
     # axial_bump_delta_r: peaks exactly at height_m at the center, is exactly

@@ -444,6 +444,12 @@
 "passed": true
 },
 {
+"category": "plumbing",
+"detail": "OK - 2.31 m, 38.7 kg, -> turbine, line loss 68 kPa",
+"name": "Plumbing run on 'turbine_exhaust' geometry (1 pipes) (default exhaust duct)",
+"passed": true
+},
+{
 "category": "injector",
 "detail": "OK - ~6,829 elements/m^2",
 "name": "Injector element crowding",
@@ -459,6 +465,12 @@
 "category": "manifold",
 "detail": "OK - 6 kg",
 "name": "Jacket manifold structural mass fraction",
+"passed": true
+},
+{
+"category": "plumbing",
+"detail": "OK - 38.7 kg over 2.31 m",
+"name": "Plumbing structural mass fraction",
 "passed": true
 },
 {
@@ -538,7 +550,7 @@
 "__f__": "0.9986016950366152"
 },
 "computed_dry_mass_kg": {
-"__f__": "4234.756781952354"
+"__f__": "4275.239071840219"
 },
 "convergent_half_angle_deg": {
 "__f__": "35.0"
@@ -3706,6 +3718,7 @@
 "discharge_pa": {
 "__f__": "101325.0"
 },
+"duct_loss_computed_pa": null,
 "eps_eff": {
 "__f__": "1.0"
 },
@@ -4519,11 +4532,75 @@
 "__f__": "0.005289211499273215"
 },
 "plumbing_mass_kg": {
-"__f__": "0.0"
+"__f__": "38.67807300817052"
 },
-"plumbing_results": [],
-"plumbing_total_length_m": {
+"plumbing_results": [
+{
+"advisories": [
+"Pipe 2: its 1.00-dia elbow needs more straight run than pipe 1 / pipe 2 have - rendered at 0.26 dia instead.",
+"Pipe 2: combined yaw+pitch turn is 161 deg (> 90) - a very tight elbow for a feed line."
+],
+"connected_pump": "turbine",
+"flange_mass_kg": {
+"__f__": "23.14891715693451"
+},
+"host": "turbine_exhaust",
+"implicit": true,
+"mass_kg": {
+"__f__": "38.67807300817052"
+},
+"n_flanges": 1,
+"n_pipes": 1,
+"pipe_dias_m": [
+{
+"__f__": "0.2704478648683347"
+},
+{
+"__f__": "0.2704478648683347"
+},
+{
+"__f__": "0.2704478648683347"
+}
+],
+"pipe_mass_kg": {
+"__f__": "15.52915585123601"
+},
+"pipe_velocities_ms": [
+{
+"__f__": "158.37363674173176"
+},
+{
+"__f__": "158.37363674173176"
+},
+{
+"__f__": "158.37363674173176"
+}
+],
+"pressure_loss_pa": {
+"__f__": "68013.30984512524"
+},
+"pressure_loss_parts_pa": {
+"elbows_pa": {
+"__f__": "43837.70310593504"
+},
+"entry_pa": {
+"__f__": "22250.02083333333"
+},
+"friction_pa": {
+"__f__": "1925.5859058568813"
+},
+"reducers_pa": {
 "__f__": "0.0"
+}
+},
+"role": "turbine_exhaust_manifold",
+"total_length_m": {
+"__f__": "2.3050717839395873"
+}
+}
+],
+"plumbing_total_length_m": {
+"__f__": "2.3050717839395873"
 },
 "profile_meta": {
 "convergent_length_m": {
@@ -5290,6 +5367,7 @@
 "discharge_pa": {
 "__f__": "101325.0"
 },
+"duct_loss_computed_pa": null,
 "eps_eff": {
 "__f__": "1.0"
 },
@@ -5377,6 +5455,182 @@
 "turbine_pressure_ratio": {
 "__f__": "18.0"
 }
+},
+"turbine_exhaust_hardware": {
+"aspirator": null,
+"duct": {
+"dia_m": {
+"__f__": "0.2704478648683347"
+},
+"rho_kg_m3": {
+"__f__": "1.774167578112396"
+},
+"sonic_ms": {
+"__f__": "633.494546966927"
+},
+"velocity_ms": {
+"__f__": "158.37363674173176"
+}
+},
+"exhaust": {
+"attach_angular_position_deg": {
+"__f__": "0.0"
+},
+"attach_axial_station_m": {
+"__f__": "1.5032565886434561"
+},
+"attach_direction_xyz": [
+{
+"__f__": "-1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+"attach_radial_offset_m": {
+"__f__": "0.91671265314736"
+},
+"design_feed_velocity_ms": {
+"__f__": "158.37363674173176"
+},
+"feed_pressure_pa": {
+"__f__": "579333.3333333334"
+},
+"feed_wall_thickness_m": {
+"__f__": "0.001"
+},
+"flow_radius_m": {
+"__f__": "0.13522393243416736"
+},
+"inner_diameter_m": {
+"__f__": "0.2704478648683347"
+},
+"major_radius_m": {
+"__f__": "0.91671265314736"
+},
+"mass_kg": {
+"__f__": "0.0"
+},
+"mdot_kgs": {
+"__f__": "16.14115186716343"
+},
+"outer_radius_m": {
+"__f__": "0.13622393243416736"
+},
+"point_hook": true,
+"thin_wall_ratio": {
+"__f__": "0.007395140652981983"
+},
+"wall_thickness_m": {
+"__f__": "0.001"
+}
+},
+"hx": null,
+"implicit_run": {
+"attach_angle_deg": {
+"__f__": "0.0"
+},
+"attach_poloidal_deg": {
+"__f__": "0.0"
+},
+"connect_to_pump": true,
+"flange_at_root": false,
+"flange_bolt_count": 0,
+"flange_lip_dia_mult": {
+"__f__": "0.25"
+},
+"flange_width_dia_mult": {
+"__f__": "0.15"
+},
+"host": "turbine_exhaust",
+"kind": "manifold",
+"pipes": [
+{
+"bend_radius_dia_mult": {
+"__f__": "1.0"
+},
+"bore_scale": {
+"__f__": "1.0"
+},
+"flange_at_end": false,
+"kind": "pipe",
+"length_dia_mult": {
+"__f__": "2.68702852126935"
+},
+"pitch_deg": {
+"__f__": "0.0"
+},
+"role": "turbine_exhaust",
+"yaw_deg": {
+"__f__": "0.0"
+}
+}
+],
+"port_standoff_dia_mult": {
+"__f__": "2.5"
+},
+"role": "turbine_exhaust_manifold"
+},
+"manifold": null,
+"mass_kg": {
+"__f__": "1.8042168796950713"
+},
+"material": "haynes_230",
+"mode": "overboard_duct",
+"outlet": {
+"cant_deg": {
+"__f__": "0.0"
+},
+"converge_length_m": {
+"__f__": "0.033712647928193014"
+},
+"dir": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+"exit_dia_m": {
+"__f__": "0.2030225690119487"
+},
+"inlet_dia_m": {
+"__f__": "0.2704478648683347"
+},
+"length_m": {
+"__f__": "0.033712647928193014"
+},
+"mass_kg": {
+"__f__": "1.8042168796950713"
+},
+"pos": [
+{
+"__f__": "1.5032565886434561"
+},
+{
+"__f__": "0.91671265314736"
+},
+{
+"__f__": "0.0"
+}
+],
+"thickness_m": {
+"__f__": "0.001"
+},
+"throat_dia_m": {
+"__f__": "0.2030225690119487"
+}
+}
+},
+"turbine_exhaust_hardware_mass_kg": {
+"__f__": "1.8042168796950713"
 },
 "turbopump_ports": {
 "fuel_pump": {
@@ -5554,6 +5808,52 @@
 },
 {
 "__f__": "0.28716587013625794"
+}
+]
+}
+}
+},
+"turbine": {
+"exhaust": {
+"base": {
+"__nd__": [
+{
+"__f__": "0.6512979729996984"
+},
+{
+"__f__": "0.9247319940442085"
+},
+{
+"__f__": "-0.28716587013625794"
+}
+]
+},
+"dia_m": {
+"__f__": "0.2704478648683347"
+},
+"dir": {
+"__nd__": [
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+]
+},
+"pos": {
+"__nd__": [
+{
+"__f__": "0.8541338716509494"
+},
+{
+"__f__": "0.9247319940442085"
+},
+{
+"__f__": "-0.28716587013625794"
 }
 ]
 }

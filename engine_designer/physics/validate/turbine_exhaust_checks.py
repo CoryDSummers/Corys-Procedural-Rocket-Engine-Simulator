@@ -58,6 +58,8 @@ def run_turbine_exhaust_check():
     (e) Closed cycle ignores the mode with a warning, results unchanged.
     (f) Engine-Isp consistency: cycle_result gg_dump_isp_fraction is the
         exhaust stream's vac Isp / chamber vac Isp (no flat 0.55 left).
+    (g) Hardware: aspirator / manifold / outlet sized per mode, the default
+        exhaust duct closes onto the turbine exhaust port.
     """
     print()
     print("=" * 78)
@@ -135,6 +137,24 @@ def run_turbine_exhaust_check():
                    - x["turbine_exhaust"]["isp_vac_s"] / x["isp_vac_chamber_s"]) < 1e-12
                for x in (r, f_inj, r91))
     rows.append(("(f) gg_dump_isp_fraction == exhaust vac Isp / chamber vac Isp", f_ok))
+
+    # (g) hardware: each mode sizes its termination, the default exhaust duct
+    # closes onto the turbine's exhaust port, and it all lands in the dry mass
+    g_parts = []
+    for res in (r, f_inj, f_ob):
+        hw = res["turbine_exhaust_hardware"]
+        te_runs = [x for x in res["plumbing_results"] if x["host"] == "turbine_exhaust"]
+        g_parts.append(hw is not None and hw["mass_kg"] > 0
+                       and res["turbopump_ports"].get("turbine", {}).get("exhaust") is not None
+                       and len(te_runs) == 1 and te_runs[0]["connected_pump"] == "turbine"
+                       and te_runs[0]["implicit"])
+    g_ok = (all(g_parts) and r["turbine_exhaust_hardware"]["aspirator"] is not None
+            and f_inj["turbine_exhaust_hardware"]["manifold"] is not None
+            and f_ob["turbine_exhaust_hardware"]["outlet"] is not None)
+    rows.append((f"(g) hardware: H-1 aspirator shroud {r['turbine_exhaust_hardware']['mass_kg']:.0f} kg, "
+                 f"F-1 injection manifold {f_inj['turbine_exhaust_hardware']['mass_kg']:.0f} kg / "
+                 f"overboard outlet {f_ob['turbine_exhaust_hardware']['mass_kg']:.0f} kg; default duct "
+                 f"closes on the turbine exhaust port", g_ok))
 
     all_ok = True
     for label, ok in rows:

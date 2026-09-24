@@ -4419,6 +4419,10 @@
 "__f__": "27800.0"
 },
 "turbine_exhaust": null,
+"turbine_exhaust_hardware": null,
+"turbine_exhaust_hardware_mass_kg": {
+"__f__": "0.0"
+},
 "turbopump_ports": null,
 "turbopump_sizing": null,
 "warnings": [

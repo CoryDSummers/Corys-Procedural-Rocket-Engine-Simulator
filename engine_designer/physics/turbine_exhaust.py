@@ -248,6 +248,204 @@ def film_mdot_ratio_to_fuel(mdot_exhaust_kgs, mdot_fuel_chamber_kgs):
     return mdot_exhaust_kgs / mdot_fuel_chamber_kgs if mdot_fuel_chamber_kgs > 0 else 0.0
 
 
+# --------------------------------------------------------------------------
+# Hardware: the duct bore, the mode's termination (overboard exhaust nozzle /
+# aspirator shroud + inlet collar / injection manifold torus), the optional
+# heat-exchanger can, and their mass. Geometry/mass only - the performance
+# above never reads it. The duct RUN itself is a physics/plumbing.py run on
+# the "turbine_exhaust" host (rooted on hardware["exhaust"], closed onto the
+# turbine's exhaust port), massed there.
+# --------------------------------------------------------------------------
+# Duct gas velocity target, as a Mach number at the turbine exit state. Tier 3
+# (typical hot-gas ducting keeps M ~0.2-0.3 to hold friction/bend losses down;
+# not from a claude_lit source).
+TURBINE_EXHAUST_DUCT_MACH = 0.25
+# Hot-gas hardware material: Haynes 230 stands in for [SP-8120]'s Hastelloy C /
+# Inconel 625 / 347 CRES and [H1-Man]'s Hastelloy C aspirator (closest catalog
+# Ni superalloy; density/allowable from materials.py).
+EXHAUST_HARDWARE_MATERIAL = "haynes_230"
+EXHAUST_SHEET_MIN_GAUGE_M = 1.0e-3     # shroud / nozzle / can sheet floor - Tier 3
+# Overboard exhaust-nozzle placement: axial station as a fraction of the
+# throat -> exit length, standing off the wall by this x its exit dia. Tier 3
+# cosmetic (RS-68/LR-87 ducts run aft alongside the bell).
+OUTLET_STATION_FRACTION = 0.6
+OUTLET_STANDOFF_EXIT_DIA_MULT = 1.0
+OUTLET_HALF_ANGLE_DEG = 15.0           # conical exhaust-nozzle divergence - Tier 3
+# Heat-exchanger can around the duct (H-1 [H1-Man §1-47]): dia / length as
+# multiples of the duct bore; mass = 2 x the can shell (coils + manifolds
+# lumped). Tier 3 - [H1-Man] gives the construction, no dimensions.
+HX_CAN_DIA_DUCT_MULT = 2.5
+HX_CAN_LENGTH_DUCT_MULT = 3.0
+HX_MASS_SHELL_MULT = 2.0
+# Aspirator annulus at its forward (inlet) end is sized for the duct velocity;
+# it narrows linearly to the choked exit slot.
+
+
+def _material():
+    from . import materials
+    return materials.MATERIALS[EXHAUST_HARDWARE_MATERIAL]
+
+
+def duct_state(exh):
+    """Gas density / sonic speed / velocity / full-flow bore of the exhaust duct
+    at the turbine-exit state."""
+    r_gas, g = exh["gas_constant_j_kgk"], exh["gamma"]
+    t = max(exh["t_turbine_exit_k"], 1.0)
+    rho = exh["p_turbine_out_pa"] / (r_gas * t)
+    a = math.sqrt(g * r_gas * t)
+    v = TURBINE_EXHAUST_DUCT_MACH * a
+    area = exh["mdot_kgs"] / (rho * v) if rho > 0 and v > 0 else 0.0
+    return dict(rho_kg_m3=rho, sonic_ms=a, velocity_ms=v, dia_m=2.0 * math.sqrt(area / math.pi))
+
+
+def _sheet_t(pressure_pa, radius_m, mat):
+    from . import mass_model
+    return max(mass_model.wall_thickness_m(pressure_pa, radius_m, mat.allowable_stress_pa),
+               EXHAUST_SHEET_MIN_GAUGE_M)
+
+
+def _station_at_eps(xs, rs, throat_r, eps):
+    """First supersonic station index with (r/rt)^2 >= eps (else the exit)."""
+    it = int(min(range(len(rs)), key=lambda i: rs[i]))
+    for i in range(it, len(rs)):
+        if (rs[i] / throat_r) ** 2 >= eps:
+            return i
+    return len(rs) - 1
+
+
+def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
+                  aspirator_fwd_length_frac=0.30, aspirator_overhang_frac=0.05,
+                  nozzle_eps=1.0, cant_deg=0.0, attach_angle_deg=0.0):
+    """Exhaust hardware for the stream `exh` (exhaust_stream's dict + its
+    "mode") on the main contour (xs, rs; engine axis +x, injector at x=0).
+    Returns a dict with:
+      mode, duct {rho_kg_m3, sonic_ms, velocity_ms, dia_m}, material
+      exhaust     the plumbing hook the "turbine_exhaust" run roots on (a
+                  manifold.py-shaped ring dict; the overboard outlet is a
+                  point "ring" whose tube radius is the duct bore)
+      manifold    injection torus ring dict, or None
+      aspirator   {"xs", "r_inner", "r_outer", "thickness_m", "gap_exit_m",
+                   "collar"} or None
+      outlet      overboard exhaust nozzle {"pos", "dir", "throat_dia_m",
+                   "exit_dia_m", "length_m", "cant_deg", "thickness_m"} or None
+      hx          {"dia_m", "length_m", "mass_kg"} or None
+      mass_kg     termination + heat-exchanger mass (the duct run is massed
+                  by plumbing.py)
+    """
+    from . import manifold
+    mode = effective_mode(exh.get("mode"))
+    mat = _material()
+    duct = duct_state(exh)
+    d_duct = duct["dia_m"]
+    mdot = exh["mdot_kgs"]
+    p_out = exh["p_turbine_out_pa"]
+    xs = [float(x) for x in xs]
+    rs = [float(r) for r in rs]
+    rt = 0.5 * float(throat_dia_m)
+    it = int(min(range(len(rs)), key=lambda i: rs[i]))
+    x_t, x_e, r_e = xs[it], xs[-1], rs[-1]
+    ang = math.radians(attach_angle_deg)
+    rho_scale = mat.density_kg_m3 / manifold.MANIFOLD_DENSITY_KG_M3
+    out = dict(mode=mode, duct=duct, material=EXHAUST_HARDWARE_MATERIAL, manifold=None,
+               aspirator=None, outlet=None, hx=None, mass_kg=0.0)
+
+    def _ring(x, r_wall, v):
+        r_flow = manifold.required_flow_radius_m(0.5 * mdot, duct["rho_kg_m3"], v)
+        wall = max(manifold.manifold_wall_thickness_m(p_out, r_flow, mat.allowable_stress_pa),
+                   EXHAUST_SHEET_MIN_GAUGE_M)
+        ring = manifold._assemble(mdot, v, attach_angle_deg, r_wall + r_flow + wall, x,
+                                  r_flow, wall, p_out, taper_blend=0.0, split=True)
+        ring["mass_kg"] *= rho_scale
+        return ring
+
+    if mode == "nozzle_injection":
+        i = _station_at_eps(xs, rs, rt, inject_eps)
+        ring = _ring(xs[i], rs[i], duct["velocity_ms"])
+        out["manifold"] = out["exhaust"] = ring
+        out["mass_kg"] += ring["mass_kg"]
+    elif mode == "aspirator":
+        l_noz = x_e - x_t
+        x0 = x_e - max(0.0, min(1.0, aspirator_fwd_length_frac)) * l_noz
+        x1 = x_e + max(0.0, aspirator_overhang_frac) * 2.0 * r_e
+        gap_e = exh.get("aspirator_gap_m") or 0.0
+        i0 = min(range(len(xs)), key=lambda k: abs(xs[k] - x0))
+        r0 = rs[i0]
+        a_in = mdot / (duct["rho_kg_m3"] * duct["velocity_ms"])
+        h0 = max(a_in / (2.0 * math.pi * r0), gap_e)
+        n = 24
+        sx, sr = [], []
+        for k in range(n + 1):
+            x = x0 + (x1 - x0) * k / n
+            r_wall = _interp(x, xs, rs) if x <= x_e else r_e
+            f = min(1.0, (x - x0) / max(x_e - x0, 1e-9))
+            sx.append(x)
+            sr.append(r_wall + h0 + (gap_e - h0) * f)
+        th = _sheet_t(exh["p_exit_total_pa"], max(sr), mat)
+        area = sum(2.0 * math.pi * 0.5 * (sr[k] + sr[k + 1]) * math.hypot(
+            sx[k + 1] - sx[k], sr[k + 1] - sr[k]) for k in range(n))
+        collar = _ring(x0, r0 + h0, duct["velocity_ms"])
+        out["aspirator"] = dict(xs=sx, r_inner=sr, r_outer=[r + th for r in sr],
+                                thickness_m=th, gap_exit_m=gap_e, annulus_inlet_m=h0,
+                                collar=collar, shroud_mass_kg=area * th * mat.density_kg_m3)
+        out["exhaust"] = collar
+        out["mass_kg"] += out["aspirator"]["shroud_mass_kg"] + collar["mass_kg"]
+    else:
+        # overboard: a point hook at the exhaust nozzle's inlet, beside the bell
+        x = x_t + OUTLET_STATION_FRACTION * (x_e - x_t)
+        r_wall = _interp(x, xs, rs)
+        a_t = exh["throat_area_m2"]
+        d_t = 2.0 * math.sqrt(max(a_t, 0.0) / math.pi)
+        d_ex = d_t * math.sqrt(max(1.0, float(nozzle_eps)))
+        r_hook = r_wall + OUTLET_STANDOFF_EXIT_DIA_MULT * max(d_ex, d_duct) + 0.5 * d_duct
+        cant = math.radians(cant_deg)
+        u_r = (0.0, math.cos(ang), math.sin(ang))
+        ndir = (math.cos(cant), math.sin(cant) * u_r[1], math.sin(cant) * u_r[2])
+        conv = max(0.0, 0.5 * (d_duct - d_t)) / math.tan(math.radians(45.0))
+        div = max(0.0, 0.5 * (d_ex - d_t)) / math.tan(math.radians(OUTLET_HALF_ANGLE_DEG))
+        th = _sheet_t(p_out, 0.5 * d_duct, mat)
+        length = conv + div
+        mean_r = 0.25 * (d_duct + d_ex)
+        out["outlet"] = dict(pos=(x, r_hook * u_r[1], r_hook * u_r[2]), dir=ndir,
+                             inlet_dia_m=d_duct, throat_dia_m=d_t, exit_dia_m=d_ex,
+                             converge_length_m=conv, length_m=length, cant_deg=cant_deg,
+                             thickness_m=th,
+                             mass_kg=2.0 * math.pi * mean_r * max(length, d_duct) * th
+                             * mat.density_kg_m3)
+        k = th / (0.5 * d_duct) if d_duct > 0 else 0.0
+        out["exhaust"] = {
+            "attach_axial_station_m": x, "attach_radial_offset_m": r_hook,
+            "attach_angular_position_deg": attach_angle_deg,
+            "attach_direction_xyz": (-1.0, 0.0, 0.0),
+            "inner_diameter_m": d_duct, "mdot_kgs": mdot,
+            "design_feed_velocity_ms": duct["velocity_ms"],
+            "flow_radius_m": 0.5 * d_duct, "outer_radius_m": 0.5 * d_duct * (1.0 + k),
+            "wall_thickness_m": th, "feed_wall_thickness_m": th, "thin_wall_ratio": k,
+            "major_radius_m": r_hook, "feed_pressure_pa": p_out, "mass_kg": 0.0,
+            "point_hook": True,
+        }
+        out["mass_kg"] += out["outlet"]["mass_kg"]
+    if exh.get("hx_on"):
+        d_can = HX_CAN_DIA_DUCT_MULT * d_duct
+        l_can = HX_CAN_LENGTH_DUCT_MULT * d_duct
+        th = _sheet_t(p_out, 0.5 * d_can, mat)
+        m = HX_MASS_SHELL_MULT * (math.pi * d_can * l_can + 0.5 * math.pi * d_can ** 2) * th \
+            * mat.density_kg_m3
+        out["hx"] = dict(dia_m=d_can, length_m=l_can, thickness_m=th, mass_kg=m,
+                         gox_kgs=exh.get("hx_gox_kgs", 0.0), duty_w=exh.get("hx_duty_w", 0.0))
+        out["mass_kg"] += m
+    return out
+
+
+def _interp(x, xs, rs):
+    if x <= xs[0]:
+        return rs[0]
+    for k in range(1, len(xs)):
+        if xs[k] >= x:
+            f = (x - xs[k - 1]) / max(xs[k] - xs[k - 1], 1e-12)
+            return rs[k - 1] + f * (rs[k] - rs[k - 1])
+    return rs[-1]
+
+
 def _self_test():
     print("physics/turbine_exhaust.py self-test")
     ok = True
@@ -328,6 +526,30 @@ def _self_test():
     c5 = all(x["choked_at_design"] for x in (duct, noz, a))
     print(f"  (5) exhaust exit choked at the design discharge pressure  [{'OK' if c5 else 'FAIL'}]")
     ok &= c5
+
+    # (6) hardware: a toy bell contour; each mode sizes its termination
+    import numpy as _np
+    xs_c = list(_np.linspace(0.0, 1.0, 81))
+    rt, re_ = 0.1, 0.1 * math.sqrt(8.0)
+    rs_c = [0.18 if x < 0.3 else (0.18 - (0.18 - rt) * (x - 0.3) / 0.1 if x < 0.4 else
+            rt + (re_ - rt) * ((x - 0.4) / 0.6) ** 0.8) for x in xs_c]
+    hw = {m: size_hardware(dict(exhaust_stream(m, **kw), mode=m), xs=xs_c, rs=rs_c,
+                           throat_dia_m=2 * rt, inject_eps=4.0, nozzle_eps=4.0, cant_deg=10.0)
+          for m in MODES}
+    inj_r = hw["nozzle_injection"]["manifold"]
+    asp = hw["aspirator"]["aspirator"]
+    outl = hw["overboard_duct"]["outlet"]
+    c6 = (inj_r is not None and inj_r["major_radius_m"] > inj_r["flow_radius_m"]
+          and abs(asp["r_inner"][-1] - re_ - asp["gap_exit_m"]) < 1e-9
+          and asp["annulus_inlet_m"] >= asp["gap_exit_m"]
+          and outl["exit_dia_m"] > outl["throat_dia_m"]
+          and hw["overboard_duct"]["exhaust"]["point_hook"]
+          and all(h["mass_kg"] > 0 and h["duct"]["dia_m"] > 0 for h in hw.values()))
+    print(f"  (6) hardware: duct {hw['aspirator']['duct']['dia_m']*1e3:.0f} mm; injection ring "
+          f"{inj_r['flow_radius_m']*1e3:.0f} mm bore; aspirator {asp['annulus_inlet_m']*1e3:.0f} -> "
+          f"{asp['gap_exit_m']*1e3:.1f} mm annulus; outlet {outl['throat_dia_m']*1e3:.0f} -> "
+          f"{outl['exit_dia_m']*1e3:.0f} mm  [{'OK' if c6 else 'FAIL'}]")
+    ok &= c6
 
     print("ALL TURBINE-EXHAUST SELF-TESTS OK" if ok else "*** TURBINE-EXHAUST SELF-TEST FAILED ***")
     return ok

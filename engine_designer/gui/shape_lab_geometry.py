@@ -278,9 +278,10 @@ def self_test():
     ghost_tp = ghost_turbopump_from_result(result)   # default design is gas-generator: has one
     assert ghost_tp is not None
     tp_pieces, pump_points = ghost_tp
-    # bodies + a 3-piece nozzle stub per pump port (inlet + discharge)
+    # bodies + a 3-piece nozzle stub per port (each pump's inlet + discharge,
+    # and an open cycle's turbine exhaust)
     assert len(tp_pieces) == (len(result["turbopump_sizing"]["bodies"])
-                              + 3 * 2 * len(result["turbopump_ports"]))
+                              + 3 * sum(len(g) for g in result["turbopump_ports"].values()))
     assert "fuel_pump" in pump_points and "ox_pump" in pump_points
     with_tp = build_plumbing_scene(run, hook, ring_r, tube_r, wall_profile=wall,
                                    ghost_turbopump=ghost_tp)

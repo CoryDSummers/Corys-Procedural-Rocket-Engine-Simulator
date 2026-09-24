@@ -4551,6 +4551,10 @@
 "__f__": "4167623.1657767883"
 },
 "turbine_exhaust": null,
+"turbine_exhaust_hardware": null,
+"turbine_exhaust_hardware_mass_kg": {
+"__f__": "0.0"
+},
 "turbopump_ports": {
 "fuel_pump": {
 "discharge": {

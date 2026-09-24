@@ -965,13 +965,13 @@ def build_flange_joint_pieces(has_real_joint, throat_dia_m, body_shell, ext_shel
 
 
 def run_port_for_result(result, run):
-    """The turbopump discharge port a connect_to_pump run closes onto
-    (result["turbopump_ports"], built by design.py), or None."""
+    """The turbopump port a connect_to_pump run closes onto (a pump's
+    discharge, or the turbine's exhaust for a turbine_exhaust run -
+    plumbing.port_for_host; result["turbopump_ports"], built by design.py), or None."""
     r = run if isinstance(run, plumbing.PlumbingRun) else plumbing.run_from_dict(run)
     if not r.connect_to_pump:
         return None
-    ports = result.get("turbopump_ports") or {}
-    return (ports.get(plumbing.HOST_PUMP.get(r.host, "fuel_pump")) or {}).get("discharge")
+    return plumbing.port_for_host(result.get("turbopump_ports"), r.host)
 
 
 def turbopump_port_stub_pieces(result, rgb=PORT_STUB_RGB, n_theta=_N_THETA):
@@ -1654,7 +1654,7 @@ def self_test():
     _tp_pieces = build_turbopump_pieces(result)
     _stubs = turbopump_port_stub_pieces(result)
     assert _tp_pieces and len(_tp_pieces) == len(_sz["bodies"]) + len(_stubs)
-    assert len(_stubs) == 3 * 2 * len(result["turbopump_ports"])   # ray_mesh = body + 2 disks
+    assert len(_stubs) == 3 * sum(len(g) for g in result["turbopump_ports"].values())  # ray_mesh = body + 2 disks
     _pump_pts = geometry3d.turbopump_pump_points(_sz["bodies"], _new_origin)
     # each pump point sits inside the x-span of some turbopump piece's vertices
     for _pt in _pump_pts.values():

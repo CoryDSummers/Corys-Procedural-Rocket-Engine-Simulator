@@ -1,0 +1,178 @@
+Turbine-exhaust HARDWARE (2026-09-24, follow-up to ..._turbine_exhaust_before_after.txt)
+=======================================================================================
+Before = HEAD bd4fcf7, after = this change. Both were computed in the same Python environment
+(python 3.12, numpy 2.4.6, scipy 1.17.1, cloud container) with a git worktree of HEAD.
+
+This change is geometry and mass only; no performance number moves (Isp, thrust and mdot are
+identical in every file). Every open-cycle design now carries:
+- its exhaust termination (injection manifold torus / aspirator shroud + inlet collar /
+  overboard exhaust nozzle), in Haynes 230 standing in for Hastelloy C;
+- a default exhaust duct: an orthogonal route from the termination to the turbine's new exhaust
+  port, massed like any plumbing run, flagged implicit, and drawn by the 3D preview;
+- the optional heat-exchanger can.
+All of it is added to the dry mass. Closed-cycle files change only by the new, empty result keys.
+
+Dry mass, before -> after:
+  engines/AJ10-137           dry mass     806.0 ->     806.0 kg
+  engines/Aestus             dry mass     151.6 ->     151.6 kg
+  engines/F-1                dry mass   22860.8 ->   23617.2 kg
+  engines/J-2                dry mass    5042.4 ->    5128.7 kg
+  engines/LMAE               dry mass      19.4 ->      19.4 kg
+  engines/Merlin-1D          dry mass    1119.9 ->    1153.2 kg
+  engines/RD-180             dry mass   19812.5 ->   19812.5 kg
+  engines/RL10A-3-3          dry mass     447.7 ->     447.7 kg
+  engines/RS-25              dry mass   34914.1 ->   34914.1 kg
+  engines/Raptor-2           dry mass    9361.8 ->    9361.8 kg
+  engines/Rutherford         dry mass      99.7 ->      99.7 kg
+  engines/Vulcain            dry mass    4913.6 ->    4954.8 kg
+  user_designs/AJ-90k        dry mass    3120.2 ->    3120.2 kg
+  user_designs/LR-100        dry mass    3035.7 ->    3065.3 kg
+  user_designs/RS-29         dry mass    3172.3 ->    3212.6 kg
+  user_designs/RS-29A        dry mass    2388.0 ->    2428.2 kg
+  user_designs/RS-29C        dry mass    4234.8 ->    4275.2 kg
+  user_designs/RS-30         dry mass    2493.4 ->    2533.1 kg
+  user_designs/TRW-270       dry mass      16.4 ->      16.4 kg
+  user_designs/j-2_test_bed  dry mass    2310.5 ->    2348.9 kg
+
+Field diff: non-numeric changes in full (lines cut at 600 chars); numeric changes collapsed
+to one line per top-level result group with count and max relative change.
+CHANGED   engines/AJ10-137
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/Aestus
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/F-1
+    /checklist: len 58 -> 60
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0331
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 6.12e+302
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 1.09e+301
+CHANGED   engines/J-2
+    /checklist: len 61 -> 63
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0171
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 6.01e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 3.09e+300
+CHANGED   engines/LMAE
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/Merlin-1D
+    /checklist: len 54 -> 56
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0298
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 3.22e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 3.51e+300
+CHANGED   engines/RD-180
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/RL10A-3-3
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/RS-25
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/Raptor-2
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/Rutherford
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   engines/Vulcain
+    /checklist: len 54 -> 56
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.00839
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 3.94e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 2.58e+300
+CHANGED   user_designs/AJ-90k
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   user_designs/LR-100
+    /checklist: len 56 -> 58
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.00974
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 2.86e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 4e+300
+CHANGED   user_designs/RS-29
+    /checklist: len 58 -> 60
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0127
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 3.85e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 2.32e+300
+CHANGED   user_designs/RS-29A
+    /checklist: len 56 -> 58
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0168
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 3.84e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 2.32e+300
+CHANGED   user_designs/RS-29C
+    /checklist: len 58 -> 60
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.00956
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 3.87e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 2.31e+300
+CHANGED   user_designs/RS-30
+    /checklist: len 54 -> 56
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0159
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 3.8e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 2.31e+300
+CHANGED   user_designs/TRW-270
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+CHANGED   user_designs/j-2_test_bed
+    /checklist: len 55 -> 57
+    /cycle_result/turbine_exhaust/duct_loss_computed_pa: added
+    /plumbing_results: len 0 -> 1
+    /turbine_exhaust/duct_loss_computed_pa: added
+    /turbine_exhaust_hardware: added
+    /turbine_exhaust_hardware_mass_kg: added
+    /turbopump_ports/turbine: added
+    /computed_dry_mass_kg: 1 numeric values changed, max |rel| 0.0167
+    /plumbing_mass_kg: 1 numeric values changed, max |rel| 3.68e+301
+    /plumbing_total_length_m: 1 numeric values changed, max |rel| 2.52e+300

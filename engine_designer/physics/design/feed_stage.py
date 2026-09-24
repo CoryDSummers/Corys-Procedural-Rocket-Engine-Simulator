@@ -393,6 +393,13 @@ def _exhaust_back_pressure(self, s, gamma, inlet_pc_fraction, pr_cap):
         s.te_mode, s.te_ambient_pa, s.te_local_static_pa)
     s.te_p_in_pa = inlet_pc_fraction * self.chamber_pressure_pa
     s.te_p_out_req_pa = turbine_exhaust.required_turbine_outlet_pa(gamma, s.te_discharge_pa)
+    # A baked exhaust-duct run's computed loss (previous pass) replaces the
+    # lumped duct allowance when it is the larger of the two.
+    s.te_duct_loss_pa = (s.line_loss_override or {}).get("turbine_exhaust")
+    if s.te_duct_loss_pa is not None:
+        s.te_p_out_req_pa = max(
+            s.te_p_out_req_pa,
+            s.te_discharge_pa / turbine_exhaust.critical_pressure_ratio(gamma) + s.te_duct_loss_pa)
     pr, s.te_pr_limited = turbine_exhaust.turbine_pressure_ratio(
         s.te_p_in_pa, s.te_p_out_req_pa, pr_cap)
     s.te_pr_cap = pr_cap
@@ -414,6 +421,7 @@ def _apply_exhaust(self, s, gas, pr):
     exh.update(turbine_inlet_pa=s.te_p_in_pa, turbine_pressure_ratio=pr,
                pr_cap=s.te_pr_cap, back_pressure_limited=s.te_pr_limited,
                inject_eps=s.te_inject_eps if s.te_mode == "nozzle_injection" else None,
+               duct_loss_computed_pa=s.te_duct_loss_pa,
                design_ambient_pa=s.te_ambient_pa)
     k_vac = exh["isp_vac_s"] / s.isp_vac_chamber
     k_sl = exh["isp_sl_s"] / s.isp_sl_chamber if s.isp_sl_chamber > 0 else 0.0

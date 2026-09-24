@@ -381,7 +381,8 @@ class PlumbingLabPanel(_ShapeLabBase):
 
         # --- pump connection (auto-close onto the turbopump discharge port) ---
         pump_name = plumbing.HOST_PUMP.get(r.host, "fuel_pump").replace("_", " ")
-        pump_box = ttk.LabelFrame(sidebar, text=f"Pump connection ({pump_name} discharge)",
+        pump_box = ttk.LabelFrame(sidebar, text=f"Pump connection ({pump_name} "
+                                  f"{plumbing.HOST_PORT.get(r.host, 'discharge')})",
                                   padding=6)
         pump_box.grid(row=row, column=0, sticky="ew", pady=(8, 0)); row += 1
         pr = 0
@@ -693,12 +694,14 @@ def open_plumbing_shape_lab(parent_app, host="jacket_inlet"):
         return
     hook, ring_r, tube_r = ring
     existing = plumbing.runs_for_host(parent_app.design.plumbing_runs, host)
+    _implicit = ((result.get("turbine_exhaust_hardware") or {}).get("implicit_run")
+                 if host == "turbine_exhaust" else None)
     run = (plumbing.run_from_dict(existing[0]) if existing
+           else plumbing.run_from_dict(_implicit) if _implicit   # the auto-routed default duct
            else plumbing.default_run_for_host(hook, tube_r, host))
     wall_profile = (result["profile_xs_m"], result["profile_rs_m"])
     ghost_turbopump = shape_lab_geometry.ghost_turbopump_from_result(result)
-    pump_port = ((result.get("turbopump_ports") or {})
-                 .get(plumbing.HOST_PUMP.get(host, "fuel_pump")) or {}).get("discharge")
+    pump_port = plumbing.port_for_host(result.get("turbopump_ports"), host)
 
     def on_bake(baked_run):
         kept = [r for r in parent_app.design.plumbing_runs
