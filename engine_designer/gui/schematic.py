@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib.collections import LineCollection
 from matplotlib.colors import Normalize
 from matplotlib.lines import Line2D
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Circle, Rectangle
 
 from ..physics import geometry, materials
 
@@ -192,6 +192,58 @@ def _draw_injector_block(ax, result, xs_mm, rs_mm):
                 xy=(-l_dome * 0.5, rc * 1.2), fontsize=7, ha="center")
 
 
+_EXHAUST_COLOR = "#8a6e5c"
+
+
+def _draw_turbine_exhaust(ax, result, xs_mm, rs_mm):
+    """Open cycles: the turbine-exhaust termination in side view (physics/
+    turbine_exhaust.size_hardware) - the injection manifold's section as a
+    circle on both walls, the aspirator shroud as an offset line over the aft
+    nozzle, or the overboard exhaust nozzle as an arrow beside the bell - each
+    labelled with the mode and the exhaust's own Isp. Returns the largest
+    |radius| drawn [mm] (so the axes can make room), or None."""
+    hw = result.get("turbine_exhaust_hardware")
+    te = result.get("turbine_exhaust")
+    if not hw or not te:
+        return None
+    label = (f"turbine exhaust: {te['mode'].replace('_', ' ')}, "
+             f"{te['isp_vac_s']:.0f} s vac, PR {te['turbine_pressure_ratio']:.1f}")
+    if hw["mode"] == "nozzle_injection":
+        ring = hw["exhaust"]
+        x = ring["attach_axial_station_m"] * 1000.0
+        rc = ring["major_radius_m"] * 1000.0
+        rt = ring["outer_radius_m"] * 1000.0
+        for sg in (1.0, -1.0):
+            ax.add_patch(Circle((x, sg * rc), rt, facecolor=_EXHAUST_COLOR, edgecolor="black",
+                                linewidth=0.6, zorder=4))
+        ax.annotate(label, xy=(x, rc + rt), xytext=(x, rs_mm.max() * 1.25), ha="center",
+                    fontsize=6, color=_EXHAUST_COLOR, arrowprops=dict(arrowstyle="->", lw=0.6,
+                                                                      color=_EXHAUST_COLOR))
+        return rc + rt
+    elif hw["mode"] == "aspirator":
+        a = hw["aspirator"]
+        sx = np.asarray(a["xs"]) * 1000.0
+        so = np.asarray(a["r_outer"]) * 1000.0
+        for sg in (1.0, -1.0):
+            ax.plot(sx, sg * so, color=_EXHAUST_COLOR, linewidth=2.0, zorder=4)
+        ax.annotate(label + f", slot {te.get('aspirator_gap_m', 0) * 1000:.1f} mm",
+                    xy=(sx[-1], so[-1]), xytext=(sx[0], rs_mm.max() * 1.25), ha="center",
+                    fontsize=6, color=_EXHAUST_COLOR,
+                    arrowprops=dict(arrowstyle="->", lw=0.6, color=_EXHAUST_COLOR))
+        return float(so.max())
+    else:
+        o = hw["outlet"]
+        x0, y0 = o["pos"][0] * 1000.0, np.hypot(o["pos"][1], o["pos"][2]) * 1000.0
+        L = max(o["length_m"], o["exit_dia_m"]) * 1000.0
+        dx, dr = o["dir"][0], np.hypot(o["dir"][1], o["dir"][2])
+        # upper half: the legend owns the lower right
+        ax.annotate("", xy=(x0 + L * dx, y0 + L * dr), xytext=(x0, y0),
+                    arrowprops=dict(arrowstyle="-|>", color=_EXHAUST_COLOR, lw=2.0), zorder=4)
+        ax.annotate(label, xy=(x0, y0), xytext=(x0 - L, y0 + L * dr + 0.15 * rs_mm.max()),
+                    ha="center", fontsize=6, color=_EXHAUST_COLOR)
+        return y0 + L * dr + 0.3 * rs_mm.max()
+
+
 def draw_schematic(ax, result):
     ax.clear()
     xs = result["profile_xs_m"]
@@ -283,6 +335,12 @@ def draw_schematic(ax, result):
                         xytext=(xs_mm.min(), rs_mm.max() * 1.45), ha="left", fontsize=7,
                         color="#a03030")
 
+    te_extent_mm = None
+    try:
+        te_extent_mm = _draw_turbine_exhaust(ax, result, xs_mm, rs_mm)
+    except Exception:
+        pass   # a drawing hiccup here must never blank the schematic
+
     # Side-view injector block sitting on the chamber head.
     if result.get("injector_geometry"):
         try:
@@ -303,7 +361,10 @@ def draw_schematic(ax, result):
     # extra room in front of the head for the injector block + feed stubs
     left = xs_mm.min() - max(margin, rs_mm[0] * 0.75)
     ax.set_xlim(left, xs_mm.max() + margin)
-    ax.set_ylim(-rs_mm.max() * 1.85, rs_mm.max() * (1.62 if has_cooling else 1.6))
+    top = rs_mm.max() * (1.62 if has_cooling else 1.6)
+    if te_extent_mm:
+        top = max(top, te_extent_mm * 1.08)
+    ax.set_ylim(-rs_mm.max() * 1.85, top)
 
 
 if __name__ == "__main__":
@@ -341,4 +402,15 @@ if __name__ == "__main__":
     assert any("nozzle film slot" in t for t in _labels), _labels
     assert any("hottest cooled wall" in t for t in _labels), _labels
     plt.close(fig2)
+    # Turbine exhaust: each mode draws its termination + a labelled annotation.
+    for _mode in ("overboard_duct", "aspirator", "nozzle_injection"):
+        _r = EngineDesign(propellant_pair="LOX/RP-1", mixture_ratio=2.34,
+                          chamber_pressure_pa=5.0e6, expansion_ratio=12.0,
+                          cycle=cycles.GAS_GENERATOR, target_vac_thrust_n=900_000.0,
+                          turbine_exhaust_mode=_mode).compute()
+        fig3, ax3 = plt.subplots(figsize=(6, 4))
+        draw_schematic(ax3, _r)
+        _txt = [t.get_text() for t in ax3.texts]
+        assert any("turbine exhaust: " + _mode.replace("_", " ") in t for t in _txt), _txt
+        plt.close(fig3)
     print(f"schematic.py headless smoke test OK -> {out_path}")

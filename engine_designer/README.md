@@ -182,11 +182,35 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   (FRSC), oxidizer-rich staged combustion (ORSC), full-flow staged combustion
   (FFSC), expander, and electric pump-fed. Each cycle now has its own physics,
   not a shared preset with tweaked constants:
-  - **gas generator** - fuel-rich GG, exhaust dumped overboard (bleed Isp loss).
+  - **gas generator** - fuel-rich GG; its turbine exhaust leaves the engine
+    through one of three real disposal modes (below).
   - **tap-off** - turbine driven by *main-chamber* combustion products tapped
     near the injector face, film-cooled to ~1150 K (`combustion.mixture_cp_j_kgk`
-    gives the real chamber-products Cp); still an open cycle but a better dump
-    Isp than a dedicated GG.
+    gives the real chamber-products Cp); still an open cycle, same exhaust modes.
+  - **Turbine-exhaust handling** (open cycles, `physics/turbine_exhaust.py`,
+    Turbopump tab -> "Turbine Exhaust"):
+    - The three modes:
+      - **overboard duct**: RS-68 / H-1C sonic duct exit, or a shaped exhaust
+        nozzle with an optional cant (LR-87 / LR-91 roll nozzle). Roll torque is
+        reported but not exported, as in RO.
+      - **aspirator**: the H-1D Hastelloy C shroud with a 0.440 in annular exit
+        slot [H1-Man].
+      - **nozzle injection**: F-1 at eps 10, J-2 cat-eyes at eps 10.9. The
+        exhaust also lays a gas film on the nozzle wall downstream, applied by
+        a second compute pass.
+    - The exhaust must leave **sonic** into its discharge (sea level, vacuum,
+      or the local nozzle static pressure). That sets the turbine outlet
+      pressure, so the turbine PR = min(22 cap, inlet / outlet); the H-1 lands
+      on its real 33.8 psia / PR 17.7.
+    - The exhaust's own Isp is an ideal expansion times a 0.96 efficiency
+      pinned on the F-1's 16,000 lbf. It replaces the old flat 0.55 / 0.80
+      dump fractions.
+    - Optional LOX->GOX heat exchanger (H-1): lowers the exhaust temperature.
+    - Hardware (termination, the auto-routed duct to the new turbine exhaust
+      port, the heat-exchanger can) is massed and drawn. The duct is a
+      `turbine_exhaust` plumbing host, editable in the Shape Lab.
+    - Open cycles **close on the target thrust**: chamber flow is rescaled so
+      chamber + exhaust thrust = target.
   - **FRSC / ORSC / FFSC** (`physics/staged_combustion.py`) - *closed* cycles:
     the preburner exhaust rejoins the main chamber, so **no bleed Isp penalty**
     (engine Isp = chamber Isp). FRSC burns a fuel-rich preburner (~20 % of flow

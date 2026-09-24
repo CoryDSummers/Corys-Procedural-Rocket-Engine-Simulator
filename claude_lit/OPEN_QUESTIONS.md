@@ -133,10 +133,19 @@ into that and makes no claims about it.
   velocity, or much higher velocity at a fixed head). Needs a jacket-outlet hydrogen
   temperature/density source (no hydrogen injection temperature exists in `claude_lit` - checked
   2026-09-22) plus a real-gas property model; out of scope for the re-anchoring round.
-- **Turbine-exhaust handling (planned 2026-09-23; plan `~/.claude/plans/floofy-dazzling-
-  liskov.md`)**: the future feature has three modes: overboard duct (RS-68/H-1/Merlin), nozzle
-  injection as extension film coolant (F-1/J-2X/Vulcain), and a roll nozzle (LR-91). Today
-  `design.GG_DUMP_ISP_FRACTION = 0.55` is unsourced. Needed, in priority order:
+- **Turbine-exhaust handling: IMPLEMENTED 2026-09-24** (`engine_designer/physics/
+  turbine_exhaust.py`).
+  - Modes: overboard duct (with an optional shaped / canted exhaust nozzle, which covers the
+    LR-91 roll nozzle), H-1D aspirator, and F-1/J-2 nozzle injection with a gas film.
+  - The flat `GG_DUMP_ISP_FRACTION = 0.55` is retired. Turbine back pressure is anchored on
+    `[H1-Man]`; exhaust Isp is pinned on the F-1's 16,000 lbf `[SP-8120]`.
+  - Still Tier 3 and still wanting sources: gas-film effectiveness (SP-8124, item a), the
+    LR-91 GG flow (the model under-predicts its 865 lbf by ~40%, item d), the heat-exchanger
+    GOX duty (item h), and the duct Mach and hardware constants (`ASSUMPTIONS.md`).
+  - The original acquisition list is kept below for those follow-ups. It was written against
+    the planned (pre-implementation) version of the feature: three modes (overboard duct
+    RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
+    `design.GG_DUMP_ISP_FRACTION = 0.55` unsourced. Needed, in priority order:
   (0) **DONE 2026-09-24**: `[SP-8120]` §2.2.5.3 Hot-Gas Manifold and §2.2.5.1 Manifold
   Hydraulics are now fully read (see `topics/07-dump-cooling.md`'s new "Turbine-exhaust-gas
   film cooling" section and `topics/12-materials-and-structures.md`'s new hot-gas-manifold

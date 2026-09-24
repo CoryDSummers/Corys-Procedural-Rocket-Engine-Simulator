@@ -36,7 +36,7 @@ from ..physics import (combustion, controller_tech, cooling, cost_model, cycles,
                         ignition,
                         hatbands, injectors, materials, mixture_ratio, plumbing, reliability,
                         tech_tree,
-                        turbopump_materials, turbopump_sizing, turbopump_tech)
+                        turbine_exhaust, turbopump_materials, turbopump_sizing, turbopump_tech)
 from ..physics.design import EngineDesign
 from . import project_io
 from .collapsible import CollapsibleSection
@@ -855,6 +855,58 @@ class EngineDesignerApp:
         tc_row = 0
         self._register_gate(tcb, lambda: CYCLE_FROM_DISPLAY.get(self.cycle_var.get()) != cycles.PRESSURE_FED)
 
+        # --- turbine exhaust disposal (physics/turbine_exhaust.py) - open cycles
+        # only: overboard duct (RS-68/LR-87/LR-91/H-1C), H-1D aspirator, or
+        # F-1/J-2 injection into the nozzle. Syntax/import-checked only here
+        # (no $DISPLAY) - click-through is Cory's to check.
+        sec_te = CollapsibleSection(tab_turbopump_left, "Turbine Exhaust", start_open=False)
+        sec_te.grid(row=tp_row, column=0, columnspan=2, sticky="ew")
+        tp_row += 1
+        self._register_gate(sec_te, lambda: CYCLE_FROM_DISPLAY.get(self.cycle_var.get())
+                            in (cycles.GAS_GENERATOR, cycles.TAP_OFF))
+        teb = sec_te.body_parent()
+        te_row = 0
+        self.te_mode_display_to_key = {v: k for k, v in turbine_exhaust.MODE_LABELS.items()}
+        te_row = self._add_dropdown(
+            teb, te_row, "Exhaust disposal", "te_mode_var",
+            list(turbine_exhaust.MODE_LABELS.values()),
+            turbine_exhaust.MODE_LABELS[turbine_exhaust.effective_mode(
+                self.design.turbine_exhaust_mode)], width=44)
+
+        def _te_mode_is(mode):
+            return lambda: self.te_mode_display_to_key.get(self.te_mode_var.get()) == mode
+
+        te_over = ttk.Frame(teb)
+        te_over.grid(row=te_row, column=0, columnspan=2, sticky="ew"); te_row += 1
+        self.te_nozzle_eps_var = tk.DoubleVar(value=self.design.turbine_exhaust_nozzle_eps)
+        r_ = self._add_slider(te_over, 0, "Exhaust nozzle area ratio (1 = plain duct exit)",
+                              self.te_nozzle_eps_var, 1.0, 12.0, decimals=1)
+        self.te_cant_var = tk.DoubleVar(value=self.design.turbine_exhaust_cant_deg)
+        self._add_slider(te_over, r_, "Exhaust nozzle cant [deg] (roll torque, LR-91)",
+                         self.te_cant_var, 0.0, 45.0, decimals=0)
+        self._register_gate(te_over, _te_mode_is("overboard_duct"))
+
+        te_asp = ttk.Frame(teb)
+        te_asp.grid(row=te_row, column=0, columnspan=2, sticky="ew"); te_row += 1
+        self.te_asp_fwd_var = tk.DoubleVar(value=self.design.aspirator_fwd_length_frac)
+        r_ = self._add_slider(te_asp, 0, "Aspirator shroud length (fraction of nozzle)",
+                              self.te_asp_fwd_var, 0.05, 0.8, decimals=2)
+        self.te_asp_over_var = tk.DoubleVar(value=self.design.aspirator_overhang_frac)
+        self._add_slider(te_asp, r_, "Aspirator overhang past exit (x exit dia)",
+                         self.te_asp_over_var, 0.0, 0.3, decimals=2)
+        self._register_gate(te_asp, _te_mode_is("aspirator"))
+
+        te_inj = ttk.Frame(teb)
+        te_inj.grid(row=te_row, column=0, columnspan=2, sticky="ew"); te_row += 1
+        self.te_inject_eps_var = tk.DoubleVar(value=self.design.turbine_exhaust_inject_eps)
+        self._add_slider(te_inj, 0, "Injection area ratio (F-1 10, J-2 10.9)",
+                         self.te_inject_eps_var, 1.5, 60.0, decimals=1)
+        self._register_gate(te_inj, _te_mode_is("nozzle_injection"))
+
+        self.te_hx_var = tk.DoubleVar(value=self.design.turbine_exhaust_hx_gox_kgs)
+        te_row = self._add_slider(teb, te_row, "LOX->GOX heat exchanger GOX flow [kg/s] (0 = none)",
+                                  self.te_hx_var, 0.0, 5.0, decimals=2)
+
         self.turbopump_display_to_key = {
             turbopump_tech.TURBOPUMP_TECHS[k].display_name: k
             for k in turbopump_tech.available_turbopump_techs()
@@ -1508,7 +1560,8 @@ class EngineDesignerApp:
                 if pr is not None:
                     n_adv = len(pr.get("advisories") or [])
                     row["status"].set(
-                        f"run: {pr['n_pipes']} pipes, {pr['n_flanges']} flanges, "
+                        ("auto duct (edit to customise): " if pr.get("implicit") else "run: ")
+                        + f"{pr['n_pipes']} pipes, {pr['n_flanges']} flanges, "
                         f"{pr['total_length_m']:.2f} m, {pr['mass_kg']:.1f} kg"
                         + (f", -> {pr['connected_pump'].replace('_', ' ')}, loss "
                            f"{pr.get('pressure_loss_pa', 0.0) / 1e3:.0f} kPa"
@@ -1636,6 +1689,14 @@ class EngineDesignerApp:
             self.design.npsh_available_ox_ft = max(0.0, float(self.npsh_ox_var.get()))
             self.design.preburner_tin_k = max(0.0, float(self.pb_tin_fr_var.get()))
             self.design.ox_preburner_tin_k = max(0.0, float(self.pb_tin_or_var.get()))
+            self.design.turbine_exhaust_mode = self.te_mode_display_to_key.get(
+                self.te_mode_var.get(), self.design.turbine_exhaust_mode)
+            self.design.turbine_exhaust_nozzle_eps = max(1.0, float(self.te_nozzle_eps_var.get()))
+            self.design.turbine_exhaust_cant_deg = float(self.te_cant_var.get())
+            self.design.aspirator_fwd_length_frac = float(self.te_asp_fwd_var.get())
+            self.design.aspirator_overhang_frac = max(0.0, float(self.te_asp_over_var.get()))
+            self.design.turbine_exhaust_inject_eps = float(self.te_inject_eps_var.get())
+            self.design.turbine_exhaust_hx_gox_kgs = max(0.0, float(self.te_hx_var.get()))
 
             self.design.chamber_pressure_pa = self.pc_var.get() * 1e6
             self.design.mixture_ratio = self.mr_var.get()
@@ -2242,6 +2303,25 @@ class EngineDesignerApp:
                     f"~{tap_tin:.0f} K (dump Isp fraction {cyc['gg_dump_isp_fraction']:.2f})")
             else:
                 tp_lines.append(f"GG flow fraction: {cyc['gg_flow_fraction']*100:.2f}%")
+            te = result.get("turbine_exhaust")
+            if te:
+                # physics/turbine_exhaust.py: where the spent drive gas goes
+                tp_lines.append(
+                    f"Exhaust: {te['mode'].replace('_', ' ')}, turbine PR "
+                    f"{te['turbine_pressure_ratio']:.1f}"
+                    + (" (back-pressure limited)" if te["back_pressure_limited"] else " (cap)")
+                    + f", {te['t_exhaust_k']:.0f} K, Isp {te['isp_vac_s']:.0f} s vac "
+                    f"({te['isp_fraction_vac']*100:.0f}% of chamber), "
+                    f"{te['thrust_vac_n']/1e3:.1f} kN")
+                if te.get("hx_on"):
+                    tp_lines.append(f"  heat exchanger: {te['hx_gox_kgs']:.2f} kg/s GOX, "
+                                    f"-{te['hx_delta_t_k']:.0f} K")
+                if te["mode"] == "aspirator" and te.get("aspirator_gap_m"):
+                    tp_lines.append(f"  aspirator exit slot {te['aspirator_gap_m']*1e3:.1f} mm "
+                                    f"(H-1D 11.2 mm)")
+                if abs(te.get("roll_torque_nm") or 0.0) > 0:
+                    tp_lines.append(f"  canted exhaust: {te['side_force_n']:.0f} N side force, "
+                                    f"{te['roll_torque_nm']:.0f} N.m roll torque")
             sizing = result.get("turbopump_sizing")
             if sizing:
                 fp, op, turb = sizing["fuel_pump"], sizing["ox_pump"], sizing["turbine"]
@@ -2433,6 +2513,14 @@ class EngineDesignerApp:
         self.npsh_ox_var.set(d.npsh_available_ox_ft)
         self.pb_tin_fr_var.set(d.preburner_tin_k)
         self.pb_tin_or_var.set(d.ox_preburner_tin_k)
+        self.te_mode_var.set(turbine_exhaust.MODE_LABELS[
+            turbine_exhaust.effective_mode(d.turbine_exhaust_mode)])
+        self.te_nozzle_eps_var.set(d.turbine_exhaust_nozzle_eps)
+        self.te_cant_var.set(d.turbine_exhaust_cant_deg)
+        self.te_asp_fwd_var.set(d.aspirator_fwd_length_frac)
+        self.te_asp_over_var.set(d.aspirator_overhang_frac)
+        self.te_inject_eps_var.set(d.turbine_exhaust_inject_eps)
+        self.te_hx_var.set(d.turbine_exhaust_hx_gox_kgs)
         self.orifice_type_var.set(d.orifice_type)
         self.stiffness_var.set(d.injector_stiffness)
         self.chamber_sizing_method_var.set(d.chamber_sizing_method)
