@@ -152,7 +152,9 @@ def run_film_overlay_check():
           wall temperature, phi recovers downstream of the slot, and the Isp cost
           equals the dump-flow formula exactly (it never burns in the chamber).
       (e) convergent film ring: moves protection off the barrel onto the throat.
-      (f) ablative + film: rated burn time rises (char-rate credit).
+      (f) ablative + film: char-rate credit now shows up as a THINNER required
+          liner thickness at the same target burn time (2026-09-25: ablative
+          rated burn time is a design input, not derived - see ASSUMPTIONS.md).
     """
     print()
     print("=" * 78)
@@ -221,11 +223,19 @@ def run_film_overlay_check():
     rows.append((f"(e) convergent film ring (eps 1.5) vs face: barrel unfilmed, throat "
                  f"{face['t_wg_throat_k']:.0f} -> {ring['t_wg_throat_k']:.0f} K", e_ok))
 
-    ab0 = EngineDesign(material_key="ablative_phenolic").compute()["rated_burn_time_s"]
-    ab1 = EngineDesign(material_key="ablative_phenolic",
-                       film_cooling_fraction=0.06).compute()["rated_burn_time_s"]
-    f_ok = ab1 > ab0
-    rows.append((f"(f) ablative + 6% film: rated burn {ab0:.0f} -> {ab1:.0f} s", f_ok))
+    # Since 2026-09-25, ablative rated burn time is a design INPUT
+    # (ablative_target_burn_time_s), not derived - so film's char-rate credit
+    # (lower consumption rate -> thinner liner needed for the SAME target burn
+    # time) now shows up in ablative_liner_thickness_m instead of
+    # rated_burn_time_s (which is unchanged by construction, both cases below).
+    ab0_r = EngineDesign(material_key="ablative_phenolic").compute()
+    ab1_r = EngineDesign(material_key="ablative_phenolic",
+                         film_cooling_fraction=0.06).compute()
+    ab0, ab1 = ab0_r["ablative_liner_thickness_m"], ab1_r["ablative_liner_thickness_m"]
+    f_ok = (ab1 < ab0 and ab0_r["rated_burn_time_s"] == ab1_r["rated_burn_time_s"])
+    rows.append((f"(f) ablative + 6% film: liner thickness {ab0*1000:.2f} -> {ab1*1000:.2f} mm "
+                 f"(rated burn time unchanged, {ab0_r['rated_burn_time_s']:.0f} s - now a design input)",
+                 f_ok))
 
     for name, ok in rows:
         all_ok &= bool(ok)

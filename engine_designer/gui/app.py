@@ -373,6 +373,23 @@ class EngineDesignerApp:
         ttk.Label(ccb, textvariable=self.chamber_cooling_hint_var, wraplength=260,
                   foreground="#666666").grid(row=cc2_row, column=0, columnspan=2, sticky="w")
         cc2_row += 1
+
+        # Ablative sections TARGET a rated burn time (a design input, since
+        # 2026-09-25) rather than deriving one - it sizes a real char-depth
+        # liner thickness independent of the structural overwrap's hoop
+        # stress (physics/mass_model.ablative_liner_thickness_m, SP-8124's
+        # 1.25 char-depth safety factor). See ASSUMPTIONS.md.
+        self.ablative_burn_time_group = ttk.Frame(ccb)
+        self.ablative_burn_time_group.grid(row=cc2_row, column=0, columnspan=2, sticky="ew")
+        cc2_row += 1
+        self.ablative_target_burn_time_var = tk.DoubleVar(
+            value=self.design.ablative_target_burn_time_s)
+        self._add_slider(self.ablative_burn_time_group, 0, "Ablative target rated burn time [s]",
+                          self.ablative_target_burn_time_var, 0.0, 600.0, decimals=0)
+        self._register_gate(
+            self.ablative_burn_time_group,
+            lambda: self.chamber_cooling_method_var.get() == "ablative")
+
         cc2_row = self._add_dropdown(
             ccb, cc2_row, "Cooled-wall construction", "wall_construction_var",
             list(cooling.WALL_CONSTRUCTIONS), self.design.wall_construction, width=16)
@@ -1725,6 +1742,7 @@ class EngineDesignerApp:
             self.design.jacket_inlet_velocity_mult = self.jacket_inlet_vmult_var.get()
             self.design.cooling_transition_eps = self.cooling_transition_var.get()
             self.design.chamber_cooling_method = self.chamber_cooling_method_var.get()
+            self.design.ablative_target_burn_time_s = self.ablative_target_burn_time_var.get()
             self.design.nozzle_cooling_method = self.nozzle_cooling_method_var.get()
             self.design.regen_nozzle_end_eps = self.regen_nozzle_end_var.get()
             self.design.dump_coolant_fraction = self.dump_coolant_fraction_var.get() / 100.0
@@ -2533,6 +2551,7 @@ class EngineDesignerApp:
         self.stiffness_var.set(d.injector_stiffness)
         self.chamber_sizing_method_var.set(d.chamber_sizing_method)
         self.chamber_cooling_method_var.set(d.chamber_cooling_method)
+        self.ablative_target_burn_time_var.set(d.ablative_target_burn_time_s)
         self.nozzle_cooling_method_var.set(d.nozzle_cooling_method)
         self.regen_nozzle_end_var.set(d.regen_nozzle_end_eps)
         self.dump_coolant_fraction_var.set(d.dump_coolant_fraction * 100.0)

@@ -82,6 +82,20 @@ ABLATIVE_CONSUMPTION_RATE_M_S = 1.5e-4  # ~0.15 mm/s - a reasoned point within
                                          # ablative chamber; NOT scaled by
                                          # heat flux/Pc here (Tier 3 simplification)
 
+CHAR_DEPTH_SAFETY_FACTOR = 1.25  # [SP-8124 Sec.2.1/3.1]: real cited char-depth safety
+                                  # factor for sizing an ablative liner's sacrificial
+                                  # thickness against its predicted char depth over the
+                                  # design's target burn time (mass_model.
+                                  # ablative_liner_thickness_m). Tier 1/validated - a
+                                  # real NASA design criterion, not an estimate (unlike
+                                  # ABLATIVE_CONSUMPTION_RATE_M_S itself, which stays
+                                  # Tier 2/3). Notably, mass_model.SAFETY_FACTOR (1.5,
+                                  # the structural hoop-stress margin used for the
+                                  # OVERWRAP behind this liner) independently sits
+                                  # inside SP-8124's own cited 1.5-1.8 fiberglass-
+                                  # overwrap safety-factor band - a nice cross-check,
+                                  # not a coincidence forced to fit.
+
 _REFRASIL_CONSUMPTION_RATE_M_S = 2.7e-5  # ~74x more erosion-resistant than the 4000psi
                                           # extreme-case baseline above - the top of this
                                           # docstring's own cited "6-75x more erosion-

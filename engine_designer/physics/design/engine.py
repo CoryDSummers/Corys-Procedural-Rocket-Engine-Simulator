@@ -8,6 +8,7 @@ import numpy as np
 from .. import (cooling, cycles, manifold, materials)
 
 from . import (combustion_stage, feed_stage, cooling_stage, geometry_stage, manifold_stage, margins_stage, structure_stage, turbomachinery_stage, rollup_stage)
+from .constants import BASE_RATED_BURN_TIME_S
 from .state import PassState
 
 
@@ -58,6 +59,29 @@ class EngineDesign:
                                                    # 0.0 = auto-size to the pair's coking/boiling
                                                    # coolant-dT limit (cooling.
                                                    # size_dump_coolant_fraction).
+    ablative_target_burn_time_s: float = BASE_RATED_BURN_TIME_S
+                                                   # chamber_cooling_method=="ablative" only: the
+                                                   # RATED burn time this design TARGETS, replacing
+                                                   # today's purely-derived value for ablative
+                                                   # chambers (rollup_stage.burn_time_and_mass).
+                                                   # Sizes a real, independent char-depth liner
+                                                   # thickness (mass_model.ablative_liner_thickness_m,
+                                                   # materials.CHAR_DEPTH_SAFETY_FACTOR = 1.25,
+                                                   # [SP-8124]) BEHIND which the existing hoop-stress
+                                                   # wall_thickness_m now sizes a separate STRUCTURAL
+                                                   # OVERWRAP, not the liner itself - matching
+                                                   # refrasil_phenolic's real documented 3-layer
+                                                   # construction. Non-ablative sections are
+                                                   # completely unaffected (unchanged margin-driven
+                                                   # rated_burn_time_s path). Default = today's flat
+                                                   # BASE_RATED_BURN_TIME_S (200s) so an unset field
+                                                   # reads the same NUMBER as before, but NOTE: this
+                                                   # is a deliberate, flagged exception to bit-
+                                                   # identical backward compat for ablative designs
+                                                   # specifically - the OLD rated_burn_time_s was
+                                                   # DERIVED (varied by Pc/geometry), the new one is
+                                                   # a flat 200s default until dialed in. See
+                                                   # ASSUMPTIONS.md.
     cooling_flow_topology: str = "single_pass_countercurrent"  # | "f1_split_reverse_flow"
                                                    # | "j2_mid_nozzle_inlet"
                                                    # (physics/manifold.size_jacket_manifolds).
@@ -379,7 +403,15 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 10  # 10 (2026-09-25): turbine_exhaust_hx_he_kgs added (a second,
+    SCHEMA_VERSION = 11  # 11 (2026-09-25): ablative_target_burn_time_s added - ablative
+                         # rated burn time is now a design INPUT (see the field's own
+                         # comment) rather than purely derived; no key migration, a v10
+                         # file's new field takes its default (200s, today's flat
+                         # BASE_RATED_BURN_TIME_S) - NOTE this is a deliberate exception
+                         # to bit-identical behavior for ABLATIVE designs specifically:
+                         # the old rated_burn_time_s value for those designs was derived
+                         # per-design and will differ. Non-ablative designs are unaffected.
+                         # 10 (2026-09-25): turbine_exhaust_hx_he_kgs added (a second,
                          # helium, coil in the same exhaust heat exchanger) - no key
                          # migration; a v9 file's new field takes its default (0, off).
                          # 9 (2026-09-24): turbine_exhaust_* / aspirator_* fields added

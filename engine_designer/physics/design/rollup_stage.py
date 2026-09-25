@@ -21,16 +21,20 @@ from .checklist import _check
 
 def burn_time_and_mass(self, s):
     """Rated burn time, electric-pump battery/motor, injector plate, dry-mass rollup."""
-    # Rated burn time: ablative chambers are capped by char consumption (the SAME
-    # hoop-stress-derived chamber wall thickness used for its mass above ALSO caps how
-    # long it can fire before burning through) - matches the real "ablative, no extra
-    # time" pattern (testedBurnTime approx= ratedBurnTime) found in RealismOverhaul
-    # reference configs. Every other material scales a flat baseline by chamber thermal
-    # margin instead (see BASE_RATED_BURN_TIME_S's comment above). Computed before the
-    # dry-mass sum because the electric pump-fed cycle's battery mass scales with it.
+    # Rated burn time: ablative chambers TARGET a burn time (ablative_target_burn_time_s,
+    # a design input) rather than deriving one. That target sizes a real, independent
+    # char-depth liner thickness (mass_model.ablative_liner_thickness_m, SP-8124's 1.25
+    # char-depth safety factor) - the sacrificial material genuinely consumed over the
+    # burn - separate from the hoop-stress wall thickness, which now correctly sizes the
+    # STRUCTURAL OVERWRAP behind that liner (matching refrasil_phenolic's real documented
+    # 3-layer liner+insulation+overwrap construction) rather than standing in for the
+    # liner itself, as it used to (see ASSUMPTIONS.md for the gap this replaces). Every
+    # other material scales a flat baseline by chamber thermal margin instead (see
+    # BASE_RATED_BURN_TIME_S's comment above). Computed before the dry-mass sum because
+    # the electric pump-fed cycle's battery mass scales with it.
+    s.ablative_liner_thickness_m = 0.0
+    s.ablative_liner_mass_kg = 0.0
     if s.chamber_cooling == "ablative":
-        chamber_wall_thickness_m = mass_model.wall_thickness_m(
-            self.chamber_pressure_pa, s.geo["chamber_dia_m"] / 2.0, s.chamber_material.allowable_stress_pa)
         consumption_rate_m_s = (s.chamber_material.ablative_consumption_rate_m_s
                                  or materials.ABLATIVE_CONSUMPTION_RATE_M_S)
         # Film overlay on an ablative (LMDE/AJ10-style injector film): char
@@ -38,8 +42,14 @@ def burn_time_and_mass(self, s):
         # film's throat flux multiplier scales the rate (Tier 3 - direction
         # sound, magnitude unanchored). No chamber film -> x1.0, unchanged.
         consumption_rate_m_s *= float(s.film_phi[s._throat_idx])
-        s.rated_burn_time_s = mass_model.ablative_rated_burn_time_s(
-            chamber_wall_thickness_m, consumption_rate_m_s)
+        s.rated_burn_time_s = self.ablative_target_burn_time_s
+        s.ablative_liner_thickness_m = mass_model.ablative_liner_thickness_m(
+            consumption_rate_m_s, self.ablative_target_burn_time_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
+        s.ablative_liner_mass_kg = mass_model.constant_thickness_shell_mass_kg(
+            s.body_xs, s.body_rs, s.ablative_liner_thickness_m, s.chamber_material.density_kg_m3)
+        s.chamber_wall_mass_kg += s.ablative_liner_mass_kg  # existing hoop-stress mass
+                                                             # (structure_stage.wall_structure)
+                                                             # is now the OVERWRAP, not the liner
     else:
         # the WORST of the throat row and the full-length peak row (the throat
         # alone used to set it even when another station ran hotter - audit W7)
@@ -287,6 +297,8 @@ def checks_and_result(self, s):
         "jacket_thermal_stress_pa": s.jacket_thermal_stress_pa,
         "computed_dry_mass_kg": s.computed_dry_mass_kg,
         "rated_burn_time_s": s.rated_burn_time_s,
+        "ablative_liner_thickness_m": s.ablative_liner_thickness_m,
+        "ablative_liner_mass_kg": s.ablative_liner_mass_kg,
         "warnings": s.warnings,
         "checklist": s.checklist,
     }

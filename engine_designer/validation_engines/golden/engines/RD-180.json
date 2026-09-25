@@ -1,4 +1,10 @@
 {
+"ablative_liner_mass_kg": {
+"__f__": "0.0"
+},
+"ablative_liner_thickness_m": {
+"__f__": "0.0"
+},
 "bell_material_margin": {
 "assumed_wall_temp_k": {
 "__f__": "1191.4482056360125"
@@ -3240,6 +3246,9 @@
 },
 "injector_stiffness_ok_at_floor": false,
 "inputs": {
+"ablative_target_burn_time_s": {
+"__f__": "200.0"
+},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,

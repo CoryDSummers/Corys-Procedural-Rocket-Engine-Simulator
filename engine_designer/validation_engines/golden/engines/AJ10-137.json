@@ -1,4 +1,10 @@
 {
+"ablative_liner_mass_kg": {
+"__f__": "80.21734778848115"
+},
+"ablative_liner_thickness_m": {
+"__f__": "0.0375"
+},
 "bell_material_margin": {
 "assumed_wall_temp_k": {
 "__f__": "1630.3721811942269"
@@ -113,7 +119,7 @@
 "__f__": "1.4135307742478809"
 },
 "chamber_wall_mass_kg": {
-"__f__": "10.497124450914402"
+"__f__": "90.71447223939555"
 },
 "checklist": [
 {
@@ -439,7 +445,7 @@
 "__f__": "0.9980256852181593"
 },
 "computed_dry_mass_kg": {
-"__f__": "856.4888013456344"
+"__f__": "936.7061491341157"
 },
 "convergent_half_angle_deg": {
 "__f__": "30.0"
@@ -2413,6 +2419,9 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
+"ablative_target_burn_time_s": {
+"__f__": "200.0"
+},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -3231,7 +3240,7 @@
 ]
 },
 "rated_burn_time_s": {
-"__f__": "27.251104302697332"
+"__f__": "200.0"
 },
 "required_time_s": {
 "__f__": "1.148978696953919e-05"

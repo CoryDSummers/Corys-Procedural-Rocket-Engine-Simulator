@@ -16,9 +16,14 @@ def run_mass_model_sensitivity_check():
     New: chamber/nozzle wall mass now comes from a real thin-wall pressure-
     vessel hoop-stress formula (physics/mass_model.py) - a higher chamber
     pressure or a weaker (lower allowable_stress_pa) material should both
-    give a thicker, heavier wall. Also checks the ablative rated-burn-time
-    coupling (higher consumption rate -> shorter rated burn, since the same
-    chamber wall thickness is consumed faster) and the non-ablative
+    give a thicker, heavier wall. Also checks the LEGACY ablative rated-burn-
+    time coupling (mass_model.ablative_rated_burn_time_s - higher consumption
+    rate -> shorter rated burn, since a FIXED chamber wall thickness is
+    consumed faster; kept as a self-test of that utility, no longer the main
+    design path), the NEW char-depth liner-thickness coupling
+    (mass_model.ablative_liner_thickness_m, added 2026-09-25 - higher
+    consumption rate OR longer TARGET burn time both need a thicker liner,
+    opposite framing from the legacy check above) and the non-ablative
     margin-driven rated-burn-time scaling (checked at its own reference
     point, materials.THIN_MARGIN_THRESHOLD, where the multiplier must be
     exactly 1.0 by construction).
@@ -68,6 +73,29 @@ def run_mass_model_sensitivity_check():
     print(f"  Ablative rated burn time strictly decreases as consumption rate rises: "
           f"{rates[0]:.0f} -> {rates[1]:.0f} -> {rates[2]:.0f} s  [{'OK' if ok_ablative_rate else 'FAIL'}]")
 
+    # ablative_liner_thickness_m (2026-09-25): the NEW char-depth liner sizing, independent
+    # of hoop stress - a thicker liner is needed EITHER for a higher consumption rate OR a
+    # longer TARGET burn time (opposite sign from the legacy ablative_rated_burn_time_s test
+    # just above, which holds a FIXED wall thickness and asks how long it lasts - don't copy
+    # that assertion's direction here by mistake).
+    liner_thicknesses_by_rate = [
+        mass_model.ablative_liner_thickness_m(rate, 200.0, materials.CHAR_DEPTH_SAFETY_FACTOR)
+        for rate in (1.0e-4, 2.0e-4, 4.0e-4)]
+    ok_liner_vs_rate = liner_thicknesses_by_rate[0] < liner_thicknesses_by_rate[1] < liner_thicknesses_by_rate[2]
+    liner_thicknesses_by_time = [
+        mass_model.ablative_liner_thickness_m(1.5e-4, t, materials.CHAR_DEPTH_SAFETY_FACTOR)
+        for t in (100.0, 200.0, 400.0)]
+    ok_liner_vs_time = liner_thicknesses_by_time[0] < liner_thicknesses_by_time[1] < liner_thicknesses_by_time[2]
+    ok_liner_vs_hoop = materials.CHAR_DEPTH_SAFETY_FACTOR == 1.25  # [SP-8124 Sec.2.1/3.1], real citation
+    print(f"  Ablative liner thickness strictly increases with consumption rate at fixed target time: "
+          f"{[round(t*1000, 2) for t in liner_thicknesses_by_rate]} mm  "
+          f"[{'OK' if ok_liner_vs_rate else 'FAIL'}]")
+    print(f"  Ablative liner thickness strictly increases with target burn time at fixed rate: "
+          f"{[round(t*1000, 2) for t in liner_thicknesses_by_time]} mm  "
+          f"[{'OK' if ok_liner_vs_time else 'FAIL'}]")
+    print(f"  CHAR_DEPTH_SAFETY_FACTOR is the real [SP-8124] cited value (1.25)  "
+          f"[{'OK' if ok_liner_vs_hoop else 'FAIL'}]")
+
     d_ref = EngineDesign(material_key="narloy_z", **base)
     r_ref = d_ref.compute()
     # 2026-09-23: burn time scales with the WORST of the throat and full-length
@@ -82,7 +110,8 @@ def run_mass_model_sensitivity_check():
           f"{r_ref['rated_burn_time_s']:.2f} == {expected_rated:.2f} s  "
           f"[{'OK' if ok_rated_matches else 'FAIL'}]")
 
-    all_ok = ok_mass_vs_pc and ok_mass_vs_stress and ok_ablative_rate and ok_rated_matches
+    all_ok = (ok_mass_vs_pc and ok_mass_vs_stress and ok_ablative_rate and ok_rated_matches
+              and ok_liner_vs_rate and ok_liner_vs_time and ok_liner_vs_hoop)
     print("ALL MASS MODEL SENSITIVITY CHECKS OK" if all_ok else
           "*** MASS MODEL SENSITIVITY CHECK FAILED ***")
     print("=" * 78)
