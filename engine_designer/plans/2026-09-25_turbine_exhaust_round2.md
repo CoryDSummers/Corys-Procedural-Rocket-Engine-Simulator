@@ -5,8 +5,8 @@ of tokens. **Tick each box when its commit lands** (and put the commit hash besi
 Branch: `claude/friendly-rubin-un6ueo`, restarted from `origin/main` at b97c4b0 after PR #10 merged.
 
 ## Status
-- [ ] Commit 0: this document
-- [ ] Commit 1: z-fighting fix (overboard exhaust nozzle vs duct pipe)
+- [x] Commit 0: this document (9588968)
+- [x] Commit 1: z-fighting fix (overboard exhaust nozzle vs duct pipe) - this commit
 - [ ] Commit 2: F-1 injection back pressure + corpus F-1 fixes + [F1-Man] probes
 - [ ] Commit 3: gas-film law from [TN-D3836] (modified Hatch-Papell)
 - [ ] Commit 4: heat exchanger recalibration (F-1 can) + helium coil (schema 10) + GUI

@@ -202,7 +202,8 @@ def ray_mesh(start_xyz, end_xyz, radius_m, n_theta, base_color_rgb,
 
 def exhaust_nozzle_mesh(inlet_xyz, pos_xyz, dir_xyz, r_inlet_m, r_throat_m, r_exit_m,
                         converge_length_m, length_m, n_theta, base_color_rgb,
-                        n_samples=16, specular_strength=0.0, shininess=32.0):
+                        n_samples=16, specular_strength=0.0, shininess=32.0,
+                        with_inlet_cap=True):
     """A small off-axis exhaust nozzle (physics/turbine_exhaust.size_hardware's
     overboard outlet) as ONE swept body: a straight inlet collar at the duct
     bore from `inlet_xyz` to `pos_xyz`, then along `dir_xyz` (possibly canted
@@ -239,6 +240,8 @@ def exhaust_nozzle_mesh(inlet_xyz, pos_xyz, dir_xyz, r_inlet_m, r_throat_m, r_ex
     body = _swept_tube_mesh_from_frames(pts, tang, normals_f, binormals_f, radii, n_theta,
                                         base_color_rgb, specular_strength=specular_strength,
                                         shininess=shininess)
+    if not with_inlet_cap:
+        return [body]
     cap = _tube_end_disk(pts[0], normals_f[0], binormals_f[0], tang[0], float(radii[0]),
                          n_theta, base_color_rgb, facing_sign=-1.0,
                          specular_strength=specular_strength, shininess=shininess)
@@ -398,6 +401,12 @@ def self_test():
     near = v[:, 0, :]                                  # collar start
     assert np.allclose(np.linalg.norm(near - a0, axis=1), 0.05, atol=1e-5)
     assert not np.any(np.isnan(en[0].normals))
+    # collar-free, capless (the overboard duct's own root disk closes it):
+    # every vertex on or downstream of the hook plane through p0_
+    en2 = exhaust_nozzle_mesh(p0_, p0_, dcant, 0.05, 0.03, 0.06, 0.02, 0.2, 16, (0.5, 0.4, 0.4),
+                              with_inlet_cap=False)
+    assert len(en2) == 1
+    assert np.all((en2[0].vertices - p0_) @ dcant >= -1e-6)   # float32 vertices
     assert exhaust_nozzle_mesh(a0, p0_, np.zeros(3), 0.05, 0.03, 0.06, 0.02, 0.2, 16,
                                (0.5, 0.4, 0.4)) == []
     print("exhaust_nozzle_mesh self-check: OK")

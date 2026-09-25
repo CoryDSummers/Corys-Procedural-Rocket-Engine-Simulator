@@ -1071,10 +1071,15 @@ def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXH
         rot = np.array([[1.0, 0.0, 0.0], [0.0, np.cos(da), -np.sin(da)],
                         [0.0, np.sin(da), np.cos(da)]])
         pos, ndir = rot @ pos, rot @ ndir
+    # No inlet collar / cap: the duct run starts AT the hook (plumbing.resolve_run's
+    # first waypoint is the hook centre) with its own root disk, so a collar
+    # drawn back over it was a coincident cylinder + a near-coplanar disk that
+    # z-fought. The nozzle starts at the hook plane at the duct's flow bore.
     r_in = 0.5 * o["inlet_dia_m"]
     return preview3d_gl_core.exhaust_nozzle_mesh(
-        pos - np.array([r_in, 0.0, 0.0]), pos, ndir, r_in, 0.5 * o["throat_dia_m"],
-        0.5 * o["exit_dia_m"], o["converge_length_m"], o["length_m"], n_theta, rgb, **kw)
+        pos, pos, ndir, r_in, 0.5 * o["throat_dia_m"],
+        0.5 * o["exit_dia_m"], o["converge_length_m"], o["length_m"], n_theta, rgb,
+        with_inlet_cap=False, **kw)
 
 
 def build_turbine_exhaust_pieces(result, body_shell, ext_shell, has_extension,
@@ -2113,6 +2118,13 @@ def self_test():
         _port = _r["turbopump_ports"]["turbine"]["exhaust"]
         assert np.linalg.norm(_res_run["waypoints_xyz"][-1] - _port["pos"]) < 1e-9
         assert (_edge is None) == (_mode == "overboard_duct")
+        if _mode == "overboard_duct":
+            # nothing of the nozzle upstream of the hook plane, where the duct's
+            # first leg lives (the old inlet collar z-fought with it)
+            _o = _hw["outlet"]
+            for _p in _term:
+                assert np.all((_p.vertices - np.asarray(_o["pos"])) @ np.asarray(_o["dir"])
+                              >= -1e-5 * max(1.0, float(np.linalg.norm(_o["pos"]))))
         _hx_pieces = [p for p in _ex if p.colors.shape[0]
                       and np.allclose(p.colors, EXHAUST_HX_RGB, atol=1e-6)]
         if _mode == "aspirator":            # heat-exchanger can drawn (body + 2 disks)
