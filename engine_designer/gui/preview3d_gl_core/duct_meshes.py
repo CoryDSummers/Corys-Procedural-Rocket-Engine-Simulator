@@ -200,6 +200,37 @@ def ray_mesh(start_xyz, end_xyz, radius_m, n_theta, base_color_rgb,
             _tube_end_disk(end, n, b, t, radius_m, n_theta, base_color_rgb, facing_sign=1.0, **kw)]
 
 
+def frustum_mesh(start_xyz, end_xyz, r_start_m, r_end_m, n_theta, base_color_rgb,
+                 specular_strength=0.0, shininess=32.0):
+    """A closed truncated cone from `start_xyz` (radius r_start_m) to `end_xyz`
+    (r_end_m) - ray_mesh with a taper (the tapered turbine-exhaust heat-
+    exchanger can). Returns [body, start_disk, end_disk], or [] for a zero
+    length or a non-positive radius."""
+    start = np.asarray(start_xyz, dtype=float)
+    end = np.asarray(end_xyz, dtype=float)
+    d = end - start
+    length = float(np.linalg.norm(d))
+    if length < 1e-9 or r_start_m <= 0.0 or r_end_m <= 0.0:
+        return []
+    t = d / length
+    helper = np.array([0.0, 0.0, 1.0]) if abs(t[2]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    n = np.cross(helper, t)
+    n /= np.linalg.norm(n)
+    b = np.cross(t, n)
+    m = 8
+    pts = np.array([start + d * f for f in np.linspace(0.0, 1.0, m)])
+    radii = np.linspace(r_start_m, r_end_m, m)
+    tang = np.tile(t, (m, 1))
+    kw = dict(specular_strength=specular_strength, shininess=shininess)
+    body = _swept_tube_mesh_from_frames(pts, tang, np.tile(n, (m, 1)), np.tile(b, (m, 1)),
+                                        radii, n_theta, base_color_rgb, **kw)
+    return [body,
+            _tube_end_disk(start, n, b, t, float(r_start_m), n_theta, base_color_rgb,
+                           facing_sign=-1.0, **kw),
+            _tube_end_disk(end, n, b, t, float(r_end_m), n_theta, base_color_rgb,
+                           facing_sign=1.0, **kw)]
+
+
 def exhaust_nozzle_mesh(inlet_xyz, pos_xyz, dir_xyz, r_inlet_m, r_throat_m, r_exit_m,
                         converge_length_m, length_m, n_theta, base_color_rgb,
                         n_samples=16, specular_strength=0.0, shininess=32.0,
@@ -410,6 +441,17 @@ def self_test():
     assert exhaust_nozzle_mesh(a0, p0_, np.zeros(3), 0.05, 0.03, 0.06, 0.02, 0.2, 16,
                                (0.5, 0.4, 0.4)) == []
     print("exhaust_nozzle_mesh self-check: OK")
+
+    # frustum_mesh: tapered closed can - radius r0 at the start ring, r1 at the end
+    s0, s1 = np.array([0.0, 0.0, 0.0]), np.array([0.0, 0.0, 1.0])
+    fm = frustum_mesh(s0, s1, 0.3, 0.2, 16, (0.6, 0.6, 0.7))
+    assert len(fm) == 3
+    vf = fm[0].vertices.reshape(16, -1, 3)
+    assert np.allclose(np.linalg.norm(vf[:, 0, :2], axis=1), 0.3, atol=1e-5)
+    assert np.allclose(np.linalg.norm(vf[:, -1, :2], axis=1), 0.2, atol=1e-5)
+    assert not np.any(np.isnan(fm[0].normals))
+    assert frustum_mesh(s0, s0, 0.3, 0.2, 16, (0.6, 0.6, 0.7)) == []
+    print("frustum_mesh self-check: OK")
     print("ALL DUCT_MESHES CHECKS OK")
 
 

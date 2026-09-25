@@ -233,9 +233,13 @@ into that and makes no claims about it.
 
   (h) **Exhaust heat exchanger** (LOX→GOX, H-1 `[H1-Man §1-47]`; Titan I superheater
   `[SP-8120]`):
-  - The heat-exchanger duty (GOX flow, outlet temperature) is not given anywhere.
-  - The heat-exchanger temperature drop and mass in `engine_designer` are Tier 3 until a
-    stage-pressurisation source is found.
+  - **Mostly RESOLVED 2026-09-25 via `[F1-Man]`**: real outlet temperatures (LOX 90 -> 516 K,
+    He 63 -> 397 K) and nominal flows (4 / 0.6 lb/s) [Fig 3-29], both coils in one shell
+    [§1-71/1-72], and the can envelope (43 x 58 in, tapering 40 -> 24 in) [§1-72] are now in
+    code (`LOX_TO_GOX_DH_J_KG`, `HE_HX_DH_J_KG`, `HX_CAN_*`). Still open: the can's WEIGHT
+    (`HX_MASS_SHELL_MULT` stays Tier 3) and any heat-transfer sizing rule (duty vs coil area) -
+    one dimensioned can is not enough to scale by duty. `[H1-Man]`'s H-1 exchanger (3 LOX coils,
+    no He) has no dimensions to give a second anchor.
   Anything left unfound is calibrated purely by reverse-solving against RO headers (say which).
 
 ## Pending `ASSUMPTIONS.md` citation upgrades

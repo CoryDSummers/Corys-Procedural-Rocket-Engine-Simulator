@@ -205,7 +205,13 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
     - The exhaust's own Isp is an ideal expansion times a 0.96 efficiency
       pinned on the F-1's 16,000 lbf. It replaces the old flat 0.55 / 0.80
       dump fractions.
-    - Optional LOX->GOX heat exchanger (H-1): lowers the exhaust temperature.
+    - Optional exhaust heat exchanger with a LOX->GOX coil (H-1, F-1; LOX
+      pairs only) and/or a helium coil (F-1; any pair): the duties add and
+      lower the exhaust temperature. Outlet temperatures and the can's size
+      are anchored on the real F-1 [F1-Man]; the can is drawn tapered.
+    - Injection mode: back pressure anchored on the F-1's 58 psia turbine
+      exit (interim lumped loss); the exhaust's gas film on the extension
+      uses the TN D-3836 (modified Hatch-Papell) correlation.
     - Hardware (termination, the auto-routed duct to the new turbine exhaust
       port, the heat-exchanger can) is massed and drawn. The duct is a
       `turbine_exhaust` plumbing host, editable in the Shape Lab.

@@ -418,6 +418,7 @@ def _apply_exhaust(self, s, gas, pr):
         main_exit_static_pa=s.pe_pa, main_exit_dia_m=s.geo["exit_dia_m"],
         nozzle_eps=self.turbine_exhaust_nozzle_eps, cant_deg=self.turbine_exhaust_cant_deg,
         hx_gox_kgs=max(0.0, float(self.turbine_exhaust_hx_gox_kgs or 0.0)),
+        hx_he_kgs=max(0.0, float(self.turbine_exhaust_hx_he_kgs or 0.0)),
         lox_pair=self.propellant_pair.startswith("LOX/"))
     exh.update(turbine_inlet_pa=s.te_p_in_pa, turbine_pressure_ratio=pr,
                pr_cap=s.te_pr_cap, back_pressure_limited=s.te_pr_limited,
@@ -474,15 +475,17 @@ def _apply_exhaust(self, s, gas, pr):
                f"into {_p(s.te_discharge_pa)})" if s.te_pr_limited
                else f"at the {s.te_pr_cap:.0f} cap (discharge {_p(s.te_discharge_pa)})")))
     if exh["hx_on"]:
+        _coils = " + ".join(filter(None, [
+            f"{exh['hx_gox_kgs']:.2f} kg/s GOX" if exh["hx_gox_kgs"] > 0.0 else "",
+            f"{exh['hx_he_kgs']:.2f} kg/s He" if exh["hx_he_kgs"] > 0.0 else ""]))
         _check(s.checklist, s.warnings, "turbopump", "Exhaust heat-exchanger outlet temperature",
                exh["t_exhaust_k"] >= turbine_exhaust.EXHAUST_T_FLOOR_K,
-               f"The LOX->GOX heat exchanger ({exh['hx_gox_kgs']:.2f} kg/s GOX, "
-               f"{exh['hx_duty_w']/1e3:.0f} kW) chills the turbine exhaust to "
-               f"{exh['t_exhaust_k']:.0f} K, below ~{turbine_exhaust.EXHAUST_T_FLOOR_K:.0f} K "
-               f"where fuel-rich exhaust starts condensing heavy species/water in the duct. "
-               f"Heat less GOX.",
+               f"The exhaust heat exchanger ({_coils}, {exh['hx_duty_w']/1e3:.0f} kW) chills "
+               f"the turbine exhaust to {exh['t_exhaust_k']:.0f} K, below "
+               f"~{turbine_exhaust.EXHAUST_T_FLOOR_K:.0f} K where fuel-rich exhaust starts "
+               f"condensing heavy species/water in the duct. Heat less GOX/He.",
                f"OK - exhaust {exh['t_turbine_exit_k']:.0f} -> {exh['t_exhaust_k']:.0f} K "
-               f"({exh['hx_gox_kgs']:.2f} kg/s GOX)")
+               f"({_coils})")
     elif (self.turbine_exhaust_hx_gox_kgs or 0.0) > 0.0:
         _check(s.checklist, s.warnings, "turbopump", "Exhaust heat exchanger",
                False,

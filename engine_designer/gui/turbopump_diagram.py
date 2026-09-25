@@ -61,7 +61,10 @@ def _exhaust_box(ax, result):
     label = f"exhaust PR {te['turbine_pressure_ratio']:.0f}" if te else "exhaust"
     if te.get("hx_on"):
         # turbine -> heat exchanger -> disposal, stacked down the left margin
-        _box(ax, 1.4, 3.3, 2.0, 0.8, f"HEAT EXCH.\n{te['hx_gox_kgs']:.2f} kg/s GOX", _NEUTRAL,
+        _hx_coils = " + ".join(filter(None, [
+            f"{te['hx_gox_kgs']:.2f} kg/s GOX" if te["hx_gox_kgs"] > 0.0 else "",
+            f"{te['hx_he_kgs']:.2f} kg/s He" if te["hx_he_kgs"] > 0.0 else ""]))
+        _box(ax, 1.4, 3.3, 2.0, 0.8, f"HEAT EXCH.\n{_hx_coils}", _NEUTRAL,
              fontsize=5.8)
         _box(ax, 1.4, 1.9, 2.0, 1.1, text, _NEUTRAL, fontsize=6.2)
         _flow(ax, (_XF, 4.15), (1.9, 3.7), label)

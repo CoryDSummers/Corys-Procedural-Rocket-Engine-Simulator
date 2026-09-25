@@ -1114,12 +1114,15 @@ def build_turbine_exhaust_pieces(result, body_shell, ext_shell, has_extension,
         flow_anchors.setdefault("rings", {})["turbine_exhaust"] = (hw["exhaust"], edge)
     port = plumbing.port_for_host(result.get("turbopump_ports"), "turbine_exhaust")
     if hw.get("hx") and port is not None:
+        can = hw["hx"]
         d = float(port.get("dia_m") or 0.0)
         u = np.asarray(port["dir"], dtype=float)
         start = np.asarray(port["pos"], dtype=float) + EXHAUST_HX_PORT_OFFSET_DIA_MULT * d * u
-        pieces.extend(preview3d_gl_core.ray_mesh(
-            start, start + hw["hx"]["length_m"] * u, 0.5 * hw["hx"]["dia_m"], _N_THETA,
-            EXHAUST_HX_RGB, specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
+        # tapered can (inlet, at the duct/port end, is wider than the outlet -
+        # the real F-1's own narrows turbine-outlet -> manifold-end [F1-Man §1-72])
+        pieces.extend(preview3d_gl_core.frustum_mesh(
+            start, start + can["length_m"] * u, 0.5 * can["dia_inlet_m"], 0.5 * can["dia_outlet_m"],
+            _N_THETA, EXHAUST_HX_RGB, specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
             shininess=preview3d_gl_core.HARDWARE_SHININESS))
     return pieces
 
@@ -2098,7 +2101,8 @@ def self_test():
                     target_vac_thrust_n=900_000.0)
     for _mode, _extra in (("overboard_duct", dict(turbine_exhaust_nozzle_eps=4.0,
                                                   turbine_exhaust_cant_deg=15.0)),
-                          ("aspirator", dict(turbine_exhaust_hx_gox_kgs=0.3)),
+                          ("aspirator", dict(turbine_exhaust_hx_gox_kgs=0.3,
+                                             turbine_exhaust_hx_he_kgs=0.02)),
                           ("nozzle_injection", dict(turbine_exhaust_inject_eps=6.0))):
         _r = EngineDesign(**_te_base, turbine_exhaust_mode=_mode, **_extra).compute()
         _all, _ctx = build_mesh_data(_r, False, return_context=True)
@@ -2127,8 +2131,10 @@ def self_test():
                               >= -1e-5 * max(1.0, float(np.linalg.norm(_o["pos"]))))
         _hx_pieces = [p for p in _ex if p.colors.shape[0]
                       and np.allclose(p.colors, EXHAUST_HX_RGB, atol=1e-6)]
-        if _mode == "aspirator":            # heat-exchanger can drawn (body + 2 disks)
+        if _mode == "aspirator":            # heat-exchanger can drawn (body + 2 disks, tapered)
             assert _hw["hx"] is not None and len(_hx_pieces) == 3, len(_hx_pieces)
+            assert _hw["hx"]["gox_kgs"] == 0.3 and _hw["hx"]["he_kgs"] == 0.02
+            assert _hw["hx"]["dia_inlet_m"] > _hw["hx"]["dia_outlet_m"] > 0.0
         else:
             assert not _hx_pieces
     _closed = EngineDesign(**{**_te_base, "cycle": cycles.FRSC, "propellant_pair": "LOX/LH2",

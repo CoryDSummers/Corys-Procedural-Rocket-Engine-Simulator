@@ -251,7 +251,8 @@ touching any cooling number.** What changed structurally:
    RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (193
    pair x method x construction combos compute finite + converged - the cooling audit's
    crash/NaN guard, 2026-09-23) and "ALL TURBINE-EXHAUST CHECKS OK" (H-1 back pressure/aspirator
-   slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24)
+   slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24;
+   F-1 back pressure / GG share / duct bore [F1-Man] + J-2 gas-film slot area, 2026-09-25)
    (27 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
@@ -368,11 +369,16 @@ plumbing centrelines as role "flow" pieces, shown by the preview's Flow toggle +
 flow_legend.py` colorbar),
 `turbine_exhaust.py` = open-cycle turbine-exhaust disposal (2026-09-24; `EngineDesign.
 turbine_exhaust_mode` overboard_duct / aspirator / nozzle_injection + exhaust-nozzle eps/cant,
-inject eps, aspirator shroud, LOX->GOX heat exchanger): the exhaust leaves SONIC into its
+inject eps, aspirator shroud, exhaust heat exchanger with a LOX->GOX coil and/or a helium coil
+`turbine_exhaust_hx_he_kgs` (schema 10), outlet temps + can size anchored on the F-1 [F1-Man],
+can drawn tapered via `preview3d_gl_core.frustum_mesh`): the exhaust leaves SONIC into its
 discharge -> turbine outlet pressure -> PR = min(`GG_PRESSURE_RATIO` cap, inlet/outlet) (H-1
-33.8 psia / PR 17.7 [H1-Man]); exhaust Isp = ideal expansion x `EXHAUST_THRUST_EFFICIENCY`
+33.8 psia / PR 17.7 [H1-Man]; injection uses `EXHAUST_INJECTION_PRESSURE_RATIO`, an INTERIM
+lumped loss on the F-1's 58 psia - per-engine manifold/slot physics wanted, OPEN_QUESTIONS);
+exhaust Isp = ideal expansion x `EXHAUST_THRUST_EFFICIENCY`
 (F-1 16,000 lbf pin) - the flat GG/TAP_OFF_DUMP_ISP_FRACTION are RETIRED; injection lays a gas
-film (thermal_solve `gas_film_phi`, second compute pass); open cycles CLOSE ON THE TARGET THRUST
+film (`gas_film_effectiveness_profile` = [TN-D3836] modified Hatch-Papell on the calibrated
+h_g; thermal_solve `gas_film_phi`, second compute pass); open cycles CLOSE ON THE TARGET THRUST
 (compute() rescales chamber flow, `thrust_closure_scale`) and `mdot_kgs` = chamber + GG flow
 (`mdot_chamber_kgs` = chamber only); `size_hardware` sizes the termination + a default duct
 routed to the new turbine exhaust port (`geometry3d.turbopump_ports["turbine"]["exhaust"]`), a

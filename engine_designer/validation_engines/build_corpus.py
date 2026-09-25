@@ -64,6 +64,7 @@ ENGINES = {
                     cooling_transition_eps=10.0, regen_channel_model="channels",
                     wall_construction="tube_wall", cooling_flow_topology="f1_split_reverse_flow",
                     turbine_exhaust_mode="nozzle_injection", turbine_exhaust_inject_eps=10.0,
+                    turbine_exhaust_hx_gox_kgs=1.81, turbine_exhaust_hx_he_kgs=0.27,
                     injector_type="impinging", config_name="F-1", **_BELL),
         notes=["Inconel-X-750 tube wall in reality; inconel_718 is the closest catalog alloy.",
                "mixture_ratio is the THRUST-CHAMBER ratio 2.40 [F1-Man Fig 1-7]; RO's 2.27 is the "
@@ -74,8 +75,9 @@ ENGINES = {
                "[SP-8120 s2.2.2]: modelled as an uncooled Inconel extension + the turbine exhaust "
                "injected at eps 10 (turbine_exhaust_mode nozzle_injection), whose gas film cools it. "
                "(Until 2026-09-24 an 8%-of-fuel liquid slot film stood in for the exhaust film.)",
-               "The F-1's heat exchanger (LOX->GOX) in the exhaust duct is not modelled: no GOX "
-               "flow in hand."],
+               "The F-1's exhaust heat exchanger IS modelled (2026-09-25): both real coils "
+               "[F1-Man Fig 3-29] - LOX 4 lb/s (1.81 kg/s, -288 F -> 470 F) and He 0.6 lb/s "
+               "(0.27 kg/s, -345 F -> 255 F), one shell [F1-Man §1-71/1-72]."],
         cite='[RO F1_Config.cfg "SA-501..503"]',
         isp=(301.0, 262.1), gaps=["throat heat flux", "coolant dT", "jacket dP", "wall temps"]),
     "J-2": dict(

@@ -906,6 +906,10 @@ class EngineDesignerApp:
         self.te_hx_var = tk.DoubleVar(value=self.design.turbine_exhaust_hx_gox_kgs)
         te_row = self._add_slider(teb, te_row, "LOX->GOX heat exchanger GOX flow [kg/s] (0 = none)",
                                   self.te_hx_var, 0.0, 5.0, decimals=2)
+        self.te_hx_he_var = tk.DoubleVar(value=self.design.turbine_exhaust_hx_he_kgs)
+        te_row = self._add_slider(teb, te_row, "Same exchanger's He coil flow [kg/s] (0 = none, "
+                                  "any pair - F-1 [F1-Man] has both)",
+                                  self.te_hx_he_var, 0.0, 1.0, decimals=2)
 
         self.turbopump_display_to_key = {
             turbopump_tech.TURBOPUMP_TECHS[k].display_name: k
@@ -1697,6 +1701,7 @@ class EngineDesignerApp:
             self.design.aspirator_overhang_frac = max(0.0, float(self.te_asp_over_var.get()))
             self.design.turbine_exhaust_inject_eps = float(self.te_inject_eps_var.get())
             self.design.turbine_exhaust_hx_gox_kgs = max(0.0, float(self.te_hx_var.get()))
+            self.design.turbine_exhaust_hx_he_kgs = max(0.0, float(self.te_hx_he_var.get()))
 
             self.design.chamber_pressure_pa = self.pc_var.get() * 1e6
             self.design.mixture_ratio = self.mr_var.get()
@@ -2314,8 +2319,10 @@ class EngineDesignerApp:
                     f"({te['isp_fraction_vac']*100:.0f}% of chamber), "
                     f"{te['thrust_vac_n']/1e3:.1f} kN")
                 if te.get("hx_on"):
-                    tp_lines.append(f"  heat exchanger: {te['hx_gox_kgs']:.2f} kg/s GOX, "
-                                    f"-{te['hx_delta_t_k']:.0f} K")
+                    _hx_coils = " + ".join(filter(None, [
+                        f"{te['hx_gox_kgs']:.2f} kg/s GOX" if te["hx_gox_kgs"] > 0.0 else "",
+                        f"{te['hx_he_kgs']:.2f} kg/s He" if te["hx_he_kgs"] > 0.0 else ""]))
+                    tp_lines.append(f"  heat exchanger: {_hx_coils}, -{te['hx_delta_t_k']:.0f} K")
                 if te["mode"] == "aspirator" and te.get("aspirator_gap_m"):
                     tp_lines.append(f"  aspirator exit slot {te['aspirator_gap_m']*1e3:.1f} mm "
                                     f"(H-1D 11.2 mm)")
@@ -2521,6 +2528,7 @@ class EngineDesignerApp:
         self.te_asp_over_var.set(d.aspirator_overhang_frac)
         self.te_inject_eps_var.set(d.turbine_exhaust_inject_eps)
         self.te_hx_var.set(d.turbine_exhaust_hx_gox_kgs)
+        self.te_hx_he_var.set(d.turbine_exhaust_hx_he_kgs)
         self.orifice_type_var.set(d.orifice_type)
         self.stiffness_var.set(d.injector_stiffness)
         self.chamber_sizing_method_var.set(d.chamber_sizing_method)

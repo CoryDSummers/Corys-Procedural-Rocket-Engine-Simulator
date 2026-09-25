@@ -97,6 +97,7 @@ from .duct_meshes import (
     RAY_N_THETA,
     ray_mesh,
     exhaust_nozzle_mesh,
+    frustum_mesh,
 )
 from .tube_bundle import (
     visual_channel_count,
@@ -233,6 +234,7 @@ __all__ = [
     "RAY_N_THETA",
     "ray_mesh",
     "exhaust_nozzle_mesh",
+    "frustum_mesh",
     "visual_channel_count",
     "channel_modulated_grid",
     "_tube_geometry_profile",

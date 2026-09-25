@@ -52,7 +52,7 @@ if __name__ == "__main__":
                            turbine_exhaust_mode="aspirator", turbine_exhaust_nozzle_eps=3.0,
                            turbine_exhaust_cant_deg=12.0, turbine_exhaust_inject_eps=9.0,
                            aspirator_fwd_length_frac=0.4, aspirator_overhang_frac=0.08,
-                           turbine_exhaust_hx_gox_kgs=0.4,
+                           turbine_exhaust_hx_gox_kgs=0.4, turbine_exhaust_hx_he_kgs=0.05,
                            wall_construction="tube_wall", regen_nozzle_end_eps=25.0,
                            regen_circuit_style="f1_double_pass",
                            dump_coolant_fraction=0.08,
@@ -125,6 +125,11 @@ if __name__ == "__main__":
             and old_v8.turbine_exhaust_nozzle_eps == 1.0
             and old_v8.turbine_exhaust_hx_gox_kgs == 0.0)
     assert EngineDesign().to_dict()["schema_version"] >= 9
+    # A schema-9 file (pre helium coil) takes the new field's default: no
+    # helium heated (schema 10).
+    old_v9 = EngineDesign.from_dict({"schema_version": 9, "design": {"cycle": "gas_generator"}})
+    assert old_v9.turbine_exhaust_hx_he_kgs == 0.0
+    assert EngineDesign().to_dict()["schema_version"] >= 10
     loaded = json.loads(json.dumps(d.to_dict()))
     rebuilt = EngineDesign.from_dict(loaded)
     assert rebuilt.plumbing_runs == d.plumbing_runs

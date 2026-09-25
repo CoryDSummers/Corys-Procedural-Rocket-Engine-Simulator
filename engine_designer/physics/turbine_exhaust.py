@@ -31,8 +31,10 @@ The physics, in order:
    from GG_GAS_PROPERTIES or the tap-off gas), so R = cp (gamma-1)/gamma.
    Turbine exit total temperature = Tin - dh_actual / cp.
    An optional LOX->GOX heat exchanger (the H-1's pressurant heater
-   [H1-Man §1-47]; Titan I superheater [SP-8120]) takes
-   mdot_gox * LOX_TO_GOX_DH_J_KG out of the stream.
+   [H1-Man §1-47]; Titan I superheater [SP-8120]; the F-1's own is BOTH a
+   LOX coil and a helium coil in one shell [F1-Man §1-71/1-72]) takes
+   mdot_gox * LOX_TO_GOX_DH_J_KG + mdot_he * HE_HX_DH_J_KG out of the
+   stream.
 2. Back pressure: the exhaust must leave SONIC into whatever it discharges
    into - ambient (sea level if the main nozzle runs attached at sea level,
    else vacuum) for overboard/aspirator, the local main-nozzle static
@@ -114,12 +116,24 @@ EXHAUST_INJECTION_PRESSURE_RATIO = 2.50
 # (O2/H2) [Tripropellant-CR150444 Table 2].
 EXHAUST_THRUST_EFFICIENCY = 0.96
 
-# LOX -> GOX pressurant heat-exchanger enthalpy rise per kg of oxygen: from
-# ~90 K liquid to ~300 K gas. Tier 3 - a standard O2 property value (NIST
-# webbook order of magnitude: ~213 kJ/kg latent + ~0.92 kJ/kg-K x ~200 K
-# sensible), NOT from a claude_lit source; no H-1 GOX flow or outlet
-# temperature is published either ([H1-Man] describes the hardware only).
-LOX_TO_GOX_DH_J_KG = 4.0e5
+# LOX -> GOX pressurant heat-exchanger enthalpy rise per kg of oxygen: 90 K
+# liquid (pump discharge, supercritical) to 516 K (470 F) gas. Tier 2
+# (2026-09-25): the OUTLET TEMPERATURE is a real F-1 anchor [F1-Man Fig 3-29,
+# "LOX -288 F in -> 470 F out"]; the enthalpy value itself is a standard
+# CoolProp O2 property (real-gas, at the F-1 ox pump discharge 1,602 psia
+# [F1-Man Fig 1-16/3-14]) -> 5.99e5 J/kg, rounded. No GOX FLOW is anchored
+# ([H1-Man]/[F1-Man] describe the hardware, not a flow rate); the corpus F-1
+# uses 4 lb/s [F1-Man Fig 3-29]'s own test-evaluation input, not a derived
+# design flow.
+LOX_TO_GOX_DH_J_KG = 6.0e5
+# Helium-coil pressurant heat exchanger (F-1 only source in claude_lit: BOTH
+# a LOX coil AND a He coil share one shell [F1-Man §1-71/1-72]) - real
+# 63 K -> 397 K (-345 F -> 255 F) [F1-Man Fig 3-29], ideal monatomic cp
+# 5,193 J/kg-K (He has no meaningful real-gas departure at this pressure/
+# temperature - CoolProp gives 1.75e6 J/kg, 1% off the ideal value below).
+# Tier 2, same anchor tier as the LOX coil. Allowed on ANY propellant pair
+# (helium is a pressurant, not tied to the propellants).
+HE_HX_DH_J_KG = 5193.0 * (397.0 - 63.0)
 # Warn when the heat exchanger chills the exhaust below this: fuel-rich
 # hydrocarbon exhaust starts condensing heavy species / water well above
 # ambient. Tier 3, an arbitrary-but-reasonable warn threshold.
@@ -188,7 +202,7 @@ def _mach_from_pressure_ratio(p0_over_p, gamma):
 def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbine_out_pa,
                    discharge_pa, main_exit_static_pa, main_exit_dia_m,
                    nozzle_eps=1.0, cant_deg=0.0, roll_arm_m=None,
-                   hx_gox_kgs=0.0, lox_pair=True, pa_sl=PA_SEA_LEVEL):
+                   hx_gox_kgs=0.0, hx_he_kgs=0.0, lox_pair=True, pa_sl=PA_SEA_LEVEL):
     """The spent-drive-gas stream: state, back pressure, exit, thrust and Isp.
 
     mdot_kgs          turbine (GG / tap-off) flow
@@ -203,8 +217,12 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
     r_gas = gas_constant_j_kgk(cp, gamma)
     m_molar = iso.R_UNIVERSAL / r_gas
     t_turb_out = tin_k - dh_actual_j_kg / cp
-    hx_on = hx_gox_kgs > 0.0 and lox_pair and mdot_kgs > 0.0
-    hx_dt = hx_gox_kgs * LOX_TO_GOX_DH_J_KG / (mdot_kgs * cp) if hx_on else 0.0
+    hx_lox_on = hx_gox_kgs > 0.0 and lox_pair and mdot_kgs > 0.0
+    hx_he_on = hx_he_kgs > 0.0 and mdot_kgs > 0.0
+    hx_on = hx_lox_on or hx_he_on
+    hx_duty_w = ((hx_gox_kgs * LOX_TO_GOX_DH_J_KG if hx_lox_on else 0.0)
+                + (hx_he_kgs * HE_HX_DH_J_KG if hx_he_on else 0.0))
+    hx_dt = hx_duty_w / (mdot_kgs * cp) if hx_on else 0.0
     t_exh = t_turb_out - hx_dt
     p_exit_total = p_turbine_out_pa / exhaust_loss_ratio(mode)
 
@@ -243,8 +261,9 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
     out = dict(
         mode=mode, mdot_kgs=mdot_kgs, gas_constant_j_kgk=r_gas, m_molar=m_molar,
         gamma=gamma, cp=cp, tin_k=tin_k,
-        t_turbine_exit_k=t_turb_out, hx_on=hx_on, hx_gox_kgs=hx_gox_kgs if hx_on else 0.0,
-        hx_delta_t_k=hx_dt, hx_duty_w=hx_gox_kgs * LOX_TO_GOX_DH_J_KG if hx_on else 0.0,
+        t_turbine_exit_k=t_turb_out, hx_on=hx_on, hx_gox_kgs=hx_gox_kgs if hx_lox_on else 0.0,
+        hx_he_kgs=hx_he_kgs if hx_he_on else 0.0,
+        hx_delta_t_k=hx_dt, hx_duty_w=hx_duty_w,
         t_exhaust_k=t_exh,
         p_turbine_out_pa=p_turbine_out_pa, p_exit_total_pa=p_exit_total,
         p_exit_static_pa=exit_static, discharge_pa=discharge_pa,
@@ -361,12 +380,27 @@ EXHAUST_SHEET_MIN_GAUGE_M = 1.0e-3     # shroud / nozzle / can sheet floor - Tie
 OUTLET_STATION_FRACTION = 0.6
 OUTLET_STANDOFF_EXIT_DIA_MULT = 1.0
 OUTLET_HALF_ANGLE_DEG = 15.0           # conical exhaust-nozzle divergence - Tier 3
-# Heat-exchanger can around the duct (H-1 [H1-Man §1-47]): dia / length as
-# multiples of the duct bore; mass = 2 x the can shell (coils + manifolds
-# lumped). Tier 3 - [H1-Man] gives the construction, no dimensions.
-HX_CAN_DIA_DUCT_MULT = 2.5
-HX_CAN_LENGTH_DUCT_MULT = 3.0
+# Heat-exchanger can around the duct: overall (mass-characteristic) dia /
+# length as multiples of the duct bore, REVERSE-SOLVED on the F-1's own real
+# envelope [F1-Man §1-72]: "43 in dia max ... 58 in long" against the
+# corpus F-1's duct bore (24.3 in, itself close to the F-1's real 24 in
+# turbine-exhaust-manifold-end diameter - a corroborating check, not a fit).
+# Tier 2 for the ratio's SOURCE (a real can exists at this scale); Tier 3 for
+# treating it as a plain cylinder for mass (the real can tapers - see the
+# INLET/OUTLET multipliers below, mesh-only). mass = HX_MASS_SHELL_MULT x the
+# can shell (coils + manifolds lumped, Tier 3 - [F1-Man]/[H1-Man] give the
+# construction, no weight). The heat DUTY (hx_gox_kgs/hx_he_kgs) never sizes
+# the can - only the duct bore does - so a bigger flow costs nothing in mass;
+# flagged in ASSUMPTIONS.
+HX_CAN_DIA_DUCT_MULT = 1.77
+HX_CAN_LENGTH_DUCT_MULT = 2.39
 HX_MASS_SHELL_MULT = 2.0
+# Taper for the DRAWN can only (mesh, not mass): the real F-1 can narrows
+# 40 -> 24 in, turbine-outlet to turbine-exhaust-manifold end [F1-Man §1-72].
+# Tier 3 cosmetic approximation of that ratio (not reverse-solved as tightly
+# as the overall envelope above).
+HX_CAN_INLET_DUCT_MULT = 1.5
+HX_CAN_OUTLET_DUCT_MULT = 0.9
 INJECTION_MANIFOLD_TAPER_BLEND = 0.5
 # Aspirator annulus at its forward (inlet) end is sized for the duct velocity;
 # it narrows linearly to the choked exit slot.
@@ -525,7 +559,10 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
         m = HX_MASS_SHELL_MULT * (math.pi * d_can * l_can + 0.5 * math.pi * d_can ** 2) * th \
             * mat.density_kg_m3
         out["hx"] = dict(dia_m=d_can, length_m=l_can, thickness_m=th, mass_kg=m,
-                         gox_kgs=exh.get("hx_gox_kgs", 0.0), duty_w=exh.get("hx_duty_w", 0.0))
+                         dia_inlet_m=HX_CAN_INLET_DUCT_MULT * d_duct,
+                         dia_outlet_m=HX_CAN_OUTLET_DUCT_MULT * d_duct,
+                         gox_kgs=exh.get("hx_gox_kgs", 0.0), he_kgs=exh.get("hx_he_kgs", 0.0),
+                         duty_w=exh.get("hx_duty_w", 0.0))
         out["mass_kg"] += m
     return out
 
@@ -617,15 +654,24 @@ def _self_test():
           f"roll torque {cant['roll_torque_nm']:.0f} N.m  [{'OK' if c3 else 'FAIL'}]")
     ok &= c3
 
-    # (4) heat exchanger lowers the exhaust temperature by duty / (mdot cp),
-    # only on a LOX pair
+    # (4) heat exchanger lowers the exhaust temperature by duty / (mdot cp);
+    # the LOX coil is LOX-pair only, the He coil works on ANY pair, and both
+    # add together in one shell (the F-1's own [F1-Man §1-71/1-72])
     hx = exhaust_stream("overboard_duct", hx_gox_kgs=0.5, **kw)
     hx_off = exhaust_stream("overboard_duct", hx_gox_kgs=0.5, lox_pair=False, **kw)
     want = 0.5 * LOX_TO_GOX_DH_J_KG / (mdot * cp_rp1)
+    hx_he = exhaust_stream("overboard_duct", hx_he_kgs=0.1, lox_pair=False, **kw)
+    want_he = 0.1 * HE_HX_DH_J_KG / (mdot * cp_rp1)
+    hx_both = exhaust_stream("overboard_duct", hx_gox_kgs=0.5, hx_he_kgs=0.1, **kw)
     c4 = (abs((duct["t_exhaust_k"] - hx["t_exhaust_k"]) - want) < 1e-9
-          and hx["isp_vac_s"] < duct["isp_vac_s"] and hx_off["t_exhaust_k"] == duct["t_exhaust_k"])
+          and hx["isp_vac_s"] < duct["isp_vac_s"] and hx_off["t_exhaust_k"] == duct["t_exhaust_k"]
+          and hx_off["hx_on"] is False
+          and abs((duct["t_exhaust_k"] - hx_he["t_exhaust_k"]) - want_he) < 1e-9
+          and hx_he["hx_on"] is True and hx_he["hx_gox_kgs"] == 0.0
+          and abs((duct["t_exhaust_k"] - hx_both["t_exhaust_k"]) - (want + want_he)) < 1e-6)
     print(f"  (4) heat exchanger 0.5 kg/s GOX: exhaust {duct['t_exhaust_k']:.0f} -> "
-          f"{hx['t_exhaust_k']:.0f} K (-{want:.0f} K), non-LOX pair ignored  "
+          f"{hx['t_exhaust_k']:.0f} K (-{want:.0f} K), non-LOX pair ignores GOX; "
+          f"0.1 kg/s He on a non-LOX pair: -{want_he:.0f} K; both coils combine  "
           f"[{'OK' if c4 else 'FAIL'}]")
     ok &= c4
 
@@ -678,6 +724,19 @@ def _self_test():
           f"{asp['gap_exit_m']*1e3:.1f} mm annulus; outlet {outl['throat_dia_m']*1e3:.0f} -> "
           f"{outl['exit_dia_m']*1e3:.0f} mm  [{'OK' if c6 else 'FAIL'}]")
     ok &= c6
+
+    # (6b) heat-exchanger can: tapered (inlet > outlet), both coils reported
+    exh_hx = dict(exhaust_stream("overboard_duct", hx_gox_kgs=0.4, hx_he_kgs=0.05, **kw),
+                  mode="overboard_duct")
+    hw_hx = size_hardware(exh_hx, xs=xs_c, rs=rs_c, throat_dia_m=2 * rt, nozzle_eps=4.0)
+    can = hw_hx["hx"]
+    c6b = (can is not None and can["dia_inlet_m"] > can["dia_outlet_m"] > 0.0
+          and can["dia_m"] > can["dia_inlet_m"] and can["gox_kgs"] == 0.4
+          and can["he_kgs"] == 0.05 and can["mass_kg"] > 0.0)
+    print(f"  (6b) HX can: {can['dia_inlet_m']*1e3:.0f} -> {can['dia_outlet_m']*1e3:.0f} mm "
+          f"tapered over {can['length_m']*1e3:.0f} mm, {can['gox_kgs']:.2f} kg/s GOX + "
+          f"{can['he_kgs']:.2f} kg/s He  [{'OK' if c6b else 'FAIL'}]")
+    ok &= c6b
 
     print("ALL TURBINE-EXHAUST SELF-TESTS OK" if ok else "*** TURBINE-EXHAUST SELF-TEST FAILED ***")
     return ok
