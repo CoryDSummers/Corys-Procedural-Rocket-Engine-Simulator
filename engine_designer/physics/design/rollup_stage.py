@@ -203,6 +203,11 @@ def checks_and_result(self, s):
         "completeness_factor": s.completeness,
         "residence_time_s": s.residence_time_s, "required_time_s": s.required_time_s,
         "cstar_ms": s.cstar, "pe_pc": s.pe_pc, "pe_pa": s.pe_pa,
+        # P1 re-anchor (2026-09-25): where the chamber state came from, the
+        # ideal (shifting-equilibrium) c* / vacuum CF and the fitted nozzle
+        # efficiency applied on top of the divergence score
+        "performance_source": s.perf["source"], "gamma_chamber": s.gamma_chamber, "cstar_ideal_ms": s.perf["cstar_ideal_ms"],
+        "cf_vac_ideal": s.cf_vac_ideal, "eta_cf": s.eta_cf,
         "nozzle_divergence_efficiency": s.lam,
         "nozzle_efficiency_vs_reference": s.lam_relative,
         "theta_n_deg": s.theta_n_deg, "theta_e_deg": s.theta_e_deg,

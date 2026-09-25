@@ -61,7 +61,7 @@ def injector_and_cooling_routing(self, s):
     # injector-END pressure, which exceeds the nozzle-stagnation Pc that
     # sets thrust/Isp. Always computed & reported; only routed into the feed
     # chain when apply_chamber_pressure_loss is on.
-    s.chamber_flow = combustion.chamber_flow(self.contraction_ratio, s.gamma)
+    s.chamber_flow = combustion.chamber_flow(self.contraction_ratio, s.gamma_chamber)
     s.pc_feed = (self.chamber_pressure_pa * s.chamber_flow["injector_end_pressure_ratio"]
                if self.apply_chamber_pressure_loss else self.chamber_pressure_pa)
     # Looked up here (not just at the thermal-margin check further down) because the
@@ -177,8 +177,8 @@ def turbomachinery_cycle(self, s):
         # Tapped gas = main-chamber combustion products, film-cooled to a
         # turbine-tolerable temperature (NOT the fuel-rich GG mix).
         tap_tin_k = min(s.tc * TAP_OFF_TEMP_FRACTION, TAP_OFF_TURBINE_LIMIT_K)
-        tap_gas = dict(tin_k=tap_tin_k, cp=combustion.mixture_cp_j_kgk(s.gamma, s.m_molar),
-                       gamma=s.gamma)
+        tap_gas = dict(tin_k=tap_tin_k, cp=combustion.mixture_cp_j_kgk(s.gamma_chamber, s.m_molar),
+                       gamma=s.gamma_chamber)
         _pr = _exhaust_back_pressure(self, s, tap_gas["gamma"],
                                      turbine_exhaust.TAP_OFF_TURBINE_INLET_PC_FRACTION,
                                      TAP_OFF_PRESSURE_RATIO)
@@ -388,7 +388,9 @@ def _exhaust_back_pressure(self, s, gamma, inlet_pc_fraction, pr_cap):
     s.te_inject_eps = min(max(float(self.turbine_exhaust_inject_eps), 1.5),
                           float(self.expansion_ratio))
     s.te_local_static_pa = (self.chamber_pressure_pa
-                            * iso.pe_over_pc_from_eps(s.te_inject_eps, s.gamma))
+                            * combustion.exit_pressure_ratio(
+                                self.propellant_pair, self.mixture_ratio,
+                                self.chamber_pressure_pa, s.te_inject_eps, s.perf))
     s.te_discharge_pa = turbine_exhaust.discharge_pressure_pa(
         s.te_mode, s.te_ambient_pa, s.te_local_static_pa)
     s.te_p_in_pa = inlet_pc_fraction * self.chamber_pressure_pa

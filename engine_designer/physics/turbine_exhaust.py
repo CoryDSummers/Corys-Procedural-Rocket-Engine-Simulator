@@ -97,14 +97,16 @@ EXHAUST_DUCT_PRESSURE_RATIO = 1.330
 # sonic into the local main-nozzle static pressure (duct + hot-gas manifold +
 # shingle-slot / eyelet losses). Tier 2 INTERIM, REVERSE-SOLVED on the F-1:
 # turbine exit 58 psia static [F1-Man Fig 1-16/3-14] vs the eps-10 static of
-# the real 1,125 psia chamber (pe/pc 0.0119 at the corpus F-1's gamma 1.218 ->
-# 13.4 psia): 58 / 13.4 = 4.32 = this / p*/p0(1.13) -> 2.50. Pinned as a
-# RATIO to the local static, so it carries across Pc. It is one engine's
-# lumped loss, not per-engine physics: a real replacement would compute the
-# torus (decreasing section, splitter plates, exit vanes [F1-Man §1-18]) and
-# slot/eyelet dP from geometry - the F-1's 23 rows of shingle slots, the J-2's
-# 115 in^2 of eyelets [RPE-J2Blog] - see claude_lit/OPEN_QUESTIONS.md.
-EXHAUST_INJECTION_PRESSURE_RATIO = 2.50
+# the real 1,125 psia chamber - 2026-09-25 (P1 re-anchor) from the equilibrium
+# tables' own shifting expansion, pe/pc 0.01362 at the corpus MR 2.40 -> 15.3
+# psia: 58 / 15.3 = 3.785 = this / p*/p0(1.13) -> 2.19. (It was 2.50 for the
+# day it rested on the old one-gamma 0.0119.) Pinned as a RATIO to the local
+# static, so it carries across Pc. It is one engine's lumped loss, not
+# per-engine physics: a real replacement would compute the torus (decreasing
+# section, splitter plates, exit vanes [F1-Man §1-18]) and slot/eyelet dP
+# from geometry - the F-1's 23 rows of shingle slots, the J-2's 115 in^2 of
+# eyelets [RPE-J2Blog] - see claude_lit/OPEN_QUESTIONS.md.
+EXHAUST_INJECTION_PRESSURE_RATIO = 2.19
 # Thrust efficiency of the exhaust stream vs its ideal isentropic expansion
 # (non-parallel exit, mixing with the main-flow boundary layer, duct swirl,
 # non-ideal frozen gas). Tier 2, REVERSE-SOLVED through the full pipeline on
@@ -603,9 +605,9 @@ def _self_test():
     ok &= c1c
 
     # (1d) F-1 injection back pressure [F1-Man Fig 1-16/3-14]: eps-10 static
-    # of the real 1,125 psia chamber (pe/pc 0.01193) -> turbine exit 58 psia;
-    # inlet 0.855 x 1,125 -> PR vs the real 945/58 = 16.3
-    p_stat = 1125.0 * psi * 0.01193
+    # of the real 1,125 psia chamber (the equilibrium tables' pe/pc 0.01362 at
+    # MR 2.40) -> turbine exit 58 psia; inlet 0.855 x 1,125 -> PR vs 945/58 = 16.3
+    p_stat = 1125.0 * psi * 0.01362
     p_req_f1 = required_turbine_outlet_pa(g_rp1, discharge_pressure_pa("nozzle_injection", 0.0,
                                                                          p_stat), "nozzle_injection")
     pr_f1, lim_f1 = turbine_pressure_ratio(GG_TURBINE_INLET_PC_FRACTION * 1125.0 * psi,

@@ -36,18 +36,34 @@ SPOT_CHECKS = [
 
 
 def _predict(pair, pc_pa, eps, mr):
-    tc, gamma, m_molar = combustion.combustion_state(pair, mr)
+    """The design's own performance path at its neutral baseline (80%-bell
+    reference nozzle, lambda_relative = 1, no injector multiplier / completeness):
+    combustion.performance_state (equilibrium tables at the actual MR and Pc for
+    a bipropellant, the legacy table for a monopropellant) x DEFAULT_ETA_CSTAR
+    on c*, x ETA_CF on the ideal CF (P1 re-anchor, 2026-09-25)."""
+    st = combustion.performance_state(pair, mr, pc_pa)
+    tc, gamma = st["tc_k"], st["gamma_chamber"]
     eta_cstar = combustion.DEFAULT_ETA_CSTAR[pair]
-    mach = iso.mach_from_area_ratio(eps, gamma)
-    pe_pc = iso.pe_over_pc(mach, gamma)
-    pe_pa = pe_pc * pc_pa
-    cstar = iso.c_star(tc, gamma, m_molar, eta_cstar)
-    cf_vac = iso.cf_vacuum(gamma, pe_pc, eps)  # lambda = 1.0, see module docstring
+    pe_pa = combustion.exit_pressure_ratio(pair, mr, pc_pa, eps, st) * pc_pa
+    cstar = st["cstar_ideal_ms"] * eta_cstar
+    cf_vac = combustion.cf_vac_ideal(pair, mr, pc_pa, eps, st)[0] * combustion.ETA_CF[pair]
     cf_sl = cf_vac - eps * (PA_SEA_LEVEL / pc_pa)
     isp_vac = iso.isp_from_cf(cstar, cf_vac)
     isp_sl = iso.isp_from_cf(cstar, cf_sl)
     separated = iso.is_separated(pe_pa, PA_SEA_LEVEL)
     return tc, gamma, eta_cstar, isp_vac, isp_sl, separated
+
+
+def solve_eta_cf(check):
+    """ETA_CF that makes `check`'s _predict hit its real vacuum Isp (Isp is
+    linear in ETA_CF on this path) - how combustion.ETA_CF is reverse-solved."""
+    saved = combustion.ETA_CF[check["pair"]]
+    try:
+        combustion.ETA_CF[check["pair"]] = 1.0
+        isp1 = _predict(check["pair"], check["pc_pa"], check["eps"], check["mr"])[3]
+    finally:
+        combustion.ETA_CF[check["pair"]] = saved
+    return check["actual_vac_isp"] / isp1
 
 
 def run():
@@ -70,7 +86,8 @@ def run():
         status = "OK" if ok else "*** OUT OF TOLERANCE ***"
         print(f"\n{check['name']}  [{status}]")
         print(f"  Pc={check['pc_pa']/1e6:.2f} MPa  eps={check['eps']}  MR={check['mr']}  "
-              f"eta_cstar={eta_cstar}  -> Tc={tc:.0f} K, gamma={gamma:.4f}")
+              f"eta_cstar={eta_cstar}  eta_CF={combustion.ETA_CF[check['pair']]:.4f}  "
+              f"-> Tc={tc:.0f} K, gamma={gamma:.4f}")
         print(f"  vac Isp: predicted {isp_vac:6.1f} s  actual {check['actual_vac_isp']:6.1f} s  "
               f"err {err_vac:+.2f}%  [{'OK' if vac_ok else 'FAIL'}]")
         if check["sl_meaningful"]:
@@ -87,7 +104,7 @@ def run():
     print()
     print("=" * 78)
     print("ALL GATED SPOT CHECKS WITHIN TOLERANCE" if all_ok else
-          "*** ONE OR MORE GATED SPOT CHECKS OUT OF TOLERANCE - review DEFAULT_ETA_CSTAR / tables ***")
+          "*** ONE OR MORE GATED SPOT CHECKS OUT OF TOLERANCE - review DEFAULT_ETA_CSTAR / ETA_CF / tables ***")
     print("=" * 78)
     return all_ok
 

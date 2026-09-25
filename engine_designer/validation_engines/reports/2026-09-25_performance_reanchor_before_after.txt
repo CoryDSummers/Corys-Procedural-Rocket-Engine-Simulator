@@ -1,0 +1,959 @@
+P1 performance re-anchor: Isp on the equilibrium tables (2026-09-25)
+====================================================================
+What changed (engine_designer/physics/combustion.py, design/combustion_stage.py):
+- Bipropellant chamber state + ideal performance now come from the baked Cantera
+  shifting-equilibrium tables at the actual (MR, Pc): Tc, M, frozen chamber gamma, ideal c*,
+  ideal vacuum CF(eps) = Isp_vac x g0 / c* (eps 2-250), exit pressure pe/pc(eps). The old
+  hand table (_TABLES: Tc/gamma/M per MR, no Pc axis, "effective" LOX/LH2 gamma/M) now only
+  serves the monopropellants (Hydrazine, H2O2), which have no equilibrium table.
+- Efficiency split: DEFAULT_ETA_CSTAR = 0.975 for every bipropellant (a real combustion
+  efficiency, [Huzel 4.2] ~0.975, inside [Sutton 5.5]'s 0.96-0.99); new ETA_CF per pair = the
+  nozzle loss (kinetics + boundary layer + residual), reverse-solved on each pair's SPOT_CHECKS
+  anchor: RP-1 0.9358 (RD-111), LH2 0.9826 (RL10A-3-3), CH4 0.9588 (Raptor-2), MMH 0.9088
+  (Aestus), A-50 0.9518 (AJ10-137). One number per pair ("option A") - the per-engine residuals
+  below are its honest spread.
+- Gammas split: s.gamma = the one-gamma exponent that reproduces the table's exit pressure at
+  the design eps (nozzle-profile relations: local wall pressure, static temperature);
+  s.gamma_chamber = the chamber's frozen gamma (chamber Mach, acoustic sound speed, tap-off
+  drive gas). The turbine-exhaust injection static reads the table's pe/pc directly.
+Re-solved calibrations (each is DEFINED as a reverse-solve):
+- BARTZ_ABS_FLUX_CALIBRATION["LOX/LH2"] 0.66 -> 0.693 (corpus RS-25 throat back to the cited
+  118 MW/m2; it read 113.4 at 0.66 with the new c*).
+- turbine_exhaust.EXHAUST_INJECTION_PRESSURE_RATIO 2.50 -> 2.19 (F-1 58 psia against the table's
+  own eps-10 static, pe/pc 0.01362, instead of the one-gamma 0.0119).
+Watched, not tuned:
+- CHANNEL_DP_CALIBRATION 0.93: reference regen design jacket dP 1.535 -> 1.523 MPa (-0.8 %;
+  its comment's target is "~1.6 MPa"). Left.
+- ETA_CSTAR_CEILING 0.99: now binds only for injector multipliers >= ~1.016 (gas-centered
+  swirl, quintuplet, platelet) on top of 0.975. Left; validate 27/27.
+- All validate banners 27/27 (spot checks exact on their anchors, integration checks within
+  0.4 %, GG-bleed, cycle bands, turbine-exhaust, cooling all pass).
+Found on the way (separate commits): the tables now also carry pe_over_pc_by_eps
+(79d5a3f), and a strict cooled-length cut comparison that dropped the exit segment
+(f67f591).
+
+Isp vs cited real values (vacuum; corpus reference blocks), before -> after:
+design                     pair              real vac   before     err    after     err | SL real  before   after
+engines/AJ10-137           Aerozine-50/NTO      314.5    313.9   -0.2%    313.9   -0.2% |       -     1.0     1.0
+engines/Aestus             N2O4/MMH             306.0    308.1   +0.7%    308.7   +0.9% |   113.0     1.0     1.0
+engines/F-1                LOX/RP-1             301.0    302.1   +0.4%    301.7   +0.2% |   262.1   260.4   258.5
+engines/J-2                LOX/LH2              425.0    419.5   -1.3%    431.2   +1.4% |   304.0   298.8   304.4
+engines/LMAE               Aerozine-50/NTO      311.0    310.2   -0.3%    310.4   -0.2% |       -     1.0     1.0
+engines/Merlin-1D          LOX/RP-1             311.0    296.4   -4.7%    296.0   -4.8% |   282.0   259.4   257.3
+engines/RD-180             LOX/RP-1             338.4    319.0   -5.7%    326.0   -3.7% |   311.9   295.1   300.9
+engines/RL10A-3-3          LOX/LH2              442.2    453.5   +2.6%    453.0   +2.4% |   186.0     1.0     1.0
+engines/RS-25              LOX/LH2              455.2    426.4   -6.3%    446.8   -1.8% |   363.2   343.1   358.0
+engines/Raptor-2           LOX/CH4              347.0    350.5   +1.0%    350.8   +1.1% | 326.357   326.0   325.6
+engines/Rutherford         LOX/RP-1             317.0    302.8   -4.5%    303.3   -4.3% |   311.0   287.4   287.2
+engines/Vulcain            LOX/LH2              431.5    429.1   -0.6%    435.4   +0.9% |   315.0   336.8   338.3
+user_designs/AJ-90k        LOX/LH2                  -    454.3       -    425.7       - |       -   107.0    70.5
+user_designs/LR-100        LOX/RP-1                 -    326.5       -    333.3       - |       -    95.6    95.4
+user_designs/RS-29         LOX/RP-1                 -    308.5       -    308.6       - |       -   282.0   280.9
+user_designs/RS-29A        LOX/RP-1                 -    308.7       -    308.8       - |       -   282.2   281.1
+user_designs/RS-29C        LOX/RP-1                 -    304.6       -    296.3       - |       -   278.4   269.1
+user_designs/RS-30         LOX/RP-1                 -    307.4       -    307.7       - |       -   282.4   281.6
+user_designs/TRW-270       Aerozine-50/NTO          -    303.6       -    305.9       - |       -     1.0     1.0
+user_designs/j-2_test_bed  LOX/LH2                  -    416.3       -    424.1       - |       -   338.4   342.2
+
+Reading it: RS-25 -6.3 -> -1.8 % and RD-180 -5.7 -> -3.7 % (the table's Pc dependence the old
+table lacked); J-2 / Vulcain now read ~1 % high; Merlin-1D (-4.8 %) and Rutherford (-4.3 %)
+are unchanged - one ETA_CF per pair cannot separate them from RD-111/F-1; closing that needs
+the kinetic/boundary-layer split (option C, literature in OPEN_QUESTIONS). Cory's designs:
+AJ-90k 454 -> 426 s (LOX/LH2 at MR 3.6: the equilibrium ideal is 453 s; the old table's
+fuel-rich LH2 rows, which broke mass balance, implied ~483 s ideal); RS-29C 305 -> 296 s (MR
+2.0 sits 3.4 % below MR 2.38 in real kerolox equilibrium); LR-100 +6.8 s (eps 80: shifting
+equilibrium gains more at high eps than the old one-gamma CF).
+
+Headline fields per design (before -> after):
+design                                     Isp vac                  Isp SL                 turb PR                 GG kg/s                  dry kg                 T exh K              ext wall K
+engines/AJ10-137                    313.89->313.87                    1.00                       -                    0.00          805.96->856.49                       -        1640.89->1630.37
+engines/Aestus                      308.06->308.68                    1.00                       -                    0.00          151.56->170.72                       -        1852.55->1830.56
+engines/F-1                         302.13->301.67          260.37->258.49            16.58->16.51            62.05->62.30      23635.26->24988.19          817.78->818.08        1216.74->1212.01
+engines/J-2                         419.45->431.16          298.79->304.43            15.07->17.99              3.91->3.68        5097.60->5253.60          624.42->611.43          276.91->279.61
+engines/LMAE                        310.22->310.42                    1.00                       -                    0.00            19.35->20.57                       -          587.18->577.94
+engines/Merlin-1D                   296.39->295.95          259.36->257.34                   22.00              8.88->8.89        1153.83->1213.40          814.13->814.11          799.88->788.07
+engines/RD-180                      319.04->325.99          295.09->300.87                    2.73         1002.62->981.28      19812.47->20279.98                       -        1214.07->1191.45
+engines/RL10A-3-3                   453.52->452.96                    1.01                    1.40                    0.00          447.70->473.43                       -          237.73->241.39
+engines/RS-25                       426.41->446.84          343.10->357.95              1.40->1.40          106.63->101.80      34914.07->35665.25                       -          806.25->810.15
+engines/Raptor-2                    350.46->350.84          326.02->325.64              1.54->1.54          662.57->661.88        9362.55->9620.43                       -        1282.96->1266.66
+engines/Rutherford                  302.85->303.34          287.41->287.21                       -                    0.00           99.69->100.69                       -          926.95->911.12
+engines/Vulcain                     429.08->435.37          336.81->338.34                   22.00              6.31->6.22        4955.56->5179.98                  597.43          880.23->881.54
+user_designs/AJ-90k                 454.31->425.74           106.95->70.49                    1.05            25.14->26.83        3120.24->3543.47                       -        1646.43->1650.89
+user_designs/LR-100                 326.47->333.30            95.63->95.42                   22.00              4.29->4.21        3065.72->3094.08          827.21->827.53          556.82->701.02
+user_designs/RS-29                  308.47->308.56          281.99->280.90                   18.00            16.22->16.33        3213.40->3388.03          856.96->861.95        2166.73->2152.94
+user_designs/RS-29A                 308.67->308.76          282.17->281.08                   18.00            16.20->16.31        2428.82->2546.33          856.96->861.95          426.64->499.83
+user_designs/RS-29C                 304.63->296.27          278.37->269.09                   18.00            16.14->16.03        4275.65->4629.49          848.31->850.06          393.10->383.97
+user_designs/RS-30                  307.36->307.75          282.39->281.64                   18.00            18.72->18.85        2533.94->2665.63          856.96->862.45        2218.36->2207.32
+user_designs/TRW-270                303.61->305.95                    1.00                       -                    0.00            16.42->16.63                       -          779.09->790.44
+user_designs/j-2_test_bed           416.29->424.08          338.36->342.24                   22.00              4.34->4.27        2349.70->2426.80                  597.43        2165.01->2167.16
+
+Changed top-level scalar fields (nested / array paths omitted; full diff reproducible via a worktree A/B):
+CHANGED   engines/AJ10-137
+    /bell_material_margin/warning: 'Niobium C-103 (radiative): only 1% thermal margin (computed wall temp 1641 K vs 1650 K max). Thin margin.' -> 'Niobium C-103 (radiative): only 1% thermal margin (computed wall temp 1630 K vs 1650 K max). Thin margin.'
+    /bell_wall_mass_kg/__f__: '785.4009824529982' -> '834.7326237323101'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.4455226244355706' -> '1.4135307742478809'
+    /chamber_wall_mass_kg/__f__: '9.963671151547462' -> '10.497124450914402'
+    /checklist: len 51 -> 53
+    /computed_dry_mass_kg/__f__: '805.9635959002937' -> '856.4888013456344'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1626.521906965645' -> '1693.8086766402973'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9416372340033333' -> '0.9730750430877053'
+    /gamma/__f__: '1.223' -> '1.2306738467496436'
+    /gamma_chamber: added
+    /injector_plate_mass_kg/__f__: '10.32566868069765' -> '10.974231891981496'
+    /isp_vac_chamber_s/__f__: '313.8901116726008' -> '313.866361397807'
+    /isp_vac_engine_s/__f__: '313.8901116726008' -> '313.866361397807'
+    /jacket_manifold_mass_kg/__f__: '0.14835939131562093' -> '0.15760688383319885'
+    /m_molar/__f__: '20.0' -> '20.553396765274396'
+    /manifold_mass_kg/__f__: '0.12491422373493738' -> '0.1272143865952953'
+    /mdot_chamber_kgs/__f__: '31.646958890845774' -> '31.64935361695372'
+    /mdot_kgs/__f__: '31.646958890845774' -> '31.64935361695372'
+    /pe_pa/__f__: '730.6897119746086' -> '706.9140805678462'
+    /pe_pc/__f__: '0.0010745436940803068' -> '0.0010395795302468327'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '26.703332099296368' -> '27.251104302697332'
+    /required_time_s/__f__: '1.1578537368242436e-05' -> '1.148978696953919e-05'
+    /residence_time_s/__f__: '0.0005789268684121217' -> '0.0005744893484769595'
+    /stability/advisory: 'First tangential mode ~1874 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities (buzzing is most prevalent at this thrust class). Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~1814 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities (buzzing is most prevalent at this thrust class). Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.0012785989204148578' -> '0.0013726774501929067'
+    /t_local_at_transition_k/__f__: '1545.2003885125362' -> '1506.2043569325235'
+    /tc_k/__f__: '3060.0' -> '3050.319331736714'
+    /thrust_sl_n/__f__: '310.3506494069127' -> '310.3741336476992'
+CHANGED   engines/Aestus
+    /bell_material_margin/warning: 'Niobium C-103 (radiative): computed wall temp 1853 K EXCEEDS its 1650 K max service temp (Tc 1649 K, radiative cooling). Marginal/unsuitable as designed.' -> 'Niobium C-103 (radiative): computed wall temp 1831 K EXCEEDS its 1650 K max service temp (Tc 1619 K, radiative cooling). Marginal/unsuitable as designed.'
+    /bell_wall_mass_kg/__f__: '145.21555216510075' -> '163.7317890055012'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '3.67145078552903' -> '3.5217520906857356'
+    /chamber_wall_mass_kg/__f__: '5.3275069432859885' -> '5.85322887269752'
+    /checklist: len 52 -> 54
+    /computed_dry_mass_kg/__f__: '151.56102103777533' -> '170.72431521319314'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1572.8059241892938' -> '1707.2320027244632'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9078331858320025' -> '0.9834859513180026'
+    /gamma/__f__: '1.2155' -> '1.218256385902519'
+    /gamma_chamber: added
+    /injector_plate_mass_kg/__f__: '0.9516928850715695' -> '1.0730419458062923'
+    /isp_vac_chamber_s/__f__: '308.05794734051017' -> '308.67626721594627'
+    /isp_vac_engine_s/__f__: '308.05794734051017' -> '308.67626721594627'
+    /jacket_combined_stress_pa/__f__: '111742837.94634752' -> '106137981.23377128'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '26390.875981390873' -> '26224.81928821979'
+    /jacket_manifold_mass_kg/__f__: '0.046287365667133824' -> '0.04564020949392348'
+    /jacket_pressure_at_worst_station_pa/__f__: '6714814.252427434' -> '5890688.455478701'
+    /m_molar/__f__: '20.85' -> '21.52516658972518'
+    /manifold_mass_kg/__f__: '0.01998167864990977' -> '0.02061517969421586'
+    /mdot_chamber_kgs/__f__: '9.202200743567241' -> '9.183767503886006'
+    /mdot_kgs/__f__: '9.202200743567241' -> '9.183767503886006'
+    /pe_pa/__f__: '838.3445552426359' -> '827.8547589598498'
+    /pe_pc/__f__: '0.0007621314138569418' -> '0.0007525952354180453'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '154.89850844430865' -> '156.75918872619417'
+    /required_time_s/__f__: '8.658091617056443e-06' -> '8.641057130037276e-06'
+    /residence_time_s/__f__: '0.0005772061078037629' -> '0.0005760704753358184'
+    /stay_time_s/__f__: '0.0012344576073322847' -> '0.0013979427516216413'
+    /t_local_at_transition_k/__f__: '1649.1743100406748' -> '1618.8429043286744'
+    /tc_k/__f__: '3195.0' -> '3161.6626231269292'
+    /thrust_sl_n/__f__: '90.24276192190368' -> '90.0619935919837'
+CHANGED   engines/F-1
+    /bell_material_margin/warning: 'Inconel 718 Nickel Superalloy: only 3% thermal margin (computed wall temp 1217 K vs 1250 K max). Thin margin.' -> 'Inconel 718 Nickel Superalloy: only 3% thermal margin (computed wall temp 1212 K vs 1250 K max). Thin margin.'
+    /bell_wall_mass_kg/__f__: '11264.21552971586' -> '11973.769645220898'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '0.40223797741219913' -> '0.39118659226320196'
+    /chamber_wall_mass_kg/__f__: '7893.245485785964' -> '8379.089006298622'
+    /checklist: len 62 -> 64
+    /computed_dry_mass_kg/__f__: '23635.260437961817' -> '24988.18646339357'
+    /cooling/coolant_channels: 315 -> 321
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1685.372773520214' -> '1752.8930538010575'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9515443283022846' -> '0.9714719582143744'
+    /gamma/__f__: '1.218' -> '1.175114885904708'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 7532 -> 7543
+    /injector_geometry/n_fuel_orifices: 4985 -> 4992
+    /injector_geometry/n_ox_orifices: 10079 -> 10094
+    /injector_geometry/note: '15064 orifices in ~7532 impinging pairs' -> '15086 orifices in ~7543 impinging pairs'
+    /injector_plate_mass_kg/__f__: '796.9449628883247' -> '847.1460245385266'
+    /isp_sl_chamber_s/__f__: '265.39907290228894' -> '263.2945717298538'
+    /isp_sl_engine_s/__f__: '260.3732345989237' -> '258.4918966250143'
+    /isp_vac_chamber_s/__f__: '306.5541315209612' -> '306.09840570349'
+    /isp_vac_engine_s/__f__: '302.1285820171327' -> '301.6744646982413'
+    /jacket_combined_stress_pa/__f__: '206341994.34627247' -> '202162163.99926615'
+    /jacket_hoop_stress_pa/__f__: '103170997.17313623' -> '101081081.99963306'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '80794.99871970786' -> '90886.95521363938'
+    /jacket_manifold_mass_kg/__f__: '15.522229086530524' -> '15.838736450135563'
+    /jacket_pressure_at_worst_station_pa/__f__: '8609569.33208839' -> '8624584.54387413'
+    /jacket_structure_mass_kg/__f__: '1578.6490971571925' -> '1675.817801259724'
+    /jacket_thermal_stress_pa/__f__: '103170997.17313622' -> '101081081.99963309'
+    /m_molar/__f__: '22.6' -> '22.765796661060868'
+    /manifold_mass_kg/__f__: '153.5350199956638' -> '156.2886808466927'
+    /mdot_chamber_kgs/__f__: '2562.256044074693' -> '2565.958992178208'
+    /mdot_kgs/__f__: '2624.3108692076667' -> '2628.261303052882'
+    /pe_pa/__f__: '43313.52788577628' -> '49577.05135780642'
+    /pe_pc/__f__: '0.00639786231695366' -> '0.0073230504221279795'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '493.1277987766568' -> '494.6473604095992'
+    /plumbing_total_length_m/__f__: '10.30258764710756' -> '10.363690980865785'
+    /rated_burn_time_s/__f__: '178.66629717396515' -> '179.36493396766684'
+    /required_time_s/__f__: '1.693769491092717e-05' -> '1.6626318806634344e-05'
+    /residence_time_s/__f__: '0.000564589830364239' -> '0.0005542106268878115'
+    /separation_onset_throttle/__f__: '0.9400000000000003' -> '0.8200000000000002'
+    /stability/advisory: 'First tangential mode ~660 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~642 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.0012637531446244514' -> '0.0013264332277470204'
+    /t_local_at_transition_k/__f__: '1640.9267639341917' -> '1903.4500094990642'
+    /tc_k/__f__: '3625.0' -> '3618.4179334471355'
+    /thrust_closure_scale/__f__: '0.9906553933789314' -> '0.9906122345798156'
+    /thrust_sl_n/__f__: '6700886.981224287' -> '6662483.5459684525'
+    /thrust_vac_floor_n/__f__: '4665294.000006391' -> '4665294.000004738'
+    /thrust_vac_n/__f__: '7775490.000010652' -> '7775490.000007896'
+    /turbine_exhaust_hardware_mass_kg/__f__: '335.1583326074766' -> '337.9512211441896'
+CHANGED   engines/J-2
+    /bell_wall_mass_kg/__f__: '4147.024651250309' -> '4288.293638691127'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.2260412134548435' -> '1.2108058846825627'
+    /chamber_wall_mass_kg/__f__: '352.1944608506229' -> '362.7156696885485'
+    /checklist: len 64 -> 66
+    /computed_dry_mass_kg/__f__: '5097.601113439635' -> '5253.603752329823'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '2188.355040060334' -> '2299.0401681515045'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.948607939890856' -> '0.9839284482910475'
+    /gamma/__f__: '1.171' -> '1.2007764155899747'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 1700 -> 1655
+    /injector_geometry/n_fuel_orifices: 1704 -> 1659
+    /injector_geometry/n_ox_orifices: 1696 -> 1651
+    /injector_plate_mass_kg/__f__: '44.821714713201914' -> '46.34857283086138'
+    /isp_sl_chamber_s/__f__: '301.2486618161108' -> '306.82179544883576'
+    /isp_sl_engine_s/__f__: '298.7919109843463' -> '304.4276291230055'
+    /isp_vac_chamber_s/__f__: '419.4604181967983' -> '431.0126014614869'
+    /isp_vac_engine_s/__f__: '419.45028935296205' -> '431.1561120689805'
+    /jacket_combined_stress_pa/__f__: '163412393.68671048' -> '167037501.82122475'
+    /jacket_hoop_stress_pa/__f__: '66666666.666666664' -> '66666666.66666667'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '19667.39405263084' -> '17658.707750320224'
+    /jacket_manifold_mass_kg/__f__: '3.172298534720066' -> '3.123342200661335'
+    /jacket_pressure_at_worst_station_pa/__f__: '8617107.568546914' -> '8721204.274030775'
+    /jacket_return_split_fraction/__f__: '0.2282656872398068' -> '0.2255768145443899'
+    /jacket_structure_mass_kg/__f__: '70.43889217012456' -> '72.54313393770968'
+    /jacket_thermal_stress_pa/__f__: '96745727.0200438' -> '100370835.15455806'
+    /m_molar/__f__: '13.1' -> '12.634740693975186'
+    /manifold_mass_kg/__f__: '6.373550614514745' -> '6.245663576375664'
+    /mdot_chamber_kgs/__f__: '244.81547029684748' -> '238.2915716886738'
+    /mdot_kgs/__f__: '248.72126664305006' -> '241.96852217257447'
+    /pe_pa/__f__: '19667.39405263084' -> '17658.707750320213'
+    /pe_pc/__f__: '0.003739048298979247' -> '0.0033571687738251353'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '43.93133567791442' -> '49.71623257473499'
+    /plumbing_total_length_m/__f__: '2.779272921537383' -> '2.8961319150379174'
+    /rated_burn_time_s/__f__: '275.8295873183405' -> '274.4532895349515'
+    /required_time_s/__f__: '4.8766489570531035e-06' -> '4.814702760141089e-06'
+    /residence_time_s/__f__: '0.0004334799072936092' -> '0.00042797357867920796'
+    /stability/advisory: 'First tangential mode ~2079 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2091 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.0009950655423272296' -> '0.0010346030316742104'
+    /t_local_at_transition_k/__f__: '2040.0513223125517' -> '1820.1001308378015'
+    /tc_k/__f__: '3465.0' -> '3376.7973082556887'
+    /thrust_closure_scale/__f__: '0.9843202613378343' -> '0.9844762208858168'
+    /thrust_sl_n/__f__: '728790.0458667381' -> '722376.5062269205'
+    /thrust_vac_floor_n/__f__: '613854.3602655499' -> '613854.3602734435'
+    /thrust_vac_n/__f__: '1023090.6004425831' -> '1023090.6004557392'
+    /turbine_exhaust_hardware_mass_kg/__f__: '16.8812962467454' -> '18.09916711184829'
+    /warnings: len 5 -> 4
+CHANGED   engines/LMAE
+    /bell_wall_mass_kg/__f__: '17.67048162527972' -> '18.798670611869753'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '4.226392312313729' -> '4.137112259794977'
+    /chamber_wall_mass_kg/__f__: '1.1163692234909952' -> '1.1713701312808051'
+    /checklist: len 51 -> 53
+    /computed_dry_mass_kg/__f__: '19.35366242860902' -> '20.572624621266822'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1626.521906965645' -> '1696.1654493746694'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9416372340033333' -> '0.9730750430877053'
+    /gamma/__f__: '1.223' -> '1.2292570062351307'
+    /gamma_chamber: added
+    /injector_geometry/n_fuel_orifices: 13 -> 12
+    /injector_plate_mass_kg/__f__: '0.5501792312482754' -> '0.5853059562865384'
+    /isp_vac_chamber_s/__f__: '310.21716887300346' -> '310.42376201793485'
+    /isp_vac_engine_s/__f__: '310.21716887300346' -> '310.42376201793485'
+    /jacket_manifold_mass_kg/__f__: '0.008045883782863378' -> '0.008549219646206122'
+    /m_molar/__f__: '20.0' -> '20.584145259501977'
+    /manifold_mass_kg/__f__: '0.008586464807165876' -> '0.008728702183517822'
+    /mdot_chamber_kgs/__f__: '5.118021511751355' -> '5.114615367347119'
+    /mdot_kgs/__f__: '5.118021511751355' -> '5.114615367347119'
+    /pe_pa/__f__: '1336.866462252251' -> '1303.508222123157'
+    /pe_pc/__f__: '0.0016106824846412664' -> '0.0015704918338833218'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '54.92642812006958' -> '56.07134083277827'
+    /required_time_s/__f__: '1.1578537368242436e-05' -> '1.1473822243537055e-05'
+    /residence_time_s/__f__: '0.0005789268684121217' -> '0.0005736911121768527'
+    /stay_time_s/__f__: '0.0012785989204148578' -> '0.0013689916345592528'
+    /t_local_at_transition_k/__f__: '1545.2003885125362' -> '1520.8908725950764'
+    /tc_k/__f__: '3060.0' -> '3067.3695594871474'
+    /thrust_sl_n/__f__: '50.19064565821642' -> '50.157242792194616'
+CHANGED   engines/Merlin-1D
+    /bell_wall_mass_kg/__f__: '654.5620145819588' -> '699.6828971791203'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '2.0033215510666293' -> '1.95608882226964'
+    /chamber_wall_mass_kg/__f__: '217.73220954221057' -> '230.41500606941318'
+    /checklist: len 56 -> 58
+    /computed_dry_mass_kg/__f__: '1153.8302120603705' -> '1213.4038293783449'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1636.4052925058716' -> '1708.2234805906'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9237202252565918' -> '0.943065151439976'
+    /gamma/__f__: '1.2195' -> '1.18921308818559'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 784 -> 785
+    /injector_geometry/n_ox_orifices: 1040 -> 1042
+    /injector_plate_mass_kg/__f__: '15.850370882440599' -> '16.94298351161194'
+    /isp_sl_chamber_s/__f__: '264.96709847733405' -> '262.88357054412717'
+    /isp_sl_engine_s/__f__: '259.3587432512962' -> '257.335045425442'
+    /isp_vac_chamber_s/__f__: '302.19206541504553' -> '301.7422584733459'
+    /isp_vac_engine_s/__f__: '296.3920191201202' -> '295.95459587577733'
+    /jacket_combined_stress_pa/__f__: '2516641517.745272' -> '2629383481.175195'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '42273.3875241986' -> '46852.269434959366'
+    /jacket_manifold_mass_kg/__f__: '9.799646564783838' -> '10.013454825528035'
+    /jacket_pressure_at_worst_station_pa/__f__: '13430581.000429843' -> '13426908.824626671'
+    /m_molar/__f__: '22.450000000000003' -> '22.604038603909974'
+    /manifold_mass_kg/__f__: '4.566556795824686' -> '4.651501182006411'
+    /material_margin/warning: 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 11% thermal margin (computed wall temp 722 K vs 800 K max). Thin margin.' -> 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 12% thermal margin (computed wall temp 713 K vs 800 K max). Thin margin.'
+    /mdot_chamber_kgs/__f__: '246.539638357508' -> '246.90691270020102'
+    /mdot_kgs/__f__: '255.41757818767502' -> '255.79508739382024'
+    /pe_pa/__f__: '42273.3875241986' -> '46852.269434959424'
+    /pe_pc/__f__: '0.0043491139428187865' -> '0.0048201923286995295'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '32.73465132375096' -> '32.88245309623747'
+    /plumbing_total_length_m/__f__: '3.5289154627600996' -> '3.5494294631880434'
+    /rated_burn_time_s/__f__: '188.6334766798991' -> '190.81897949722207'
+    /required_time_s/__f__: '1.439427374863405e-05' -> '1.4077877768899999e-05'
+    /residence_time_s/__f__: '0.0005644813234758451' -> '0.0005520736379960784'
+    /separation_onset_throttle/__f__: '0.9600000000000003' -> '0.8800000000000002'
+    /stay_time_s/__f__: '0.0012254837817499483' -> '0.001277273460717509'
+    /t_local_at_transition_k/__f__: '1839.390132415867' -> '2027.8710581327612'
+    /tc_k/__f__: '3605.5' -> '3635.906330994837'
+    /thrust_closure_scale/__f__: '0.9841301200966075' -> '0.984129155136331'
+    /thrust_sl_n/__f__: '649639.3922146938' -> '645523.1327730044'
+    /thrust_vac_floor_n/__f__: '445440.00039031316' -> '445440.000383435'
+    /thrust_vac_n/__f__: '742400.000650522' -> '742400.0006390583'
+    /turbine_exhaust_hardware_mass_kg/__f__: '1.2287375996438656' -> '1.2301379432412904'
+CHANGED   engines/RD-180
+    /bell_material_margin/warning: 'Inconel 718 Nickel Superalloy: only 3% thermal margin (computed wall temp 1214 K vs 1250 K max). Thin margin.' -> 'Inconel 718 Nickel Superalloy: only 5% thermal margin (computed wall temp 1191 K vs 1250 K max). Thin margin.'
+    /bell_wall_mass_kg/__f__: '13097.185646476577' -> '13624.004950214205'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.36991599536507' -> '1.350118699323889'
+    /chamber_wall_mass_kg/__f__: '1349.0018311782544' -> '1395.8467733559007'
+    /checklist: len 56 -> 58
+    /computed_dry_mass_kg/__f__: '19812.472784118083' -> '20279.975135083045'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1669.9272530431342' -> '1751.6952347923193'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9478447318020431' -> '0.9676948832533948'
+    /gamma/__f__: '1.2106000000000001' -> '1.157790016463578'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 3772 -> 3692
+    /injector_geometry/n_fuel_orifices: 2292 -> 2243
+    /injector_geometry/n_ox_orifices: 5252 -> 5140
+    /injector_plate_mass_kg/__f__: '74.81785470669308' -> '77.82731728801687'
+    /isp_sl_chamber_s/__f__: '293.984048674143' -> '299.72765907828386'
+    /isp_sl_engine_s/__f__: '295.09025328111983' -> '300.86906449848544'
+    /isp_vac_chamber_s/__f__: '317.8460289165223' -> '324.7580410946941'
+    /isp_vac_engine_s/__f__: '319.0420214987132' -> '325.9947657583418'
+    /jacket_combined_stress_pa/__f__: '20572159052.096115' -> '17666413532.675594'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '59250.71727601795' -> '72684.19956290025'
+    /jacket_manifold_mass_kg/__f__: '286.06839795746765' -> '282.9956024987438'
+    /jacket_pressure_at_worst_station_pa/__f__: '31658656.266692113' -> '31658385.605309304'
+    /m_molar/__f__: '23.34' -> '24.380908592591506'
+    /manifold_mass_kg/__f__: '70.23078350766062' -> '69.1754999779615'
+    /material_margin/warning: 'NARloy-Z Copper Alloy (Cu-Ag-Zr): computed wall temp 1109 K EXCEEDS its 800 K max service temp (Tc 3688 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'NARloy-Z Copper Alloy (Cu-Ag-Zr): computed wall temp 1089 K EXCEEDS its 800 K max service temp (Tc 3893 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /mdot_chamber_kgs/__f__: '1332.0480141648463' -> '1303.6972701315913'
+    /mdot_kgs/__f__: '1332.0480141648463' -> '1303.6972701315913'
+    /pe_pa/__f__: '59250.71727601795' -> '72684.19956290032'
+    /pe_pc/__f__: '0.0022224575122287305' -> '0.002726339068375856'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '121.89810724823143' -> '124.14758268951745'
+    /required_time_s/__f__: '1.2770919467708756e-05' -> '1.2429750587169235e-05'
+    /residence_time_s/__f__: '0.0005675964207870559' -> '0.0005524333594297438'
+    /separation_onset_throttle/__f__: '0.7000000000000001' -> '0.6'
+    /stability/advisory: 'First tangential mode ~1805 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~1785 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.0012710813277632728' -> '0.001319582034849474'
+    /t_local_at_transition_k/__f__: '1931.2095767059018' -> '2384.171696947266'
+    /tc_k/__f__: '3688.0' -> '3892.583054465545'
+    /thrust_sl_n/__f__: '3854742.926314787' -> '3846581.755410524'
+    /thrust_vac_floor_n/__f__: '2500573.8994660727' -> '2500686.8427943895'
+    /thrust_vac_n/__f__: '4167623.1657767883' -> '4167811.404657316'
+CHANGED   engines/RL10A-3-3
+    /bell_wall_mass_kg/__f__: '365.07600305519543' -> '388.7090709580704'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '3.678581183638111' -> '3.599444167753052'
+    /chamber_wall_mass_kg/__f__: '13.21097745077857' -> '13.877661676133542'
+    /checklist: len 55 -> 57
+    /computed_dry_mass_kg/__f__: '447.7036702598966' -> '473.42759412562066'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '2230.3235503456985' -> '2322.693083633106'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.948607939890856' -> '0.9839284482910475'
+    /gamma/__f__: '1.163' -> '1.2284586215351085'
+    /gamma_chamber: added
+    /injector_plate_mass_kg/__f__: '1.4881737688733212' -> '1.5845101794747694'
+    /isp_vac_chamber_s/__f__: '446.82054484936356' -> '446.26842974871016'
+    /isp_vac_engine_s/__f__: '453.522853022104' -> '452.96245619494084'
+    /jacket_combined_stress_pa/__f__: '86039504.60255072' -> '86773393.8174234'
+    /jacket_hoop_stress_pa/__f__: '43019752.30127535' -> '43386696.908711694'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '3902.0470386404318' -> '2945.3466862633395'
+    /jacket_manifold_mass_kg/__f__: '2.160034201644482' -> '2.2629222167635152'
+    /jacket_pressure_at_worst_station_pa/__f__: '12599113.954689251' -> '12919329.108479759'
+    /jacket_structure_mass_kg/__f__: '2.6421954901557134' -> '2.775532335226708'
+    /jacket_thermal_stress_pa/__f__: '43019752.30127536' -> '43386696.9087117'
+    /m_molar/__f__: '12.4' -> '11.737510580473813'
+    /manifold_mass_kg/__f__: '0.09504607394332518' -> '0.09676552819268332'
+    /mdot_chamber_kgs/__f__: '15.986534536630456' -> '16.006312783390506'
+    /mdot_kgs/__f__: '15.986534536630456' -> '16.006312783390506'
+    /pe_pa/__f__: '3902.0470386404318' -> '2945.346686263339'
+    /pe_pc/__f__: '0.0014345761171472176' -> '0.0010828480464203452'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '345.78582334813905' -> '341.2838583432841'
+    /required_time_s/__f__: '4.7848839340453545e-06' -> '4.765672710386724e-06'
+    /residence_time_s/__f__: '0.0004253230163595871' -> '0.0004236153520343755'
+    /stay_time_s/__f__: '0.0009811958538486912' -> '0.0010204315640938335'
+    /t_local_at_transition_k/__f__: '2044.1821801712445' -> '1596.9551393425197'
+    /tc_k/__f__: '3390.0' -> '3213.2889970276665'
+    /thrust_sl_n/__f__: '159.12596414735174' -> '159.32283186609502'
+    /warnings: len 7 -> 6
+CHANGED   engines/RS-25
+    /bell_wall_mass_kg/__f__: '31495.266305012927' -> '32359.948391673624'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.7743047871176747' -> '1.757045795042746'
+    /chamber_wall_mass_kg/__f__: '466.35074282231767' -> '476.7404627476525'
+    /checklist: len 55 -> 57
+    /computed_dry_mass_kg/__f__: '34914.06804271446' -> '35665.249105266426'
+    /cooling/peak_wall_temp_zone: 'nozzle' -> 'convergent section'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '2111.5525341694943' -> '2251.948478803272'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9343788207924931' -> '0.9691695215666818'
+    /gamma/__f__: '1.179' -> '1.2041454759574672'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 1853 -> 1770
+    /injector_geometry/n_fuel_orifices: 1777 -> 1697
+    /injector_geometry/n_ox_orifices: 1929 -> 1842
+    /injector_plate_mass_kg/__f__: '32.25983454081415' -> '33.14550735195784'
+    /isp_sl_chamber_s/__f__: '340.0362406738654' -> '354.58027837923'
+    /isp_sl_engine_s/__f__: '343.1012033150077' -> '357.9509535692199'
+    /isp_vac_chamber_s/__f__: '422.5962204545366' -> '442.6296249469851'
+    /isp_vac_engine_s/__f__: '426.4053486386803' -> '446.8373059324675'
+    /jacket_combined_stress_pa/__f__: '21354731112.44087' -> '21652744301.264233'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '20376.264099438933' -> '18194.844674794458'
+    /jacket_manifold_mass_kg/__f__: '298.35095310584205' -> '299.7394063831255'
+    /jacket_pressure_at_worst_station_pa/__f__: '25061275.92653555' -> '24954211.40149313'
+    /m_molar/__f__: '13.8' -> '13.619173262215696'
+    /manifold_mass_kg/__f__: '21.22620492759658' -> '20.2918187113757'
+    /mdot_chamber_kgs/__f__: '504.3128125546376' -> '481.4876287096984'
+    /mdot_kgs/__f__: '504.3128125546376' -> '481.4876287096984'
+    /pe_pa/__f__: '20376.264099438933' -> '18194.844674794465'
+    /pe_pc/__f__: '0.0009949347704804167' -> '0.0008884201501364484'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '237.27534698747596' -> '234.45356247611784'
+    /required_time_s/__f__: '4.978214637719152e-06' -> '4.8416547804056835e-06'
+    /residence_time_s/__f__: '0.000442507967797258' -> '0.0004303693138138386'
+    /stability/advisory: 'First tangential mode ~2867 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2908 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.0009956441836586492' -> '0.0010239975305628179'
+    /t_local_at_transition_k/__f__: '2100.683351683108' -> '2005.7415966587519'
+    /tc_k/__f__: '3520.0' -> '3602.2689376227922'
+    /thrust_sl_n/__f__: '1696847.913493137' -> '1690165.8876747654'
+    /thrust_vac_floor_n/__f__: '1265303.098588479' -> '1265920.6480054895'
+    /thrust_vac_n/__f__: '2108838.497647465' -> '2109867.746675816'
+    /warnings: len 9 -> 8
+CHANGED   engines/Raptor-2
+    /bell_material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 1283 K EXCEEDS its 1250 K max service temp (Tc 2227 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1267 K EXCEEDS its 1250 K max service temp (Tc 2372 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /bell_wall_mass_kg/__f__: '5361.716791723511' -> '5604.560114549744'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '2.0767346336448216' -> '2.044155493355271'
+    /chamber_wall_mass_kg/__f__: '411.1780043240464' -> '426.62597377257185'
+    /checklist: len 56 -> 58
+    /computed_dry_mass_kg/__f__: '9362.545153043817' -> '9620.430812905497'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1757.225192549339' -> '1811.791038349881'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9613873686226683' -> '0.9764090462573976'
+    /gamma/__f__: '1.1535' -> '1.1481976057485603'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 1922 -> 1920
+    /injector_geometry/n_fuel_orifices: 1217 -> 1216
+    /injector_geometry/n_ox_orifices: 2628 -> 2625
+    /injector_plate_mass_kg/__f__: '25.177293108981672' -> '26.31762516228837'
+    /isp_sl_chamber_s/__f__: '322.92382896397777' -> '322.5364455639825'
+    /isp_sl_engine_s/__f__: '326.0194177408207' -> '325.63867381493384'
+    /isp_vac_chamber_s/__f__: '347.1320064265583' -> '347.49634209144796'
+    /isp_vac_engine_s/__f__: '350.4596578625782' -> '350.83864025453875'
+    /jacket_combined_stress_pa/__f__: '11881982983.223967' -> '12235511296.460602'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '75219.81561374861' -> '76812.41721268896'
+    /jacket_manifold_mass_kg/__f__: '150.320597418105' -> '152.09243801643663'
+    /jacket_pressure_at_worst_station_pa/__f__: '36242758.818823226' -> '36236697.97491213'
+    /m_molar/__f__: '21.849999999999998' -> '22.50540915'
+    /manifold_mass_kg/__f__: '28.358263409135656' -> '28.611713374998445'
+    /material_margin/warning: 'GRCop-84 Copper-Chromium-Niobium Alloy: computed wall temp 1043 K EXCEEDS its 900 K max service temp (Tc 3589 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'GRCop-84 Copper-Chromium-Niobium Alloy: computed wall temp 1030 K EXCEEDS its 900 K max service temp (Tc 3762 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /mdot_chamber_kgs/__f__: '662.5722973616698' -> '661.8776174780087'
+    /mdot_kgs/__f__: '662.5722973616698' -> '661.8776174780087'
+    /pe_pa/__f__: '75219.81561374861' -> '76812.41721268893'
+    /pe_pc/__f__: '0.0025073271871249537' -> '0.002560413907089631'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '146.12881736043423' -> '147.87928181864987'
+    /required_time_s/__f__: '9.027238881808049e-06' -> '8.892167431140511e-06'
+    /residence_time_s/__f__: '0.0005471053867762454' -> '0.00053891923825094'
+    /stability/advisory: 'First tangential mode ~2634 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2659 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.0012867717090774518' -> '0.0013036361757660215'
+    /t_local_at_transition_k/__f__: '2226.570568554768' -> '2371.5114188492294'
+    /tc_k/__f__: '3588.75' -> '3761.8758921999997'
+    /thrust_sl_n/__f__: '2118348.5350911557' -> '2113656.2000313317'
+    /thrust_vac_floor_n/__f__: '1366291.0779724119' -> '1366334.5176365722'
+    /thrust_vac_n/__f__: '2277151.7966206865' -> '2277224.1960609537'
+CHANGED   engines/Rutherford
+    /bell_wall_mass_kg/__f__: '0.9287458840350028' -> '0.9896610603259246'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '12.214640414064371' -> '11.955645206898527'
+    /chamber_wall_mass_kg/__f__: '2.352139511290191' -> '2.4651045218236103'
+    /checklist: len 53 -> 55
+    /computed_dry_mass_kg/__f__: '99.68936124477604' -> '100.68521062812368'
+    /cooling/coolant_channels: 105 -> 107
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1682.5588120515556' -> '1758.214300099947'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9515443283022846' -> '0.9714719582143744'
+    /gamma/__f__: '1.2155' -> '1.1614028295770003'
+    /gamma_chamber: added
+    /injector_plate_mass_kg/__f__: '0.09259717517959554' -> '0.09867049765355401'
+    /isp_sl_chamber_s/__f__: '283.16078054267325' -> '282.9639559099565'
+    /isp_sl_engine_s/__f__: '287.40819225081333' -> '287.20841524860583'
+    /isp_vac_chamber_s/__f__: '298.372357653841' -> '298.8595146341818'
+    /isp_vac_engine_s/__f__: '302.8479430186486' -> '303.3424073536945'
+    /jacket_combined_stress_pa/__f__: '255549832.14020696' -> '257597191.19932154'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '135100.21437990727' -> '157117.08055373756'
+    /jacket_manifold_mass_kg/__f__: '0.04998668352864896' -> '0.050994129270837775'
+    /jacket_pressure_at_worst_station_pa/__f__: '20270167.342412855' -> '20360054.034913592'
+    /m_molar/__f__: '22.85' -> '23.3228016'
+    /manifold_mass_kg/__f__: '0.041648105146828256' -> '0.0421146856828629'
+    /material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 1761 K EXCEEDS its 1250 K max service temp (Tc 3648 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1733 K EXCEEDS its 1250 K max service temp (Tc 3728 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /mdot_chamber_kgs/__f__: '8.95068424832958' -> '8.93609415466722'
+    /mdot_kgs/__f__: '8.95068424832958' -> '8.93609415466722'
+    /pe_pa/__f__: '135100.21437990727' -> '157117.0805537375'
+    /pe_pc/__f__: '0.011258351198325606' -> '0.013093090046144791'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '123.13350060002215' -> '125.15333789269569'
+    /required_time_s/__f__: '1.6966022016348898e-05' -> '1.657599915139725e-05'
+    /residence_time_s/__f__: '0.00056553406721163' -> '0.0005525333050465749'
+    /stay_time_s/__f__: '0.0012677306911846572' -> '0.001322964101688643'
+    /t_local_at_transition_k/__f__: '1882.7428156098156' -> '2258.744211027357'
+    /tc_k/__f__: '3647.5' -> '3727.9520116'
+    /thrust_sl_n/__f__: '25227.60692122011' -> '25168.977486188644'
+CHANGED   engines/Vulcain
+    /bell_wall_mass_kg/__f__: '3840.985452559378' -> '4057.7451327613912'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.7493131526013304' -> '1.7149445956486646'
+    /chamber_wall_mass_kg/__f__: '307.413623759323' -> '322.00125314218195'
+    /checklist: len 56 -> 58
+    /computed_dry_mass_kg/__f__: '4955.557312519074' -> '5179.978869186956'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '2208.883595484228' -> '2324.898302004909'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.948607939890856' -> '0.9839284482910475'
+    /gamma/__f__: '1.167' -> '1.2201497234314438'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 1396 -> 1376
+    /injector_geometry/n_fuel_orifices: 1431 -> 1411
+    /injector_geometry/n_ox_orifices: 1360 -> 1340
+    /injector_plate_mass_kg/__f__: '24.59012390555517' -> '25.97782699887053'
+    /isp_sl_chamber_s/__f__: '341.84542511137107' -> '343.4850372986056'
+    /isp_sl_engine_s/__f__: '336.81119938353623' -> '338.3421204829121'
+    /isp_vac_chamber_s/__f__: '435.2113911933828' -> '441.75475891403204'
+    /isp_vac_engine_s/__f__: '429.07536043828196' -> '435.36854131872917'
+    /jacket_combined_stress_pa/__f__: '6903744365.982042' -> '7172500274.665283'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '22593.013035183707' -> '18230.362795831763'
+    /jacket_manifold_mass_kg/__f__: '57.55173637625477' -> '57.71308017118593'
+    /jacket_pressure_at_worst_station_pa/__f__: '13604212.7822919' -> '13621481.130421717'
+    /m_molar/__f__: '12.75' -> '12.294519230279311'
+    /manifold_mass_kg/__f__: '8.205433611239494' -> '8.187977522269524'
+    /mdot_chamber_kgs/__f__: '265.8091576810574' -> '261.9591329115153'
+    /mdot_kgs/__f__: '272.11421853190734' -> '268.1808521203609'
+    /pe_pa/__f__: '22593.013035183707' -> '18230.362795831814'
+    /pe_pc/__f__: '0.0020539102759257917' -> '0.001657305708711983'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '40.212343482128894' -> '39.576911836249806'
+    /plumbing_total_length_m/__f__: '2.5938550357256536' -> '2.5832791925959304'
+    /rated_burn_time_s/__f__: '246.97062930107728' -> '246.60412034616238'
+    /required_time_s/__f__: '4.831327167076301e-06' -> '4.761152362547904e-06'
+    /residence_time_s/__f__: '0.0004294513037401157' -> '0.00042321354333759153'
+    /stability/advisory: 'First tangential mode ~2890 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2911 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.000988260411493694' -> '0.0010155106433122544'
+    /t_local_at_transition_k/__f__: '2042.2178646199527' -> '1723.7712512247567'
+    /tc_k/__f__: '3427.5' -> '3385.297797084739'
+    /thrust_closure_scale/__f__: '0.9907985952003201' -> '0.9911285123040114'
+    /thrust_sl_n/__f__: '898790.4197913265' -> '889824.8063972008'
+    /thrust_vac_floor_n/__f__: '687000.0000646461' -> '687000.0000663864'
+    /thrust_vac_n/__f__: '1145000.0001077435' -> '1145000.0001106441'
+    /turbine_exhaust_hardware_mass_kg/__f__: '1.792821935753204' -> '1.7691240321989599'
+    /warnings: len 7 -> 6
+CHANGED   user_designs/AJ-90k
+    /bell_material_margin/warning: 'Stainless Steel (304/316): computed wall temp 1646 K EXCEEDS its 1100 K max service temp (Tc 1650 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Stainless Steel (304/316): computed wall temp 1651 K EXCEEDS its 1100 K max service temp (Tc 856 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /bell_wall_mass_kg/__f__: '2704.773531943212' -> '3083.6713740780415'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '0.30645020188973976' -> '0.2766773563573518'
+    /chamber_wall_mass_kg/__f__: '206.39568520627336' -> '233.4924917341089'
+    /checklist: len 54 -> 56
+    /computed_dry_mass_kg/__f__: '3120.2424331528346' -> '3543.473558494256'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '2265.6255346497396' -> '2317.0295689424747'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.921451683551687' -> '0.9557610547477606'
+    /gamma/__f__: '1.1416' -> '1.2849534149945634'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 838 -> 894
+    /injector_geometry/n_fuel_orifices: 883 -> 942
+    /injector_geometry/n_ox_orifices: 793 -> 846
+    /injector_plate_mass_kg/__f__: '65.122611168416' -> '74.24530353230162'
+    /isp_sl_chamber_s/__f__: '106.95239706408974' -> '70.49438160750312'
+    /isp_sl_engine_s/__f__: '106.95239706408974' -> '70.49438160750312'
+    /isp_vac_chamber_s/__f__: '454.3127164433426' -> '425.7358452871829'
+    /isp_vac_engine_s/__f__: '454.3127164433426' -> '425.7358452871829'
+    /jacket_manifold_mass_kg/__f__: '3.087161966344266' -> '3.436992278779624'
+    /m_molar/__f__: '10.16' -> '9.219436969522361'
+    /manifold_mass_kg/__f__: '2.0983122661966194' -> '2.3337745547013444'
+    /material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 2101 K EXCEEDS its 1250 K max service temp (Tc 2997 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 2093 K EXCEEDS its 1250 K max service temp (Tc 2750 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /mdot_chamber_kgs/__f__: '89.7809967513949' -> '95.80740961946223'
+    /mdot_kgs/__f__: '89.7809967513949' -> '95.80740961946223'
+    /pe_pa/__f__: '6870.598999158737' -> '3844.21254919888'
+    /pe_pc/__f__: '0.0022163222577931407' -> '0.0012400685642577033'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '103.48522575410641' -> '103.86777845942179'
+    /required_time_s/__f__: '4.575483142036131e-06' -> '4.640558761112321e-06'
+    /residence_time_s/__f__: '0.0003050322094690754' -> '0.00030937058407415476'
+    /stability/advisory: 'First tangential mode ~1752 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~1748 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stability_aid_mass_kg/__f__: '9.599645282420859' -> '10.476429783247404'
+    /stay_time_s/__f__: '0.0011000000000000003' -> '0.0011'
+    /t_local_at_transition_k/__f__: '1650.2506447571243' -> '856.31040330755'
+    /tc_k/__f__: '2997.0' -> '2749.9528798386723'
+    /thrust_sl_n/__f__: '94166.32481818527' -> '66232.9774557279'
+    /warnings: len 7 -> 8
+CHANGED   user_designs/LR-100
+    /bell_wall_mass_kg/__f__: '2344.298807136254' -> '2377.945539582984'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '0.5272948179189669' -> '0.4781020658157798'
+    /chamber_wall_mass_kg/__f__: '441.6981766533551' -> '438.8831662451508'
+    /checklist: len 58 -> 60
+    /computed_dry_mass_kg/__f__: '3065.72379624083' -> '3094.0777743964823'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1700.9660233443074' -> '1753.2458649714495'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9659414422540668' -> '0.9861705824059844'
+    /gamma/__f__: '1.21' -> '1.1492313201382807'
+    /gamma_chamber: added
+    /hatband_mass_kg/__f__: '2.7614533927708087' -> '2.8365789205849516'
+    /injector_geometry/n_elements: 693 -> 678
+    /injector_geometry/n_fuel_orifices: 418 -> 409
+    /injector_geometry/n_ox_orifices: 968 -> 948
+    /injector_plate_mass_kg/__f__: '82.1604444044749' -> '83.33965862501991'
+    /isp_sl_chamber_s/__f__: '96.46325590952674' -> '96.25198719340817'
+    /isp_sl_engine_s/__f__: '95.63061093119867' -> '95.41571118970268'
+    /isp_vac_chamber_s/__f__: '330.79456145608543' -> '337.7855550862593'
+    /isp_vac_engine_s/__f__: '326.4736521594515' -> '333.2999673980828'
+    /jacket_combined_stress_pa/__f__: '130948924.34068885' -> '128358943.74748513'
+    /jacket_hoop_stress_pa/__f__: '65474462.17034442' -> '64179471.873742566'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '46898.51266672805' -> '56424.244034696676'
+    /jacket_manifold_mass_kg/__f__: '2.9049929565899815' -> '2.8580626015681116'
+    /jacket_pressure_at_worst_station_pa/__f__: '8382573.686312942' -> '8388188.998332766'
+    /jacket_structure_mass_kg/__f__: '44.77255702485749' -> '43.48901971308074'
+    /jacket_thermal_stress_pa/__f__: '65474462.17034443' -> '64179471.87374256'
+    /m_molar/__f__: '23.400000000000002' -> '23.96625291034747'
+    /manifold_mass_kg/__f__: '4.534378467341214' -> '4.453652281379921'
+    /material_margin/warning: 'Stainless Steel (304/316): only 14% thermal margin (computed wall temp 969 K vs 1100 K max). Thin margin.' -> 'Stainless Steel (304/316): only 15% thermal margin (computed wall temp 958 K vs 1100 K max). Thin margin.'
+    /mdot_chamber_kgs/__f__: '183.11686779938105' -> '179.35237205808943'
+    /mdot_kgs/__f__: '187.40554522332417' -> '183.56729303377008'
+    /pe_pa/__f__: '4987.5196483708705' -> '6569.239523578418'
+    /pe_pc/__f__: '0.0008312532747284784' -> '0.0010948732539297363'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '29.063922159198224' -> '28.496540249002074'
+    /plumbing_total_length_m/__f__: '4.0186332467995705' -> '3.984808782285499'
+    /rated_burn_time_s/__f__: '193.5765403098324' -> '195.65945519190666'
+    /required_time_s/__f__: '1.5332710108801884e-05' -> '1.5187034663501218e-05'
+    /residence_time_s/__f__: '0.0005678781521778475' -> '0.0005624827653148599'
+    /stay_time_s/__f__: '0.0025' -> '0.0025000000000000005'
+    /t_local_at_transition_k/__f__: '1590.9047375273406' -> '2002.9254447969784'
+    /tc_k/__f__: '3692.5' -> '3671.438885318389'
+    /thrust_closure_scale/__f__: '0.9900477408646007' -> '0.9901879199435387'
+    /thrust_sl_n/__f__: '175751.90580978617' -> '171765.47350203642'
+    /thrust_vac_floor_n/__f__: '600000.000052134' -> '600000.0000474071'
+    /thrust_vac_n/__f__: '600000.000052134' -> '600000.0000474071'
+    /turbine_exhaust_hardware_mass_kg/__f__: '0.9692721176908519' -> '0.9527873652832317'
+CHANGED   user_designs/RS-29
+    /bell_material_margin/warning: 'Stainless Steel (304/316): computed wall temp 2167 K EXCEEDS its 1100 K max service temp (Tc 1565 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Stainless Steel (304/316): computed wall temp 2153 K EXCEEDS its 1100 K max service temp (Tc 1807 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /bell_wall_mass_kg/__f__: '1691.255713844815' -> '1806.8864979928599'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '0.9004105961760162' -> '0.835193962347028'
+    /chamber_wall_mass_kg/__f__: '862.6120712200378' -> '910.8221446452936'
+    /checklist: len 60 -> 62
+    /computed_dry_mass_kg/__f__: '3213.395654583445' -> '3388.0329386285757'
+    /cooling/thermal_solve_iterations: 10 -> 11
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1714.573416030881' -> '1792.7599963659695'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9679695880413669' -> '0.9882412024506102'
+    /gamma/__f__: '1.2185' -> '1.1842054500843253'
+    /gamma_chamber: added
+    /hatband_mass_kg/__f__: '13.001106631165783' -> '15.73901684415281'
+    /injector_plate_mass_kg/__f__: '95.5947490027551' -> '102.13054113468259'
+    /isp_sl_chamber_s/__f__: '287.2952291631202' -> '286.2345865413753'
+    /isp_sl_engine_s/__f__: '281.98931287041535' -> '280.90285470180254'
+    /isp_vac_chamber_s/__f__: '313.86839401237995' -> '314.0195192092764'
+    /isp_vac_engine_s/__f__: '308.47020192225625' -> '308.55911232781483'
+    /jacket_combined_stress_pa/__f__: '290752969.5593796' -> '285381124.3118523'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '112137.63217402076' -> '123861.92814407403'
+    /jacket_manifold_mass_kg/__f__: '4.794545816437612' -> '4.857862036325644'
+    /jacket_pressure_at_worst_station_pa/__f__: '14679931.70234405' -> '14675582.426548127'
+    /jacket_structure_mass_kg/__f__: '55.904959503249984' -> '57.01767800606626'
+    /jacket_thermal_stress_pa/__f__: '157419636.22604623' -> '152047790.97851893'
+    /m_molar/__f__: '22.55' -> '22.831820099999998'
+    /manifold_mass_kg/__f__: '18.129832211289184' -> '18.443534566770808'
+    /material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 1328 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1305 K EXCEEDS its 1250 K max service temp (Tc 3681 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /mdot_chamber_kgs/__f__: '512.6920170786177' -> '512.4343319720468'
+    /mdot_kgs/__f__: '528.9152503937044' -> '528.7628450097199'
+    /pe_pa/__f__: '65666.0522056078' -> '73404.35900752337'
+    /pe_pc/__f__: '0.005472171017133984' -> '0.006117029917293614'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '39.288033214142374' -> '39.569133371051066'
+    /plumbing_total_length_m/__f__: '2.337480659990114' -> '2.34341547736899'
+    /rated_burn_time_s/__f__: '88.29174894446913' -> '88.8572828419483'
+    /required_time_s/__f__: '1.5242962845894368e-05' -> '1.4883482741835775e-05'
+    /residence_time_s/__f__: '0.0009597421051118676' -> '0.0009371081726341044'
+    /t_local_at_transition_k/__f__: '1565.3576452504278' -> '1807.3568135875998'
+    /tc_k/__f__: '3618.5' -> '3681.35676856'
+    /thrust_closure_scale/__f__: '0.986290462333002' -> '0.9862693935346393'
+    /thrust_sl_n/__f__: '1462646.6278263703' -> '1456591.4588110214'
+    /thrust_vac_floor_n/__f__: '1040000.0000780101' -> '1040000.0000743283'
+    /thrust_vac_n/__f__: '1600000.0001200156' -> '1600000.000114351'
+    /turbine_exhaust_hardware_mass_kg/__f__: '1.8203412026037844' -> '1.8302546030319344'
+CHANGED   user_designs/RS-29A
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '0.9007483903463974' -> '0.8355152316161656'
+    /chamber_wall_mass_kg/__f__: '1726.7633909446106' -> '1834.0425349681339'
+    /checklist: len 58 -> 60
+    /computed_dry_mass_kg/__f__: '2428.8247184245906' -> '2546.3341358068724'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1714.573416030881' -> '1792.7599963659695'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9679695880413669' -> '0.9882412024506102'
+    /gamma/__f__: '1.2185' -> '1.1842054500843253'
+    /gamma_chamber: added
+    /hatband_mass_kg/__f__: '21.119834028479367' -> '22.54609246050061'
+    /injector_geometry/n_elements: 1378 -> 1376
+    /injector_geometry/n_fuel_orifices: 917 -> 916
+    /injector_geometry/n_ox_orifices: 1838 -> 1837
+    /injector_plate_mass_kg/__f__: '95.50573559156473' -> '102.0343255337436'
+    /isp_sl_chamber_s/__f__: '287.2952291631202' -> '286.2345865413753'
+    /isp_sl_engine_s/__f__: '282.1710377974409' -> '281.0848570353094'
+    /isp_vac_chamber_s/__f__: '313.86839401237995' -> '314.0195192092764'
+    /isp_vac_engine_s/__f__: '308.6684650435812' -> '308.7585640446006'
+    /jacket_combined_stress_pa/__f__: '248776812.51042497' -> '244692562.98966405'
+    /jacket_hoop_stress_pa/__f__: '124388406.25521249' -> '122346281.49483202'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '65666.0522056078' -> '73404.35900752344'
+    /jacket_manifold_mass_kg/__f__: '25.614781624785216' -> '26.11209804762088'
+    /jacket_pressure_at_worst_station_pa/__f__: '15171191.4279427' -> '15167185.985155383'
+    /jacket_structure_mass_kg/__f__: '70.16560165026193' -> '71.54897229235596'
+    /jacket_thermal_stress_pa/__f__: '124388406.25521247' -> '122346281.49483202'
+    /m_molar/__f__: '22.55' -> '22.831820099999998'
+    /manifold_mass_kg/__f__: '18.11311089928367' -> '18.426321348378895'
+    /material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 1333 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1309 K EXCEEDS its 1250 K max service temp (Tc 3681 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /mdot_chamber_kgs/__f__: '512.3737042621583' -> '512.112443786345'
+    /mdot_kgs/__f__: '528.5755189387472' -> '528.4212750330938'
+    /pe_pa/__f__: '65666.0522056078' -> '73404.35900752337'
+    /pe_pc/__f__: '0.005472171017133984' -> '0.006117029917293614'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '39.22216470895569' -> '39.50850585176035'
+    /plumbing_total_length_m/__f__: '2.3361366115167357' -> '2.342179523630866'
+    /rated_burn_time_s/__f__: '161.09229862243828' -> '163.96102169276278'
+    /required_time_s/__f__: '1.5242962845894368e-05' -> '1.4883482741835775e-05'
+    /residence_time_s/__f__: '0.0009597421051118676' -> '0.0009371081726341044'
+    /t_local_at_transition_k/__f__: '1422.1257605297285' -> '1666.0959714483752'
+    /tc_k/__f__: '3618.5' -> '3681.35676856'
+    /thrust_closure_scale/__f__: '0.9856781085524591' -> '0.9856498634877815'
+    /thrust_sl_n/__f__: '1462649.1256591943' -> '1456593.6743648504'
+    /thrust_vac_floor_n/__f__: '1040000.0000890427' -> '1040000.0000852022'
+    /thrust_vac_n/__f__: '1600000.0001369887' -> '1600000.0001310802'
+    /turbine_exhaust_hardware_mass_kg/__f__: '1.8179379067006933' -> '1.8280484812404516'
+CHANGED   user_designs/RS-29C
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '0.9131254506736589' -> '0.8446172629770595'
+    /chamber_wall_mass_kg/__f__: '3476.0499976426727' -> '3797.7114726620666'
+    /checklist: len 60 -> 62
+    /computed_dry_mass_kg/__f__: '4275.6531387684945' -> '4629.492112403705'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1698.4827137670738' -> '1757.5464864300873'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9599031748076888' -> '0.9800058590968551'
+    /gamma/__f__: '1.229' -> '1.2273972795636166'
+    /gamma_chamber: added
+    /hatband_mass_kg/__f__: '40.70915623511057' -> '43.05345758336836'
+    /injector_geometry/n_elements: 1406 -> 1447
+    /injector_geometry/n_fuel_orifices: 1047 -> 1078
+    /injector_geometry/n_ox_orifices: 1765 -> 1816
+    /injector_plate_mass_kg/__f__: '96.11837271000597' -> '105.65926941553718'
+    /isp_sl_chamber_s/__f__: '283.233165698841' -> '273.4863180593455'
+    /isp_sl_engine_s/__f__: '278.3653687976842' -> '269.0929784092431'
+    /isp_vac_chamber_s/__f__: '309.55695021839387' -> '300.7254972496187'
+    /isp_vac_engine_s/__f__: '304.63208457624114' -> '296.26630858450704'
+    /jacket_combined_stress_pa/__f__: '67897207.97856054' -> '68148104.730205'
+    /jacket_hoop_stress_pa/__f__: '54179866.74230075' -> '54872743.813651204'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '63470.53799127858' -> '63800.66293038201'
+    /jacket_manifold_mass_kg/__f__: '5.7565064528396945' -> '6.062416411679357'
+    /jacket_pressure_at_worst_station_pa/__f__: '14676159.370538183' -> '14668029.77400256'
+    /jacket_structure_mass_kg/__f__: '155.36178759933236' -> '163.44091816059978'
+    /jacket_thermal_stress_pa/__f__: '13717341.23625978' -> '13275360.916553797'
+    /m_molar/__f__: '21.6' -> '20.9308414'
+    /manifold_mass_kg/__f__: '18.49423310913197' -> '19.573128862807998'
+    /material_margin/warning: 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 10% thermal margin (computed wall temp 727 K vs 800 K max). Thin margin.' -> 'NARloy-Z Copper Alloy (Cu-Ag-Zr): only 11% thermal margin (computed wall temp 719 K vs 800 K max). Thin margin.'
+    /mdot_chamber_kgs/__f__: '519.4372509582385' -> '534.6729313074268'
+    /mdot_kgs/__f__: '535.5791538557536' -> '550.7024908534763'
+    /pe_pa/__f__: '63470.53799127858' -> '63800.66293038201'
+    /pe_pc/__f__: '0.005289211499273215' -> '0.005316721910865167'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '39.47295184312842' -> '40.07965394097671'
+    /plumbing_total_length_m/__f__: '2.3193454461534775' -> '2.340012272107747'
+    /rated_burn_time_s/__f__: '185.1682542934029' -> '187.2531211054703'
+    /required_time_s/__f__: '1.525914011943359e-05' -> '1.5055168326933261e-05'
+    /residence_time_s/__f__: '0.0009607606741865595' -> '0.000947918005769872'
+    /t_local_at_transition_k/__f__: '1310.3215391603496' -> '1279.8980522156646'
+    /tc_k/__f__: '3480.0' -> '3377.0732434'
+    /thrust_closure_scale/__f__: '0.9855401997512615' -> '0.9855057042278378'
+    /thrust_sl_n/__f__: '1462040.9755771477' -> '1453249.1647689282'
+    /thrust_vac_floor_n/__f__: '1040000.000115943' -> '1040000.0001082624'
+    /thrust_vac_n/__f__: '1600000.000178374' -> '1600000.0001665575'
+    /turbine_exhaust_hardware_mass_kg/__f__: '1.833844935080999' -> '1.8534036566616114'
+CHANGED   user_designs/RS-30
+    /bell_material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 2218 K EXCEEDS its 1250 K max service temp (Tc 1851 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 2207 K EXCEEDS its 1250 K max service temp (Tc 2081 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /bell_wall_mass_kg/__f__: '1546.5244532042711' -> '1652.740441509698'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.0967767919612763' -> '1.068659489648191'
+    /chamber_wall_mass_kg/__f__: '349.41803362650825' -> '369.124876838'
+    /checklist: len 56 -> 58
+    /computed_dry_mass_kg/__f__: '2533.939677438586' -> '2665.6345002089233'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1714.573416030881' -> '1795.0031465274542'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9679695880413669' -> '0.9882412024506102'
+    /gamma/__f__: '1.2185' -> '1.1864385465639598'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 1274 -> 1272
+    /injector_geometry/n_fuel_orifices: 848 -> 847
+    /injector_geometry/n_ox_orifices: 1701 -> 1698
+    /injector_plate_mass_kg/__f__: '81.79688206067654' -> '87.41472835491132'
+    /isp_sl_chamber_s/__f__: '290.3457654487671' -> '289.629334534023'
+    /isp_sl_engine_s/__f__: '282.39018380041637' -> '281.6383981720198'
+    /isp_vac_chamber_s/__f__: '315.65354149568117' -> '316.1242849462279'
+    /isp_vac_engine_s/__f__: '307.36282472979747' -> '307.74984790814153'
+    /jacket_combined_stress_pa/__f__: '452487143.0861817' -> '389951650.59035254'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '333584.33705475426' -> '359079.6309586582'
+    /jacket_manifold_mass_kg/__f__: '9.479846390122347' -> '9.648881396304517'
+    /jacket_pressure_at_worst_station_pa/__f__: '17373979.214209147' -> '17374959.562756434'
+    /m_molar/__f__: '22.55' -> '22.871193827681275'
+    /manifold_mass_kg/__f__: '18.332549329717082' -> '18.626534492267115'
+    /material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 1686 K EXCEEDS its 1250 K max service temp (Tc 3618 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 1658 K EXCEEDS its 1250 K max service temp (Tc 3700 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /mdot_chamber_kgs/__f__: '512.1017066815033' -> '511.3037799406033'
+    /mdot_kgs/__f__: '530.8208441551412' -> '530.1532890887579'
+    /pe_pa/__f__: '66738.91283274422' -> '74278.34972628603'
+    /pe_pc/__f__: '0.004767065202338872' -> '0.0053055964090204305'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '38.72268823901244' -> '39.00650948634141'
+    /plumbing_total_length_m/__f__: '2.3235853715721344' -> '2.329659185122394'
+    /rated_burn_time_s/__f__: '97.99653033700324' -> '98.48673366998241'
+    /required_time_s/__f__: '1.5242962845894368e-05' -> '1.4864883394653354e-05'
+    /residence_time_s/__f__: '0.0009597421051118676' -> '0.0009359371026263223'
+    /stay_time_s/__f__: '0.00218468498417145' -> '0.0022686768875221854'
+    /t_local_at_transition_k/__f__: '1851.4331102727147' -> '2080.626627125996'
+    /tc_k/__f__: '3618.5' -> '3699.952687398406'
+    /thrust_closure_scale/__f__: '0.9907579877538553' -> '0.9906894913928694'
+    /thrust_sl_n/__f__: '1470003.0639731237' -> '1464245.8482497165'
+    /thrust_vac_floor_n/__f__: '992000.0000517496' -> '992000.0000522751'
+    /thrust_vac_n/__f__: '1600000.0000834672' -> '1600000.0000843147'
+    /turbine_exhaust_hardware_mass_kg/__f__: '1.8003395795925612' -> '1.8103613038918245'
+CHANGED   user_designs/TRW-270
+    /bell_wall_mass_kg/__f__: '13.051534693771723' -> '13.225529904013696'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.0231026986152398' -> '1.0175132035611207'
+    /chamber_wall_mass_kg/__f__: '1.6487906497488485' -> '1.6639638922778248'
+    /checklist: len 52 -> 54
+    /computed_dry_mass_kg/__f__: '16.416525665699456' -> '16.628421683243126'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '1583.0450126872727' -> '1609.4097212828497'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9137696264341767' -> '0.9442770384454926'
+    /gamma/__f__: '1.2126812500000002' -> '1.1807248592897275'
+    /gamma_chamber: added
+    /injector_plate_mass_kg/__f__: '1.7020694096596285' -> '1.7247603752608978'
+    /isp_vac_chamber_s/__f__: '303.6052116354222' -> '305.9484417428412'
+    /isp_vac_engine_s/__f__: '303.6052116354222' -> '305.9484417428412'
+    /jacket_manifold_mass_kg/__f__: '0.005465813374613298' -> '0.00553636925525435'
+    /m_molar/__f__: '21.142500000000002' -> '22.144635665880156'
+    /manifold_mass_kg/__f__: '0.008665099144644594' -> '0.008631142435455397'
+    /mdot_chamber_kgs/__f__: '4.030429678667437' -> '3.999560999895649'
+    /mdot_kgs/__f__: '4.030429678667437' -> '3.999560999895649'
+    /pe_pa/__f__: '895.7074451539537' -> '1021.9477988312511'
+    /pe_pc/__f__: '0.0014928457419232561' -> '0.0017032463313854185'
+    /performance_source: added
+    /rated_burn_time_s/__f__: '256.7231891035229' -> '257.3541316512988'
+    /required_time_s/__f__: '9.812787081152778e-06' -> '9.974284013133629e-06'
+    /residence_time_s/__f__: '0.0005749138784016568' -> '0.000584375698651829'
+    /stay_time_s/__f__: '0.001239656043421088' -> '0.0013731117303074844'
+    /t_local_at_transition_k/__f__: '2225.984873542203' -> '2258.4078707400613'
+    /tc_k/__f__: '3234.25' -> '3109.241588424641'
+    /thrust_sl_n/__f__: '39.52501320830402' -> '39.222294879626666'
+CHANGED   user_designs/j-2_test_bed
+    /bell_material_margin/warning: 'Inconel 718 Nickel Superalloy: computed wall temp 2165 K EXCEEDS its 1250 K max service temp (Tc 1744 K, regenerative cooling). Marginal/unsuitable as designed.' -> 'Inconel 718 Nickel Superalloy: computed wall temp 2167 K EXCEEDS its 1250 K max service temp (Tc 1436 K, regenerative cooling). Marginal/unsuitable as designed.'
+    /bell_wall_mass_kg/__f__: '1186.5985389407974' -> '1243.0262844616148'
+    /cf_vac_ideal: added
+    /chamber_l_over_d/__f__: '1.1142173791729764' -> '1.094851338524477'
+    /chamber_wall_mass_kg/__f__: '486.4647688756736' -> '508.7924268157244'
+    /checklist: len 57 -> 59
+    /computed_dry_mass_kg/__f__: '2349.6982543745544' -> '2426.8044633968134'
+    /cstar_ideal_ms: added
+    /cstar_ms/__f__: '2184.5180953805916' -> '2295.5293809021528'
+    /eta_cf: added
+    /eta_cstar/__f__: '0.9381441441050696' -> '0.9730750430877053'
+    /gamma/__f__: '1.167' -> '1.212154637521333'
+    /gamma_chamber: added
+    /injector_geometry/n_elements: 944 -> 927
+    /injector_geometry/n_fuel_orifices: 818 -> 803
+    /injector_geometry/n_ox_orifices: 1071 -> 1051
+    /injector_geometry/note: '1888 orifices in ~944 impinging pairs' -> '1854 orifices in ~927 impinging pairs'
+    /injector_plate_mass_kg/__f__: '30.094433006124937' -> '31.525549724656127'
+    /isp_sl_chamber_s/__f__: '340.132286804977' -> '343.9758162457839'
+    /isp_sl_engine_s/__f__: '338.36234622466634' -> '342.2393993289146'
+    /isp_vac_chamber_s/__f__: '417.72023911791075' -> '425.5065778883625'
+    /isp_vac_engine_s/__f__: '416.2890166468004' -> '424.0828433657871'
+    /jacket_combined_stress_pa/__f__: '261400132.48136467' -> '261540836.22249997'
+    /jacket_hoop_stress_pa/__f__: '130700066.24068233' -> '130770418.11125'
+    /jacket_local_gas_pressure_at_worst_station_pa/__f__: '71259.13833625246' -> '62124.73199818162'
+    /jacket_manifold_mass_kg/__f__: '14.678863428189517' -> '14.642388866885877'
+    /jacket_pressure_at_worst_station_pa/__f__: '10434505.318439007' -> '10465954.732840085'
+    /jacket_structure_mass_kg/__f__: '97.29295377513469' -> '101.75848536314486'
+    /jacket_thermal_stress_pa/__f__: '130700066.24068235' -> '130770418.11124997'
+    /m_molar/__f__: '12.75' -> '12.264132579741183'
+    /manifold_mass_kg/__f__: '7.70347935927612' -> '7.638198366099164'
+    /mdot_chamber_kgs/__f__: '248.69608923613347' -> '244.1140346639969'
+    /mdot_kgs/__f__: '253.03738652649568' -> '248.38704621296785'
+    /pe_pa/__f__: '30349.286833153332' -> '25776.547534874993'
+    /pe_pc/__f__: '0.0037936608541441663' -> '0.003222068441859374'
+    /performance_source: added
+    /plumbing_mass_kg/__f__: '37.54171371172308' -> '36.78311649209336'
+    /plumbing_total_length_m/__f__: '2.5313388222602473' -> '2.5103982736513144'
+    /rated_burn_time_s/__f__: '100.41134663179756' -> '100.31146582398756'
+    /required_time_s/__f__: '6.441769556101735e-06' -> '6.3585009051721395e-06'
+    /residence_time_s/__f__: '0.0003220884778050868' -> '0.00031792504525860696'
+    /stability/advisory: 'First tangential mode ~2562 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.' -> 'First tangential mode ~2583 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.'
+    /stay_time_s/__f__: '0.0007330194163252113' -> '0.0007557573954058874'
+    /t_local_at_transition_k/__f__: '1744.145575652117' -> '1435.8099038624441'
+    /tc_k/__f__: '3427.5' -> '3360.1943519963097'
+    /thrust_closure_scale/__f__: '0.9862223218818778' -> '0.9860964174162716'
+    /thrust_sl_n/__f__: '839628.9349722839' -> '833642.0703634479'
+    /thrust_vac_floor_n/__f__: '619800.0000669082' -> '619800.0000741652'
+    /thrust_vac_n/__f__: '1033000.0001115138' -> '1033000.0001236086'
+    /turbine_exhaust_hardware_mass_kg/__f__: '1.6973449018759088' -> '1.6706467867114434'
