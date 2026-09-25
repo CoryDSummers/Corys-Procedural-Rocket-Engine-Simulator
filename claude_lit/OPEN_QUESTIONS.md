@@ -35,6 +35,26 @@ into that and makes no claims about it.
 
 ## Open literature gaps
 
+- **Nozzle-loss split for the performance path (wanted — P1 re-anchor, 2026-09-25).** Isp now
+  runs on the equilibrium tables with ONE fitted nozzle efficiency per pair (`combustion.
+  ETA_CF`); Merlin-1D (−4.8 %) and Rutherford (−4.3 %) show the spread one number can't carry.
+  Splitting it into kinetic + boundary-layer terms (the JANNAF ERE/ODK/TDK/BLM method) needs,
+  in priority order:
+  1. **JANNAF Rocket Engine Performance Prediction and Evaluation Manual**, CPIA Publication 246
+     (1975) — the standard loss methodology, the core source.
+  2. **TDK / ODK program documentation** (Nickerson, Coats et al., SEA Inc. reports for NASA,
+     NTRS) — kinetic loss vs Pc and throat size.
+  3. **Bray, K.N.C. (1959)**, "Atomic recombination in a hypersonic wind-tunnel nozzle", *J.
+     Fluid Mech.* 6 — the sudden-freezing criterion (a cheap kinetics stand-in; the tables
+     already carry the frozen-expansion Isp bound, `isp_vac_frozen_s_by_eps`).
+  4. **Boundary-layer thrust loss**: JANNAF BLM / NASA "TBL" or BLIMP-J documentation, or any NASA
+     TN correlating BL thrust decrement with throat Reynolds number and area ratio.
+  5. **Measured per-engine loss breakdowns** (ERE / kinetic / BL / divergence) for RS-25, RL10,
+     J-2 and an RP-1 booster — the anchors that would separate a split model from option A.
+  Already in hand: `[STBE]` has one itemized LOX/RP-1 stack (ideal 345.4 → delivered 322.1 s via
+  ERE/KIN/TDK/BLM), `[Sutton §3.5]` typical loss magnitudes. Also a cheap cross-check still to
+  do: `[Schmucker-CycleCalc eq.31]`'s LOX/LH2 c* fit against the new table c*.
+
 - **Oxidiser-rich preburner temperature at high Pc (RD-170/180, Raptor ox side) — OPEN
   (2026-09-23).** `staged_combustion.py` now SOLVES the turbine PR from a preburner
   temperature input, and the only sourced ox-rich value is NK-33's **628 K**

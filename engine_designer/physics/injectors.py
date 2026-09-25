@@ -198,13 +198,14 @@ INJECTORS = {
     "gas_centered_swirl": Injector(
         key="gas_centered_swirl",
         display_name="Gas-centered swirl (ORSC, RD-120/170/180/191-family)",
-        # Reverse-solved (not hand-picked) so a full RD-180-parameter design with this
-        # injector reproduces RD-180's real 338.4 s vacuum Isp - see validate.py's
-        # run_gas_centered_swirl_injector_check(). Seed was the naive
-        # eta_c*/DEFAULT_ETA_CSTAR ratio = 0.97/0.955 ~= 1.016 [Bazarov p.5-6 Table 3],
-        # which is NOT itself the calibration (Bazarov's 0.97 is a sub-scale single-element
-        # test article's own c* efficiency, not measured against the same RD-111 baseline
-        # DEFAULT_ETA_CSTAR["LOX/RP-1"] is calibrated against).
+        # A RELATIVE improvement over the impinging baseline, seeded from the naive
+        # eta_c*/DEFAULT_ETA_CSTAR ratio 0.97/0.955 ~= 1.016 [Bazarov p.5-6 Table 3]
+        # (Bazarov's 0.97 is a sub-scale single-element test article's own c*
+        # efficiency). validate's run_gas_centered_swirl_injector_check() pins only its
+        # DIRECTION (better than impinging on RD-180 parameters) - an absolute 338.4 s
+        # match was never reachable through ETA_CSTAR_CEILING. Unchanged by the
+        # 2026-09-25 P1 re-anchor (DEFAULT_ETA_CSTAR 0.975 now; 0.975 x 1.016 hits the
+        # 0.99 ceiling, which is where the direction check sits).
         eta_cstar_multiplier=1.016,
         dp_over_pc_nominal=0.105,      # [Bazarov p.5-6 Table 3]: dP_ox=dP_fuel=226 psid at
                                         # Pc 2150 psia -> ~10.5% each leg - real ORSC data,

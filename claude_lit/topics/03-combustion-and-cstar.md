@@ -143,3 +143,8 @@ energy shifting equilibrium would recover.
   §9.1]` / `[Huzel §4.5]`.
 - `STAGED_COMBUSTION_ETA_PENALTY = 0.985` (2-stage mixing loss on top of η_c\*): plausible
   in the "~1–4 % combustion loss" band `[Sutton §5.5]`; no direct source, flag remains.
+- **Applied 2026-09-25 (P1 performance re-anchor):** bipropellant Isp now runs on the Cantera
+  shifting-equilibrium tables (c*, Isp, pe/pc at eps 2-250, real Pc dependence); `DEFAULT_ETA_CSTAR`
+  is this file's `[Huzel §4.2]` ~0.975 for every bipropellant, and the nozzle loss is a separate
+  per-pair `ETA_CF` reverse-solved on the spot-check anchors. The frozen-vs-shifting framing above
+  is now concrete: the tables carry both expansions (`isp_vac_frozen_s_by_eps`).

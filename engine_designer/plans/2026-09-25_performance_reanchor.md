@@ -8,7 +8,7 @@ Branch: `claude/friendly-rubin-un6ueo`, continuing after turbine-exhaust round 2
 - [x] Commit 0: this document (405ac42)
 - [x] Commit 1: regenerate equilibrium tables (wider eps grid + frozen Isp column); heat-transfer path unchanged - corpus bit-identical
 - [x] Commit 2: performance path on the tables (performance_state, ETA_CF split, re-solved calibrations, corpus report). Extra commits found on the way: 79d5a3f (pe_over_pc column), f67f591 (cooled-cut tolerance)
-- [ ] Commit 3: docs (ASSUMPTIONS, COOLING_AUDIT P1, CLAUDE.md, README, OPEN_QUESTIONS option-C literature)
+- [x] Commit 3: docs (ASSUMPTIONS, COOLING_AUDIT P1, CLAUDE.md, README, OPEN_QUESTIONS option-C literature). ROUND COMPLETE.
 
 ## Context
 `combustion._TABLES` is the source of every Isp in `engine_designer`. It holds one Tc/γ/M row
