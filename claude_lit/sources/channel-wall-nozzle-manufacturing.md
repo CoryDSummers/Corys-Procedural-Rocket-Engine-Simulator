@@ -150,7 +150,7 @@ sizing rule anywhere in the text.
 ## Caveats
 
 - **This paper does NOT address Russian/Soviet "sandwich" wall construction.** Checked
-  specifically per the open gap noted in `claude_lit/topics/06-cooling-and-heat-transfer.md`
+  specifically per the open gap noted in `claude_lit/topics/06b-cooling-methods-and-chemistry.md`
   (the paragraph on the never-found diffusion-bonded/brazed corrugated-core Soviet
   multi-channel wall). This is a *different* technology entirely: modern NASA/U.S.-industry
   **additive-manufacturing and water-jet-milling** processes for building milled-channel

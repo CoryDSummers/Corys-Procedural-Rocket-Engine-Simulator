@@ -16,19 +16,22 @@ into that and makes no claims about it.
 
 ## Housekeeping
 
-- **Two topic files now well exceed `README.md`'s documented 40 KB lookup-budget cap**,
-  after the 2026-09-23 batch's additions and the 2026-09-24 SP-8120 deep-read integration:
-  `topics/06-cooling-and-heat-transfer.md` (~52 KB) and `topics/12-materials-and-structures.md`
-  (~48 KB). `README.md`'s own convention says to split an over-cap file into sub-topic files
-  and update the index + cross-references — not done yet, now overdue (deferred twice
-  deliberately rather than risking a rushed cross-reference update under time pressure — this
-  should be the next housekeeping task, not deferred a third time). Natural split candidates:
-  topic 06 could separate "real construction-type/manifold/structural" content from
-  "heat-transfer correlations/Bartz" content; topic 12 could separate "turbopump/chamber alloy
-  surveys" from "structural criteria (retaining bands, manifolds, hoop stress, hot-gas
-  manifold)". Whoever does this should grep the repo for both filenames first (code comments,
-  `ASSUMPTIONS.md`, other `sources/*.md`/
-  `topics/*.md` cross-references) before renaming anything.
+- **DONE 2026-09-24 — `topics/06` and `topics/12` were split.** Both had grown well past
+  `README.md`'s documented 40 KB lookup-budget cap (topic 06 to ~66 KB, topic 12 to ~69 KB)
+  across three literature batches, deferred twice before this. `topics/06-cooling-and-heat-
+  transfer.md` (~31 KB) now keeps the core Bartz/structural-design/heat-flux-magnitude/
+  radiation content; **`topics/06b-cooling-methods-and-chemistry.md`** (~36 KB, new) has
+  cooling-method feasibility, RP-1 chemistry (coking/corrosion/coolant properties), film
+  cooling, and the coolant-side correlation catalog. `topics/12-materials-and-structures.md`
+  (~43 KB — still a little over cap even after trimming, its remaining material-properties
+  content is dense, a materially better outcome than 69 KB but not perfect) now keeps
+  material selection/alloy properties; **`topics/12b-structures-manifolds-and-hardware.md`**
+  (~28 KB, new) has retaining bands, manifolds, tube-splice/bypass-fraction data, and
+  turbine-exhaust-manifold structural precedent. See `README.md`'s topic-file index for the
+  full scope split and `PROVENANCE.md`'s "housekeeping: split topics/06 and topics/12" entry
+  for the full rationale, the cross-references that were fixed, and the one `ASSUMPTIONS.md`
+  path-string correction this required. **If you remember the old warning about these two
+  files, it's resolved** — check the new filenames above before assuming content is missing.
 
 ## Open literature gaps
 
@@ -55,7 +58,7 @@ into that and makes no claims about it.
   originally-bolted (leaky) 1930s design; real application named — RD-107-class engines use
   it for the expansion nozzle specifically. Also surfaced: the **F-1's lower nozzle
   extension is itself sandwich construction** (Hastelloy-C), so the technique isn't
-  exclusively Soviet. See `topics/06-cooling-and-heat-transfer.md`'s corrected paragraph and
+  exclusively Soviet. See `topics/06b-cooling-methods-and-chemistry.md`'s corrected paragraph and
   `sources/ch12-materials-liquid-propulsion.md` for the full detail and exact quotes.
   **What's still missing** (the narrowed remaining gap): no channel/corrugation pitch,
   height, or wall-thickness numbers, no cross-section dimensions, no structural/thermal
@@ -67,19 +70,23 @@ into that and makes no claims about it.
   check it against *already-distilled* sources too, not just newly-added ones — a keyword
   search across existing `sources/*.md` notes (or the original PDFs) would have caught this
   immediately instead of two rounds later.
-- **NASA SP-8124**, *Liquid Rocket Engine Self-Cooled Combustion Chambers* (Sep 1977) — cited
-  by `[EUCASS-2023]`'s gaseous-film-cooling model (its Appendix B specifically) but not
-  itself in `literature/` or `claude_lit/`. This is the primary NASA film-cooling design-
-  criteria monograph (parallel to `[SP-8087]` for regen cooling) and is currently only known
-  second-hand through one paper's citation of one appendix. Worth acquiring if film-cooling
-  design criteria are ever needed in depth. **Now needed (2026-09-23)**: it is the top
-  acquisition for the turbine-exhaust feature below, as the source of film-effectiveness
-  correlations for a gaseous turbine-exhaust film on a nozzle extension. **Needed twice over
-  (2026-09-23, later)**: `engine_designer` now models film at TWO sites (chamber curtain +
-  a post-jacket liquid-fuel nozzle-extension slot, `cooling.film_effectiveness_profile` /
-  `nozzle_film_effectiveness_profile`) with Tier-3 constants (eta_f0 = min(0.75, 7f),
-  decay 2.5 x local diameter, product combination) — SP-8124's correlations would let
-  both be anchored instead of estimated.
+- **NASA SP-8124 — RESOLVED 2026-09-24.** *Liquid Rocket Engine Self-Cooled Combustion
+  Chambers* (Sep 1977) was acquired and fully distilled (`sources/sp8124-self-cooled-
+  chambers.md`, tag `[SP-8124]`). Gives a real entrainment-based gas-/liquid-film-cooling
+  model (Appendix A/B) — closed-form pieces exist (liquid-film-length equation, entrainment-
+  flow-ratio integral), but film effectiveness itself and two augmentation factors are
+  graph-based (Figs. A-2/B-1), not a single portable algebraic function. One directly
+  portable number: a real H2-film-cooling entrainment-fraction multiplier ψ_m = 3-4 at
+  injection, decaying to ~1.75 at the throat. A SECOND, independent closed-form correlation
+  was found in the same batch — `[TN-D3836]` (NASA TN D-3836, modified Hatch-Papell,
+  real validity range ~100 slot heights downstream). Between the two, both the chamber-
+  curtain and nozzle-extension-slot film-effectiveness Tier-3 constants now have real
+  candidate sources to ground against, though neither is a drop-in replacement (`[TN-D3836]`
+  needs Vg/Vc and entrainment-parameter inputs the tool doesn't compute; `[SP-8124]`'s key
+  factors are graph-only). See `topics/06b-cooling-methods-and-chemistry.md`'s dedicated section.
+  Also closed as a side effect: SP-8124 gave real ablative/radiation-cooled-chamber material
+  criteria (`topics/12`) and a new interregen/heat-sink chamber architecture (`topics/06`) not
+  previously in `claude_lit`.
 - **`[Huzel Fig 4-24]`** (the Bartz `σ` boundary-layer-property-variation correction chart) —
   referenced repeatedly across `topics/06-cooling-and-heat-transfer.md` but never digitized
   from the source PDF. `[EUCASS-2023]`'s Eq. 5 gives an alternative closed-form `delta`
@@ -94,7 +101,7 @@ into that and makes no claims about it.
   tube compressive/fatigue strength) — flagged in its own source note
   (`sources/sp8087-fluid-cooled-chambers.md`) as the most likely place to find a real
   band-stress-allowable or tube-fatigue formula, if `[SP-8120]`'s qualitative retaining-band
-  criteria (`topics/12-materials-and-structures.md`) are ever turned into a real check.
+  criteria (`topics/12b-structures-manifolds-and-hardware.md`) are ever turned into a real check.
 - **`[SP-8048]`'s unread §2.2/§3.2** (bearing component/race/cage design — ~85% of that
   84-page monograph; only ~15 pages were rendered/read this round, targeted at DN-limit and
   materials content specifically since it's an image-only scan with no text layer). Most
@@ -105,6 +112,20 @@ into that and makes no claims about it.
   System (§2.5/§3.5) sections** — only ~40% of this monograph was deep-read this round
   (Speed and Impeller sections). Housing/volute design criteria could add further real
   manifold-adjacent numbers alongside `[SP-8087]`'s existing manifold content.
+- **NASA TM X-64749 (Schmucker) is a truncated copy (2026-09-24, new)** — the PDF on disk has
+  only 23 of the paper's real 42 pages; the entire numeric GG-vs-staged-combustion performance
+  comparison the paper's own summary promises, and its real 1973-era LOX/LH2 worked engine
+  examples, are missing. Re-acquiring a complete copy from NTRS (accession 19730016059) would
+  recover that comparison data if it's ever wanted — see `sources/schmucker-lh2lox-cycle-
+  performance.md` and `topics/08-engine-cycles.md` for what the surviving pages gave.
+- **`[SP-8124]`'s unread sections (2026-09-24, new)** — a scoped read, not cover-to-cover, of
+  a 138-page monograph. Left unread/skimmed: the four real-engine survey tables (I/IV/VI/VIII,
+  OCR-column-scrambled — headline numbers recovered from surrounding prose instead), five
+  material-property tables (II/III/V/VII/IX, qualitative comparisons captured, not transcribed
+  cell-by-cell), Appendix C (units)/Appendix D (glossary), and the 112-entry reference list
+  (though refs. 76/81/103/107 are flagged in `sources/sp8124-self-cooled-chambers.md` as the
+  likely origin of the digitizable Figs. A-1/A-2/B-1 film-effectiveness curves, if a fully
+  closed-form film model is ever wanted instead of the graph-based one currently cited).
 
 - **Manifold sizing numbers (2026-09-22 re-anchoring round)** — the manifold velocities are
   now tied to cited PRINCIPLES (`[SP-8087 §2.1.2.1/§3.1.2.1]` constant-area vs constant-
@@ -139,16 +160,19 @@ into that and makes no claims about it.
     LR-91 roll nozzle), H-1D aspirator, and F-1/J-2 nozzle injection with a gas film.
   - The flat `GG_DUMP_ISP_FRACTION = 0.55` is retired. Turbine back pressure is anchored on
     `[H1-Man]`; exhaust Isp is pinned on the F-1's 16,000 lbf `[SP-8120]`.
-  - Still Tier 3 and still wanting sources: gas-film effectiveness (SP-8124, item a), the
-    LR-91 GG flow (the model under-predicts its 865 lbf by ~40%, item d), the heat-exchanger
-    GOX duty (item h), and the duct Mach and hardware constants (`ASSUMPTIONS.md`).
+  - Still Tier 3 and still wanting sources: gas-film effectiveness (item (a) below is now
+    RESOLVED — `[SP-8124]`/`[TN-D3836]` both acquired 2026-09-24, see the gap entry above —
+    but neither gives a drop-in closed-form curve, so the constant itself hasn't been
+    re-derived from them yet), the LR-91 GG flow (the model under-predicts its 865 lbf by
+    ~40%, item d), the heat-exchanger GOX duty (item h), and the duct Mach and hardware
+    constants (`ASSUMPTIONS.md`).
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
     `design.GG_DUMP_ISP_FRACTION = 0.55` unsourced. Needed, in priority order:
   (0) **DONE 2026-09-24**: `[SP-8120]` §2.2.5.3 Hot-Gas Manifold and §2.2.5.1 Manifold
   Hydraulics are now fully read (see `topics/07-dump-cooling.md`'s new "Turbine-exhaust-gas
-  film cooling" section and `topics/12-materials-and-structures.md`'s new hot-gas-manifold
+  film cooling" section and `topics/12b-structures-manifolds-and-hardware.md`'s new hot-gas-manifold
   content) — real F-1 numbers now in hand: eps 10:1→16:1 film-cooled-extension cutoff, a real
   ~25-30%-at-attachment coolant-split finding, real Hastelloy-C/Inconel-625/347-CRES
   materials, real ~0.5%-of-total-thrust turbine-exhaust performance contribution, real omega-
@@ -157,11 +181,16 @@ into that and makes no claims about it.
   empty of turbine-exhaust-film data. `[SP-8081]` §2.1.1 exhaust outlet and `[SP-8107]`/
   `[Huzel]` turbine-exhaust-ducting content remain unread/unchecked against this question —
   lower priority now that SP-8120 gave the richest real-hardware anchor;
-  (a) **SP-8124** (entry above), for film effectiveness;
-  (b) **Rocketdyne F-1 Engine Familiarization Training Manual (R-3896-1)**: still worth
-  acquiring for TEG manifold drawings/extension wall temps in more depth, but its headline
-  numbers (the injection area ratio, ~10:1 — now confirmed exactly 10:1 by `[SP-8120]`) are
-  now real-sourced without it;
+  (a) **SP-8124: RESOLVED 2026-09-24** (entry above) — acquired, plus a second independent
+  source `[TN-D3836]`; film effectiveness now has real correlations to adapt, though not yet
+  wired into any code;
+  (b) **Rocketdyne F-1 Engine Familiarization Training Manual (R-3896-1) — RESOLVED
+  2026-09-24**: acquired and distilled (`[F1-Man]`). Gave real turbine-exhaust manifold
+  hydraulics, a real film/mainstream temperature gap, real tube counts/splice plane, a real
+  turbine PR anchor, a real GG feed-pressure budget, and — the single most load-bearing
+  find — a real 30%/70% fuel bypass-vs-cooling split, now a real citation for `manifold.py`'s
+  `manifold_bypass_fraction` (see the new pending-citation-upgrade entry below). See
+  `topics/07`/`topics/09`/`topics/10`/`topics/12` for the full detail;
   (c) **J-2X nozzle-extension TEG film-cooling papers** (NTRS search), for modern film
   effectiveness + the Isp recovery of the injected exhaust;
   (d) **LR-91 / Titan II stage-2 engine description** (Aerojet manual, NTRS/DTIC): GG flow,
@@ -245,6 +274,33 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   the existing `[EUCASS-2023]` CFD corroboration — one hardware source, one CFD source,
   agreeing that uncalibrated design predictions under-predict real LOX/hydrocarbon throat
   heat flux. Strengthens confidence in the calibration approach; doesn't change any number.
+- **`materials.py`'s GRCop-84 `allowable_stress_pa` (2026-09-24)**: now has a strong real
+  citation-upgrade candidate, `[GRCop84-Tensile]` — a genuine multi-specimen statistical
+  tensile program (5 independent powder lots, cryo through ~1200K, real least-squares
+  regressions with 95%-CI terms), not an estimate. Full temperature-dependent yield/UTS
+  regression equations are in `topics/12-materials-and-structures.md`. Also real and citable:
+  GRCop-84's braze-cycle strength retention (~85-90%) vs. NARloy-Z's (~50%, unpublished P&W
+  data) — a quantitative reason to prefer GRCop-84 for a brazed/diffusion-bonded liner design.
+- **`thermo_tables.py`'s baked RP-1 coolant-property tables (2026-09-24)**: four real NIST-
+  grade papers (`[NISTIR6646-RP1]`, `[Huber-RP1RP2]`, `[Outcalt-RP1RP2]`, `[Akhmedova-RP1]`)
+  are plausible real citations for whatever surrogate-mixture model underlies the baked
+  tables — real measured density/viscosity/thermal-conductivity data and two independent
+  surrogate composition models with stated accuracy bounds. Not yet confirmed which (if any)
+  matches the actual Cantera/CoolProp implementation — that confirmation step, plus citing it
+  in `ASSUMPTIONS.md`, is the remaining work to actually apply this upgrade.
+- **`materials.py`'s `ABLATIVE_CONSUMPTION_RATE_M_S` and ablative `max_service_temp_k`
+  (2026-09-24)**: `[SP-8124]` gives real dimensioned criteria not yet applied — silica/quartz
+  3000°F surface-temperature limit, Pc>300psi throat-insert threshold, a 1.25 char-depth
+  safety factor. See `topics/12-materials-and-structures.md`.
+- **`mass_model.py`'s throat low-cycle-fatigue estimate (2026-09-24)**: `[Miller-CuFatigue]`
+  gives a real, citable method (the Manson Universal Slopes equation) plus a real applied case
+  (predicted 80 cycles vs. actual failure at cycle 39) — not yet applied to the tool's current
+  flat/estimated fatigue-cycle logic. See `topics/12-materials-and-structures.md`.
+- **`manifold.py`'s `manifold_bypass_fraction` (`f1_split_reverse_flow` topology, 2026-09-24)**:
+  now has a real citation, `[F1-Man §1-16]` — a real, dimensioned 30%/70% fuel bypass-vs-
+  cooling split at each F-1 fuel-down tube, from Rocketdyne's own engine manual for the exact
+  engine this cooling topology is sourced from. Previously an uncited Tier-3 value. See
+  `topics/12b-structures-manifolds-and-hardware.md`.
 
 ## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
 
@@ -264,9 +320,16 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
 - **Real-engine cooling data for the corpus** (`engine_designer/validation_engines/`):
   cited throat heat flux, coolant ΔT, jacket dP, liner thickness for RL10A-3-3, Vulcain,
   RD-180, Merlin-1D, Raptor-2, Rutherford, Aestus (only F-1 / J-2 / SSME have any today).
-- **RP-1 in CoolProp is an n-dodecane surrogate** - a real RP-1 property set (NIST
-  RP-1 surrogate model, Huber et al.) would firm up the kerosene jacket.
-- Still open from before: NASA SP-8124 film effectiveness; RP-1 coking rate model.
+- **RP-1 in CoolProp is an n-dodecane surrogate — RESOLVED 2026-09-24**: the real NIST RP-1
+  surrogate-model papers (Huber et al., plus the foundational NISTIR 6646 and two companion
+  measurement papers) were acquired and distilled (`[NISTIR6646-RP1]`, `[Huber-RP1RP2]`,
+  `[Outcalt-RP1RP2]`, `[Akhmedova-RP1]` — see `topics/06b-cooling-methods-and-chemistry.md`). These
+  are plausible real citations for whatever surrogate model underlies `thermo_tables.py`'s
+  baked RP-1 coolant tables, but no one has yet confirmed which (if any) matches the actual
+  Cantera/CoolProp implementation — see the new pending-citation-upgrade entry below.
+- Still open from before: RP-1 coking rate model (already resolved in an earlier batch via
+  `[Lewis-Deposits]`/`[TP2862-LOXRP1]` — this line was stale, corrected 2026-09-24). NASA
+  SP-8124 film effectiveness is now RESOLVED (see the gap entry above).
 
 ## Where to look before re-deriving or re-searching
 

@@ -90,6 +90,18 @@ series found wall static pressure vs. area ratio matched the **full-shifting-equ
 prediction closely, supporting shifting equilibrium as the right analytical baseline for this
 propellant/MR/Pc regime (consistent with `[Sutton]`'s frozen-vs-shifting framing above).
 
+**Real SSME c* efficiency — no number existed for this engine before (2026-09-24)**
+`[SSME-Orientation p.6]`: "two-stage combustion approximately **99.6%** efficient" —a real,
+high, citable c*-efficiency anchor for LOX/LH2 staged combustion at SSME-class Pc, filling a
+gap this file previously had no SSME-specific data point for.
+
+**A real LOX/LH2 c* curve fit — a candidate cross-check for `combustion.py`'s baked table
+(2026-09-24)** `[Schmucker-CycleCalc p.13 eq.31]`: `c* = [3660−160r]·(p_c/700)^−0.022 m/s`,
+valid for MR 4≤r≤7, Pc 500-3000 N/cm² — a clean, high-confidence closed-form fit (unlike two
+other lower-confidence curve fits in the same source, flagged in its own note as OCR-uncertain
+and not to be used without re-verification). Not yet checked against `combustion.py`'s baked
+equilibrium-table c* at matching LOX/LH2 conditions — a candidate spot-check, not yet done.
+
 ## Worked numbers
 
 `[Sutton Table 5-4]` LOX/LH2, Pc 773.3 psia, MR 5.551, chamber/throat area ratio 1.580,

@@ -404,3 +404,189 @@ never been distilled.
   - `topics/07-dump-cooling.md` (a new "Turbine-exhaust disposal hardware" section);
   - `topics/10-gas-generators.md` (implications).
 - Report-only here. The code use happens in the turbine-exhaust feature's own commits.
+
+## 2026-09-24 batch — seventeen new sources (ninth extraction round)
+
+Cory added a large new batch of PDFs to `literature/` and asked for a review. Diffed against
+`sources/*.md`'s existing coverage (37 notes) rather than assuming everything was new, per
+`CLAUDE.md` §3. Found 17 genuinely new sources, plus two files confirmed NOT new:
+- `MAIN CHAMBER INJECTORS FOR ADVANCED HYDROCARBON BOOSTER ENGINES.pdf` title-matches
+  `[Bazarov]`, already distilled.
+- `sp8109.pdf` is a different (image-only, no text layer) scan of the same NASA SP-8109
+  monograph already distilled as `sources/sp8109-centrifugal-turbopumps.md` (117pp vs. 124pp
+  from a different scan pass) — strictly worse than the already-distilled copy, nothing
+  gained from re-reading it.
+
+Six numeric NTRS-accession filenames were renamed to `<Report ID> - <Title>.pdf` per
+convention (`19670008176.pdf` → `NASA TN D-3836 - ...pdf`, etc. — the NTRS number is noted in
+each source's own note). Distillation was parallelized across 12 `lit-integrator` forks (one
+per source, or grouped for the short manufacturer datasheets and the three shorter RP-1
+property papers); the `topics/*.md`/`README.md`/`OPEN_QUESTIONS.md` integration pass was done
+personally afterward with all 17 new tags in hand at once, per the standing convention.
+
+**Headline find — NASA SP-8124** (*Liquid Rocket Engine Self-Cooled Combustion Chambers*, Sep
+1977, tag `[SP-8124]`): closes a gap explicitly flagged in `OPEN_QUESTIONS.md` (previously
+known only second-hand via `[EUCASS-2023]`'s film-cooling citation). Gives a real
+entrainment-based gas-/liquid-film-cooling model (Appendix A/B — closed-form pieces exist, but
+the effectiveness curve itself is graph-based, not a single algebraic function), real ablative
+and radiation-cooled chamber material criteria, and a new interregen/heat-sink chamber
+architecture not previously in `claude_lit`. Folded into `topics/06` (cooling architecture/
+film model), `topics/12` (ablative/radiation materials), and `topics/02` (nozzle-configuration
+criteria — throat-radius ratios, separation-margin correlation, J-2 contour tolerances,
+plug/aerospike base-design guidance).
+
+**A second, independent closed-form film-cooling correlation — NASA TN D-3836** (Lucas &
+Golladay, 1967, tag `[TN-D3836]`): a real modified Hatch-Papell correlation for near-throat
+film-coolant injection, with three documented empirical fit modifications and a stated
+validity range (~100 slot heights downstream). Between this and `[SP-8124]`, the
+`OPEN_QUESTIONS.md` "SP-8124 still missing" gap is now resolved — folded into `topics/06`.
+
+**Materials/structures — a dense sub-batch, folded into `topics/12`**:
+- `[Miller-CuFatigue]` (NASA CR-134841, Miller 1974): the Manson Universal Slopes low-cycle-
+  fatigue equation plus a real applied case (predicted 80 cycles vs. actual failure at cycle
+  39) — the first citable method for `mass_model.py`'s throat fatigue estimate.
+- `[Quentmeyer-CR185257]` (AIAA-90-2116, 1990): seven real hardware-tested chamber-liner
+  life-extension concepts (TBC: 1450 vs. 393 cycles; tungsten-reinforced liner; high-aspect-
+  ratio channels; low-stiffness closeout), a real RP-1 sulfur-corrosion-of-copper mechanism
+  distinct from carbon coking, and a cooling-architecture-to-cycle-choice pairing rationale.
+- `[GRCop84-TM2005]`/`[GRCop84-Tensile]` (Ellis et al., NASA Glenn, 2005/2012): resolves a
+  previously-flagged internal composition "inconsistency" in `[MatCh2]` (turned out to be
+  at.% vs. wt.% of the same alloy, not an error), and gives a real statistical multi-specimen
+  temperature-dependent yield/UTS/elongation regression (cryo through 1000K) — a strong
+  citation-upgrade candidate for `materials.py`'s Tier-3 GRCop-84 allowable stress.
+- Four manufacturer alloy datasheets (`[SS304-TDS]`, `[SS321-TDS]`, `[Inc718-TDS]`,
+  `[Ni200-TDS]`): real primary property data for alloys already named elsewhere in
+  `claude_lit`. Notably, `[Inc718-TDS]` was confirmed to carry ZERO hydrogen-embrittlement
+  data (mechanical/thermal only — `[MatCh2]` remains the sole HEE citation), and `[Ni200-TDS]`
+  surfaced a real conflation risk (its favorable corrosion-resistance framing for hydrogen
+  service is a DIFFERENT mechanism from `[MatCh2]`'s severe-HEE finding for nickel — flagged
+  loudly in both the source note and `topics/12` so the two aren't merged).
+
+**RP-1 as a regenerative coolant — four NIST-grade property papers, folded into `topics/06`**
+(`[NISTIR6646-RP1]`, `[Akhmedova-RP1]`, `[Huber-RP1RP2]`, `[Outcalt-RP1RP2]`): give the
+primary literature basis for whatever surrogate-mixture model underlies `thermo_tables.py`'s
+baked RP-1 coolant-property tables — real measured density/viscosity/thermal-conductivity
+data, two independent surrogate composition models, and a real citable batch-to-batch
+compositional-variability bound (~2-4% on thermal conductivity alone). A companion finding
+distinguishes RP-1's bulk thermal-DECOMPOSITION kinetics (a different quantity) from
+`[Lewis-Deposits]`'s existing wall-surface deposit-RATE data — flagged explicitly not to
+conflate the two.
+
+**Background/corroboration sources**: `[Armstrong-MarsISRU]` (NASA TM-103729, Mars-ISRU
+cooling study) is mostly background (its CO/O2 propellant chemistry has zero transfer value)
+but contributed a richer supercritical-fluid Nu-correlation catalog and three independent
+corroborations of existing design constants (aspect-ratio-8 channel ceiling, 811K copper
+wall-temp limit, 15-20% injector-dP rule) — folded into `topics/06`/`topics/05`.
+`[SSME-Orientation]` (Rocketdyne/Boeing training deck, 1998, Boeing-proprietary — derived
+facts only, no verbatim reproduction) gave the most complete single real-engine full-cycle
+station-by-station flow/energy-balance map in `claude_lit`, real turbopump stage-count
+architecture, real hatband/tube counts, and the first SSME c*-efficiency number (99.6%) —
+folded across `topics/03`, `topics/05`, `topics/08`, `topics/09`, `topics/10`, `topics/12`,
+`topics/16`. `[RPE-J2Blog]` (a secondary enthusiast source, Rocket Propulsion Evolution) gave
+real J-2 start/cutoff valve-sequencing detail, a second real dimensioned anchor for
+`turbine_exhaust.py`'s `nozzle_injection` mode, and a well-documented vacuum-vibration
+ASI-bellows flight-failure case — folded into `topics/07`, flagged explicitly as one tier
+below the primary NASA/Rocketdyne sources already cited for the J-2.
+
+No `engine_designer/` code or `ASSUMPTIONS.md` was touched — every finding above is
+report-only, per this file's standing rule. `OPEN_QUESTIONS.md` was updated to mark the
+SP-8124 gap resolved and add new pending-citation-upgrade candidates (GRCop-84 tensile data,
+the RP-1 property papers vs. `thermo_tables.py`); the `topics/06`/`topics/12` file-size-cap
+housekeeping flag was updated again, since this batch pushed both further over the 40KB cap.
+
+## 2026-09-24 batch — two more sources (F-1 engine manual + a cycle-performance TM)
+
+Cory added two more PDFs shortly after the seventeen-source batch above. Diffed against
+`sources/*.md` (54 notes) as usual — both genuinely new. One numeric NTRS filename
+(`19730016059.pdf`) was renamed to `NASA TM X-64749 - A Simple Performance Calculation
+Method for LH2-LOX Engines with Different Power Cycles.pdf` per convention. Distilled via two
+parallel `lit-integrator` forks; integration pass done personally.
+
+**Headline find — the Rocketdyne F-1 Engine Familiarization Training Manual, R-3896-1** (tag
+`[F1-Man]`): this is EXACTLY the source `OPEN_QUESTIONS.md` had flagged as item (b) of the
+turbine-exhaust-handling feature's acquisition list for several batches running. A scoped read
+of the 262-page manual gave real, previously-unavailable numbers: turbine-exhaust manifold
+hydraulics (a decreasing-cross-section torus, 15 omega expansion joints, splitter plates/exit
+vanes), a real film/mainstream temperature gap (1,138°F film vs. 1,922°F core at the 16:1
+exit plane), 23-row shingle construction, a real F-1 heat-exchanger architecture (both LOX
+AND helium coils in one shell, a richer third example of the pressurization-heat-exchanger
+pattern already seen on H-1/J-2/Titan I), real tube counts and splice plane (178 primary →
+356 secondary tubes at the 3:1 area-ratio plane, matching `[AEDC-J2S]`'s J-2S 180→360
+1:2-splice pattern), a real turbine PR anchor (≈16.3 uprated / ≈15.8 baseline, independent of
+`[H1-Man]`'s H-1 PR≈17.7), and a real GG feed-pressure budget chain (richer per-component
+detail than `[SP-8081]`'s generic tables). **The single most load-bearing find**: a real,
+dimensioned **30%/70% fuel bypass-vs-cooling split** at each fuel-down tube — a direct real
+citation for `manifold.py`'s `manifold_bypass_fraction` parameter, which the tool's own
+F-1-sourced `f1_split_reverse_flow` cooling topology already uses but previously had no cited
+real fraction behind. Folded into `topics/07` (turbine-exhaust/cooling), `topics/09`
+(turbine PR), `topics/10` (GG feed-pressure budget), and `topics/12` (tube counts, bypass
+fraction). No F-1 turbine efficiency percentage was found in the sections read — flagged as
+an open item.
+
+**NASA TM X-64749** (Schmucker, MSFC, 1973, tag `[Schmucker-CycleCalc]`): a "simple
+performance calculation method" comparing LOX/LH2 engine power cycles. **The PDF on disk is
+truncated** — the title page and the report's own table of contents claim 42 pages, but the
+file has only 23 PDF pages and the extracted text stops mid-derivation; the entire numeric
+GG-vs-staged-combustion comparison section the paper's summary promises, and its real
+1973-era worked engine examples, are simply absent from this copy. What survives (pp.1-16) is
+still useful: a real closed-form GG-cycle Isp formula and its staged-combustion counterpart
+(the k_m→1 limit of the same framework), a real derivation of why staged-combustion pump
+discharge must build up from Pc plus the turbine's own ΔP (the mechanism behind `[SP-8107]`'s
+already-cited design-guide rule), and a clean real LOX/LH2 c* curve fit — flagged as a
+candidate cross-check for `combustion.py`'s baked equilibrium table, not yet checked. Two
+other curve fits in the surviving pages are flagged OCR-uncertain, not for use without
+re-verification. Folded into `topics/08` (cycle Isp derivation) and `topics/03` (c* curve
+fit). Re-acquiring a complete copy is the obvious follow-up if the missing numeric comparison
+is ever wanted.
+
+No `engine_designer/` code or `ASSUMPTIONS.md` was touched. `OPEN_QUESTIONS.md`'s item (b)
+(F-1 manual) is now marked resolved.
+
+## 2026-09-24 — housekeeping: split `topics/06` and `topics/12`
+
+Cory asked to fix the overdue 40 KB topic-file-cap violation flagged (and re-flagged, twice)
+in `OPEN_QUESTIONS.md` across the last three literature batches, and to leave a clear pointer
+for other agents/sessions about the new layout.
+
+- **`topics/06-cooling-and-heat-transfer.md`** (was ~66 KB) was split. It keeps the core
+  Bartz/Dittus-Boelter/radiation-cooling relations, the tube-wall/coax-shell structural-
+  design equations (Huzel eq. 4-27..4-32, the A-1/A-2 sample calc), heat-flux magnitudes,
+  the cooling-method-selection table, and the Bartz-calibration-error corroboration —
+  deliberately kept together in the same-named file because `engine_designer/physics/
+  mass_model.py` (3 docstrings) and `ASSUMPTIONS.md` (1 entry) point at this filename by
+  name for the structural-design content, so no `engine_designer/` edit was needed. New
+  file **`topics/06b-cooling-methods-and-chemistry.md`** (~36 KB) took cooling-method
+  feasibility/construction-selection criteria, RP-1 chemistry (coking, sulfur corrosion,
+  NIST coolant properties), film cooling, the coolant-side correlation catalog, and the
+  Russian-sandwich-construction search. Result: ~31 KB / ~36 KB, both under cap.
+- **`topics/12-materials-and-structures.md`** (was ~69 KB) was split. It keeps material
+  selection/properties/alloy data (Ch12-Materials tables, MatCh2 HEE/ignition/superalloy/
+  Cu-alloy data, both GRCop-84 sources, Miller-CuFatigue, Quentmeyer, the four manufacturer
+  datasheets, SP-8124's ablative/radiation criteria, Gubanov's RD-170/120/0120 specs). New
+  file **`topics/12b-structures-manifolds-and-hardware.md`** (~28 KB) took the structural/
+  hardware cluster: SP-8120's retaining bands, AEDC-J2S's/F1-Man's tube-splice/bypass-
+  fraction data, SP-8087's manifold hydraulics and six-method structural-support survey,
+  Fagherazzi's volute-sizing corroboration, and SSME-Orientation's hardware anchors. Result:
+  ~43 KB / ~28 KB — `12` itself is still a little over cap even after trimming (its
+  remaining material-properties content is dense), a materially better outcome than 69 KB
+  but not a perfect fix; flagged honestly rather than forcing an awkward third split.
+- **One `engine_designer/` edit, a pure path-string fix**: `ASSUMPTIONS.md`'s
+  `manifold_bypass_fraction` entry cited `claude_lit/topics/12-materials-and-structures.md`'s
+  SP-8120 H-1 manifold content, which moved to `12b` — the one-word path was corrected
+  (`12` → `12b`), zero physics/number change. Also added a note there that `[F1-Man §1-16]`
+  now gives the same 30% figure a primary-source citation (Rocketdyne's own manual) instead
+  of the current informal-web-source one — flagged as a pending citation-quality upgrade,
+  not applied.
+- **Cross-references fixed across the repo**: ~20 pointers in `sources/*.md`, `OPEN_
+  QUESTIONS.md`, and other `topics/*.md` files that cited content which moved were updated
+  to the new filename; pointers to content that *stayed* in the original-named files were
+  left alone (checked individually, not assumed). `PROVENANCE.md`'s own older historical
+  entries were deliberately left unchanged — a history log describes the layout as it was
+  at the time, the same way a git log entry isn't rewritten when files later move.
+- **`README.md`**: the `06`/`12` index rows were trimmed to their new scope, two new rows
+  added for `06b`/`12b`, and the topic-file count note updated (16 → 18 files).
+- **`OPEN_QUESTIONS.md`**: the Housekeeping section's "overdue" warning was rewritten to
+  record the split as done.
+
+No physics, no `ASSUMPTIONS.md` number, and no `validate.py` behavior changed — purely a
+documentation reorganization.

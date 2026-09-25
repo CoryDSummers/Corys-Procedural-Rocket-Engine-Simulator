@@ -50,6 +50,10 @@ joint, Ti-6Al-6V-2Sn, 11 in dia × 14 in, 105 lbf assembly):
 | Coefficient of friction (88–340 K) | 0.01–0.2 |
 | Operational cycles to ±10.5° | 200 (+ 1400 non-operational) |
 
+**Independent corroboration (2026-09-24)** `[SSME-Orientation p.10-11]`: matches this table's
+±12.5° capability / 200-operational/1,400-nonoperational-cycle figures exactly, and adds
+material detail Sutton's table lacks — 6Al-6V-2Sn Ti with Fabroid inserts.
+
 **Actuator sizing — IUS solid-motor flexible-bearing TVC** `[Sutton Table 16-3 p.616]`
 (4° + 0.5° margin, or 7.5°; two redundant electromechanical ball-screw actuators): stall
 force ≥ 1.9 kN (430 lbf); no-load speed ≥ 8.13 cm/s; stiffness ≥ 28.9 kN/cm; frequency

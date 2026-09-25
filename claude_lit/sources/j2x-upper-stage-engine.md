@@ -62,7 +62,7 @@ controller with health monitoring.
 19; body text, leaf 10-11]`: **tube-wall regeneratively-cooled main nozzle** plus a **large
 passively-cooled metallic nozzle extension boosted/cooled by turbine exhaust gas (TEG)** —
 i.e. the same regen-nozzle + TEG-film-cooled-extension architecture already anchored in
-`topics/07-dump-cooling.md`/`topics/06-cooling-and-heat-transfer.md` via Vulcain HM-60/J-2,
+`topics/07-dump-cooling.md`/`topics/06b-cooling-methods-and-chemistry.md` via Vulcain HM-60/J-2,
 now with a third, more recent (2010) real data point. The nozzle extension is **10 ft
 diameter at the exit, ~8 ft long** — among the largest passively-cooled nozzle extensions
 built at the time — peak operating temperature **~2,000°F**, coated (a commercially

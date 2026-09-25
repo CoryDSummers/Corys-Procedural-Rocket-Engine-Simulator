@@ -55,6 +55,11 @@ pressurization; `[SP-8107 §3.2.3.1]` "as high as practical (~1500 °F / 1089 K 
   instability / flameout; the 1000–1400 °F (811–1033 K) window is conducive to that
   instability (below 811 K they don't react fast enough for pulses; above 1033 K they react
   so fast accumulations don't form).
+- **Real FFSC preburner MR corroboration (2026-09-24)** `[SSME-Orientation p.28-34]`: SSME's
+  fuel preburner runs at real hot-gas MR **0.86**, its oxidizer preburner at **0.60** — both
+  fall inside the "normal fuel-rich, 0.2-1.0" band above, from a real high-Pc staged-combustion
+  engine (a preburner rather than a pure gas-generator, but the same fuel-rich mixture-ratio
+  physics applies) — an independent real-hardware corroboration of this band's upper end.
 - **Why fuel-rich**: (1) a fuel-rich hot streak is far less damaging than an oxidizer-rich
   one; (2) turbine specific propellant consumption is better with low-molecular-weight
   fuel-rich gas. Oxidizer-rich bipropellant GGs: essentially no Western applications as of
@@ -163,3 +168,12 @@ injector face, where both propellants arrive simultaneously.
 
   This is the first real anchor for a turbine *outlet* pressure in this set. It is what a
   turbine-back-pressure coupling needs; `GG_PRESSURE_RATIO = 22` is today a flat assumption.
+- **`[F1-Man]` real F-1 GG feed-pressure budget and bleed fraction (2026-09-24)** `[F1-Man Fig
+  1-27 p.1-25]`: a real, full pressure chain — MR 0.416, GG Pc 980 psia, combustor ΔP 33.5
+  psia, injector ΔP (ox 250/fuel 145 psia), ball-valve ΔP (ox 55/fuel 200), orifice ΔP (ox
+  261/fuel 375), line ΔP (ox 76/fuel 43) — richer per-component detail than `[SP-8081]`'s
+  generic tables, for this specific real engine. GG flow **167 lb/s = 2.91% of total engine
+  flow** — a second real GG-bleed-fraction fleet data point alongside H-1's 2.3%, supporting
+  that this fraction is engine-specific rather than a universal constant. Real engine-vs-
+  chamber MR split (2.27:1 overall vs. 2.40:1 main-chamber-only) — a clean real illustration
+  of GG-bleed mixture-ratio dilution, corroborating the same effect `[H1-Man]`'s numbers show.

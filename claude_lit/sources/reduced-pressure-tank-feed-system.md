@@ -29,7 +29,7 @@ simulate fill/startup velocity transients in the internal feed lines.
 **Scope note relevant to `engine_designer`**: everything here is **vehicle-level plumbing**
 — tank outlet through ~1000+ inch runs of 12"–20" trunk line, around cargo bays and other
 tanks, to 5 engines — not engine-internal injector-feed manifold design (the domain of
-`manifold.py`/`topics/12-materials-and-structures.md`'s manifold section). The scale
+`manifold.py`/`topics/12b-structures-manifolds-and-hardware.md`'s manifold section). The scale
 mismatch (feet of 12-20" pipe vs. inches of injector-face manifold) means most of this
 report's numbers are not directly reusable in `engine_designer`, which stops at the engine
 inlet flange. Flag this loudly before citing anything from here for engine-internal

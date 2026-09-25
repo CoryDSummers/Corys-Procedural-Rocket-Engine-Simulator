@@ -205,7 +205,7 @@ materials and ensure intimate contact between flow guides and the heated wall.
 - **Coolant velocity limits**: liquids **< 200 ft/s (61 m/s)**; gases **< Mach 0.3
   recommended, Mach 0.5 absolute maximum** (sonic choking risk at bends/contractions above
   that) `[SP-8087 §3.1.1.5.3 p.61]` — this exactly corroborates `[Sutton]`'s general gas-side
-  Mach-0.3-ish guidance already in `topics/06-cooling-and-heat-transfer.md`/injectors
+  Mach-0.3-ish guidance already in `topics/06b-cooling-methods-and-chemistry.md`/injectors
   content, now with an explicit liquid-velocity number this reference set didn't have before.
 - **Wall temperature chemical limits** `[SP-8087 §3.1.1.5.4 p.61]`: RP-1 coking above
   **850°F (728 K)**; furfuryl alcohol residue above 600°F (589 K); Aerozine-50 detonation
@@ -213,7 +213,7 @@ materials and ensure intimate contact between flow guides and the heated wall.
   `[SP-8087's own culture-mate]` `[SP-8087 §2.1.1.5 p.16]` narrative figure of 800–900°F
   quoted earlier in the State-of-the-Art section for the same coolant, and both are in the
   same ballpark as this reference set's existing LOX/RP-1 coking-limit figure in
-  `topics/06-cooling-and-heat-transfer.md` (~120 K ΔT coking limit framing) — a real,
+  `topics/06b-cooling-methods-and-chemistry.md` (~120 K ΔT coking limit framing) — a real,
   independent corroboration.
 
 ## Key results — §2.1.2/§3.1.2: Manifolds (the section flagged by the requesting session)

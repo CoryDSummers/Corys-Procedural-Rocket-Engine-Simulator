@@ -117,6 +117,25 @@ Titan turbine-exhaust-impingement side loads on an ablative extension: **90±20 
 360±50 lbf lateral**, inducing a ~250 ft-lbf vehicle roll moment — a real dimensioned load
 case for any turbine-exhaust-impingement structural analysis.
 
+**Real F-1-specific detail from Rocketdyne's own engine manual (2026-09-24)** `[F1-Man §1-15..
+1-23, §1-61..1-72; Fig 1-5/1-7]` — closes the acquisition item `OPEN_QUESTIONS.md` had flagged
+for this exact source. **Real film/mainstream temperature gap**: nozzle-extension film-coolant
+(turbine exhaust) temperature is **1,138°F**, vs. local core-gas static temperature at the
+16:1 exit plane of **1,922°F** — a real, quantified number not previously in `claude_lit`.
+**Real construction detail**: the extension's inner wall is built from **23 rows of
+overlapping shingles** (the real hardware behind the qualitative shingle description above).
+**Real turbine-exhaust manifold hydraulics**: a CRES torus of *decreasing* cross-section
+inlet-to-exit, **15 omega expansion joints**, inlet splitter plates + exit flow vanes
+specifically for uniform gas distribution into the extension. **Real heat-exchanger
+architecture — a third, richer example of the pressurization-heat-exchanger pattern**: the F-1
+carries BOTH oxidizer coils (LOX→GOX, ox-tank pressurization) AND helium coils (chilled He,
+fuel-tank pressurization) in one shell — distinct from H-1's/J-2's single-propellant-only
+exhaust heat exchangers. **Real igniter-placement anchor**: nozzle-extension pyrotechnic
+igniters sit near the **11:1 area-ratio plane** — a second independent real area-ratio anchor
+alongside the 10:1→16:1 boundary above. **Caveat**: no F-1-specific version of the
+"~25-30%-at-attachment" film-coolant split above was found in this manual — that number stays
+sourced to `[SP-8120]` alone, not independently corroborated by the engine's own manual.
+
 ## Turbine-exhaust disposal hardware — the real H-1 aspirator, duct and heat exchanger
 `[H1-Man §1-39..1-51 p.1-25..1-28, targeted read 2026-09-24]`
 
@@ -146,6 +165,24 @@ That exit pressure lies between Titan I's **30 psi** `[SP-8120]` and a choked se
 It is consistent with the exhaust exit needing to stay sonic at sea level, which requires
 roughly p_amb / 0.55 ≈ 27 psia before duct losses.
 
+## A second real `nozzle_injection` anchor and a real LOX-pressurization heat-exchanger use — J-2 (2026-09-24)
+
+`[RPE-J2Blog]` (a secondary/enthusiast source — see Caveats — but internally consistent and
+independently useful for two real dimensioned hardware facts): the J-2's LOX-turbine exhaust
+(after passing both turbines in series via an 8in-diameter crossover duct) dumps into the
+nozzle through eyelets of **total area 115 in²** at area-ratio stations **10.45-11.40** — a
+second real, dimensioned anchor for `physics/turbine_exhaust.py`'s `nozzle_injection` mode,
+alongside the existing F-1 case above (different engine family, same architectural pattern:
+inject turbine exhaust into the supersonic nozzle stream at a similar area-ratio band).
+Separately, a real historical design feature **not currently modeled anywhere in
+`engine_designer`**: the J-2's turbine-exhaust duct routes through a heat exchanger used to
+boil LOX for vehicle LOX-tank pressurization — the same architectural pattern as the H-1's
+GOX-pressurization heat exchanger above (and Titan I's oxidizer superheater), now a third real
+example, corroborating that a turbine-exhaust-duct heat exchanger for tank pressurization is a
+common feature across engine families, not a one-off — worth flagging as a possible future
+`turbine_exhaust.py` feature idea (a pressurization-gas heat-pickup mode) if that module is
+ever extended, though no citation exists yet for sizing one.
+
 ## Caveats
 
 - One tiny, low-Pc engine (the `[TN-Dump]` propellant-dump-cooling test article). The
@@ -162,6 +199,17 @@ roughly p_amb / 0.55 ≈ 27 psia before duct losses.
   itself experimentally determined, not derived, and is specific to the F-1's own geometry
   (large separation distance between main/coolant streams). Treat as a real anchor point and
   design-driver narrative, not a directly portable design equation.
+- `[RPE-J2Blog]` is a secondary/enthusiast-researcher compilation (Rocket Propulsion Evolution,
+  enginehistory.org), not a primary NASA/Rocketdyne document, with no inline footnotes tying
+  individual claims to specific sources — treat its two facts above as plausible real hardware
+  color to corroborate against, one tier below `[SP-8120]`/`[H1-Man]`, not a citation of record
+  for a physics constant on its own.
+- `[F1-Man]` (Rocketdyne's own F-1 familiarization manual, R-3896-1, 1967) is a scoped read of
+  a 262-page manual (engine-overview/thrust-chamber/turbopump/ignition/GG-heat-exchanger
+  sections + Section III performance tables read in full; shipping/logistics/maintenance
+  narrative and Section II's garbled weight/CG/wiring tables skimmed only). No F-1 turbine
+  efficiency percentage was found in the sections read (unlike `[H1-Man]`'s 69.6% for the H-1)
+  — flagged as an open item if ever needed.
 
 ## Implications for engine_designer
 
@@ -204,3 +252,16 @@ roughly p_amb / 0.55 ≈ 27 psia before duct losses.
   - anchor the turbine back pressure on 599→33.8 psia (turbine inlet ≈ **0.87 × Pc**).
 
   Report-only; no code changed.
+- **`turbine_exhaust.py`'s `nozzle_injection` mode now has a second real hardware anchor**
+  (`[RPE-J2Blog]`'s J-2 eyelet geometry, 115 in² at eps 10.45-11.40) alongside the existing F-1
+  case — two independent real engines using the same architectural pattern at a similar
+  area-ratio band. Report-only — no code changed.
+- **A candidate future feature, not yet actionable**: a turbine-exhaust-duct heat exchanger for
+  tank pressurization (real on H-1/J-2/Titan I/F-1, above) has no counterpart in
+  `turbine_exhaust.py` today — flagged for awareness, no citation yet exists for sizing one.
+- **`OPEN_QUESTIONS.md` item (b) (Rocketdyne F-1 Familiarization Training Manual) is now
+  RESOLVED (2026-09-24)** — acquired and distilled (`[F1-Man]`, above). Its real turbine-PR
+  anchor (≈16.3 uprated/≈15.8 baseline) is folded into `topics/09-turbopumps.md`; its real
+  tube-count/bypass-split numbers are folded into `topics/12b-structures-manifolds-and-hardware.md`; its
+  real GG feed-pressure-budget chain is folded into `topics/10-gas-generators.md`. Report-only
+  — no code changed.

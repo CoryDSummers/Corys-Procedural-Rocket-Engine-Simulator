@@ -96,7 +96,7 @@ before final overboard dump) — worth checking against however `staged_combusti
   flange to nozzle exit) 108.6 in. Cooling: fuel flows down 180 tubes then up 360 tubes to
   the injector (a **1:2 tube-count splice**, i.e. every downcomer tube splits into two
   upcomer tubes at the turnaround — real-hardware corroboration of `[SP-8120]`'s tube-splice-
-  joint design criteria already in `topics/12-materials-and-structures.md`, on the exact
+  joint design criteria already in `topics/12b-structures-manifolds-and-hardware.md`, on the exact
   cycle/engine family SP-8120's own J-2/J-2S band-redesign anecdote references), plus film
   cooling inside the chamber.
 - Injector: concentric-orificed (fuel orifices around oxidizer post orifices), **porous-faced,

@@ -115,7 +115,7 @@ PDFs were confirmed to cover it either (see other `sources/*.md` notes from this
   this thesis). A quoted **rule of thumb: maximum permissible regenerative-cooling pressure
   loss is 15-22% of coolant inlet pressure**, "depending on design requirements"
   `[Fagherazzi-2019 §2.5.4 p.59]` — this is a real, independent number for the jacket-ΔP
-  fraction question already discussed in `topics/06-cooling-and-heat-transfer.md` (existing
+  fraction question already discussed in `topics/06b-cooling-methods-and-chemistry.md` (existing
   anchors: `[Sutton Table 8-1]` real jacket ΔP 100-540 psi across RS-27/RL10B-2/LE-7; the
   tool's `JACKET_DP_PA` scaled 1.0 for regen). A 15-22%-of-Pcoolant-inlet framing is a
   different (percentage-of-supply-pressure, not absolute-pressure) way to bound the same

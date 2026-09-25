@@ -4,7 +4,12 @@
 
 Material selection framework, high-temperature allowable stress, the wall thickness /
 hoop-stress calculation, the safety-factor structure, and ablative regression. Feeds
-`engine_designer/physics/materials.py` and `mass_model.py`.
+`engine_designer/physics/materials.py` and `mass_model.py`. **Split 2026-09-24** (this file
+exceeded the 40 KB lookup-budget cap): real structural design criteria and real-hardware data
+for tube-wall retaining bands, propellant/coolant manifolds, tube-splice joints, nozzle
+attachments, and turbine-exhaust manifolds now live in `topics/12b-structures-manifolds-and-
+hardware.md` — this file keeps material selection, alloy properties, fatigue/embrittlement/
+ignition data, and ablative/radiation material criteria.
 
 ## Key relations
 
@@ -128,144 +133,22 @@ strength/thermal fatigue than prior Cu alloys. Russian designs (RD-107 family) u
 hundreds-of-pieces conventional builds with 1-2 printed pieces, hot-fire tested in LOX/LH2
 "with no noticeable loss of performance."
 
-**Tube-wall nozzle retaining bands** `[SP-8120 §2.2.1.1/§3.2.1.1 p.27-31, 71-72]`: a
-tube-bundle nozzle wall has essentially no resistance to side loads (startup, flow
-separation, mechanical attachments) on its own - either a continuous shell or intermittent
-rigid retaining bands must react all hoop/side/gimbal loads instead, by explicit design
-criterion ("do not require the tube bundle to withstand any loads from exhaust gas or
-mechanical forces"). Bands go downstream of the continuous-shell region, since wall pressure
-(and thus required support) drops rapidly aft of the throat. Two band cross-sections are
-recommended: simple flat bands where buckle resistance can be low (near the throat), stiffer
-profiles where it must be high (near the exit). **Real F-1 data**: instrumented, hot-fired
-tube-to-band joints measured axial stress-concentration factors up to 2.2 (analysis: up to
-2.8 axial / 2.45 bending) on F-1's rectangular bands; **thinning the band cross-section at
-the band edge reduced the concentration** - the only quantitative fix given. **Real J-2 to
-J-2S fix**: an early J-2 aft-band buckling failure (from startup side loads - a transient
-load case, not steady-state) was first patched expensively/heavily, then properly redesigned
-lighter-and-buckle-resistant for J-2S once time allowed. Band material must be braze-
-compatible with the tube alloy; Inconel 718 and Inconel X-750 are the named real band alloys,
-using a controlled post-braze furnace cooldown to develop mechanical properties. A real
-failure-mode catalog (Fig. 15) attributes most tube damage under bands to high-low tube
-alignment (excess braze gap or forced crown depression), inconsistent band-to-tube contact
-angle, concentrated external loads, or fabrication-induced (weld-shrinkage) interference -
-fixed in practice with shim stock rather than forcing the fit. Tube splice joints (where one
-tube becomes two downstream to match increasing nozzle circumference) should be avoided where
-possible; if required, use a high-ductility tube alloy (347 CRES or nickel) for a higher
-taper ratio before splicing is needed, and always put any joggle on the cold-gas side of the
-tube, never the hot-gas side (hot-side joggles are a crown-depression/stress-concentration
-risk exactly where wall temperature is already highest).
-
 **Inconel X-750 physical/thermal/mechanical properties** `[SMC-X750 Tables 2/3/5/13]`: the
-alloy `[SP-8120]` names above (alongside Inconel 718) as a real hatband material now has a
-citable properties source for `materials.py`'s `inconel_x750` entry. Density 8.28 g/cm³
-(8280 kg/m³); melting range 1393-1427°C; oxidized-surface emissivity 0.895 at 600°F rising
-to 0.925 at 2000°F (a real cited figure, unlike `inconel_718`'s uncited 0.7 estimate).
-Thermal conductivity 83 Btu·in/(hr·ft²·°F) at 70°F (11.97 W/(m·K)), rising to 143 at 1200°F;
-mean CTE (from 70°F) 7.8e-6/°F at 800°F (1.40e-5/K); static-tension Young's modulus 31.0e3
-ksi at 80°F (2.14e11 Pa). Real cited yield strength (Table 13, solution-treated + furnace-
-cool precipitation-treated - the condition aimed at real service strength rather than
-spring temper) is 845 MPa at 1200°F and 530 MPa at 1500°F - both far above any working
-allowable this tool would assign, matching `inconel_718`'s own already-heavily-derated
+alloy `[SP-8120]` names (alongside Inconel 718) as a real hatband material
+(`topics/12b-structures-manifolds-and-hardware.md`) now has a citable properties source for
+`materials.py`'s `inconel_x750` entry. Density 8.28 g/cm³ (8280 kg/m³); melting range
+1393-1427°C; oxidized-surface emissivity 0.895 at 600°F rising to 0.925 at 2000°F (a real
+cited figure, unlike `inconel_718`'s uncited 0.7 estimate). Thermal conductivity 83
+Btu·in/(hr·ft²·°F) at 70°F (11.97 W/(m·K)), rising to 143 at 1200°F; mean CTE (from 70°F)
+7.8e-6/°F at 800°F (1.40e-5/K); static-tension Young's modulus 31.0e3 ksi at 80°F
+(2.14e11 Pa). Real cited yield strength (Table 13, solution-treated + furnace-cool
+precipitation-treated - the condition aimed at real service strength rather than spring
+temper) is 845 MPa at 1200°F and 530 MPa at 1500°F - both far above any working allowable
+this tool would assign, matching `inconel_718`'s own already-heavily-derated
 `allowable_stress_pa`. No table gives a strength value at the alloy's own claimed 1800°F
 oxidation-resistance ceiling (only creep/rupture/fatigue curves extend that far) - the same
 "real data stops short of the tool's max_service_temp_k" situation `inconel_718`'s
 ASSUMPTIONS.md entry already flags. See `sources/smc067-inconel-x750.md` for full tables.
-
-**Real splice-count corroboration — J-2S** `[AEDC-J2S §2.1.1 p.1-3]`: real J-2S hardware
-(same engine family as SP-8120's J-2/J-2S band-redesign anecdote above) uses exactly this
-splice pattern in practice — fuel flows down **180** tubes then up **360** tubes to the
-injector, i.e. every downcomer tube splices into two upcomer tubes at the turnaround (a 1:2
-splice ratio) to match the increasing nozzle circumference toward the throat/chamber. A
-concrete real-hardware instance of the `[SP-8120]` splice-joint design criteria just above,
-on the exact engine SP-8120's own anecdote references.
-
-**Manifold structural supports** `[SP-8120 §2.2.5.2.4/§3.2.5.2.4 p.47-48, 79-80]`: vanes,
-splitters, dams, and structural ties inside large thin-wall manifolds fail from differential
-thermal stress, vibration fatigue, resonant flutter, or static-pressure loading - and the
-monograph stresses that such a failure is as much a *combustion*/performance risk as a
-structural one ("often produces a maldistribution of fluid flow and results in performance
-loss, combustion instability, or wall overheating"). Toroidal manifold shells "breathe" under
-pressure and are more flexible than their supporting structure, so ties must either flex with
-the shell while staying locally rigid, or mount on one side only with clearance elsewhere.
-**Attachment weld quality ranking, worst to best**: fillet weld ("generally unacceptable") <
-full-penetration fillet weld ("usually acceptable") < butt weld ("good... first choice") <
-integral casting/parent-metal construction ("excellent... failure free"). Attachment location
-itself is called "extremely critical" since fatigue failure there is the most common failure
-mode. Real example: an 80%-cross-section dam in the H-1 engine's fuel-return manifold fixed a
-nonuniform-inlet-flow problem that had been causing **measured engine performance to change
-test-to-test** - a concrete case of a manifold structural/hydraulic fix directly resolving a
-performance problem, not just a durability one.
-
-**Real manifold hydraulic/distribution design criteria** `[SP-8087 §2.1.2/§3.1.2 p.19-20,
-62-64]` — this is NASA's dedicated fluid-cooled-chamber monograph and the single most
-load-bearing new source for manifold design specifically, complementing `[SP-8120]`'s
-structural-supports content above with real hydraulic/distribution numbers. **Three manifold
-types**: inlet, outlet, turnaround — manifolding is frequently integral with structural
-supports/interface flanges (inlet manifold integral with the forward flange in two-pass
-systems; turnaround integral with the aft flange when a nozzle extension bolts on). **Real
-flow-maldistribution tolerance**: up to **20% flow variation has been tolerated in the first
-pass** of a multi-pass system (coldest coolant, widest thermal margin there), but must be
-reduced before the final pass — typically via the natural balancing effect of a common
-manifold at the turnaround. **Hydrogen systems require analytical (not empirical) flow-
-balancing** due to hydrogen's large density variation with temperature; storable-coolant
-systems are comparatively easier. **Two competing toroidal inlet-manifold design
-philosophies**: (1) variable-area/constant-velocity (tapered torus) — equal velocity to
-every passage, smaller/lighter, but harder to fabricate and prone to pressure-drop-driven
-maldistribution around the torus; (2) constant-area/variable-velocity — minimizes pressure
-loss but produces maldistribution (passages near the inlet see higher velocity than passages
-opposite it). **Real practice is a compromise between the two**, using smooth turns/vanes; a
-flow splitter at the torus inlet suppresses dynamic-head effects locally. **A real,
-propellant-specific turnaround-manifold-topology rule**: common annulus preferred for
-storable coolants (evens flow before the critical final pass); discrete per-tube/per-channel
-circuits preferred for hydrogen (each channel's resistance must be balanced separately as a
-function of *local* coolant properties) — directly relevant to `manifold.py`'s existing
-`cooling_flow_topology` options (`"single_pass_countercurrent"` vs. the real-F-1-sourced
-`"f1_split_reverse_flow"`), giving a propellant-class rule for which style is appropriate
-beyond the two topologies the tool currently models. **A concrete manifold-to-thin-wall
-transition criterion**: taper the manifold wall over a short **0.5-1 in transition** between
-thin cooled sections and heavy manifolds to avoid bending discontinuities (or use asymmetric
-support of the thin section) — complements rather than duplicates `[SP-8120]`'s
-vane/splitter/dam *attachment*-quality criteria, since this is the thin-to-thick wall
-transition geometry itself. Real interface-flange examples: a welded fuel-turnaround
-manifold (fully-penetrating welds to the aft tube ends) and a brazed flange with a *separate*
-turbine-exhaust manifold routing hot gas past the fuel turnaround manifold to the same
-nozzle-extension attachment — a real two-manifolds-at-one-structural-interface example.
-
-**Real manifold-volute-sizing corroboration for `manifold.py`** `[Fagherazzi-2019 §3.3.2
-p.87-88]`: an independent thesis sizes its own coolant supply manifold as a volute (splitting
-incoming flow into two symmetric halves feeding the channel bundle) using the **exact same
-constant-target-velocity continuity-equation approach `manifold.py` already implements** —
-`A(θ) = ṁ(θ)/(ρ·v̄)`, where the cross-section shrinks as flow peels off into channels along
-the volute's length — a real, independently-arrived-at second precedent for that design
-pattern. Design intent: avoid abrupt velocity changes between the supply volute and the
-channels, keep the envelope clear of seal lands/bolt circles. A **circular cross-section is
-hydraulically optimal but a rectangular section is often chosen purely for machinability** —
-real design practice trading hydraulic optimality for manufacturing simplicity at small
-scale. A **simplified constant-cross-section volute** (`A(θ) = const`) is a real, usable
-"cheap but good enough" fallback if a non-optimal-but-simple sizing mode is ever wanted. Real
-packaging constraint: the coolant inlet had to be moved off-axis to route around o-ring seal
-lands, and the outlet needed a 90° flow-diversion elbow to exit radially — concrete evidence
-that manifold/fitting geometry is frequently seal/fastener-envelope-driven, not purely
-hydraulic, a real-world caveat on `manifold.py`'s per-propellant "hook point" simplification.
-
-**Real six-method throat/chamber structural-support survey** `[SP-8087 §2.1.3.1 p.21-24]`:
-(a) cylindrical shell (Aerobee, Improved Titan Stage I); (b) one-piece brazed jacket (J-2,
-F-1, H-1) or bolt-on/weld-on corsets (Titan III Stage II/RL10); (c) banded (Atlas
-booster/sustainer — the `[SP-8120]` retaining-band case above); (d) U-tube integral shell
-(NERVA); (e) double-walled inherent integral shell (Atlas vernier); (f) drilled-passageway
-inherent integral shell (Agena). **Real comparative reliability finding**: chambers with
-*less rigid* support (banded, cylindrical shell, wirewrap-only) showed *more* tube-to-tube
-hot-gas leaks after many tests than chambers with intimate brazed-jacket support (though
-entangled with brazing-technique era, not support-rigidity alone, per the source's own
-caution). **Real fabrication method** (F-1/J-2/H-1's one-piece brazed jacket): tubes pressed
-against the jacket by a pressurized bag during brazing, "costly and difficult" — corroborating
-`[SP-8120]`'s own F-1/J-2 fabrication-difficulty anecdotes. **Real fatigue mode**: brazed-
-jacket tube crowns fatigue-cracked at the jacket's *aft end* from cyclic structural-resonance
-loads and a stress discontinuity there — fixed by adding damping bands to the expansion
-nozzle AND tapering the jacket thickness / increasing braze contact over the aft 1-2 in. A
-real Titan-sustainer corset (epoxy-filled space between a split shell and the wirewrapped
-tube bundle, carrying shear loads) prevented throat buckling from asymmetric jet-separation
-side loads up to 1.4× limit load in ground tests.
 
 **Real chamber-liner copper-alloy property table** `[MatCh2 Table 2.6.3 p.53]` — the first
 real quantitative room-temperature properties table for these exact alloys in this
@@ -284,10 +167,130 @@ NARloy-Z's real application context: SSME hot-wall liner, 20 MPa chamber pressur
 flame, survivable only via active regen cooling exploiting its high conductivity + good
 elevated-temp strength. **Copper is also a deliberate hydrogen-diffusion barrier** on
 H2-embrittlement-susceptible Ni-based alloys — SSME uses copper for preburner baffles and
-partial main-fuel-valve-housing coating. Caveat: this source's own Table 2.6.3 gives
-GRCop-84's composition as Cu-6.7Cr-5.9Nb while its own §2.8 HEE table (below) labels the
-same alloy Cu-8Cr-4Nb — an internal inconsistency in the source itself (possibly a
-weight-%-vs-atomic-% mismatch), not resolved here.
+partial main-fuel-valve-housing coating. **RESOLVED 2026-09-24**: this source's own Table
+2.6.3 gives GRCop-84's composition as Cu-6.7Cr-5.9Nb while its own §2.8 HEE table (below)
+labels the same alloy Cu-8Cr-4Nb — not an internal inconsistency after all.
+`[GRCop84-TM2005 Executive Summary p.1]` (the primary NASA source for this alloy) gives the
+composition as **Cu-8 at.% Cr-4 at.% Nb** (atomic percent — literally where the "84" in
+GRCop-84 comes from); converting to weight-% gives Cu-6.52Cr-5.83Nb, matching `[MatCh2]`'s
+"Cu-6.7Cr-5.9Nb" to within ~0.2-0.3 percentage points. The two numbers were always the same
+alloy in two different unit conventions.
+
+**GRCop-84 real temperature-dependent tensile properties — a strong citation-upgrade
+candidate (2026-09-24)** `[GRCop84-Tensile Tables 3-4]`: a genuine multi-specimen statistical
+tensile program (5 independent powder lots, extruded AND HIPed, cryo 20-77K through ~1200K,
+real least-squares regressions with 95%-CI terms). As-extruded baseline (mean regression):
+
+| T (K) | Yield (MPa) | UTS (MPa) | Elongation % |
+|---|---|---|---|
+| 20 (LH2) | 291.3 | 644.9 | 17.8 |
+| 77 (LN2) | 275.1 | 590.8 | 19.3 |
+| 293 (RT) | 226.9 | 408.4 | 21.4 |
+| 400 | 207.4 | 331.3 | 20.9 |
+| 600 | 170.4 | 210.9 | 18.9 |
+| 800 | 122.7 | 121.3 | 17.6 |
+| 1000 | 52.3 | 62.5 | 19.1 |
+
+(Full regressions: yield σ=297.4−0.312T+3.175e-4T²−2.506e-7T³ MPa; UTS σ=664.5−0.987T+
+3.850e-4T² MPa, T in K. HIPed condition is systematically lower at low/mid T, converging with
+extruded by ~900-1000K — no cryogenic data for HIPed, don't extrapolate below 293K.) **The
+report's stated core advantage over NARloy-Z/Cu-Cr/Cu-Zr/Cu-Cr-Zr**: a braze/diffusion-bond
+cycle (935-1000°C) knocks GRCop-84's yield down only ~10-15%, fairly flat cryo-to-600°C — by
+contrast, unpublished P&W Rocketdyne data shows NARloy-Z loses "almost half" its strength from
+the same cycle, since GRCop-84's Cr2Nb dispersion strengthening survives a braze cycle that
+destroys precipitation strengthening. Long-term high-T exposure (500-1000°C, up to 6000 min):
+strength actually INCREASES at 500°C (secondary Cr precipitation); even at 1000°C exposure,
+"minimal loss in properties." Cold work adds up to +50% yield at RT but anneals out by
+200-600°C — not a viable strengthening lever for a hot-wall liner. Real drawn-tubing RT data
+(directly relevant to `WALL_CONSTRUCTIONS.tube_wall`): tube drawing does not degrade
+properties vs. as-extruded (avg yield 245.7 MPa, UTS 420.0 MPa, elongation 22.8%). This is a
+genuine candidate to upgrade `materials.py`'s currently Tier-3 GRCop-84 `allowable_stress_pa`
+from an estimate to a cited temperature-dependent curve — report-only, no code changed.
+
+**OFHC-copper low-cycle-fatigue (LCF) method + a real applied result** `[Miller-CuFatigue
+§Fatigue Life Analysis eq.2 p.42; §Results p.39, 46]` — directly hits `mass_model.py`'s throat
+low-cycle thermal-fatigue estimate, which currently has no cited method: the Manson Universal
+Slopes equation, given in full, `Δε_t = (3.5·σ_u/E)·N̄_f^-0.12 + [ln(1/(1-RA))]^0.60·N̄_f^-0.60`
+(general to any ductile metal, using short-term tensile σ_u/E/RA at the temperature of
+interest), with an elevated-temperature derating factor "average life" = N̄_f/5 (cited to
+Manson & Halford, NASA TM-X-52270 1967). **A real applied case**: a real regen OFHC-copper
+LH2/LOX chamber throat, computed peak strain range 2.46% → predicted life 80 cycles vs.
+**actual observed through-crack failure at cycle 39** — a real ~2x unconservative prediction,
+explicitly framed by the source as within normal fatigue scatter, a useful order-of-magnitude
+uncertainty anchor for any LCF-derived design margin. **A real, directly relevant finding**:
+peak strain range and peak wall temperature were NOT co-located in that same test article (the
+hottest element ran only ~521°C locally while the true 2.46%-peak-strain element saw only
+970°F/521°C — coolant-vs-chamber pressure-differential bending redistributed plastic strain
+toward the rib base) — if `mass_model.py`'s thermal-fatigue estimate ever infers fatigue risk
+from a single hottest-wall-temperature station, this real example shows that proxy can miss
+the true worst point. Cyclic hardening of annealed OFHC copper ≈30% stress increase over the
+monotonic curve at 3% strain, 538°C. Caveat: pure annealed OFHC copper only (no NARloy-Z/
+GRCop-84/Cu-Cr-Zr), one real test article (not a statistical dataset), method + one data
+point, not a handbook curve; hold-time damage (relevant to longer-burn engines than this
+report's ~2-second-pulse test article) is explicitly flagged unaddressed.
+
+**Real chamber-liner life-enhancing design concepts, seven real approaches** `[Quentmeyer-
+CR185257]` — a survey of hardware-tested life-extension techniques for a regen chamber liner,
+distinct from (and complementary to) the alloy-selection framing above. **Thermal barrier
+coating (TBC), the headline quantified result**: ZrO2 (0.076mm)+NiCr bond coat on an
+electroformed-Cu liner survived **1450 cycles with no damage vs. 393 cycles for an uncoated
+Amzirc liner** at the same geometry/conditions (caveat: substrate material also differs, not a
+clean single-variable A/B); TBC cuts heat flux ~50% `[§Thermal Barrier Coatings p.3]`.
+**Tungsten-reinforced liner**: W wire in a thin Cu wall → thermal conductivity only ~10% below
+OFHC Cu, rupture strength ~80% higher than NARloy-Z at 867K, no damage after 400 cycles
+`[§Tungsten-Reinforced Chamber Liner p.4]`. **High-aspect-ratio channels**: increasing channel
+count 72→400 at the same coolant flow dropped throat wall temp 777K→444K; platelet-formed
+liners achieved aspect ratio up to 15 `[§High-Aspect-Ratio Cooling Passages p.5, §Platelet-
+Formed Chamber Liner p.8]`. **Low-stiffness closeout**: a sintered-Al+PTFE compliant layer
+between liner and structural jacket gives an analytical (not tested) 3x life-enhancement
+factor vs. a conventional Ni closeout `[§Low-Stiffness Closeout p.6]`.
+
+**Manufacturer alloy datasheets — real primary properties for four alloys already named in
+this file (2026-09-24)**: **304/304L stainless** `[SS304-TDS]` (not currently in
+`materials.py`'s catalog — a candidate if a low-cost structural stainless entry is ever
+added): RT UTS 90 ksi (620 MPa), CTE 16.6e-6/K, k=16.3 W/(m·K), no cold-embrittlement cliff
+(Charpy toughness actually rises at cryo temps). **321/347/348 stainless** `[SS321-TDS]` — the
+higher-value grades, since these are the turbine-exhaust/hot-gas-manifold alloys already named
+via `[Ch12-Materials]`'s "347 CRES" F-1 citation above, now with real numbers behind that
+name: max ASME code-use temp **1500°F (816°C)** vs. plain 304L's 800°F — the entire reason the
+stabilized (Ti- or Cb+Ta-stabilized) grades exist; also resist polythionic-acid SCC where
+unstabilized 304 sensitizes/cracks; 347/348 notably stronger than 321 at every temperature
+(RT UTS 93.25 ksi vs. 321's 85 ksi). **Inconel 718** `[Inc718-TDS]` — real UTS/YS cliff
+between 1200°F (1134 MPa) and 1300°F (1003 MPa), a ~12% drop over 100°F quantifying the
+alloy's practical ~1300°F ceiling; cryogenic UTS RISES from RT to LH2 temp with ductility
+maintained (no cryo embrittlement). **Explicit cross-check**: a full-text search of this
+28-page datasheet for "hydrogen"/"embrittl" returned zero matches — it has NO HEE data
+whatsoever, purely mechanical/thermal/physical properties; `[MatCh2]`'s HEE-index data above
+remains the sole H2-embrittlement citation for 718. **Nickel 200/201** `[Ni200-TDS]` — real
+cryogenic tensile data (UTS nearly doubles RT→LH2 temp with high ductility retained); Nickel
+200 graphitizes 800-1200°F (not recommended in that range), Nickel 201 (low-C) resists
+graphitization and is ASME-approved to 1250°F — the real reason two grades exist. **Important
+disambiguation flagged by the fork that wrote this note**: this datasheet's own "hydrogen"
+mentions are all chemical-corrosion-resistance context (dry-H2 annealing atmosphere), NOT
+mechanical HEE data — `[MatCh2]`'s own table says pure nickel/Ni-rich alloys are *severely*
+HEE-embrittled, the opposite implication from this datasheet's generally favorable corrosion
+tone. **Do not conflate corrosion resistance with H2-embrittlement resistance for nickel** —
+they are different mechanisms with different (in this case opposite-sounding) verdicts.
+
+**Real self-cooled-chamber ablative and radiation-cooled material criteria — `[SP-8124]` full
+read, 2026-09-24** `[SP-8124 §2.1/§3.1 (ablative), §2.2/§3.2 (radiation-cooled)]`: a genuinely
+new, dimensioned set of design criteria complementing this file's existing Ablatives/
+Radiation-cool bullets above. **Ablative**: silica/quartz surface-temperature limit **3000°F**
+(to 3400°F under special conditions); a throat insert is required above **Pc>300 psi**;
+insert material selection by temperature band (SiC/JTA ≤3600°F for <1000 lbf engines,
+molybdenum w/ silicide coating for larger engines, pyrolytic graphite washers >3600°F); real
+throat-insert geometry ratios (thickness/ID 0.2-0.3, length/thickness ≤6); a **1.25 char-depth
+safety factor**; structural-shell temperature limits by material (titanium/stainless 800°F,
+aluminum 350°F); fiberglass structural safety factors 1.5-1.8 vs. metal shell 1.25-1.5.
+**Radiation-cooled**: columbium (C-103) recommended over 90Ta-10W/molybdenum; wall must
+exceed ~2200°F for radiative balance; silicide coating limits 2800°F/1hr (3100°F/10min),
+aluminide coating 2400°F (2800°F ceiling), coating thickness ≤8 mils; real emissivity data
+(coated 0.75-0.85, bare refractory 0.2-0.4, V-grooved-uncoated 0.8) — extends this file's
+existing anodized-aluminum emissivity numbers (0.1→0.9); real sublimation-rate data
+(0.8%/hr@2600°F, 4%/hr@3000°F); real embrittlement/brittle-fracture hardware findings (SCb-291/
+C-129Y embrittle, C-103 doesn't; molybdenum's ~70°F ductile-brittle transition causes real
+pulsed-operation failures — a real, citable reason to avoid Mo for a pulsing radiation-cooled
+design specifically, distinct from its high-temperature capability).
 
 **Real quantitative hydrogen-embrittlement (HEE) screening data by alloy** `[MatCh2 §2.8.4-
 2.8.5 p.68-77]` — the single most load-bearing new content in this batch for materials
@@ -379,61 +382,6 @@ cycle specifically to avoid hydrogen-embrittlement cracking of turbopump structu
 elements — a real, explicitly-stated example of the propellant/cycle-choice materials
 interaction this topic file's cryo-embrittlement content already discusses.
 
-**Real manifold-velocity design criterion — `[SP-8120]` full read, 2026-09-24** `[SP-8120
-§3.2.5.1 p.78]`: *"Keep the fluid velocities in the manifold as low as possible, preferably
-**less than 60 fps for liquids and less than Mach 0.25 for gases**."* This is **more
-conservative** than `[SP-8087]`'s already-cited limits above (200 ft/s liquid, Mach 0.3
-recommended/0.5 max) — two independent NASA design-criteria monographs give different
-numbers for what may or may not be exactly the same quantity (general circumferential
-distribution-manifold velocity here vs. `[SP-8087]`'s coolant-jacket-passage velocity
-specifically) — flagged as a real, unresolved discrepancy rather than silently picking one.
-Narrative context: real observed maldistribution (tube starvation, inadequate local film
-coolant) has occurred at **liquid velocities of 50-100 fps and gas velocities of Mach
-0.25-0.4** — the 60 fps/Mach 0.25 criterion sits at the low end of a real observed
-maldistribution-onset band, not an arbitrary round number. Real inlet-configuration fixes:
-multiple tangential inlets, multiple low-velocity radial inlets, or turning vanes/deflector
-plates for single-inlet designs; taper the manifold cross-section (or bore a torus
-off-center for low-volume production) to fix along-manifold pressure variation. Even a
-well-tuned tapered/vaned inlet still shows a real residual pressure rise at the manifold's
-final stagnation point — fixed by adding flow resistance downstream of the bleedoff ports
-there, not further inlet tuning.
-
-**Real hot-gas (turbine-exhaust) manifold structural/thermal-growth precedent — `[SP-8120]`
-full read, 2026-09-24** `[SP-8120 §2.2.5.3/§3.2.5.3 p.48-53, 80-82]`: real historical survey
-of turbine-exhaust disposal by engine (Atlas booster canted-duct fix for boattail fires;
-Atlas sustainer/Saturn-S-1B looped-tube-into-main-jet; F-1's film-cooling use, above; J-2's
-"cat-eyes" dump into the main stream, tubes downstream partially film/primarily regen
-cooled; Titan's superheater-then-impingement-on-ablative-extension routing). **Real F-1
-hot-gas-manifold thermal-growth/failure detail**: tapered hot-gas torus rigidly attached to
-the cooled exit ring, **"omega" expansion joints** for thermal growth (potential radial
-growth **~0.5 in.**); recurring real failure at the omega-joint/outer-ring intersection
-(tension cracks from ring bending) — fixed by doublers distributing load over a longer base.
-A separate tube-denting failure from flame-shield/retaining-band interference was fixed by
-increasing clearance from **a few thousandths of an inch to ~0.4 in.** Real material rule by
-thermal-load severity: elastic/low-thermal-load designs can use relatively brittle materials
-(Waspaloy, Rene 41); high-thermal-load hot-gas manifolds (like F-1's) need materials
-retaining **≥20% ductility at elevated temperature** — real examples 347 CRES, Hastelloy C,
-Inconel 625, L-605. **Design criterion, safety-relevant**: the looped-tube/gap turbine-
-exhaust-introduction method must **not** be used with noncryogenic propellants (real Atlas
-RP-1-trapping/LOX-RP-1-gel-detonation precedent, detailed in `topics/07-dump-cooling.md`) —
-use an annulus-at-exit or film-cooled-extension method instead for storable propellants.
-
-**Real coolant-return-manifold and nozzle-attachment braze/tolerance numbers — `[SP-8120]`
-full read, 2026-09-24** `[SP-8120 §2.2.5.4/§2.2.6 p.53-57]`: real tube-to-manifold joint
-comparison — square tube ends into slots (corner-filler/braze-peeling/oil-canning problems)
-vs. **circular tube ends into round holes with the tube end expanded in place** (the real
-F-1 technique, much more successful, stays within tight braze-gap tolerance). Real
-dimensioned brazing tolerances with no equivalent elsewhere in this reference set: **maximum
-satisfactory braze gap 0.004-0.006 in.**, **braze-joint length ≥1 tube diameter** for
-acceptable strength. Real nozzle-attachment finding: attachments braze on **one side only**
-of a tube produce *lower* local stress than two-sided brazing (Fig. 48); welding attachments
-to age-hardenable structural members must happen **before** the furnace-braze cycle, not
-after (post-braze welding destroys the member's braze-induced strength). Real large-chamber
-extension-joint numbers: flanges up to **120 in. diameter**, real-hardware
-**out-of-roundness up to 1.5% of flange diameter** (compensated by oversized/radial-slotted
-bolt holes), bolt spacing = bolt-head diameter + 2× flange thickness, seals tolerating up to
-**50% crush/compression** from flange waviness.
-
 ## Caveats
 
 - `[Huzel]` (1967/71) predates NARloy-Z, GRCop-84, Inconel 718 as chamber materials, and has
@@ -451,48 +399,40 @@ bolt holes), bolt spacing = bolt-head diameter + 2× flange thickness, seals tol
   treat as the chapter authors' own figures, not independently re-verified here. Several
   V-2-era specifics are sourced to private interviews with retired Peenemünde engineers
   (oral-history-grade, not primary-source-grade).
-- `[SP-8120]` is a **criteria/practices monograph, not a sizing-equation source** — it gives
-  design rules ("shape and size the retaining bands for start-transient, overexpansion, and
-  gimbal loads") and real-hardware precedent, but no closed-form band-thickness, weld-
-  allowable-stress, or splice-geometry equations. The F-1's measured 2.2–2.8 axial / 2.45
-  bending stress-concentration factors are real but specific to F-1's own rectangular-band
-  geometry, not a general design allowable. 1976 vintage — predates SSME/RS-25, so unlike
-  `[Ch12-Materials]` all its real-hardware retaining-band/manifold examples are 1960s Saturn/
-  Apollo/ICBM-generation (F-1, J-2/J-2S, H-1, Titan, Atlas), though the failure physics
-  itself (weld fatigue, thermal-cycling band buckling, tube-to-band stress concentration,
-  turbine-exhaust thermal growth, manifold maldistribution) is geometry/loading-driven, not
-  material-era-dependent. **Now fully read as of 2026-09-24** (previously only the retaining-
-  bands and vanes/splitters/dams sections were deep-read) — the newly-read manifold-velocity
-  criterion (60 fps/Mach 0.25) is still just a stated threshold, not derived, and conflicts
-  with `[SP-8087]`'s own 200 ft/s/Mach 0.3-0.5 criterion without either source reconciling
-  the difference (flagged above, not resolved). Full extraction scope/section map: `sources/
-  sp8120-liquid-rocket-nozzles.md`.
-- `[SP-8087]` DOES give several genuinely new dimensioned numbers `[SP-8120]` lacks (heat-flux
-  construction-selection thresholds, tube-taper limits, manifold maldistribution tolerance,
-  manifold transition-taper length) — but is still 1972-vintage and explicitly pre-advanced-
-  channel-wall (its own introduction says high-heat-flux non-tubular fabrication was "in
-  development" and "not covered in detail"), and does NOT cover Russian sandwich-wall
-  construction (confirmed via full-text search — see `topics/06`'s dedicated paragraph on
-  this). OCR quality is mixed: cleanly-typeset criteria text reads well, but several table
-  pages are pure scanned-image/graphics with garbled or absent text.
 - `[Gubanov-1991]` is a 6-page conference status/policy paper by a real chief designer, not a
   materials or manufacturing source — despite being about Russian engines, it gives **no**
   wall-construction technical detail beyond "brazed-welded unit." OCR is rough (numeric
   tables have jumbled row alignment); the note flags which specific cells (RD-170 Pc,
   RD-0120 nozzle exit diameter) could not be cleanly extracted — don't treat those as
   authoritative, prefer `[Ch12-Materials]`/`[KBKhA]` where the same engine's numbers overlap.
-- `[Fagherazzi-2019]`'s manifold/volute content is from a single small-engine (250-400 N)
-  master's thesis, one tier below a NASA design-criteria monograph — its correlation
-  *choices* and design *process* (volute-sizing method, construction-type comparison) are
-  well-sourced and reusable, but its own novel numerical results are a single-team data
-  point, not an industry survey.
 - `[MatCh2]`'s HEE Index data is an accelerated RT-only (24°C, 34.5-69 MPa H2) laboratory
   screening method, not a design allowable — the source itself warns against using it for
   component design without full fracture-mechanics/crack-growth analysis, and explicitly not
   to extrapolate to high-temperature service. Its LOX/GOX ignition data carries the source's
   own "comparison purposes only, not standard values" caveat — real lot/batch variability
-  exists. GRCop-84's composition is given inconsistently within the source itself (see the
-  Cu-alloy table note above) — flagged, not resolved.
+  exists. GRCop-84's composition mismatch vs. `[GRCop84-TM2005]` is now RESOLVED (see above)
+  — was a unit-convention difference (at.% vs. wt.%), not an error.
+- `[GRCop84-Tensile]`'s table above uses the mean regression (t-term=0), not the true
+  lower-95%-CI design-minimum (~10-20 MPa lower on yield); braze-cycle-adjusted curves exist
+  in the source but weren't fully reproduced numerically here. OCR was badly garbled for the
+  two pages carrying the primary baseline regression equations (re-rendered as images and
+  read visually for reliable coefficients) — secondary regressions (braze/rolled-plate/
+  large-extrusion variants, ~30 more equations) were captured from OCR text only, not
+  image-verified, so treat those specific numbers as lower-confidence than the baseline table.
+- `[Miller-CuFatigue]` is pure annealed OFHC copper only (no NARloy-Z/GRCop-84/Cu-Cr-Zr), one
+  single real test article — a method + one real data point, not a general design-allowable
+  curve. `[Quentmeyer-CR185257]`'s seven life-enhancing concepts are likewise single-test-
+  article comparisons that often confound multiple variables (substrate + coating changed
+  together in the TBC case) — real, citable data points, not general design curves.
+- The four manufacturer datasheets (`[SS304-TDS]`/`[SS321-TDS]`/`[Inc718-TDS]`/`[Ni200-TDS]`)
+  are primary manufacturer references, but two (Special Metals Inc718/Ni200) have scrambled
+  table cell-ordering in their raw text layer that required manual reconstruction against
+  stated headers/footnotes — treat as reconstructed-but-verified, not a direct transcription.
+- `[SP-8124]`'s ablative/radiation-cooled material criteria above are a scoped read (§2.1/§2.2/
+  §3.1/§3.2 only, out of a 138-page monograph) — its cooling-architecture content (film-
+  cooling model, interregen/heat-sink chambers) is in `topics/06b-cooling-methods-and-
+  chemistry.md` instead; see that file's caveats for the source's overall extraction-scope
+  limits.
 
 ## Implications for engine_designer
 
@@ -547,56 +487,17 @@ bolt holes), bolt spacing = bolt-head diameter + 2× flange thickness, seals tol
   Narloy-Z (SSME) and Cu-3%Cr (Russian designs) as the real hot-wall liner alloys — matches
   the Western chamber-liner convention `[Huzel]`/`[Sutton]` already document (topic 06); no
   new number, just a second independent confirmation.
-- **`mass_model.py` `jacket_structure_mass_kg()` / `WALL_CONSTRUCTIONS`**: today this is a
-  single flat `mass_factor` add for `tube_wall`/`coax_shell` vs. a zero-add `milled_channel`
-  reference (per CLAUDE.md's Layout section) — it has no explicit retaining-band, splice-
-  joint, or manifold-structural-support model at all (confirmed: no `retaining_band`/
-  `band_spacing`/`splice` sizing logic exists in `mass_model.py`/`design.py`/`cooling.py`
-  today, only the terms "tube_wall"/"tube bundle" as a wall-construction *choice*). `[SP-8120]`
-  is real design guidance for exactly this gap — a future feature could size a *notional*
-  band count/spacing from the "shape bands for start-transient/overexpansion/gimbal loads"
-  criterion and add a stress-concentration advisory (warn-don't-block, per CLAUDE.md
-  convention #2) modeled on the real F-1 2.2–2.8x factor when `wall_construction ==
-  [UPDATE 2026-09-23: now implemented as `physics/hatbands.py` - band spacing marched from a
-  first-principles fixed-fixed tube-span bending model (SP-8120 p.29's "unsupported tube
-  length" rule), band section sized for hoop tension + thin-ring buckling, flat/tee/hat/
-  channel/box sections per Fig. 40, auto flat->stiff escalation; all magnitudes Tier 3 - see
-  ASSUMPTIONS.md.] Original note:   "tube_wall"` — but `[SP-8120]` gives no formula to size band thickness/spacing from first
-  principles, so any such feature would need its own reverse-solved or first-principles
-  derivation, not a value lifted from this source. Report-only here; no code changed.
-- **`manifold.py`'s existing `cooling_flow_topology`/`size_jacket_manifolds`/volute-sizing
-  approach is now doubly corroborated**: `[SP-8087]` gives a real propellant-class rule
-  (storable → common annulus, hydrogen → discrete per-channel circuits) for turnaround-
-  manifold topology beyond the tool's current two named topologies, and `[Fagherazzi-2019]`
-  independently arrives at the exact same constant-target-velocity `A(θ)=ṁ(θ)/(ρ·v̄)`
-  volute-sizing continuity equation the tool already uses. Both are report-only findings
-  (no code changed) but meaningfully de-risk the existing design pattern — two independent
-  real/near-real sources converge on it rather than it being a one-off choice.
-- **`manifold.py`'s target-velocity constant now has two conflicting real-source candidates**
-  (`[SP-8120]` full read, 2026-09-24): 60 fps liquid/Mach 0.25 gas (general distribution
-  manifold) vs. `[SP-8087]`'s existing 200 ft/s liquid/Mach 0.3-0.5 gas (coolant-jacket-
-  passage specifically). Neither source reconciles the difference — a real open question if
-  `manifold.py`'s velocity target is ever tightened against a literature source rather than
-  its current first-principles constant-velocity approach, which sidesteps the question by
-  not needing an absolute target at all. Report-only.
-- **Real hot-gas (turbine-exhaust) manifold structural precedent now exists** (`[SP-8120]`,
-  above) if `mass_model.py`/a future feature ever sizes turbine-exhaust-manifold structure —
-  real omega-joint thermal-growth numbers, a real material-ductility rule (≥20% elongation
-  for high-thermal-load hot-gas manifolds), and a real safety-relevant design criterion
-  (never use looped-tube turbine-exhaust introduction with storable propellants). See
-  `topics/07-dump-cooling.md` for the accompanying F-1 turbine-exhaust film-cooling-extension
-  content this pairs with. Report-only — no code changed.
 - **Russian "sandwich" wall construction — CORRECTED 2026-09-24**: `[Ch12-Materials]` (this
   file's own primary source, §12.5.2 p.26-28) actually describes it — Cu-Cr liner, corrugated
   sheet-metal divider, brazed outer shell, a real RD-107 application, and a real F-1 Western
   example (Hastelloy-C lower nozzle extension). A six-source dedicated search (`[SP-8087]`,
   `[Gubanov-1991]`, `[Wieseneck-J2]`, `[Fagherazzi-2019]`, `[EUCASS-2023]`,
   `[ChannelWall-IAC19]`) came up empty because it never re-checked this already-distilled
-  source; see `topics/06`'s corrected paragraph and `sources/ch12-materials-liquid-
-  propulsion.md` for the full detail. The remaining gap is narrower than previously stated:
-  no channel/corrugation dimensions or structural formula exist anywhere in `claude_lit` yet
-  — a Russian-specific *dimensioned design-criteria* source (not just a materials/
-  construction survey) would still be needed for that.
+  source; see `topics/06b-cooling-methods-and-chemistry.md`'s corrected paragraph and
+  `sources/ch12-materials-liquid-propulsion.md` for the full detail. The remaining gap is
+  narrower than previously stated: no channel/corrugation dimensions or structural formula
+  exist anywhere in `claude_lit` yet — a Russian-specific *dimensioned design-criteria*
+  source (not just a materials/construction survey) would still be needed for that.
 - **`materials.py`'s copper-alloy chamber-liner options now have a real numeric properties
   table**: `[MatCh2 Table 2.6.3]` gives real CTE/thermal-conductivity/yield/UTS/elongation for
   GRCop-84, NARloy-Z, Cu-Cr-Zr, and three other real chamber-liner Cu alloys — the first
@@ -618,10 +519,35 @@ bolt holes), bolt spacing = bolt-head diameter + 2× flange thickness, seals tol
   reason to add that check (distinct from titanium's H2-embrittlement/HRE concern on the fuel
   side). Inconel 718's own surprisingly-low 500 psi ignition threshold is a second, separate
   reason 718 isn't an unconditionally safe universal choice. Report-only — no code changed.
-- **A currently-unflagged real design tension worth surfacing**: `[SP-8120]`'s explicit
-  criterion that manifold/band structural failures are as much a *combustion-instability/
-  performance* risk as a structural one (the H-1 dam anecdote: a purely hydraulic/structural
-  fix eliminated a measured performance variation) has no counterpart anywhere in the tool's
-  `combustion_stability.py`/`injectors.py` advisories — those model acoustic modes and
-  injector-pattern stability, not manifold-flow-maldistribution-driven instability. Not
-  actionable without a manifold flow model the tool doesn't have; noted for awareness only.
+- **`materials.py`'s GRCop-84 `allowable_stress_pa` now has a strong real citation-upgrade
+  candidate**: `[GRCop84-Tensile]`'s cryo-through-1000K yield/UTS regression (above) is a
+  genuine statistical multi-specimen program, not an estimate — a natural next step if this
+  Tier-3 entry is ever upgraded. Also real: GRCop-84's braze-cycle strength retention (~85-90%)
+  vs. NARloy-Z's (~50%) is a citable quantitative reason to prefer GRCop-84 specifically for a
+  brazed/diffusion-bonded liner design. Report-only — no code changed.
+- **`mass_model.py`'s throat low-cycle-fatigue estimate now has a real, citable method**:
+  `[Miller-CuFatigue]`'s Manson Universal Slopes equation (above) is directly usable if that
+  estimate is ever formalized past its current flat/estimated form — plus a real cautionary
+  finding (peak strain and peak wall temperature don't co-locate in a real chamber) relevant
+  if the fatigue estimate ever infers risk from a single hottest-station temperature proxy
+  rather than a full strain-field solve. Report-only — no code changed.
+- **Chamber-liner life-extension techniques** (`[Quentmeyer-CR185257]`'s TBC/tungsten-
+  reinforced-liner/high-aspect-ratio-channel/low-stiffness-closeout concepts, above) are real
+  but currently unmodeled design levers beyond alloy choice alone — none has an obvious single
+  constant to cite into `materials.py` today (each is a construction-level choice, not a
+  material property), flagged here as candidate future-feature material if chamber-liner
+  life/reliability modeling is ever extended beyond a flat fatigue-cycle estimate.
+- **Four new manufacturer-datasheet alloys are candidate `materials.py` catalog entries**:
+  304/304L stainless (`[SS304-TDS]`, not currently in the catalog at all), 321/347/348
+  stainless (`[SS321-TDS]`, real numbers now back the "347 CRES" name already used for the F-1
+  hot-gas manifold), Inconel 718 (`[Inc718-TDS]`, confirms/extends the existing entry's
+  mechanical properties — but adds NO HEE data, so the existing `[MatCh2]`-sourced HEE citation
+  stays the sole source for that concern), Nickel 200/201 (`[Ni200-TDS]`). Report-only — no
+  catalog edit made here.
+- **`materials.py`'s `ABLATIVE_CONSUMPTION_RATE_M_S` and ablative-material `max_service_temp_k`
+  now have real dimensioned NASA design criteria to check against**: `[SP-8124]`'s silica/
+  quartz 3000°F limit, Pc>300psi throat-insert threshold, and 1.25 char-depth safety factor
+  (above) are all real numbers the tool's current flat/estimated ablative model doesn't use.
+  Similarly, `[SP-8124]`'s radiation-cooled coating-limit data (silicide 2800-3100°F, aluminide
+  2400-2800°F) is a real citation candidate for any future radiation-cooled coating model.
+  Report-only — no code changed.

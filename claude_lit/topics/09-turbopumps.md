@@ -195,6 +195,25 @@ headrise alone (5050 ft) exceeds the *entire* LOX pump headrise (2185 ft); LH2 p
 headrise ~38 000 ft, ~20× the LOX value, though the pressure *rises* are similar (~1075 vs
 1208 psi) — density does everything.
 
+**Real SSME turbopump stage-count architecture, not previously in this file (2026-09-24)**
+`[SSME-Orientation p.52-71]`: LPOTP = 6-stage axial hydraulic turbine (LOX-driven, not gas);
+LPFTP = 2-stage axial gas turbine (driven by MCC-jacket-exit GH2); HPOTP = double-entry
+back-to-back main impeller + 3-stage cantilevered turbine; HPFTP = 3-stage centrifugal pump +
+2-stage turbine. Real per-pump efficiency/PR table at 104.5% power (see `topics/08` for the
+full figures) sits a few points off `[SP-8107]`'s 1973 pre-operational SSME row — a later,
+real, named-hardware corroboration/refinement of that existing anchor. Real gimbal-bearing
+duty-cycle data (also corroborating `[Sutton Table 16-2]`'s existing SSME entry in
+`topics/16-gimbal-and-tvc.md`): ±12.5° gimbal capability, 200 operational cycles to 10.5° /
+1,400 nonoperational, 6Al-6V-2Sn Ti with Fabroid inserts.
+
+**Real F-1 turbine pressure-ratio anchor, not previously in this file (2026-09-24)** `[F1-Man
+Fig 3-14 p.3-7]`: turbine inlet **945 psia total** / exit **58 psia static** → **PR ≈ 16.3**
+(uprated F-1 engines); baseline (non-uprated) 918/58 → **PR ≈ 15.8**. Independent of `[H1-Man]`'s
+H-1 PR≈17.7 anchor already cited elsewhere — a second real GG-cycle turbine-PR data point,
+directly from Rocketdyne's own engine manual rather than a design-criteria monograph. No F-1
+turbine efficiency percentage was found in the same source (unlike H-1's cited 69.6%) — an
+open item if ever needed.
+
 ## Caveats
 
 - Specific-power figures are for the turbopump *assembly* as flown; "turbopump" (Table II)
@@ -295,3 +314,8 @@ headrise ~38 000 ft, ~20× the LOX value, though the pressure *rises* are simila
   hardware; Monel K-500/Tens-50 Al pump hardware; Cronidur 30 → Si3N4-ceramic bearing
   progression) — a candidate reference if `turbopump_materials.py`'s catalog is ever
   extended with named historical entries; see topic 12's implications for detail.
+- **`turbopump_sizing.py`/`turbopump_efficiency.py` now have a real SSME stage-count
+  reference architecture** (`[SSME-Orientation]`, above) — real per-turbopump stage counts
+  (6/2/3+3/3+2 across LPOTP/LPFTP/HPOTP/HPFTP) at a real high-Pc staged-combustion design
+  point, a useful plausibility check if the tool's own stage-count logic is ever validated
+  against a named real engine beyond the existing `[SP-8107]` table. Report-only.

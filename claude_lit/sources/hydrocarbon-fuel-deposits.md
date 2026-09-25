@@ -17,7 +17,7 @@ thermal decomposition (coking) limits and carbon deposition RATES on regenerativ
 chamber wall material, using an electrically-heated duplex copper/Inconel test-tube rig
 (not a real firing engine — a standalone heat-transfer/fuel-stability test bench, closely
 paralleling how `[TN-Dump]`/`[Marquardt-5981]` are used elsewhere in `claude_lit`). Directly
-fills the coking-mechanism gap flagged in `claude_lit/topics/06-cooling-and-heat-transfer.md`
+fills the coking-mechanism gap flagged in `claude_lit/topics/06b-cooling-methods-and-chemistry.md`
 — that file currently only has a single derived wall-temperature threshold (RP-1 coking
 "above 850°F / 728K" from `[SP-8087]`) and an ad hoc "~120K ΔT" framing with no underlying
 rate data or mechanism description. This report is the first source in the batch giving

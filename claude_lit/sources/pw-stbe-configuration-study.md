@@ -145,7 +145,7 @@ thrust, Pc 896 psia design point:
   flows *forward* (counter to gas flow) to the throat, "providing the coolest fuel at the
   throat where wall heat flux is highest" — i.e. countercurrent cooling routed so coldest
   coolant meets hottest wall station, an explicit real-engine design rationale for
-  `topics/06-cooling-and-heat-transfer.md`'s flow-topology discussion.
+  `topics/06b-cooling-methods-and-chemistry.md`'s flow-topology discussion.
 - Acoustic stability cavity: a machined coolant-exit-manifold cavity connected to the
   combustion chamber through small tubes pressed/swaged between the Haynes 230 tubes
   before brazing, with a minimal coolant bleed purging the cavity to prevent hot-gas

@@ -152,6 +152,14 @@ manufacturable 1.0 in (vs. 0.7 in from literal thrust scaling) rather than scali
 linearly — a real example of "round to a buildable/coolable size" overriding a pure scaling
 law.
 
+**Independent corroboration of the 15-20%-of-Pc rule (2026-09-24)** `[Armstrong-MarsISRU
+§Ch.I p.3]`: a real "15% of Pc" injector-pressure-drop-for-stability rule cited in a 1991
+NASA cooling-analysis report, a second independent corroboration of the existing `[Huzel]`
+15-20%/Pc rule above from an unrelated source and application. **Real SSME main-injector
+detail** `[SSME-Orientation p.28-34, 40-41]`: 600 coaxial elements + 42 flow shields + a
+porous rigimesh transpiration-cooled faceplate — a real high-Pc staged-combustion injector
+element-count anchor.
+
 **Atomization-quality driver: velocity difference, not momentum ratio** `[Bazarov p.9–13]` —
 cold-flow tests on the gas-centered-swirl element found that sweeping **momentum flux ratio**
 (ρ_g·U_g²/ρ_l·U_l²) at fixed geometry/flow gave "little to no significant change" in spray

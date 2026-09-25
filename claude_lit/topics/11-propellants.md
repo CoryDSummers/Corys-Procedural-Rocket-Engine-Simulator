@@ -29,6 +29,15 @@ reproduce.**
 
 Density: RP-1 ≈ 810 kg/m³, LOX ≈ 1141 kg/m³.
 
+**RP-1 vs. RP-2 real property differences (2026-09-24)**: `[Outcalt-RP1RP2]`'s real measured
+data: "viscosities of RP-1 are between 3 and 5% lower than those of RP-2 at the same
+temperatures, whereas their density, speed of sound, and adiabatic compressibility values
+differ by less than 1%" — attributed to RP-2's higher C16-alkane content vs. RP-1's C14
+ceiling. `[Huber-RP1RP2]` gives real surrogate compositions for both (4-component models,
+`topics/06b-cooling-methods-and-chemistry.md` has the full data) — the tool only models a single
+generic RP-1 entry today; RP-2's slightly higher density/lower viscosity would be a minor,
+low-priority addition if a distinct RP-2 propellant pair is ever wanted. Report-only.
+
 ### LOX / LH2
 
 | Source | Pc | MR | Tc | γ | M | c\* | Is (vac) |

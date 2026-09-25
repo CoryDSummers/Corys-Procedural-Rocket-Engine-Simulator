@@ -28,6 +28,21 @@ Feeds `engine_designer/physics/cycles.py`, `expander.py`, and the cycle constant
 1000 psia Pc, proportional to Pc**. The tool models this as a mass-averaged blend
 (`engine_isp_with_gg_dump`, topic 09).
 
+**A real closed-form GG-cycle/staged-combustion Isp derivation (2026-09-24)** `[Schmucker-
+CycleCalc p.8 eq.18, p.11 eq.29]`: `I_sp,ggc = η_sp[(1−k_m)·I_sp,c + k_m·I_sp,g]` (k_m = the
+GG-bled mass fraction) — the first hand-calculable equation form of the qualitative "Isp
+penalty from bled flow" statement above; and its staged-combustion counterpart, `I_sp,sec =
+I_sp,c · η_sp` (literal zero-bleed-penalty case, since the whole fuel flow reaches the main
+chamber via the preburner). A companion derivation `[pp.9-11 eqs.24-28]` explicitly works out
+*why* staged-combustion pump discharge must build up from Pc plus the turbine's own pressure
+drop — the underlying mechanism behind `[SP-8107]`'s already-cited "series turbine ΔP adds to
+pump discharge pressure" rule above, now with a real first-principles derivation behind it
+rather than just a design-guide statement. **Caveat**: the source PDF on disk is truncated
+(23 of the paper's real 42 pages) — the numeric GG-vs-staged-combustion comparison the paper's
+own summary promises, and its real 1973-era LOX/LH2 worked examples, are NOT present in this
+copy; only the derivation/methodology above survived. Re-acquiring a complete copy is the
+obvious follow-up if that comparison data is ever wanted.
+
 ## Empirical correlations & typical values
 
 **Cycle comparison** `[SP-8107 §2.1.1.4, Tables V–VI, Fig 11]`, `[Sutton §6.6]`:
@@ -199,6 +214,36 @@ variants. This is an independent, distinct-era engineering rationale for why rea
 kerolox staged-combustion engines (RD-170/180-class) use LOX-rich rather than fuel-rich
 preburners, consistent with what `staged_combustion.py` already models for kerolox FRSC/ORSC.
 
+**Real SSME (FFSC) preburner/cycle detail, not previously in this file (2026-09-24)**
+`[SSME-Orientation p.6, 19, 28-34]`: full real station-by-station propellant flow/energy
+balance at 104.5% power level (pressures/temps/flowrates/rpm at every duct/pump/preburner/
+turbine) — the most complete single real-engine full-cycle map in `claude_lit`. Real
+combustion-device geometry: fuel preburner 264 coaxial elements/10.43in dia, oxidizer
+preburner 120 elements/7.43in dia; preburner hot-gas mixture ratios **0.86 (fuel PB) / 0.60
+(oxidizer PB)** — corroborates `[SP-8081]`'s existing 0.2-1.0 GG-mixture-ratio band
+(`topics/10-gas-generators.md`). A real "two-stage combustion approximately 99.6% efficient"
+figure is quoted — no c*-efficiency number for SSME existed anywhere in `claude_lit` before
+this (`topics/03-combustion-and-cstar.md`). Real per-pump efficiency/turbine-PR table at
+104.5% power: HPOTP pump eff. 71.8/75.8%, HPFTP 75.0%, turbine PR 1.50-1.53, turbine eff.
+74.6-81.1% — runs a few points off `[SP-8107]`'s 1973 pre-operational SSME row (78.1/69.6%
+pump, PR 1.56-1.59, 72.9-79.0% turbine); this is later, real, named-hardware data vs. a
+pre-operational projection, worth a note if `validate.py`'s SSME turbopump spot-check
+tolerance is ever tightened. Terminology flag: this source calls the 109% power point "FPL"
+where `[SP-8107]` calls the same physical condition "EPL" — same condition, inconsistent
+naming 25 years apart, unresolved.
+
+**A real cycle-choice pairing rationale, tying cooling-method choice to cycle choice**
+`[Quentmeyer-CR185257 §Comparison of Concepts/Conclusions p.8-9]`: TBC/transpiration-cooled-
+throat liner concepts (minimize coolant heat pickup, since heat absorbed isn't needed for
+anything) pair best with a **gas-generator cycle**; tubular-bundle/high-aspect-ratio-channel
+concepts (maximize coolant heat pickup) are ideal for an **expander cycle** (where coolant heat
+pickup directly drives the turbine). A real, citable design-tradeoff link between chamber-
+liner cooling-architecture choice and cycle choice, complementary to the existing hydrogen-
+embrittlement cycle-choice precedent already in `topics/12` (oxidizer-rich cycles chosen to
+avoid H2-embrittlement of turbopump structure) — relevant to `staged_combustion.py`/
+`expander.py`'s cycle-selection guidance if that's ever extended with a cooling-method
+cross-check. Report-only — no code changed.
+
 ## Caveats
 
 - The "k × Pc" pump-discharge multipliers are order-of-magnitude design guides from
@@ -227,6 +272,14 @@ preburners, consistent with what `staged_combustion.py` already models for kerol
   architecture itself is background only. `[Casiano-Throttling]`'s RD-170/171/180 throttle
   fractions and multi-chamber aggregate-ratio example are the paper's own restatement of
   underlying references, not independently re-derived here.
+- `[SSME-Orientation]` is Boeing-proprietary training material (June 1998) — treated per this
+  project's licensing convention (derived facts only, no verbatim slide reproduction); see
+  `topics/12`'s caveats for the FPL/EPL terminology-inconsistency flag.
+- `[Schmucker-CycleCalc]` is a truncated PDF (23 of 42 real pages) — its derivation/methodology
+  content above is trustworthy, but two lower-confidence curve fits in the surviving pages
+  (effective γ_F and exit/chamber pressure ratio vs. area ratio) have OCR-uncertain
+  coefficients per the source note and should not be used in code without re-verifying against
+  a clean copy.
 
 ## Implications for engine_designer
 
@@ -338,3 +391,15 @@ preburners, consistent with what `staged_combustion.py` already models for kerol
   `design.py`/`cycles.py` ever wants a cycle/architecture-dependent throttle floor rather than
   a single flat default — currently no such per-cycle throttle-floor concept exists in the
   tool. Report-only.
+- **A real cooling-architecture-to-cycle-choice pairing rationale now exists**
+  (`[Quentmeyer-CR185257]`, above: minimize-heat-pickup liner concepts → GG cycle;
+  maximize-heat-pickup concepts → expander cycle) — a candidate cross-check if cycle-selection
+  guidance is ever extended to consider chamber-cooling architecture. Report-only.
+- **`validate.py`'s SSME spot-check now has a richer real-hardware reference point**
+  (`[SSME-Orientation]`'s per-pump efficiency/turbine-PR table and 99.6% c* efficiency figure,
+  above) alongside the existing `[SP-8107]` pre-operational numbers — a later, real,
+  named-hardware data set if that spot-check's tolerance is ever revisited. Report-only.
+- **A real closed-form Isp-vs-bleed-fraction formula now exists** (`[Schmucker-CycleCalc]`,
+  above) if the tool's mass-averaged-blend `engine_isp_with_gg_dump` treatment is ever checked
+  against a first-principles derivation rather than just `[SP-8107]`'s tabulated design-guide
+  figure. Report-only — no code changed.
