@@ -39,6 +39,39 @@ def _eps_stations(s):
     return (np.asarray(s.rs, dtype=float) / (s.geo["throat_dia_m"] / 2.0)) ** 2
 
 
+def _turbine_exhaust_gas_film(self, s, carry):
+    """nozzle_injection's gas film (physics/turbine_exhaust.
+    gas_film_effectiveness_profile, [TN-D3836]) from the previous pass's
+    carry: h_g on the thermal solve's own basis (calibrated Bartz x the
+    deposit factor, no sigma), the main-gas velocity at the slot station
+    (isentropic, supersonic branch), the slot's gas state. Returns (phi, info)
+    or (None, None) when the slot lies past the contour."""
+    from .. import turbine_exhaust, plumbing
+    if not carry.get("slot_area_m2"):
+        return None, None
+    hg = cooling.bartz_hg_profile(
+        s.xs, s.rs, s.geo["throat_dia_m"], self.chamber_pressure_pa, s.cstar, s.mu_gas,
+        s.cp_gas, s.pr_gas, pair=self.propellant_pair) \
+        * cooling.GAS_SIDE_DEPOSIT_FACTOR.get(self.propellant_pair, 1.0)
+    g = s.gamma_ht
+    mach = iso.mach_from_area_ratio(float(carry["inject_eps"]), g)
+    t_static = s.tc_ht * iso.static_temperature_ratio(mach, g)
+    v_gas = mach * np.sqrt(g * s.cp_gas * (g - 1.0) / g * t_static)
+    rho_c = float(carry["slot_density_kg_m3"])
+    alpha_c = plumbing.EXHAUST_GAS_VISCOSITY_PA_S / (rho_c * turbine_exhaust.EXHAUST_GAS_PRANDTL)
+    prof = turbine_exhaust.gas_film_effectiveness_profile(
+        s.xs, s.rs, s.geo["throat_dia_m"], float(carry["inject_eps"]), hg,
+        float(carry["mdot_kgs"]), float(carry["cp"]), float(carry["slot_area_m2"]), v_gas, alpha_c)
+    if prof is None:
+        return None, None
+    info = dict(slot_h_m=prof["slot_h_m"], slot_area_m2=float(carry["slot_area_m2"]),
+                v_gas_ms=float(v_gas), v_coolant_ms=float(carry["slot_velocity_ms"]),
+                velocity_ratio_c_over_g=float(carry["slot_velocity_ms"]) / float(v_gas),
+                eta_exit=float(prof["eta"][-1]), x_over_s_exit=float(prof["x_over_s"][-1]),
+                i_slot=prof["i_slot"], i_valid_end=prof["i_valid_end"])
+    return prof["phi"], info
+
+
 def thermal(self, s):
     """Unified per-station thermal solve on the real contour (before the pump
     chain): wall temperatures, heat flux, coolant march, dump bleed, jacket dP."""
@@ -59,12 +92,11 @@ def thermal(self, s):
     # Turbine-exhaust gas film (nozzle_injection mode): the GG/tap-off flow and
     # exhaust temperature only exist after the pump stage, so it arrives as the
     # previous pass's carry (EngineDesign.compute's second pass). None = off.
-    s.gas_film_phi = s.gas_film_t_k = None
+    s.gas_film_phi = s.gas_film_t_k = s.gas_film_info = None
     _carry = getattr(s, "te_film_carry", None)
     if _carry:
-        s.gas_film_phi = cooling.nozzle_film_effectiveness_profile(
-            s.xs, s.rs, s.geo["throat_dia_m"], _carry["film_ratio"], _carry["inject_eps"])
-        s.gas_film_t_k = float(_carry["t_k"])
+        s.gas_film_phi, s.gas_film_info = _turbine_exhaust_gas_film(self, s, _carry)
+        s.gas_film_t_k = float(_carry["t_k"]) if s.gas_film_phi is not None else None
 
     treat, section, regen_cut, notes = cooling.station_treatments(
         s.rs, s.geo["throat_dia_m"], s.chamber_cooling, s.nozzle_cooling,

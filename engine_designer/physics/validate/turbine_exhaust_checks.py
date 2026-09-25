@@ -13,8 +13,8 @@ from ..design import EngineDesign
 PSI = 6894.757
 LBF = 4.44822
 G0 = 9.80665
-_CORPUS_F1 = os.path.join(os.path.dirname(__file__), "..", "..", "validation_engines",
-                          "engines", "F-1.json")
+_CORPUS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "validation_engines", "engines")
+_CORPUS_F1 = os.path.join(_CORPUS_DIR, "F-1.json")
 
 
 def _h1_design(mode="aspirator", **kw):
@@ -74,6 +74,11 @@ def run_turbine_exhaust_check():
         OPEN_QUESTIONS), exhaust temperature +-15 % of the 1,138 F (888 K)
         extension coolant, duct bore x0.7-1.4 of the ~24 in heat-exchanger
         outlet end (the first check on TURBINE_EXHAUST_DUCT_MACH).
+    (j) Gas film [TN-D3836] (turbine_exhaust.gas_film_effectiveness_profile):
+        the corpus J-2's modelled injection slot area (the sonic slot) within
+        x0.5-2 of its real 115 in^2 of eyelets [RPE-J2Blog], and the F-1 film
+        is laid (the profile's monotone decay / flow dependence is in the
+        module self-test).
     """
     print()
     print("=" * 78)
@@ -189,6 +194,20 @@ def run_turbine_exhaust_check():
     rows.append((f"(i) F-1 plausibility: GG {share_f1*100:.2f}% of flow (real 2.91%), exhaust "
                  f"{ei['t_exhaust_k']:.0f} K (real {t_want:.0f} K), duct {duct_in:.1f} in (real ~24)",
                  i_ok))
+
+    # (j) gas film
+    with open(os.path.join(_CORPUS_DIR, "J-2.json")) as f:
+        dj = json.load(f)["design"]
+    rj = EngineDesign.from_dict({"schema_version": EngineDesign.SCHEMA_VERSION, "design": dj}).compute()
+    gj = rj["turbine_exhaust"]["gas_film"]
+    slot_in2 = gj["slot_area_m2"] / 0.0254 ** 2
+    gf = ei["gas_film"]
+    j_ok = (0.5 * 115.0 <= slot_in2 <= 2.0 * 115.0 and gf is not None and gj is not None
+            and 0.0 < gf["eta_exit"] <= te.GAS_FILM_ETA_MAX)
+    rows.append((f"(j) gas film: J-2 slot {slot_in2:.0f} in^2 (real eyelets 115), F-1 film "
+                 f"{gf['slot_h_m']*1e3:.0f} mm slot, eta at exit {gf['eta_exit']:.2f} "
+                 f"(x/S {gf['x_over_s_exit']:.0f}, valid to ~100), Vc/Vg "
+                 f"{gf['velocity_ratio_c_over_g']:.2f}", j_ok))
 
     all_ok = True
     for label, ok in rows:

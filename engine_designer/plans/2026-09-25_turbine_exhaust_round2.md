@@ -8,7 +8,7 @@ Branch: `claude/friendly-rubin-un6ueo`, restarted from `origin/main` at b97c4b0 
 - [x] Commit 0: this document (9588968)
 - [x] Commit 1: z-fighting fix (overboard exhaust nozzle vs duct pipe) - this commit
 - [x] Commit 2: F-1 injection back pressure + corpus F-1 fixes + [F1-Man] probes (J-2X Isp-loss band widened 2.0->2.5 %, see report)
-- [ ] Commit 3: gas-film law from [TN-D3836] (modified Hatch-Papell)
+- [x] Commit 3: gas-film law from [TN-D3836] (modified Hatch-Papell) - F-1 film came out STRONGER, see report
 - [ ] Commit 4: heat exchanger recalibration (F-1 can) + helium coil (schema 10) + GUI
 - [ ] Docs: ASSUMPTIONS / README / CLAUDE.md / OPEN_QUESTIONS (spread across 2-4)
 

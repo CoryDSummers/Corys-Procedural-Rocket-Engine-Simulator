@@ -55,6 +55,8 @@ dispatches here.
 """
 import math
 
+import numpy as np
+
 from . import isentropic as iso
 
 MODES = ("overboard_duct", "aspirator", "nozzle_injection")
@@ -255,6 +257,13 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
         aspirator_gap_m=None, aspirator_slot_dia_m=None,
         choked_at_design=p_exit_total * crit >= discharge_pa * (1.0 - 1e-9),
     )
+    if mode == "nozzle_injection" and throat_area > 0:
+        # the injection slots are the stream's sonic throat (it leaves them
+        # sonic into the local static): slot area, gas speed and density there
+        # feed the TN D-3836 gas-film correlation (gas_film_effectiveness_profile)
+        v_slot = math.sqrt(2.0 * gamma / (gamma + 1.0) * r_gas * max(t_exh, 1.0))
+        out.update(slot_area_m2=throat_area, slot_velocity_ms=v_slot,
+                   slot_density_kg_m3=mdot_kgs / (throat_area * v_slot))
     if mode == "aspirator" and main_exit_dia_m > 0:
         # the choked slot's area is its sonic throat; it rides just outside the
         # main exit lip (the H-1's is over the fuel-return manifold [H1-Man])
@@ -264,13 +273,69 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
 
 
 def film_mdot_ratio_to_fuel(mdot_exhaust_kgs, mdot_fuel_chamber_kgs):
-    """Injection-mode gas film strength, expressed like the nozzle slot film
-    (cooling.nozzle_film_effectiveness_profile's film_mdot_ratio = fraction of
-    the chamber FUEL flow). Tier 3 - that effectiveness law was written for a
-    liquid-fuel film and has no cp/temperature term (SP-8124 missing); a hot
-    gas film is weaker per kg than a vaporising liquid one, so treat the
-    resulting wall temperatures as optimistic."""
+    """Exhaust flow / chamber fuel flow - REPORT ONLY since 2026-09-25 (the
+    gas film used to be run through the liquid nozzle-slot law with this as
+    its strength; it now uses gas_film_effectiveness_profile)."""
     return mdot_exhaust_kgs / mdot_fuel_chamber_kgs if mdot_fuel_chamber_kgs > 0 else 0.0
+
+
+# Gas-film (injection mode) constants. Prandtl number of the fuel-rich exhaust
+# for its thermal diffusivity alpha = mu / (rho Pr) - Tier 3, a typical
+# combustion-gas value; mu is plumbing.EXHAUST_GAS_VISCOSITY_PA_S.
+EXHAUST_GAS_PRANDTL = 0.7
+# Effectiveness ceiling right at the slot - Tier 3 guard (the correlation runs
+# to eta = 1 at x = 0; a real slot lip / mixing never gives a perfect wall).
+GAS_FILM_ETA_MAX = 0.95
+# [TN-D3836] correlates out to ~100 slot heights downstream; past that its
+# prediction is CONSERVATIVE (over-predicted wall temperature) - reported.
+GAS_FILM_VALID_SLOT_HEIGHTS = 100.0
+# SP-8124's flow-minimising gaseous film / core velocity ratio band [SP-8124
+# §3.5.3 p.88] - an informational comparison, not a check.
+GAS_FILM_VELOCITY_RATIO_BAND = (0.9, 1.15)
+
+
+def gas_film_effectiveness_profile(xs_m, rs_m, throat_dia_m, inject_eps, hg_w_m2k, mdot_c_kgs,
+                                   cp_c, slot_area_m2, v_gas_ms, alpha_c_m2_s):
+    """Turbine-exhaust gas film on the nozzle wall downstream of the injection
+    station - the modified Hatch-Papell correlation of [TN-D3836 p.8-9] in its
+    tangential-injection working form (K = 0, f(Vg/Vc) = 1, no angle term):
+
+        eta(x) = exp[ -( integral_0^x h_g L ds ) / (mdot_c cp_c) * (S Vg / alpha_c)^(1/8) ]
+
+    L = local circumference 2 pi r, s = wall arc length from the slot, S = slot
+    height = slot area / the injection-station circumference, Vg = main-gas
+    velocity at the slot (held constant, as [TN-D3836] did), alpha_c = coolant
+    thermal diffusivity. The integrated h_g L (not a local value) is that
+    report's key finding for an accelerating nozzle flow. eta is capped at
+    GAS_FILM_ETA_MAX. Returns dict(phi = 1 - eta per station (1 upstream of
+    the slot), eta, i_slot, slot_h_m, x_over_s (per station, 0 upstream),
+    i_valid_end = last station within GAS_FILM_VALID_SLOT_HEIGHTS), or None
+    if the slot lies beyond the contour or the inputs are degenerate."""
+    xs = np.asarray(xs_m, dtype=float)
+    rs = np.asarray(rs_m, dtype=float)
+    hg = np.asarray(hg_w_m2k, dtype=float)
+    n = len(xs)
+    if (n < 2 or throat_dia_m <= 0 or mdot_c_kgs <= 0 or cp_c <= 0 or slot_area_m2 <= 0
+            or v_gas_ms <= 0 or alpha_c_m2_s <= 0):
+        return None
+    rt = 0.5 * throat_dia_m
+    thr = int(np.argmin(rs))
+    i_slot = next((i for i in range(thr + 1, n) if (rs[i] / rt) ** 2 >= inject_eps), None)
+    if i_slot is None:
+        return None
+    slot_h = slot_area_m2 / (2.0 * math.pi * rs[i_slot])
+    seg = np.hypot(np.diff(xs), np.diff(rs))
+    s_arc = np.concatenate([[0.0], np.cumsum(seg)])
+    hl = hg * 2.0 * math.pi * rs
+    integ = np.concatenate([[0.0], np.cumsum(0.5 * (hl[1:] + hl[:-1]) * seg)])
+    integ = np.where(np.arange(n) >= i_slot, integ - integ[i_slot], 0.0)
+    group = (slot_h * v_gas_ms / alpha_c_m2_s) ** 0.125 / (mdot_c_kgs * cp_c)
+    eta = np.where(np.arange(n) >= i_slot, np.minimum(np.exp(-integ * group), GAS_FILM_ETA_MAX),
+                   0.0)
+    x_over_s = np.where(np.arange(n) >= i_slot, (s_arc - s_arc[i_slot]) / slot_h, 0.0)
+    within = np.nonzero((np.arange(n) >= i_slot) & (x_over_s <= GAS_FILM_VALID_SLOT_HEIGHTS))[0]
+    return dict(phi=1.0 - eta, eta=eta, i_slot=i_slot, slot_h_m=slot_h, x_over_s=x_over_s,
+                i_valid_end=int(within[-1]) if len(within) else i_slot)
 
 
 # --------------------------------------------------------------------------
@@ -568,6 +633,27 @@ def _self_test():
     c5 = all(x["choked_at_design"] for x in (duct, noz, a))
     print(f"  (5) exhaust exit choked at the design discharge pressure  [{'OK' if c5 else 'FAIL'}]")
     ok &= c5
+
+    # (7) gas film [TN-D3836]: on a toy eps-16 bell, the film decays
+    # monotonically from the slot, is absent upstream of it, and strengthens
+    # with more flow or a higher cp (the mdot_c cp_c denominator)
+    xs_g = np.linspace(0.0, 1.0, 81)
+    rs_g = 0.1 + 0.3 * xs_g                    # throat at x=0, eps 16 at the exit
+    hg_g = np.full(81, 2000.0)
+    base_g = (xs_g, rs_g, 0.2, 10.0, hg_g)
+    g1 = gas_film_effectiveness_profile(*base_g, 5.0, 2100.0, 0.01, 2800.0, 1e-4)
+    g2 = gas_film_effectiveness_profile(*base_g, 10.0, 2100.0, 0.01, 2800.0, 1e-4)
+    g3 = gas_film_effectiveness_profile(*base_g, 5.0, 4200.0, 0.01, 2800.0, 1e-4)
+    i0 = g1["i_slot"]
+    c7 = (g1 is not None and np.all(g1["phi"][:i0] == 1.0)
+          and np.all(np.diff(g1["eta"][i0:]) <= 1e-12) and g1["eta"][i0] == GAS_FILM_ETA_MAX
+          and np.allclose(g2["eta"][i0 + 1:], g3["eta"][i0 + 1:])
+          and np.all(g2["eta"][i0:] >= g1["eta"][i0:]) and g2["eta"][-1] > g1["eta"][-1]
+          and gas_film_effectiveness_profile(*base_g, 0.0, 2100.0, 0.01, 2800.0, 1e-4) is None)
+    print(f"  (7) gas film: eta {g1['eta'][i0]:.2f} at the slot -> {g1['eta'][-1]:.2f} at the "
+          f"exit (2x flow: {g2['eta'][-1]:.2f}), slot {g1['slot_h_m']*1e3:.0f} mm  "
+          f"[{'OK' if c7 else 'FAIL'}]")
+    ok &= bool(c7)
 
     # (6) hardware: a toy bell contour; each mode sizes its termination
     import numpy as _np

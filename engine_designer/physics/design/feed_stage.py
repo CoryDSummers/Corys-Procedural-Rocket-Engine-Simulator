@@ -432,8 +432,27 @@ def _apply_exhaust(self, s, gas, pr):
         # manifold - applied by the NEXT pass's thermal solve (compute())
         exh["film_carry"] = dict(
             film_ratio=turbine_exhaust.film_mdot_ratio_to_fuel(exh["mdot_kgs"], s.mdot_fuel_kgs),
-            inject_eps=s.te_inject_eps, t_k=exh["t_exhaust_k"], mdot_kgs=exh["mdot_kgs"])
+            inject_eps=s.te_inject_eps, t_k=exh["t_exhaust_k"], mdot_kgs=exh["mdot_kgs"],
+            cp=exh["cp"], slot_area_m2=exh.get("slot_area_m2", 0.0),
+            slot_velocity_ms=exh.get("slot_velocity_ms", 0.0),
+            slot_density_kg_m3=exh.get("slot_density_kg_m3", 0.0))
         exh["gas_film_applied"] = getattr(s, "gas_film_phi", None) is not None
+        gf = getattr(s, "gas_film_info", None)
+        exh["gas_film"] = gf
+        if gf is not None:
+            lo, hi = turbine_exhaust.GAS_FILM_VELOCITY_RATIO_BAND
+            vr = gf["velocity_ratio_c_over_g"]
+            # informational: real F-1/J-2 slots run well below SP-8124's
+            # flow-minimising band, so this is a note, never a warning
+            _gf_note = (f"Exhaust film {gf['slot_h_m']*1e3:.1f} mm slot, effectiveness "
+                        f"{gf['eta_exit']:.2f} at the exit; coolant/core velocity ratio "
+                        f"{vr:.2f} (SP-8124's flow-minimising band {lo:.2f}-{hi:.2f}"
+                        f"{'' if lo <= vr <= hi else ' - outside it, so more film flow is needed per unit effectiveness than an optimised slot'}). "
+                        f"Correlation valid to ~{turbine_exhaust.GAS_FILM_VALID_SLOT_HEIGHTS:.0f} "
+                        f"slot heights (x/S at exit {gf['x_over_s_exit']:.0f}); beyond that it "
+                        f"over-predicts wall temperature (conservative).")
+            _check(s.checklist, s.warnings, "turbopump", "Turbine-exhaust gas film (TN D-3836)",
+                   True, _gf_note, _gf_note)
     s.cyc["gg_dump_isp_fraction"] = k_vac           # now computed, not the flat 0.55 / 0.80
     s.cyc["turbine_pressure_ratio"] = pr
     s.cyc["turbine_exhaust"] = exh

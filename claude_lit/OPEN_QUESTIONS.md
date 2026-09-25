@@ -176,6 +176,12 @@ into that and makes no claims about it.
     coefficient from geometry. Wanted: a J-2 turbine-exit pressure (a second anchor), shingle
     slot heights / eyelet counts, and `[SP-8120]` §2.2.5.1 manifold-hydraulics loss numbers
     applied to a hot gas. Until then the constant is Tier 2 INTERIM (ASSUMPTIONS).
+  - **Liquid films still use the Tier-3 decay law (2026-09-25).** The turbine-exhaust GAS film
+    now uses `[TN-D3836]`'s correlation, but the chamber curtain and nozzle-slot LIQUID films
+    (`cooling/film.py`, eta_f0 = min(0.75, 7f), decay over 2.5 local diameters) are unchanged.
+    `[SP-8124]` App. B's liquid-film length equation needs Λ(X_e) and a(X_e, X_r) read off Fig.
+    B-1, which is not digitized. Next steps: re-render SP-8124 PDF leaves ~100-111 as images and
+    digitize Figs. A-1/A-2/B-1, or chase its refs. 51/76/81/103/107.
   - **F-1 pump power is under-predicted (2026-09-25, not a literature gap — a turbopump
     calibration item).** The corpus F-1's turbine specific work matches the real ~508 kJ/kg
     (53,146 bhp / 172 lb/s `[F1-Man Fig 3-14]`), but its GG flow is ~62 kg/s vs the real
