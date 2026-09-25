@@ -524,6 +524,47 @@ MATERIALS = {
               "because of its much higher density (10200 vs. niobium's 8600 kg/m3) - a real "
               "mass penalty, not a performance deficiency.",
     ),
+    "titanium_6al4v": Material(
+        key="titanium_6al4v",
+        display_name="Titanium 6Al-4V Alloy (radiative)",
+        density_kg_m3=4430.0,
+        max_service_temp_k=700.0,
+        relative_cost_factor=2.0,
+        cooling_method="radiative",
+        allowed_cooling_methods=("radiative", "uncooled"),
+        cooling_effectiveness=0.50,
+        color_hex="#8A8D91",
+        thermal_conductivity_w_mk=6.7,
+        tech_era_hint="Mature (1960s+, Bell Aerosystems Agena XLR81 titanium radiative "
+                      "nozzle extensions - Model 8096/8247)",
+        allowable_stress_pa=9.0e+07,
+        emissivity=0.6,
+        youngs_modulus_pa=1.14e+11,
+        cte_per_k=8.6e-06,
+        specular_strength=0.35,
+        shininess=40.0,
+        metallic=0.9,
+        roughness=0.5,
+        notes="Real Bell Model 8096/8247 XLR81 (Agena) nozzle-extension alloy "
+              "(Engine_Configs/Agena_XLR81_Config.cfg header: Pc 3.48 MPa, eps 45, "
+              "IRFNA/UDMH-USO, vac Isp 289.8-300 s). max_service_temp_k (700 K, 800F) "
+              "cites [SP-8124 Sec.2.1/3.1]'s real structural-shell temperature limit for "
+              "titanium - that source states it for an ablative structural overwrap, not "
+              "a bare radiative bell specifically, but it is the best real anchor found "
+              "and more defensible than a hand-picked figure. This is deliberately much "
+              "lower than niobium_c103 (1650 K) or molybdenum_tzm (1950 K) - by design, "
+              "since it is WHY a nozzle_liner_material_key='zirconia' liner (see "
+              "EngineDesign) is load-bearing rather than decorative for this material: "
+              "without one, titanium will typically fail/warn on thermal margin at real "
+              "nozzle-extension conditions, which is correct 'warn don't block' behavior, "
+              "not a bug. The real hardware's molybdenum reinforcement bands at the aft "
+              "attach point are NOT modeled as a separate blended Material here (unlike "
+              "refrasil_phenolic's genuinely homogeneous 3-layer liner, Mo reinforcement "
+              "is localized structural banding, not a property blended through the whole "
+              "shell thickness) - they are this tool's existing axisymmetric nozzle-"
+              "extension stiffening-ring bumps (gui/mesh_builder.py), now attributable to "
+              "this real material choice.",
+    ),
 }
 
 # Every material's own default method must be one it allows (import-time check -
