@@ -20,7 +20,10 @@ What it computes
      the ideal upper bound the performance path is anchored on) and a FROZEN
      expansion (composition fixed at the chamber value, from its own frozen
      throat: isp_vac_frozen_s_by_eps - the lower bound, kept so a kinetic-loss
-     model can later sit between the two).
+     model can later sit between the two), and the shifting-equilibrium exit
+     static / chamber pressure at each area ratio (pe_over_pc_by_eps - what
+     separation, the local wall pressure and an injection station's static
+     pressure need, instead of a one-gamma estimate).
    Plus informational monopropellant points (HTP decomposition).
 2. ``coolant_properties.json`` - regen-jacket coolant properties on a
    (temperature x pressure) grid with CoolProp: density, cp, viscosity,
@@ -259,9 +262,11 @@ class Equilibrium:
             return (u + pe / (r * u)) / G0, pe, t
 
         isp_vac = {}
+        pe_pc = {}
         for eps in eps_list:
-            isp, _, _ = exit_for_eps(eps)
+            isp, pe, _ = exit_for_eps(eps)
             isp_vac[f"{eps:g}"] = isp
+            pe_pc[f"{eps:g}"] = pe / p_pa
 
         # FROZEN expansion: composition held at the chamber value X0 (no
         # re-equilibration), its own throat and area ratios.
@@ -306,7 +311,7 @@ class Equilibrium:
                    cp_equilibrium_j_kgk=cp_eq, gamma_s=gamma_s, mu_pa_s=mu,
                    k_frozen_w_mk=lam, pr_frozen=mu * cp_f / lam, transport_mole_coverage=xcov,
                    pt_over_pc=math.exp(lpt) / p_pa, cstar_ms=cstar, isp_vac_s=isp_vac,
-                   isp_vac_frozen_s=isp_vac_frozen)
+                   isp_vac_frozen_s=isp_vac_frozen, pe_over_pc=pe_pc)
         if pe_opt_pa is not None:
             r, u, _ = at_p(pe_opt_pa)
             out["isp_opt_s"] = u / G0
@@ -350,10 +355,12 @@ def build_gas_tables(eq, quick=False):
                                 "pr_frozen", "cstar_ms", "transport_mole_coverage")}
         isp = {f"{e:g}": [] for e in EPS_GRID}
         ispf = {f"{e:g}": [] for e in EPS_GRID}
+        pep = {f"{e:g}": [] for e in EPS_GRID}
         for pc in pcs:
             rows = {k: [] for k in grid}
             irow = {k: [] for k in isp}
             frow = {k: [] for k in ispf}
+            prow = {k: [] for k in pep}
             for mr in mrs:
                 el, h = _blend(fuel, ox, float(mr))
                 r = eq.point(el, h, pc * 1e6)
@@ -362,14 +369,16 @@ def build_gas_tables(eq, quick=False):
                 for k in isp:
                     irow[k].append(round(float(r["isp_vac_s"][k]), 3))
                     frow[k].append(round(float(r["isp_vac_frozen_s"][k]), 3))
+                    prow[k].append(float(f"{r['pe_over_pc'][k]:.7g}"))
             for k in grid:
                 grid[k].append(rows[k])
             for k in isp:
                 isp[k].append(irow[k])
                 ispf[k].append(frow[k])
+                pep[k].append(prow[k])
         out[pair] = dict(mr=[round(float(x), 4) for x in mrs], pc_mpa=pcs,
                          fuel=fuel, oxidizer=ox, **grid, isp_vac_s_by_eps=isp,
-                         isp_vac_frozen_s_by_eps=ispf)
+                         isp_vac_frozen_s_by_eps=ispf, pe_over_pc_by_eps=pep)
         print(f"  {pair:16s} {len(pcs)} Pc x {len(mrs)} MR  ({time.time() - t0:.0f} s)")
     # informational monopropellant: HTP decomposition (adiabatic, equilibrium)
     mono = {}
@@ -450,8 +459,8 @@ def main(argv=None):
                            for k, v in REACTANTS.items()},
                 reactant_source="NASA CEA thermo.inp liquid-reactant assigned enthalpies",
                 self_check="Sutton Table 5-5 (1000 psia, opt. expansion): PASSED",
-                layout="each property is [len(pc_mpa)][len(mr)]; isp_vac_s_by_eps[eps] and "
-                       "isp_vac_frozen_s_by_eps[eps] likewise",
+                layout="each property is [len(pc_mpa)][len(mr)]; isp_vac_s_by_eps[eps], "
+                       "isp_vac_frozen_s_by_eps[eps] and pe_over_pc_by_eps[eps] likewise",
                 eps_grid=EPS_GRID,
                 caveats=["high-eps exit states (roughly eps >= 60 at low Pc, and most frozen "
                          "expansions past eps ~25) fall below the NASA polynomials' 300 K floor "

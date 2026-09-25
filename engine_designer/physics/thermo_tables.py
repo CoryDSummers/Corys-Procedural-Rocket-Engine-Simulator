@@ -55,11 +55,13 @@ def _gas_db():
         tab = dict(mr=np.asarray(t["mr"], float),
                    lnp=np.log(np.asarray(t["pc_mpa"], float) * 1e6),
                    **{k: np.asarray(t[k], float) for k in GAS_KEYS})
-        for src, dst in (("isp_vac_s_by_eps", "isp"), ("isp_vac_frozen_s_by_eps", "isp_frozen")):
+        for src, dst in (("isp_vac_s_by_eps", "isp"), ("isp_vac_frozen_s_by_eps", "isp_frozen"),
+                         ("pe_over_pc_by_eps", "lnpe")):
             if src in t:
                 eps = sorted(t[src], key=float)
                 tab[dst + "_lneps"] = np.log(np.array([float(e) for e in eps]))
-                tab[dst] = np.asarray([t[src][e] for e in eps], float)   # [eps][pc][mr]
+                arr = np.asarray([t[src][e] for e in eps], float)          # [eps][pc][mr]
+                tab[dst] = np.log(arr) if dst == "lnpe" else arr
         out[pair] = tab
     return out
 
@@ -170,6 +172,22 @@ def isp_vac_ideal_s(pair, mr, pc_pa, eps, frozen=False):
     le = math.log(max(float(eps), 1e-9))
     clamped = le < xs[0] - 1e-12 or le > xs[-1] + 1e-12
     return _pchip(xs, ys, min(max(le, xs[0]), xs[-1])), bool(clamped)
+
+
+def pe_over_pc_at_eps(pair, mr, pc_pa, eps):
+    """(exit static / chamber pressure, eps_clamped) of the shifting-
+    equilibrium expansion to area ratio eps: bilinear in (MR, ln Pc) on
+    ln(pe/pc), monotone PCHIP in ln eps. None without that column."""
+    tab = _gas_db().get(pair)
+    if tab is None or "lnpe" not in tab:
+        return None
+    i, wi, _ = _bracket(tab["lnp"], math.log(max(pc_pa, 1.0)))
+    j, wj, _ = _bracket(tab["mr"], float(mr))
+    ys = np.array([_bilinear(tab["lnpe"][k], i, wi, j, wj) for k in range(tab["lnpe"].shape[0])])
+    xs = tab["lnpe_lneps"]
+    le = math.log(max(float(eps), 1e-9))
+    clamped = le < xs[0] - 1e-12 or le > xs[-1] + 1e-12
+    return math.exp(_pchip(xs, ys, min(max(le, xs[0]), xs[-1]))), bool(clamped)
 
 
 def _coolant_interp(tab, key, t_k, p_pa):
@@ -303,6 +321,15 @@ if __name__ == "__main__":
                     fz = [isp_vac_ideal_s(pair, mr, pc, e, frozen=True)[0] for e in es]
                     assert all(f <= x + 1e-6 for f, x in zip(fz, sh)), (pair, mr, pc)
     assert isp_vac_ideal_s("LOX/LH2", 6.0, 7e6, 1000.0)[1]
+    # 8. exit pressure ratio falls with eps and reproduces the grid
+    for pair, t in gdb.items():
+        if "lnpe" not in t:
+            continue
+        pes = [pe_over_pc_at_eps(pair, t["mr"][2], 7e6, e)[0]
+               for e in np.exp(np.linspace(t["lnpe_lneps"][0], t["lnpe_lneps"][-1], 40))]
+        assert all(b < a for a, b in zip(pes, pes[1:])), pair
+        v = pe_over_pc_at_eps(pair, t["mr"][2], math.exp(t["lnp"][3]), math.exp(t["lnpe_lneps"][4]))[0]
+        assert abs(math.log(v) - t["lnpe"][4, 3, 2]) < 1e-9, pair
     assert isp_vac_ideal_s("Hydrazine", 1.0, 2e6, 20.0) is None
     for pair in ("LOX/LH2", "LOX/CH4", "LOX/RP-1"):
         s = gas_state(pair, {"LOX/LH2": 6.0, "LOX/CH4": 3.55, "LOX/RP-1": 2.34}[pair], 10e6)
