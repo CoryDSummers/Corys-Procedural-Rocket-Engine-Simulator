@@ -57,7 +57,7 @@ _BELL = dict(nozzle_type="bell", bell_percent_length=80.0)
 
 ENGINES = {
     "F-1": dict(
-        design=dict(propellant_pair="LOX/RP-1", mixture_ratio=2.27, chamber_pressure_pa=6.77e6,
+        design=dict(propellant_pair="LOX/RP-1", mixture_ratio=2.40, chamber_pressure_pa=6.77e6,
                     expansion_ratio=16.0, target_vac_thrust_n=7_775_490.0, cycle="gas_generator",
                     material_key="inconel_718", bell_material_key="inconel_718",
                     chamber_cooling_method="regenerative", nozzle_cooling_method="uncooled",
@@ -66,6 +66,10 @@ ENGINES = {
                     turbine_exhaust_mode="nozzle_injection", turbine_exhaust_inject_eps=10.0,
                     injector_type="impinging", config_name="F-1", **_BELL),
         notes=["Inconel-X-750 tube wall in reality; inconel_718 is the closest catalog alloy.",
+               "mixture_ratio is the THRUST-CHAMBER ratio 2.40 [F1-Man Fig 1-7]; RO's 2.27 is the "
+               "engine-overall ratio, diluted by the fuel-rich (MR 0.416) GG bleed [F1-Man Fig "
+               "1-5/1-27]. This tool's mixture_ratio is the chamber's (the GG is added on top). "
+               "Changed 2026-09-25.",
                "Regen tube bundle to eps 10, then a turbine-exhaust-film-cooled extension to eps 16 "
                "[SP-8120 s2.2.2]: modelled as an uncooled Inconel extension + the turbine exhaust "
                "injected at eps 10 (turbine_exhaust_mode nozzle_injection), whose gas film cools it. "

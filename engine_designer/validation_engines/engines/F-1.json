@@ -2,7 +2,7 @@
   "schema_version": 9,
   "design": {
     "propellant_pair": "LOX/RP-1",
-    "mixture_ratio": 2.27,
+    "mixture_ratio": 2.4,
     "chamber_pressure_pa": 6770000.0,
     "expansion_ratio": 16.0,
     "nozzle_type": "bell",
@@ -109,6 +109,7 @@
     "source": "[RO F1_Config.cfg \"SA-501..503\"]",
     "notes": [
       "Inconel-X-750 tube wall in reality; inconel_718 is the closest catalog alloy.",
+      "mixture_ratio is the THRUST-CHAMBER ratio 2.40 [F1-Man Fig 1-7]; RO's 2.27 is the engine-overall ratio, diluted by the fuel-rich (MR 0.416) GG bleed [F1-Man Fig 1-5/1-27]. This tool's mixture_ratio is the chamber's (the GG is added on top). Changed 2026-09-25.",
       "Regen tube bundle to eps 10, then a turbine-exhaust-film-cooled extension to eps 16 [SP-8120 s2.2.2]: modelled as an uncooled Inconel extension + the turbine exhaust injected at eps 10 (turbine_exhaust_mode nozzle_injection), whose gas film cools it. (Until 2026-09-24 an 8%-of-fuel liquid slot film stood in for the exhaust film.)",
       "The F-1's heat exchanger (LOX->GOX) in the exhaust duct is not modelled: no GOX flow in hand."
     ],

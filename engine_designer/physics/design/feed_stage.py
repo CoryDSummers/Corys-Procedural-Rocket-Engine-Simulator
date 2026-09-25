@@ -392,7 +392,8 @@ def _exhaust_back_pressure(self, s, gamma, inlet_pc_fraction, pr_cap):
     s.te_discharge_pa = turbine_exhaust.discharge_pressure_pa(
         s.te_mode, s.te_ambient_pa, s.te_local_static_pa)
     s.te_p_in_pa = inlet_pc_fraction * self.chamber_pressure_pa
-    s.te_p_out_req_pa = turbine_exhaust.required_turbine_outlet_pa(gamma, s.te_discharge_pa)
+    s.te_p_out_req_pa = turbine_exhaust.required_turbine_outlet_pa(gamma, s.te_discharge_pa,
+                                                                 s.te_mode)
     # A baked exhaust-duct run's computed loss (previous pass) replaces the
     # lumped duct allowance when it is the larger of the two.
     s.te_duct_loss_pa = (s.line_loss_override or {}).get("turbine_exhaust")

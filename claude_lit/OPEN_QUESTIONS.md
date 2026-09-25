@@ -166,6 +166,24 @@ into that and makes no claims about it.
     re-derived from them yet), the LR-91 GG flow (the model under-predicts its 865 lbf by
     ~40%, item d), the heat-exchanger GOX duty (item h), and the duct Mach and hardware
     constants (`ASSUMPTIONS.md`).
+  - **Per-engine injection back pressure (wanted — Cory, 2026-09-25).** Injection mode's
+    turbine back pressure is today ONE lumped ratio, `turbine_exhaust.
+    EXHAUST_INJECTION_PRESSURE_RATIO` = 2.50, reverse-solved on the F-1's 58 psia turbine exit
+    `[F1-Man Fig 1-16/3-14]`. The real physics is per engine: the hot-gas torus loss
+    (decreasing section, inlet splitter plates, exit flow vanes, omega joints `[F1-Man §1-18]`)
+    plus the slot/eyelet discharge (F-1: 23 rows of overlapping shingles `[F1-Man §1-23]`; J-2:
+    115 in² of eyelets at eps 10.45-11.40 `[RPE-J2Blog]`), i.e. K·q losses and a discharge
+    coefficient from geometry. Wanted: a J-2 turbine-exit pressure (a second anchor), shingle
+    slot heights / eyelet counts, and `[SP-8120]` §2.2.5.1 manifold-hydraulics loss numbers
+    applied to a hot gas. Until then the constant is Tier 2 INTERIM (ASSUMPTIONS).
+  - **F-1 pump power is under-predicted (2026-09-25, not a literature gap — a turbopump
+    calibration item).** The corpus F-1's turbine specific work matches the real ~508 kJ/kg
+    (53,146 bhp / 172 lb/s `[F1-Man Fig 3-14]`), but its GG flow is ~62 kg/s vs the real
+    75.7 kg/s (2.36 % vs 2.91 % of total flow), so the modelled pump power is ~20 % low. Part
+    of it is the corpus Pc (6.77 MPa from RO vs the real 1,125 psia injector-end Pc); the real
+    pump discharges (ox 1,602 / fuel 1,870 psia) and pump powers (30.3k / 22.7k bhp) are in
+    `[F1-Man Fig 3-14]` to calibrate against. Checked as a x0.5-2 plausibility band only
+    (`validate` turbine-exhaust (i)).
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
@@ -300,7 +318,8 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   now has a real citation, `[F1-Man §1-16]` — a real, dimensioned 30%/70% fuel bypass-vs-
   cooling split at each F-1 fuel-down tube, from Rocketdyne's own engine manual for the exact
   engine this cooling topology is sourced from. Previously an uncited Tier-3 value. See
-  `topics/12b-structures-manifolds-and-hardware.md`.
+  `topics/12b-structures-manifolds-and-hardware.md`. **APPLIED 2026-09-25** — `ASSUMPTIONS.md`'s
+  `cooling_flow_topology` / `manifold_bypass_fraction` row now cites `[F1-Man §1-16]` directly.
 
 ## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
 

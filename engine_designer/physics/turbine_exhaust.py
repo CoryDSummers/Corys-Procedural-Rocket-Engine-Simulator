@@ -39,7 +39,9 @@ The physics, in order:
    pressure for injection. So the exhaust-exit total pressure must be
    >= p_discharge / p*/p0(gamma), and the turbine outlet sits
    EXHAUST_DUCT_PRESSURE_RATIO above that (duct/heat-exchanger/slot losses +
-   margin, reverse-solved on the H-1). Turbine PR = min(cap, p_in / p_out),
+   margin, reverse-solved on the H-1) - or, for injection,
+   EXHAUST_INJECTION_PRESSURE_RATIO (manifold + shingle slots, an interim
+   lumped value reverse-solved on the F-1's 58 psia). Turbine PR = min(cap, p_in / p_out),
    p_in = turbine-inlet fraction x Pc. A vacuum-discharging exhaust hits the
    old flat cap (GG_PRESSURE_RATIO 22, now a CAP).
 3. Exhaust thrust: ideal isentropic expansion of the exhaust from its exit
@@ -66,13 +68,15 @@ DEFAULT_MODE = "overboard_duct"
 PA_SEA_LEVEL = 101325.0
 
 # Turbine inlet total pressure as a fraction of main-chamber (injector-end)
-# Pc. Tier 2, single real anchor: H-1 turbine inlet 599.0 psia total vs
-# injector-end Pc 689.3 psia (200K rating) = 0.869 [H1-Man Fig 1-47/1-18].
-GG_TURBINE_INLET_PC_FRACTION = 0.869
+# Pc. Tier 2, the mean of two real anchors: H-1 turbine inlet 599.0 psia total
+# vs injector-end Pc 689.3 psia (200K rating) = 0.869 [H1-Man Fig 1-47/1-18],
+# and F-1 945 psia (MD128/174 uprated) vs 1,125 psia = 0.840 [F1-Man Fig
+# 3-14/1-7].
+GG_TURBINE_INLET_PC_FRACTION = 0.855
 # Tap-off drive gas is bled from the main chamber through a tapoff valve and
 # film/mix cooling - Tier 3: no turbine-inlet pressure in hand for the J-2S
 # ([AEDC-J2S] gives sensor ranges only). Taken equal to the GG value.
-TAP_OFF_TURBINE_INLET_PC_FRACTION = 0.869
+TAP_OFF_TURBINE_INLET_PC_FRACTION = GG_TURBINE_INLET_PC_FRACTION
 
 # Turbine outlet total pressure / exhaust-exit total pressure: duct, heat-
 # exchanger and slot losses plus a choking margin, lumped. Tier 2, REVERSE-
@@ -84,6 +88,19 @@ TAP_OFF_TURBINE_INLET_PC_FRACTION = 0.869
 # within ~13% of the 33.8 psia this gives (self-test).
 EXHAUST_DUCT_PRESSURE_RATIO = 1.330
 
+# The same lumped ratio for NOZZLE INJECTION: turbine outlet total pressure /
+# the total pressure the exhaust has left when it leaves the injection slots
+# sonic into the local main-nozzle static pressure (duct + hot-gas manifold +
+# shingle-slot / eyelet losses). Tier 2 INTERIM, REVERSE-SOLVED on the F-1:
+# turbine exit 58 psia static [F1-Man Fig 1-16/3-14] vs the eps-10 static of
+# the real 1,125 psia chamber (pe/pc 0.0119 at the corpus F-1's gamma 1.218 ->
+# 13.4 psia): 58 / 13.4 = 4.32 = this / p*/p0(1.13) -> 2.50. Pinned as a
+# RATIO to the local static, so it carries across Pc. It is one engine's
+# lumped loss, not per-engine physics: a real replacement would compute the
+# torus (decreasing section, splitter plates, exit vanes [F1-Man §1-18]) and
+# slot/eyelet dP from geometry - the F-1's 23 rows of shingle slots, the J-2's
+# 115 in^2 of eyelets [RPE-J2Blog] - see claude_lit/OPEN_QUESTIONS.md.
+EXHAUST_INJECTION_PRESSURE_RATIO = 2.50
 # Thrust efficiency of the exhaust stream vs its ideal isentropic expansion
 # (non-parallel exit, mixing with the main-flow boundary layer, duct swirl,
 # non-ideal frozen gas). Tier 2, REVERSE-SOLVED through the full pipeline on
@@ -137,10 +154,18 @@ def discharge_pressure_pa(mode, ambient_pa, local_static_pa):
     return local_static_pa if effective_mode(mode) == "nozzle_injection" else ambient_pa
 
 
-def required_turbine_outlet_pa(gamma, discharge_pa):
+def exhaust_loss_ratio(mode):
+    """Turbine outlet / exhaust-exit total pressure for the mode: the
+    injection manifold + slots (F-1-anchored) or the plain duct / aspirator
+    slot (H-1-anchored)."""
+    return (EXHAUST_INJECTION_PRESSURE_RATIO if effective_mode(mode) == "nozzle_injection"
+            else EXHAUST_DUCT_PRESSURE_RATIO)
+
+
+def required_turbine_outlet_pa(gamma, discharge_pa, mode=DEFAULT_MODE):
     """Turbine outlet total pressure needed for the exhaust to leave sonic
-    into discharge_pa after the lumped duct/slot losses."""
-    return discharge_pa / critical_pressure_ratio(gamma) * EXHAUST_DUCT_PRESSURE_RATIO
+    into discharge_pa after the mode's lumped duct/manifold/slot losses."""
+    return discharge_pa / critical_pressure_ratio(gamma) * exhaust_loss_ratio(mode)
 
 
 def turbine_pressure_ratio(p_in_pa, p_out_required_pa, pr_cap):
@@ -179,7 +204,7 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
     hx_on = hx_gox_kgs > 0.0 and lox_pair and mdot_kgs > 0.0
     hx_dt = hx_gox_kgs * LOX_TO_GOX_DH_J_KG / (mdot_kgs * cp) if hx_on else 0.0
     t_exh = t_turb_out - hx_dt
-    p_exit_total = p_turbine_out_pa / EXHAUST_DUCT_PRESSURE_RATIO
+    p_exit_total = p_turbine_out_pa / exhaust_loss_ratio(mode)
 
     cstar = iso.c_star(max(t_exh, 1.0), gamma, m_molar)
     crit = critical_pressure_ratio(gamma)
@@ -277,6 +302,7 @@ OUTLET_HALF_ANGLE_DEG = 15.0           # conical exhaust-nozzle divergence - Tie
 HX_CAN_DIA_DUCT_MULT = 2.5
 HX_CAN_LENGTH_DUCT_MULT = 3.0
 HX_MASS_SHELL_MULT = 2.0
+INJECTION_MANIFOLD_TAPER_BLEND = 0.5
 # Aspirator annulus at its forward (inlet) end is sized for the duct velocity;
 # it narrows linearly to the choked exit slot.
 
@@ -349,18 +375,21 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
     out = dict(mode=mode, duct=duct, material=EXHAUST_HARDWARE_MATERIAL, manifold=None,
                aspirator=None, outlet=None, hx=None, mass_kg=0.0)
 
-    def _ring(x, r_wall, v):
+    def _ring(x, r_wall, v, taper_blend=0.0):
         r_flow = manifold.required_flow_radius_m(0.5 * mdot, duct["rho_kg_m3"], v)
         wall = max(manifold.manifold_wall_thickness_m(p_out, r_flow, mat.allowable_stress_pa),
                    EXHAUST_SHEET_MIN_GAUGE_M)
         ring = manifold._assemble(mdot, v, attach_angle_deg, r_wall + r_flow + wall, x,
-                                  r_flow, wall, p_out, taper_blend=0.0, split=True)
+                                  r_flow, wall, p_out, taper_blend=taper_blend, split=True)
         ring["mass_kg"] *= rho_scale
         return ring
 
     if mode == "nozzle_injection":
         i = _station_at_eps(xs, rs, rt, inject_eps)
-        ring = _ring(xs[i], rs[i], duct["velocity_ms"])
+        # the F-1 torus narrows from its inlet round the engine [F1-Man
+        # §1-18]; half-way between constant area and constant velocity, the
+        # SP-8087 "between the two" convention the fuel/ox rings use
+        ring = _ring(xs[i], rs[i], duct["velocity_ms"], taper_blend=INJECTION_MANIFOLD_TAPER_BLEND)
         out["manifold"] = out["exhaust"] = ring
         out["mass_kg"] += ring["mass_kg"]
     elif mode == "aspirator":
@@ -452,7 +481,7 @@ def _self_test():
     psi = 6894.757
 
     # (1) H-1 back pressure: sea-level booster, sonic exit to sea level,
-    # turbine inlet 0.869 x 689.3 psia -> exit 33.8 psia, PR ~17.7 [H1-Man].
+    # turbine inlet 0.855 x 689.3 psia -> exit 33.8 psia, PR ~17.7 [H1-Man].
     g_rp1, cp_rp1 = 1.13, 2100.0
     p_in = GG_TURBINE_INLET_PC_FRACTION * 689.3 * psi
     p_req = required_turbine_outlet_pa(g_rp1, discharge_pressure_pa("aspirator", PA_SEA_LEVEL, 0.0))
@@ -470,6 +499,19 @@ def _self_test():
     c1c = pr_v == 22.0 and not lim_v
     print(f"  (1c) vacuum discharge -> PR cap {pr_v:.1f}  [{'OK' if c1c else 'FAIL'}]")
     ok &= c1c
+
+    # (1d) F-1 injection back pressure [F1-Man Fig 1-16/3-14]: eps-10 static
+    # of the real 1,125 psia chamber (pe/pc 0.01193) -> turbine exit 58 psia;
+    # inlet 0.855 x 1,125 -> PR vs the real 945/58 = 16.3
+    p_stat = 1125.0 * psi * 0.01193
+    p_req_f1 = required_turbine_outlet_pa(g_rp1, discharge_pressure_pa("nozzle_injection", 0.0,
+                                                                         p_stat), "nozzle_injection")
+    pr_f1, lim_f1 = turbine_pressure_ratio(GG_TURBINE_INLET_PC_FRACTION * 1125.0 * psi,
+                                           p_req_f1, 22.0)
+    c1d = abs(p_req_f1 / psi - 58.0) / 58.0 < 0.01 and lim_f1 and abs(pr_f1 - 16.3) / 16.3 < 0.05
+    print(f"  (1d) F-1 injection turbine exit {p_req_f1/psi:.1f} psia (real 58), PR {pr_f1:.2f} "
+          f"(real 16.3)  [{'OK' if c1d else 'FAIL'}]")
+    ok &= c1d
 
     # (2) H-1 aspirator slot gap ~0.440 in [H1-Man §1-51]: 17.22 lb/s at the
     # turbine's 4007 hp, 45.62 in exit. Plausibility band x0.6-1.5 (the slot
