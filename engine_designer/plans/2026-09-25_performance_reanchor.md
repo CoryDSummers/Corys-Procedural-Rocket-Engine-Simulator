@@ -5,8 +5,8 @@ its commit lands** (with the commit hash).
 Branch: `claude/friendly-rubin-un6ueo`, continuing after turbine-exhaust round 2 (e204a1b).
 
 ## Status
-- [ ] Commit 0: this document
-- [ ] Commit 1: regenerate equilibrium tables (wider eps grid + frozen Isp column); heat-transfer path unchanged
+- [x] Commit 0: this document (405ac42)
+- [x] Commit 1: regenerate equilibrium tables (wider eps grid + frozen Isp column); heat-transfer path unchanged - corpus bit-identical
 - [ ] Commit 2: performance path on the tables (performance_state, ETA_CF split, re-solved calibrations, corpus report)
 - [ ] Commit 3: docs (ASSUMPTIONS, COOLING_AUDIT P1, CLAUDE.md, README, OPEN_QUESTIONS option-C literature)
 

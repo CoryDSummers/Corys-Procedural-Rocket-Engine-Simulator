@@ -15,7 +15,12 @@ What it computes
      Tc, molar mass M, frozen cp / gamma, equilibrium cp, equilibrium
      isentropic exponent gamma_s, mixture-averaged viscosity + FROZEN thermal
      conductivity (GRI-Mech 3.0 transport data) and the resulting frozen
-     Prandtl number, shifting-equilibrium c*, and vacuum Isp at eps 10/40/100.
+     Prandtl number, shifting-equilibrium c*, and vacuum Isp over EPS_GRID
+     (2..250) for BOTH a shifting-equilibrium expansion (isp_vac_s_by_eps -
+     the ideal upper bound the performance path is anchored on) and a FROZEN
+     expansion (composition fixed at the chamber value, from its own frozen
+     throat: isp_vac_frozen_s_by_eps - the lower bound, kept so a kinetic-loss
+     model can later sit between the two).
    Plus informational monopropellant points (HTP decomposition).
 2. ``coolant_properties.json`` - regen-jacket coolant properties on a
    (temperature x pressure) grid with CoolProp: density, cp, viscosity,
@@ -92,7 +97,10 @@ PAIRS = {
                         np.arange(1.2, 3.01, 0.1)),
 }
 PC_GRID_MPA = [0.5, 1.0, 2.0, 4.0, 7.0, 12.0, 20.0, 30.0]
-EPS_GRID = [10.0, 40.0, 100.0]
+# 2026-09-25 (P1 performance re-anchor): widened from [10, 40, 100] so the
+# performance path interpolates instead of extrapolating (booster eps 8-16,
+# big vacuum bells 150-250).
+EPS_GRID = [2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 16.0, 25.0, 40.0, 60.0, 100.0, 150.0, 250.0]
 
 # Sutton, Rocket Propulsion Elements (7th ed.) Table 5-5 (PDF page 203): Pc 1000
 # psia (6.895 MPa), optimum expansion to 1 atm. Each pair has two rows: the row
@@ -254,10 +262,51 @@ class Equilibrium:
         for eps in eps_list:
             isp, _, _ = exit_for_eps(eps)
             isp_vac[f"{eps:g}"] = isp
+
+        # FROZEN expansion: composition held at the chamber value X0 (no
+        # re-equilibration), its own throat and area ratios.
+        def at_p_frozen(p):
+            g.state = st0
+            g.SP = s0, p
+            u = math.sqrt(max(0.0, 2.0 * (h0 - g.enthalpy_mass)))
+            return g.density, u
+
+        isp_vac_frozen = {}
+        if eps_list:
+            def Gf(lp):
+                r, u = at_p_frozen(math.exp(lp))
+                return r * u
+            a, b = lo, hi
+            c, d = b - gr * (b - a), a + gr * (b - a)
+            gc, gd = Gf(c), Gf(d)
+            for _ in range(40):
+                if gc > gd:
+                    b, d, gd = d, c, gc
+                    c = b - gr * (b - a)
+                    gc = Gf(c)
+                else:
+                    a, c, gc = c, d, gd
+                    d = a + gr * (b - a)
+                    gd = Gf(d)
+            lpt_f = 0.5 * (a + b)
+            gt_f = Gf(lpt_f)
+            for eps in eps_list:
+                a2, b2 = math.log(p_pa * 1e-8), lpt_f
+                for _ in range(60):
+                    m = 0.5 * (a2 + b2)
+                    r, u = at_p_frozen(math.exp(m))
+                    if gt_f / (r * u) > eps:
+                        a2 = m
+                    else:
+                        b2 = m
+                pe = math.exp(0.5 * (a2 + b2))
+                r, u = at_p_frozen(pe)
+                isp_vac_frozen[f"{eps:g}"] = (u + pe / (r * u)) / G0
         out = dict(tc_k=T0, m_molar=M, cp_frozen_j_kgk=cp_f, gamma_frozen=cp_f / cv_f,
                    cp_equilibrium_j_kgk=cp_eq, gamma_s=gamma_s, mu_pa_s=mu,
                    k_frozen_w_mk=lam, pr_frozen=mu * cp_f / lam, transport_mole_coverage=xcov,
-                   pt_over_pc=math.exp(lpt) / p_pa, cstar_ms=cstar, isp_vac_s=isp_vac)
+                   pt_over_pc=math.exp(lpt) / p_pa, cstar_ms=cstar, isp_vac_s=isp_vac,
+                   isp_vac_frozen_s=isp_vac_frozen)
         if pe_opt_pa is not None:
             r, u, _ = at_p(pe_opt_pa)
             out["isp_opt_s"] = u / G0
@@ -300,9 +349,11 @@ def build_gas_tables(eq, quick=False):
                                 "cp_equilibrium_j_kgk", "gamma_s", "mu_pa_s", "k_frozen_w_mk",
                                 "pr_frozen", "cstar_ms", "transport_mole_coverage")}
         isp = {f"{e:g}": [] for e in EPS_GRID}
+        ispf = {f"{e:g}": [] for e in EPS_GRID}
         for pc in pcs:
             rows = {k: [] for k in grid}
             irow = {k: [] for k in isp}
+            frow = {k: [] for k in ispf}
             for mr in mrs:
                 el, h = _blend(fuel, ox, float(mr))
                 r = eq.point(el, h, pc * 1e6)
@@ -310,12 +361,15 @@ def build_gas_tables(eq, quick=False):
                     rows[k].append(round(float(r[k]), 7))
                 for k in isp:
                     irow[k].append(round(float(r["isp_vac_s"][k]), 3))
+                    frow[k].append(round(float(r["isp_vac_frozen_s"][k]), 3))
             for k in grid:
                 grid[k].append(rows[k])
             for k in isp:
                 isp[k].append(irow[k])
+                ispf[k].append(frow[k])
         out[pair] = dict(mr=[round(float(x), 4) for x in mrs], pc_mpa=pcs,
-                         fuel=fuel, oxidizer=ox, **grid, isp_vac_s_by_eps=isp)
+                         fuel=fuel, oxidizer=ox, **grid, isp_vac_s_by_eps=isp,
+                         isp_vac_frozen_s_by_eps=ispf)
         print(f"  {pair:16s} {len(pcs)} Pc x {len(mrs)} MR  ({time.time() - t0:.0f} s)")
     # informational monopropellant: HTP decomposition (adiabatic, equilibrium)
     mono = {}
@@ -366,6 +420,8 @@ def main(argv=None):
     ap.add_argument("--out", default=default_out)
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--check-only", action="store_true")
+    ap.add_argument("--gas-only", action="store_true",
+                    help="write combustion_equilibrium.json only (leave the coolant tables)")
     a = ap.parse_args(argv)
 
     import warnings
@@ -394,15 +450,23 @@ def main(argv=None):
                            for k, v in REACTANTS.items()},
                 reactant_source="NASA CEA thermo.inp liquid-reactant assigned enthalpies",
                 self_check="Sutton Table 5-5 (1000 psia, opt. expansion): PASSED",
-                layout="each property is [len(pc_mpa)][len(mr)]; isp_vac_s_by_eps[eps] likewise",
-                caveats=["isp_vac_s_by_eps['100'] exit states can fall below the NASA "
-                         "polynomials' 300 K floor (thermo extrapolated) - informational only",
+                layout="each property is [len(pc_mpa)][len(mr)]; isp_vac_s_by_eps[eps] and "
+                       "isp_vac_frozen_s_by_eps[eps] likewise",
+                eps_grid=EPS_GRID,
+                caveats=["high-eps exit states (roughly eps >= 60 at low Pc, and most frozen "
+                         "expansions past eps ~25) fall below the NASA polynomials' 300 K floor "
+                         "(thermo extrapolated) - treat those Isp values as approximate",
+                         "frozen Isp = composition fixed at the chamber value from its own frozen "
+                         "throat; the real (finite-rate) nozzle lies between frozen and shifting",
                          "transport: species absent from GRI-Mech 3.0 are dropped "
                          "(transport_mole_coverage records the retained mole fraction)",
                          "properties are chamber (stagnation) values; Bartz uses them as-is"],
                 quick=a.quick)
     with open(os.path.join(a.out, "combustion_equilibrium.json"), "w") as f:
         json.dump(dict(meta=meta, pairs=gas, monopropellant_info=mono), f, indent=1)
+    if a.gas_only:
+        print(f"wrote {a.out}/combustion_equilibrium.json (--gas-only: coolant tables untouched)")
+        return 0
     print("coolant tables:")
     cool, cpv = build_coolant_tables(quick=a.quick)
     cmeta = dict(generator=meta["generator"], date=now, coolprop_version=cpv,
