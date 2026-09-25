@@ -448,3 +448,7 @@ log (why each feature was built the way it was, bugs found and root-caused, real
 researched) if a past decision's reasoning is ever needed in detail. The current *state* is
 fully captured in the code plus this file plus `engine_designer/README.md`/`ASSUMPTIONS.md`
 - that plan file should rarely need re-reading for routine continuation work.
+
+**In-flight rounds**: `engine_designer/plans/*.md` are committed copies of approved plans for
+work in progress, each with a per-commit checklist. Check there first when resuming a round
+that may have been cut off mid-way (unticked boxes = not landed yet).
