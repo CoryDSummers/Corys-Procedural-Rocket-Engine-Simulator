@@ -128,9 +128,13 @@ WALL_TEMP_FRACTION_DEFAULT = 0.25
 # 118 design point. 0.66 is REVERSE-SOLVED to that one cited point (Tier 2, one
 # anchor): SSME 119, J-2 33 (cited 28-57), SSME T_wc ~390 K / T_wg ~570 K
 # (Wieseneck 478 +/- 150 / < 811). Other pairs have no cited throat-flux anchor.
+# 2026-09-25 (P1 performance re-anchor): RE-SOLVED 0.66 -> 0.693 on the same
+# one point - Bartz scales with (Pc/c*)^0.8 and the corpus RS-25's c* now
+# comes from the equilibrium tables (2252 m/s, was lower), which read the
+# throat at 113.4 MW/m2 at 0.66; 0.693 gives 118.0.
 BARTZ_ABS_FLUX_CALIBRATION = {
     "LOX/RP-1": 1.00,
-    "LOX/LH2": 0.66,
+    "LOX/LH2": 0.693,
     "LOX/CH4": 1.00,
     "N2O4/MMH": 1.00,
     "Aerozine-50/NTO": 1.00,

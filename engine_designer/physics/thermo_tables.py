@@ -13,6 +13,11 @@ bilinear in (MR, ln Pc)):
     pr_frozen, cstar_ms, plus ``mr_clamped`` / ``pc_clamped`` flags (inputs
     outside the grid are clamped to its edge - reported, never silent).
     Returns None for a pair with no table (the monopropellants).
+    ``isp_vac_ideal_s(pair, mr, pc_pa, eps, frozen=False)`` -> (ideal vacuum
+    Isp [s], eps_clamped): the generator's shifting-equilibrium (or, with
+    frozen=True, frozen-composition) expansion, bilinear in (MR, ln Pc) at each
+    tabulated area ratio, then monotone-cubic (PCHIP) in ln eps. The
+    performance path's ideal thrust coefficient is this x g0 / c*.
 
 Coolant (per pair's fuel, grid = pressure x temperature, bilinear in (T, ln P)):
     ``coolant_state(pair, t_k, p_pa)`` -> dict with rho_kg_m3, cp_j_kgk,
@@ -47,9 +52,17 @@ def _gas_db():
         raw = json.load(f)
     out = {}
     for pair, t in raw["pairs"].items():
-        out[pair] = dict(mr=np.asarray(t["mr"], float),
-                         lnp=np.log(np.asarray(t["pc_mpa"], float) * 1e6),
-                         **{k: np.asarray(t[k], float) for k in GAS_KEYS})
+        tab = dict(mr=np.asarray(t["mr"], float),
+                   lnp=np.log(np.asarray(t["pc_mpa"], float) * 1e6),
+                   **{k: np.asarray(t[k], float) for k in GAS_KEYS})
+        for src, dst in (("isp_vac_s_by_eps", "isp"), ("isp_vac_frozen_s_by_eps", "isp_frozen"),
+                         ("pe_over_pc_by_eps", "lnpe")):
+            if src in t:
+                eps = sorted(t[src], key=float)
+                tab[dst + "_lneps"] = np.log(np.array([float(e) for e in eps]))
+                arr = np.asarray([t[src][e] for e in eps], float)          # [eps][pc][mr]
+                tab[dst] = np.log(arr) if dst == "lnpe" else arr
+        out[pair] = tab
     return out
 
 
@@ -122,6 +135,59 @@ def gas_state(pair, mr, pc_pa):
     out["pc_clamped"] = bool(pc_cl)
     out["mr_range"] = (float(tab["mr"][0]), float(tab["mr"][-1]))
     return out
+
+
+def _pchip(xs, ys, x):
+    """Monotone piecewise-cubic Hermite (Fritsch-Carlson) interpolation of
+    (xs, ys) at scalar x inside [xs[0], xs[-1]] - numpy only."""
+    n = len(xs)
+    if n == 1:
+        return float(ys[0])
+    h = np.diff(xs)
+    d = np.diff(ys) / h
+    m = np.zeros(n)
+    m[0], m[-1] = d[0], d[-1]
+    for k in range(1, n - 1):
+        if d[k - 1] * d[k] > 0:
+            w1, w2 = 2 * h[k] + h[k - 1], h[k] + 2 * h[k - 1]
+            m[k] = (w1 + w2) / (w1 / d[k - 1] + w2 / d[k])
+    i = int(min(max(np.searchsorted(xs, x, side="right") - 1, 0), n - 2))
+    t = (x - xs[i]) / h[i]
+    h00, h10 = 2 * t**3 - 3 * t**2 + 1, t**3 - 2 * t**2 + t
+    h01, h11 = -2 * t**3 + 3 * t**2, t**3 - t**2
+    return float(h00 * ys[i] + h10 * h[i] * m[i] + h01 * ys[i + 1] + h11 * h[i] * m[i + 1])
+
+
+def isp_vac_ideal_s(pair, mr, pc_pa, eps, frozen=False):
+    """(ideal vacuum Isp [s], eps_clamped) at area ratio eps - see the module
+    docstring. None for a pair without a table (or without that column)."""
+    tab = _gas_db().get(pair)
+    key = "isp_frozen" if frozen else "isp"
+    if tab is None or key not in tab:
+        return None
+    i, wi, _ = _bracket(tab["lnp"], math.log(max(pc_pa, 1.0)))
+    j, wj, _ = _bracket(tab["mr"], float(mr))
+    ys = np.array([_bilinear(tab[key][k], i, wi, j, wj) for k in range(tab[key].shape[0])])
+    xs = tab[key + "_lneps"]
+    le = math.log(max(float(eps), 1e-9))
+    clamped = le < xs[0] - 1e-12 or le > xs[-1] + 1e-12
+    return _pchip(xs, ys, min(max(le, xs[0]), xs[-1])), bool(clamped)
+
+
+def pe_over_pc_at_eps(pair, mr, pc_pa, eps):
+    """(exit static / chamber pressure, eps_clamped) of the shifting-
+    equilibrium expansion to area ratio eps: bilinear in (MR, ln Pc) on
+    ln(pe/pc), monotone PCHIP in ln eps. None without that column."""
+    tab = _gas_db().get(pair)
+    if tab is None or "lnpe" not in tab:
+        return None
+    i, wi, _ = _bracket(tab["lnp"], math.log(max(pc_pa, 1.0)))
+    j, wj, _ = _bracket(tab["mr"], float(mr))
+    ys = np.array([_bilinear(tab["lnpe"][k], i, wi, j, wj) for k in range(tab["lnpe"].shape[0])])
+    xs = tab["lnpe_lneps"]
+    le = math.log(max(float(eps), 1e-9))
+    clamped = le < xs[0] - 1e-12 or le > xs[-1] + 1e-12
+    return math.exp(_pchip(xs, ys, min(max(le, xs[0]), xs[-1]))), bool(clamped)
 
 
 def _coolant_interp(tab, key, t_k, p_pa):
@@ -238,6 +304,33 @@ if __name__ == "__main__":
         h = coolant_state(pair, t, p)["h_j_kg"]
         t2 = coolant_temperature_from_enthalpy(pair, h, p)
         assert abs(t2 - t) < 0.05, (pair, t, t2)
+    # 7. ideal Isp: grid points reproduce, Isp rises with eps, frozen <= shifting,
+    #    and the eps interpolation sits between its neighbours
+    for pair, t in gdb.items():
+        if "isp" not in t:
+            continue
+        for kk, le in enumerate(t["isp_lneps"]):
+            v, cl = isp_vac_ideal_s(pair, t["mr"][2], math.exp(t["lnp"][3]), math.exp(le))
+            assert abs(v - t["isp"][kk, 3, 2]) < 1e-9 and not cl, (pair, kk)
+        for mr in (t["mr"][1], t["mr"][-2]):
+            for pc in (1e6, 7e6, 20e6):
+                es = np.exp(np.linspace(t["isp_lneps"][0], t["isp_lneps"][-1], 40))
+                sh = [isp_vac_ideal_s(pair, mr, pc, e)[0] for e in es]
+                assert all(b >= a for a, b in zip(sh, sh[1:])), (pair, mr, pc)
+                if "isp_frozen" in t:
+                    fz = [isp_vac_ideal_s(pair, mr, pc, e, frozen=True)[0] for e in es]
+                    assert all(f <= x + 1e-6 for f, x in zip(fz, sh)), (pair, mr, pc)
+    assert isp_vac_ideal_s("LOX/LH2", 6.0, 7e6, 1000.0)[1]
+    # 8. exit pressure ratio falls with eps and reproduces the grid
+    for pair, t in gdb.items():
+        if "lnpe" not in t:
+            continue
+        pes = [pe_over_pc_at_eps(pair, t["mr"][2], 7e6, e)[0]
+               for e in np.exp(np.linspace(t["lnpe_lneps"][0], t["lnpe_lneps"][-1], 40))]
+        assert all(b < a for a, b in zip(pes, pes[1:])), pair
+        v = pe_over_pc_at_eps(pair, t["mr"][2], math.exp(t["lnp"][3]), math.exp(t["lnpe_lneps"][4]))[0]
+        assert abs(math.log(v) - t["lnpe"][4, 3, 2]) < 1e-9, pair
+    assert isp_vac_ideal_s("Hydrazine", 1.0, 2e6, 20.0) is None
     for pair in ("LOX/LH2", "LOX/CH4", "LOX/RP-1"):
         s = gas_state(pair, {"LOX/LH2": 6.0, "LOX/CH4": 3.55, "LOX/RP-1": 2.34}[pair], 10e6)
         print(f"  {pair:9s} Tc {s['tc_k']:6.0f} K  M {s['m_molar']:5.2f}  g_f {s['gamma_frozen']:.3f}"

@@ -1,0 +1,60 @@
+Turbine exhaust round 2, commit 4: heat exchanger recalibration + helium coil (2026-09-25)
+==========================================================================================
+Changes:
+- LOX_TO_GOX_DH_J_KG 4.0e5 -> 6.0e5 J/kg: real F-1 outlet temperature (90 K -> 516 K / 470 F)
+  [F1-Man Fig 3-29], enthalpy via CoolProp at the F-1 ox pump discharge pressure (1,602 psia).
+- New HE_HX_DH_J_KG = 5193*(397-63) ~ 1.73e6 J/kg (ideal monatomic cp): the F-1's SAME exhaust
+  heat exchanger also carries a helium coil (fuel-tank pressurization), one shell [F1-Man
+  Sec.1-71/1-72]. New field turbine_exhaust_hx_he_kgs (schema 10), allowed on ANY propellant
+  pair (helium is a pressurant, not tied to the propellants); the LOX coil stays LOX-pair only.
+  Both coils' duty adds in exhaust_stream().
+- HX can sizing reverse-solved against the corpus F-1's own duct bore (24.3 in, itself close to
+  the F-1's real 24 in turbine-exhaust-manifold-end diameter): HX_CAN_DIA_DUCT_MULT 2.5 -> 1.77,
+  HX_CAN_LENGTH_DUCT_MULT 3.0 -> 2.39, giving the corpus F-1 a 43.0 x 58.1 in can vs the real
+  43 x 58 in envelope. The can is now drawn TAPERED (new frustum_mesh primitive, 1.5x duct bore
+  inlet -> 0.9x outlet, mesh-only; mass still uses the plain-cylinder characteristic diameter).
+  Duty never sizes the can - only the duct bore does (flagged in ASSUMPTIONS).
+- Corpus F-1 now carries real HX flows: 1.81 kg/s GOX + 0.27 kg/s He (4 + 0.6 lb/s [F1-Man Fig
+  3-29]) - previously unset (no GOX flow in hand). Exhaust film temperature drops ~12 K
+  (829.7 -> 817.8 K), which very slightly COOLS the extension (1221 -> 1217 K, since the film's
+  own temperature enters the adiabatic-wall-under-film formula). The HX can itself adds ~238 kg
+  to the corpus F-1's turbine-exhaust hardware (335 kg total vs 98 kg before - a real, previously
+  absent structural mass at this scale) - out of a 23,635 kg dry mass (~1%).
+- GUI: a second "He coil flow" slider next to the GOX one; turbopump diagram / cfg_writer notes
+  list both coils when present.
+A/B computed in ONE environment (a `git worktree` of the pre-commit-4 HEAD vs the working tree),
+so no cross-machine ULP noise. Every OTHER design in the corpus shows only the new
+turbine_exhaust_hx_he_kgs field appearing in its serialized inputs at its default (0.0) - a
+schema-only diff, not a physics change; J-2 additionally echoes the new hx_he_kgs=0 key inside
+its turbine_exhaust dict for the same reason. No other numbers moved.
+
+Summary (before -> after, only real-number changes shown; other designs are schema-only):
+design                                     Isp vac                  Isp SL                 turb PR                 GG kg/s                  dry kg                 T exh K              ext wall K
+engines/F-1                         302.14->302.13          260.38->260.37                   16.58            62.05->62.05      23395.90->23635.26          829.71->817.78        1221.26->1216.74
+
+Full F-1 numeric diff (its only real-number change):
+CHANGED   engines/F-1
+    /bell_material_margin/assumed_wall_temp_k/__f__: '1221.256404535213' -> '1216.7448913778903'
+    /bell_material_margin/margin_ratio/__f__: '1.02353608575402' -> '1.0273312087502995'
+    /bell_material_margin/warning: 'Inconel 718 Nickel Superalloy: only 2% thermal margin (computed wall temp 1221 K vs 1250 K max). Thin margin.' -> 'Inconel 718 Nickel Superalloy: only 3% thermal margin (computed wall temp 1217 K vs 1250 K max). Thin margin.'
+    /bell_wall_mass_kg/__f__: '11263.349339237013' -> '11264.21552971586'
+    /body_wall_thickness_m/__nd__[0]/__f__: '0.028939349863432152' -> '0.028940091689745942'
+    /body_wall_thickness_m/__nd__[1]/__f__: '0.028939349863432152' -> '0.028940091689745942'
+    /body_wall_thickness_m/__nd__[2]/__f__: '0.02337080840962477' -> '0.023371407492905307'
+    /body_wall_thickness_m/__nd__[3]/__f__: '0.023222804664580134' -> '0.02322339995395814'
+    /body_wall_thickness_m/__nd__[4]/__f__: '0.02310014358984564' -> '0.02310073573495077'
+    /body_wall_thickness_m/__nd__[5]/__f__: '0.02300375871026481' -> '0.023004348384656523'
+    /body_wall_thickness_m/__nd__[6]/__f__: '0.02293438357297003' -> '0.022934971469011415'
+    /body_wall_thickness_m/__nd__[7]/__f__: '0.022892546164645967' -> '0.02289313298823443'
+    /body_wall_thickness_m/__nd__[8]/__f__: '0.012819957475587665' -> '0.012820286100171214'
+    /body_wall_thickness_m/__nd__[9]/__f__: '0.01192912318764591' -> '0.011929428976736472'
+    /body_wall_thickness_m/__nd__[10]/__f__: '0.011066536823841634' -> '0.011066820501541967'
+    /body_wall_thickness_m/__nd__[11]/__f__: '0.01025001765577037' -> '0.01025028040295888'
+    /body_wall_thickness_m/__nd__[12]/__f__: '0.00948188074737721' -> '0.009482123804276417'
+    /body_wall_thickness_m/__nd__[13]/__f__: '0.008763677570179195' -> '0.008763902216781765'
+    /body_wall_thickness_m/__nd__[14]/__f__: '0.008096145253559436' -> '0.008096352788753479'
+    /body_wall_thickness_m/__nd__[15]/__f__: '0.005944326749573577' -> '0.005944479125422431'
+    /body_wall_thickness_m/__nd__[16]/__f__: '0.004746400718709376' -> '0.00474652238712852'
+    /body_wall_thickness_m/__nd__[17]/__f__: '0.003945457635278205' -> '0.003945558772460198'
+    /body_wall_thickness_m/__nd__[18]/__f__: '0.0033650205357370227' -> '0.003365106794094303'
+    /body_wall_thickness_m/__nd__[19]/__f__: '0.0029235087971738786' -> '0.0029235837378952345'

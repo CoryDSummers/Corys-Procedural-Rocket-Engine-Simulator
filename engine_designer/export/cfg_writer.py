@@ -304,7 +304,10 @@ def render_cfg(design, result, config_name, manufacturer="Fictional", mass_mult=
                 f"{_te['turbine_pressure_ratio']:.1f}, {_te['t_exhaust_k']:.0f} K, exhaust Isp "
                 f"{_te['isp_vac_s']:.0f} s vac ({_te['isp_fraction_vac']*100:.0f}% of chamber)")
             if _te.get("hx_on"):
-                _cycle_note += f", LOX->GOX heat exchanger {_te['hx_gox_kgs']:.2f} kg/s"
+                _hx_coils = " + ".join(filter(None, [
+                    f"{_te['hx_gox_kgs']:.2f} kg/s GOX" if _te["hx_gox_kgs"] > 0.0 else "",
+                    f"{_te['hx_he_kgs']:.2f} kg/s He" if _te["hx_he_kgs"] > 0.0 else ""]))
+                _cycle_note += f", exhaust heat exchanger {_hx_coils}"
             if abs(_te.get("roll_torque_nm") or 0.0) > 0:
                 _cycle_note += (f", canted {_te['cant_deg']:.0f} deg: "
                                 f"{_te['roll_torque_nm']:.0f} N.m roll torque (not exported)")

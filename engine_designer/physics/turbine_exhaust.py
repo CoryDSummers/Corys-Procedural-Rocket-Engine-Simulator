@@ -31,15 +31,19 @@ The physics, in order:
    from GG_GAS_PROPERTIES or the tap-off gas), so R = cp (gamma-1)/gamma.
    Turbine exit total temperature = Tin - dh_actual / cp.
    An optional LOX->GOX heat exchanger (the H-1's pressurant heater
-   [H1-Man §1-47]; Titan I superheater [SP-8120]) takes
-   mdot_gox * LOX_TO_GOX_DH_J_KG out of the stream.
+   [H1-Man §1-47]; Titan I superheater [SP-8120]; the F-1's own is BOTH a
+   LOX coil and a helium coil in one shell [F1-Man §1-71/1-72]) takes
+   mdot_gox * LOX_TO_GOX_DH_J_KG + mdot_he * HE_HX_DH_J_KG out of the
+   stream.
 2. Back pressure: the exhaust must leave SONIC into whatever it discharges
    into - ambient (sea level if the main nozzle runs attached at sea level,
    else vacuum) for overboard/aspirator, the local main-nozzle static
    pressure for injection. So the exhaust-exit total pressure must be
    >= p_discharge / p*/p0(gamma), and the turbine outlet sits
    EXHAUST_DUCT_PRESSURE_RATIO above that (duct/heat-exchanger/slot losses +
-   margin, reverse-solved on the H-1). Turbine PR = min(cap, p_in / p_out),
+   margin, reverse-solved on the H-1) - or, for injection,
+   EXHAUST_INJECTION_PRESSURE_RATIO (manifold + shingle slots, an interim
+   lumped value reverse-solved on the F-1's 58 psia). Turbine PR = min(cap, p_in / p_out),
    p_in = turbine-inlet fraction x Pc. A vacuum-discharging exhaust hits the
    old flat cap (GG_PRESSURE_RATIO 22, now a CAP).
 3. Exhaust thrust: ideal isentropic expansion of the exhaust from its exit
@@ -52,6 +56,8 @@ Pure functions + a __main__ self-test; physics/design/feed_stage.py
 dispatches here.
 """
 import math
+
+import numpy as np
 
 from . import isentropic as iso
 
@@ -66,13 +72,15 @@ DEFAULT_MODE = "overboard_duct"
 PA_SEA_LEVEL = 101325.0
 
 # Turbine inlet total pressure as a fraction of main-chamber (injector-end)
-# Pc. Tier 2, single real anchor: H-1 turbine inlet 599.0 psia total vs
-# injector-end Pc 689.3 psia (200K rating) = 0.869 [H1-Man Fig 1-47/1-18].
-GG_TURBINE_INLET_PC_FRACTION = 0.869
+# Pc. Tier 2, the mean of two real anchors: H-1 turbine inlet 599.0 psia total
+# vs injector-end Pc 689.3 psia (200K rating) = 0.869 [H1-Man Fig 1-47/1-18],
+# and F-1 945 psia (MD128/174 uprated) vs 1,125 psia = 0.840 [F1-Man Fig
+# 3-14/1-7].
+GG_TURBINE_INLET_PC_FRACTION = 0.855
 # Tap-off drive gas is bled from the main chamber through a tapoff valve and
 # film/mix cooling - Tier 3: no turbine-inlet pressure in hand for the J-2S
 # ([AEDC-J2S] gives sensor ranges only). Taken equal to the GG value.
-TAP_OFF_TURBINE_INLET_PC_FRACTION = 0.869
+TAP_OFF_TURBINE_INLET_PC_FRACTION = GG_TURBINE_INLET_PC_FRACTION
 
 # Turbine outlet total pressure / exhaust-exit total pressure: duct, heat-
 # exchanger and slot losses plus a choking margin, lumped. Tier 2, REVERSE-
@@ -84,6 +92,21 @@ TAP_OFF_TURBINE_INLET_PC_FRACTION = 0.869
 # within ~13% of the 33.8 psia this gives (self-test).
 EXHAUST_DUCT_PRESSURE_RATIO = 1.330
 
+# The same lumped ratio for NOZZLE INJECTION: turbine outlet total pressure /
+# the total pressure the exhaust has left when it leaves the injection slots
+# sonic into the local main-nozzle static pressure (duct + hot-gas manifold +
+# shingle-slot / eyelet losses). Tier 2 INTERIM, REVERSE-SOLVED on the F-1:
+# turbine exit 58 psia static [F1-Man Fig 1-16/3-14] vs the eps-10 static of
+# the real 1,125 psia chamber - 2026-09-25 (P1 re-anchor) from the equilibrium
+# tables' own shifting expansion, pe/pc 0.01362 at the corpus MR 2.40 -> 15.3
+# psia: 58 / 15.3 = 3.785 = this / p*/p0(1.13) -> 2.19. (It was 2.50 for the
+# day it rested on the old one-gamma 0.0119.) Pinned as a RATIO to the local
+# static, so it carries across Pc. It is one engine's lumped loss, not
+# per-engine physics: a real replacement would compute the torus (decreasing
+# section, splitter plates, exit vanes [F1-Man §1-18]) and slot/eyelet dP
+# from geometry - the F-1's 23 rows of shingle slots, the J-2's 115 in^2 of
+# eyelets [RPE-J2Blog] - see claude_lit/OPEN_QUESTIONS.md.
+EXHAUST_INJECTION_PRESSURE_RATIO = 2.19
 # Thrust efficiency of the exhaust stream vs its ideal isentropic expansion
 # (non-parallel exit, mixing with the main-flow boundary layer, duct swirl,
 # non-ideal frozen gas). Tier 2, REVERSE-SOLVED through the full pipeline on
@@ -95,12 +118,24 @@ EXHAUST_DUCT_PRESSURE_RATIO = 1.330
 # (O2/H2) [Tripropellant-CR150444 Table 2].
 EXHAUST_THRUST_EFFICIENCY = 0.96
 
-# LOX -> GOX pressurant heat-exchanger enthalpy rise per kg of oxygen: from
-# ~90 K liquid to ~300 K gas. Tier 3 - a standard O2 property value (NIST
-# webbook order of magnitude: ~213 kJ/kg latent + ~0.92 kJ/kg-K x ~200 K
-# sensible), NOT from a claude_lit source; no H-1 GOX flow or outlet
-# temperature is published either ([H1-Man] describes the hardware only).
-LOX_TO_GOX_DH_J_KG = 4.0e5
+# LOX -> GOX pressurant heat-exchanger enthalpy rise per kg of oxygen: 90 K
+# liquid (pump discharge, supercritical) to 516 K (470 F) gas. Tier 2
+# (2026-09-25): the OUTLET TEMPERATURE is a real F-1 anchor [F1-Man Fig 3-29,
+# "LOX -288 F in -> 470 F out"]; the enthalpy value itself is a standard
+# CoolProp O2 property (real-gas, at the F-1 ox pump discharge 1,602 psia
+# [F1-Man Fig 1-16/3-14]) -> 5.99e5 J/kg, rounded. No GOX FLOW is anchored
+# ([H1-Man]/[F1-Man] describe the hardware, not a flow rate); the corpus F-1
+# uses 4 lb/s [F1-Man Fig 3-29]'s own test-evaluation input, not a derived
+# design flow.
+LOX_TO_GOX_DH_J_KG = 6.0e5
+# Helium-coil pressurant heat exchanger (F-1 only source in claude_lit: BOTH
+# a LOX coil AND a He coil share one shell [F1-Man §1-71/1-72]) - real
+# 63 K -> 397 K (-345 F -> 255 F) [F1-Man Fig 3-29], ideal monatomic cp
+# 5,193 J/kg-K (He has no meaningful real-gas departure at this pressure/
+# temperature - CoolProp gives 1.75e6 J/kg, 1% off the ideal value below).
+# Tier 2, same anchor tier as the LOX coil. Allowed on ANY propellant pair
+# (helium is a pressurant, not tied to the propellants).
+HE_HX_DH_J_KG = 5193.0 * (397.0 - 63.0)
 # Warn when the heat exchanger chills the exhaust below this: fuel-rich
 # hydrocarbon exhaust starts condensing heavy species / water well above
 # ambient. Tier 3, an arbitrary-but-reasonable warn threshold.
@@ -137,10 +172,18 @@ def discharge_pressure_pa(mode, ambient_pa, local_static_pa):
     return local_static_pa if effective_mode(mode) == "nozzle_injection" else ambient_pa
 
 
-def required_turbine_outlet_pa(gamma, discharge_pa):
+def exhaust_loss_ratio(mode):
+    """Turbine outlet / exhaust-exit total pressure for the mode: the
+    injection manifold + slots (F-1-anchored) or the plain duct / aspirator
+    slot (H-1-anchored)."""
+    return (EXHAUST_INJECTION_PRESSURE_RATIO if effective_mode(mode) == "nozzle_injection"
+            else EXHAUST_DUCT_PRESSURE_RATIO)
+
+
+def required_turbine_outlet_pa(gamma, discharge_pa, mode=DEFAULT_MODE):
     """Turbine outlet total pressure needed for the exhaust to leave sonic
-    into discharge_pa after the lumped duct/slot losses."""
-    return discharge_pa / critical_pressure_ratio(gamma) * EXHAUST_DUCT_PRESSURE_RATIO
+    into discharge_pa after the mode's lumped duct/manifold/slot losses."""
+    return discharge_pa / critical_pressure_ratio(gamma) * exhaust_loss_ratio(mode)
 
 
 def turbine_pressure_ratio(p_in_pa, p_out_required_pa, pr_cap):
@@ -161,7 +204,7 @@ def _mach_from_pressure_ratio(p0_over_p, gamma):
 def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbine_out_pa,
                    discharge_pa, main_exit_static_pa, main_exit_dia_m,
                    nozzle_eps=1.0, cant_deg=0.0, roll_arm_m=None,
-                   hx_gox_kgs=0.0, lox_pair=True, pa_sl=PA_SEA_LEVEL):
+                   hx_gox_kgs=0.0, hx_he_kgs=0.0, lox_pair=True, pa_sl=PA_SEA_LEVEL):
     """The spent-drive-gas stream: state, back pressure, exit, thrust and Isp.
 
     mdot_kgs          turbine (GG / tap-off) flow
@@ -176,10 +219,14 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
     r_gas = gas_constant_j_kgk(cp, gamma)
     m_molar = iso.R_UNIVERSAL / r_gas
     t_turb_out = tin_k - dh_actual_j_kg / cp
-    hx_on = hx_gox_kgs > 0.0 and lox_pair and mdot_kgs > 0.0
-    hx_dt = hx_gox_kgs * LOX_TO_GOX_DH_J_KG / (mdot_kgs * cp) if hx_on else 0.0
+    hx_lox_on = hx_gox_kgs > 0.0 and lox_pair and mdot_kgs > 0.0
+    hx_he_on = hx_he_kgs > 0.0 and mdot_kgs > 0.0
+    hx_on = hx_lox_on or hx_he_on
+    hx_duty_w = ((hx_gox_kgs * LOX_TO_GOX_DH_J_KG if hx_lox_on else 0.0)
+                + (hx_he_kgs * HE_HX_DH_J_KG if hx_he_on else 0.0))
+    hx_dt = hx_duty_w / (mdot_kgs * cp) if hx_on else 0.0
     t_exh = t_turb_out - hx_dt
-    p_exit_total = p_turbine_out_pa / EXHAUST_DUCT_PRESSURE_RATIO
+    p_exit_total = p_turbine_out_pa / exhaust_loss_ratio(mode)
 
     cstar = iso.c_star(max(t_exh, 1.0), gamma, m_molar)
     crit = critical_pressure_ratio(gamma)
@@ -216,8 +263,9 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
     out = dict(
         mode=mode, mdot_kgs=mdot_kgs, gas_constant_j_kgk=r_gas, m_molar=m_molar,
         gamma=gamma, cp=cp, tin_k=tin_k,
-        t_turbine_exit_k=t_turb_out, hx_on=hx_on, hx_gox_kgs=hx_gox_kgs if hx_on else 0.0,
-        hx_delta_t_k=hx_dt, hx_duty_w=hx_gox_kgs * LOX_TO_GOX_DH_J_KG if hx_on else 0.0,
+        t_turbine_exit_k=t_turb_out, hx_on=hx_on, hx_gox_kgs=hx_gox_kgs if hx_lox_on else 0.0,
+        hx_he_kgs=hx_he_kgs if hx_he_on else 0.0,
+        hx_delta_t_k=hx_dt, hx_duty_w=hx_duty_w,
         t_exhaust_k=t_exh,
         p_turbine_out_pa=p_turbine_out_pa, p_exit_total_pa=p_exit_total,
         p_exit_static_pa=exit_static, discharge_pa=discharge_pa,
@@ -230,6 +278,13 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
         aspirator_gap_m=None, aspirator_slot_dia_m=None,
         choked_at_design=p_exit_total * crit >= discharge_pa * (1.0 - 1e-9),
     )
+    if mode == "nozzle_injection" and throat_area > 0:
+        # the injection slots are the stream's sonic throat (it leaves them
+        # sonic into the local static): slot area, gas speed and density there
+        # feed the TN D-3836 gas-film correlation (gas_film_effectiveness_profile)
+        v_slot = math.sqrt(2.0 * gamma / (gamma + 1.0) * r_gas * max(t_exh, 1.0))
+        out.update(slot_area_m2=throat_area, slot_velocity_ms=v_slot,
+                   slot_density_kg_m3=mdot_kgs / (throat_area * v_slot))
     if mode == "aspirator" and main_exit_dia_m > 0:
         # the choked slot's area is its sonic throat; it rides just outside the
         # main exit lip (the H-1's is over the fuel-return manifold [H1-Man])
@@ -239,13 +294,69 @@ def exhaust_stream(mode, *, mdot_kgs, tin_k, cp, gamma, dh_actual_j_kg, p_turbin
 
 
 def film_mdot_ratio_to_fuel(mdot_exhaust_kgs, mdot_fuel_chamber_kgs):
-    """Injection-mode gas film strength, expressed like the nozzle slot film
-    (cooling.nozzle_film_effectiveness_profile's film_mdot_ratio = fraction of
-    the chamber FUEL flow). Tier 3 - that effectiveness law was written for a
-    liquid-fuel film and has no cp/temperature term (SP-8124 missing); a hot
-    gas film is weaker per kg than a vaporising liquid one, so treat the
-    resulting wall temperatures as optimistic."""
+    """Exhaust flow / chamber fuel flow - REPORT ONLY since 2026-09-25 (the
+    gas film used to be run through the liquid nozzle-slot law with this as
+    its strength; it now uses gas_film_effectiveness_profile)."""
     return mdot_exhaust_kgs / mdot_fuel_chamber_kgs if mdot_fuel_chamber_kgs > 0 else 0.0
+
+
+# Gas-film (injection mode) constants. Prandtl number of the fuel-rich exhaust
+# for its thermal diffusivity alpha = mu / (rho Pr) - Tier 3, a typical
+# combustion-gas value; mu is plumbing.EXHAUST_GAS_VISCOSITY_PA_S.
+EXHAUST_GAS_PRANDTL = 0.7
+# Effectiveness ceiling right at the slot - Tier 3 guard (the correlation runs
+# to eta = 1 at x = 0; a real slot lip / mixing never gives a perfect wall).
+GAS_FILM_ETA_MAX = 0.95
+# [TN-D3836] correlates out to ~100 slot heights downstream; past that its
+# prediction is CONSERVATIVE (over-predicted wall temperature) - reported.
+GAS_FILM_VALID_SLOT_HEIGHTS = 100.0
+# SP-8124's flow-minimising gaseous film / core velocity ratio band [SP-8124
+# §3.5.3 p.88] - an informational comparison, not a check.
+GAS_FILM_VELOCITY_RATIO_BAND = (0.9, 1.15)
+
+
+def gas_film_effectiveness_profile(xs_m, rs_m, throat_dia_m, inject_eps, hg_w_m2k, mdot_c_kgs,
+                                   cp_c, slot_area_m2, v_gas_ms, alpha_c_m2_s):
+    """Turbine-exhaust gas film on the nozzle wall downstream of the injection
+    station - the modified Hatch-Papell correlation of [TN-D3836 p.8-9] in its
+    tangential-injection working form (K = 0, f(Vg/Vc) = 1, no angle term):
+
+        eta(x) = exp[ -( integral_0^x h_g L ds ) / (mdot_c cp_c) * (S Vg / alpha_c)^(1/8) ]
+
+    L = local circumference 2 pi r, s = wall arc length from the slot, S = slot
+    height = slot area / the injection-station circumference, Vg = main-gas
+    velocity at the slot (held constant, as [TN-D3836] did), alpha_c = coolant
+    thermal diffusivity. The integrated h_g L (not a local value) is that
+    report's key finding for an accelerating nozzle flow. eta is capped at
+    GAS_FILM_ETA_MAX. Returns dict(phi = 1 - eta per station (1 upstream of
+    the slot), eta, i_slot, slot_h_m, x_over_s (per station, 0 upstream),
+    i_valid_end = last station within GAS_FILM_VALID_SLOT_HEIGHTS), or None
+    if the slot lies beyond the contour or the inputs are degenerate."""
+    xs = np.asarray(xs_m, dtype=float)
+    rs = np.asarray(rs_m, dtype=float)
+    hg = np.asarray(hg_w_m2k, dtype=float)
+    n = len(xs)
+    if (n < 2 or throat_dia_m <= 0 or mdot_c_kgs <= 0 or cp_c <= 0 or slot_area_m2 <= 0
+            or v_gas_ms <= 0 or alpha_c_m2_s <= 0):
+        return None
+    rt = 0.5 * throat_dia_m
+    thr = int(np.argmin(rs))
+    i_slot = next((i for i in range(thr + 1, n) if (rs[i] / rt) ** 2 >= inject_eps), None)
+    if i_slot is None:
+        return None
+    slot_h = slot_area_m2 / (2.0 * math.pi * rs[i_slot])
+    seg = np.hypot(np.diff(xs), np.diff(rs))
+    s_arc = np.concatenate([[0.0], np.cumsum(seg)])
+    hl = hg * 2.0 * math.pi * rs
+    integ = np.concatenate([[0.0], np.cumsum(0.5 * (hl[1:] + hl[:-1]) * seg)])
+    integ = np.where(np.arange(n) >= i_slot, integ - integ[i_slot], 0.0)
+    group = (slot_h * v_gas_ms / alpha_c_m2_s) ** 0.125 / (mdot_c_kgs * cp_c)
+    eta = np.where(np.arange(n) >= i_slot, np.minimum(np.exp(-integ * group), GAS_FILM_ETA_MAX),
+                   0.0)
+    x_over_s = np.where(np.arange(n) >= i_slot, (s_arc - s_arc[i_slot]) / slot_h, 0.0)
+    within = np.nonzero((np.arange(n) >= i_slot) & (x_over_s <= GAS_FILM_VALID_SLOT_HEIGHTS))[0]
+    return dict(phi=1.0 - eta, eta=eta, i_slot=i_slot, slot_h_m=slot_h, x_over_s=x_over_s,
+                i_valid_end=int(within[-1]) if len(within) else i_slot)
 
 
 # --------------------------------------------------------------------------
@@ -271,12 +382,28 @@ EXHAUST_SHEET_MIN_GAUGE_M = 1.0e-3     # shroud / nozzle / can sheet floor - Tie
 OUTLET_STATION_FRACTION = 0.6
 OUTLET_STANDOFF_EXIT_DIA_MULT = 1.0
 OUTLET_HALF_ANGLE_DEG = 15.0           # conical exhaust-nozzle divergence - Tier 3
-# Heat-exchanger can around the duct (H-1 [H1-Man §1-47]): dia / length as
-# multiples of the duct bore; mass = 2 x the can shell (coils + manifolds
-# lumped). Tier 3 - [H1-Man] gives the construction, no dimensions.
-HX_CAN_DIA_DUCT_MULT = 2.5
-HX_CAN_LENGTH_DUCT_MULT = 3.0
+# Heat-exchanger can around the duct: overall (mass-characteristic) dia /
+# length as multiples of the duct bore, REVERSE-SOLVED on the F-1's own real
+# envelope [F1-Man §1-72]: "43 in dia max ... 58 in long" against the
+# corpus F-1's duct bore (24.3 in, itself close to the F-1's real 24 in
+# turbine-exhaust-manifold-end diameter - a corroborating check, not a fit).
+# Tier 2 for the ratio's SOURCE (a real can exists at this scale); Tier 3 for
+# treating it as a plain cylinder for mass (the real can tapers - see the
+# INLET/OUTLET multipliers below, mesh-only). mass = HX_MASS_SHELL_MULT x the
+# can shell (coils + manifolds lumped, Tier 3 - [F1-Man]/[H1-Man] give the
+# construction, no weight). The heat DUTY (hx_gox_kgs/hx_he_kgs) never sizes
+# the can - only the duct bore does - so a bigger flow costs nothing in mass;
+# flagged in ASSUMPTIONS.
+HX_CAN_DIA_DUCT_MULT = 1.77
+HX_CAN_LENGTH_DUCT_MULT = 2.39
 HX_MASS_SHELL_MULT = 2.0
+# Taper for the DRAWN can only (mesh, not mass): the real F-1 can narrows
+# 40 -> 24 in, turbine-outlet to turbine-exhaust-manifold end [F1-Man §1-72].
+# Tier 3 cosmetic approximation of that ratio (not reverse-solved as tightly
+# as the overall envelope above).
+HX_CAN_INLET_DUCT_MULT = 1.5
+HX_CAN_OUTLET_DUCT_MULT = 0.9
+INJECTION_MANIFOLD_TAPER_BLEND = 0.5
 # Aspirator annulus at its forward (inlet) end is sized for the duct velocity;
 # it narrows linearly to the choked exit slot.
 
@@ -349,18 +476,21 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
     out = dict(mode=mode, duct=duct, material=EXHAUST_HARDWARE_MATERIAL, manifold=None,
                aspirator=None, outlet=None, hx=None, mass_kg=0.0)
 
-    def _ring(x, r_wall, v):
+    def _ring(x, r_wall, v, taper_blend=0.0):
         r_flow = manifold.required_flow_radius_m(0.5 * mdot, duct["rho_kg_m3"], v)
         wall = max(manifold.manifold_wall_thickness_m(p_out, r_flow, mat.allowable_stress_pa),
                    EXHAUST_SHEET_MIN_GAUGE_M)
         ring = manifold._assemble(mdot, v, attach_angle_deg, r_wall + r_flow + wall, x,
-                                  r_flow, wall, p_out, taper_blend=0.0, split=True)
+                                  r_flow, wall, p_out, taper_blend=taper_blend, split=True)
         ring["mass_kg"] *= rho_scale
         return ring
 
     if mode == "nozzle_injection":
         i = _station_at_eps(xs, rs, rt, inject_eps)
-        ring = _ring(xs[i], rs[i], duct["velocity_ms"])
+        # the F-1 torus narrows from its inlet round the engine [F1-Man
+        # §1-18]; half-way between constant area and constant velocity, the
+        # SP-8087 "between the two" convention the fuel/ox rings use
+        ring = _ring(xs[i], rs[i], duct["velocity_ms"], taper_blend=INJECTION_MANIFOLD_TAPER_BLEND)
         out["manifold"] = out["exhaust"] = ring
         out["mass_kg"] += ring["mass_kg"]
     elif mode == "aspirator":
@@ -431,7 +561,10 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
         m = HX_MASS_SHELL_MULT * (math.pi * d_can * l_can + 0.5 * math.pi * d_can ** 2) * th \
             * mat.density_kg_m3
         out["hx"] = dict(dia_m=d_can, length_m=l_can, thickness_m=th, mass_kg=m,
-                         gox_kgs=exh.get("hx_gox_kgs", 0.0), duty_w=exh.get("hx_duty_w", 0.0))
+                         dia_inlet_m=HX_CAN_INLET_DUCT_MULT * d_duct,
+                         dia_outlet_m=HX_CAN_OUTLET_DUCT_MULT * d_duct,
+                         gox_kgs=exh.get("hx_gox_kgs", 0.0), he_kgs=exh.get("hx_he_kgs", 0.0),
+                         duty_w=exh.get("hx_duty_w", 0.0))
         out["mass_kg"] += m
     return out
 
@@ -452,7 +585,7 @@ def _self_test():
     psi = 6894.757
 
     # (1) H-1 back pressure: sea-level booster, sonic exit to sea level,
-    # turbine inlet 0.869 x 689.3 psia -> exit 33.8 psia, PR ~17.7 [H1-Man].
+    # turbine inlet 0.855 x 689.3 psia -> exit 33.8 psia, PR ~17.7 [H1-Man].
     g_rp1, cp_rp1 = 1.13, 2100.0
     p_in = GG_TURBINE_INLET_PC_FRACTION * 689.3 * psi
     p_req = required_turbine_outlet_pa(g_rp1, discharge_pressure_pa("aspirator", PA_SEA_LEVEL, 0.0))
@@ -470,6 +603,19 @@ def _self_test():
     c1c = pr_v == 22.0 and not lim_v
     print(f"  (1c) vacuum discharge -> PR cap {pr_v:.1f}  [{'OK' if c1c else 'FAIL'}]")
     ok &= c1c
+
+    # (1d) F-1 injection back pressure [F1-Man Fig 1-16/3-14]: eps-10 static
+    # of the real 1,125 psia chamber (the equilibrium tables' pe/pc 0.01362 at
+    # MR 2.40) -> turbine exit 58 psia; inlet 0.855 x 1,125 -> PR vs 945/58 = 16.3
+    p_stat = 1125.0 * psi * 0.01362
+    p_req_f1 = required_turbine_outlet_pa(g_rp1, discharge_pressure_pa("nozzle_injection", 0.0,
+                                                                         p_stat), "nozzle_injection")
+    pr_f1, lim_f1 = turbine_pressure_ratio(GG_TURBINE_INLET_PC_FRACTION * 1125.0 * psi,
+                                           p_req_f1, 22.0)
+    c1d = abs(p_req_f1 / psi - 58.0) / 58.0 < 0.01 and lim_f1 and abs(pr_f1 - 16.3) / 16.3 < 0.05
+    print(f"  (1d) F-1 injection turbine exit {p_req_f1/psi:.1f} psia (real 58), PR {pr_f1:.2f} "
+          f"(real 16.3)  [{'OK' if c1d else 'FAIL'}]")
+    ok &= c1d
 
     # (2) H-1 aspirator slot gap ~0.440 in [H1-Man §1-51]: 17.22 lb/s at the
     # turbine's 4007 hp, 45.62 in exit. Plausibility band x0.6-1.5 (the slot
@@ -510,15 +656,24 @@ def _self_test():
           f"roll torque {cant['roll_torque_nm']:.0f} N.m  [{'OK' if c3 else 'FAIL'}]")
     ok &= c3
 
-    # (4) heat exchanger lowers the exhaust temperature by duty / (mdot cp),
-    # only on a LOX pair
+    # (4) heat exchanger lowers the exhaust temperature by duty / (mdot cp);
+    # the LOX coil is LOX-pair only, the He coil works on ANY pair, and both
+    # add together in one shell (the F-1's own [F1-Man §1-71/1-72])
     hx = exhaust_stream("overboard_duct", hx_gox_kgs=0.5, **kw)
     hx_off = exhaust_stream("overboard_duct", hx_gox_kgs=0.5, lox_pair=False, **kw)
     want = 0.5 * LOX_TO_GOX_DH_J_KG / (mdot * cp_rp1)
+    hx_he = exhaust_stream("overboard_duct", hx_he_kgs=0.1, lox_pair=False, **kw)
+    want_he = 0.1 * HE_HX_DH_J_KG / (mdot * cp_rp1)
+    hx_both = exhaust_stream("overboard_duct", hx_gox_kgs=0.5, hx_he_kgs=0.1, **kw)
     c4 = (abs((duct["t_exhaust_k"] - hx["t_exhaust_k"]) - want) < 1e-9
-          and hx["isp_vac_s"] < duct["isp_vac_s"] and hx_off["t_exhaust_k"] == duct["t_exhaust_k"])
+          and hx["isp_vac_s"] < duct["isp_vac_s"] and hx_off["t_exhaust_k"] == duct["t_exhaust_k"]
+          and hx_off["hx_on"] is False
+          and abs((duct["t_exhaust_k"] - hx_he["t_exhaust_k"]) - want_he) < 1e-9
+          and hx_he["hx_on"] is True and hx_he["hx_gox_kgs"] == 0.0
+          and abs((duct["t_exhaust_k"] - hx_both["t_exhaust_k"]) - (want + want_he)) < 1e-6)
     print(f"  (4) heat exchanger 0.5 kg/s GOX: exhaust {duct['t_exhaust_k']:.0f} -> "
-          f"{hx['t_exhaust_k']:.0f} K (-{want:.0f} K), non-LOX pair ignored  "
+          f"{hx['t_exhaust_k']:.0f} K (-{want:.0f} K), non-LOX pair ignores GOX; "
+          f"0.1 kg/s He on a non-LOX pair: -{want_he:.0f} K; both coils combine  "
           f"[{'OK' if c4 else 'FAIL'}]")
     ok &= c4
 
@@ -526,6 +681,27 @@ def _self_test():
     c5 = all(x["choked_at_design"] for x in (duct, noz, a))
     print(f"  (5) exhaust exit choked at the design discharge pressure  [{'OK' if c5 else 'FAIL'}]")
     ok &= c5
+
+    # (7) gas film [TN-D3836]: on a toy eps-16 bell, the film decays
+    # monotonically from the slot, is absent upstream of it, and strengthens
+    # with more flow or a higher cp (the mdot_c cp_c denominator)
+    xs_g = np.linspace(0.0, 1.0, 81)
+    rs_g = 0.1 + 0.3 * xs_g                    # throat at x=0, eps 16 at the exit
+    hg_g = np.full(81, 2000.0)
+    base_g = (xs_g, rs_g, 0.2, 10.0, hg_g)
+    g1 = gas_film_effectiveness_profile(*base_g, 5.0, 2100.0, 0.01, 2800.0, 1e-4)
+    g2 = gas_film_effectiveness_profile(*base_g, 10.0, 2100.0, 0.01, 2800.0, 1e-4)
+    g3 = gas_film_effectiveness_profile(*base_g, 5.0, 4200.0, 0.01, 2800.0, 1e-4)
+    i0 = g1["i_slot"]
+    c7 = (g1 is not None and np.all(g1["phi"][:i0] == 1.0)
+          and np.all(np.diff(g1["eta"][i0:]) <= 1e-12) and g1["eta"][i0] == GAS_FILM_ETA_MAX
+          and np.allclose(g2["eta"][i0 + 1:], g3["eta"][i0 + 1:])
+          and np.all(g2["eta"][i0:] >= g1["eta"][i0:]) and g2["eta"][-1] > g1["eta"][-1]
+          and gas_film_effectiveness_profile(*base_g, 0.0, 2100.0, 0.01, 2800.0, 1e-4) is None)
+    print(f"  (7) gas film: eta {g1['eta'][i0]:.2f} at the slot -> {g1['eta'][-1]:.2f} at the "
+          f"exit (2x flow: {g2['eta'][-1]:.2f}), slot {g1['slot_h_m']*1e3:.0f} mm  "
+          f"[{'OK' if c7 else 'FAIL'}]")
+    ok &= bool(c7)
 
     # (6) hardware: a toy bell contour; each mode sizes its termination
     import numpy as _np
@@ -550,6 +726,19 @@ def _self_test():
           f"{asp['gap_exit_m']*1e3:.1f} mm annulus; outlet {outl['throat_dia_m']*1e3:.0f} -> "
           f"{outl['exit_dia_m']*1e3:.0f} mm  [{'OK' if c6 else 'FAIL'}]")
     ok &= c6
+
+    # (6b) heat-exchanger can: tapered (inlet > outlet), both coils reported
+    exh_hx = dict(exhaust_stream("overboard_duct", hx_gox_kgs=0.4, hx_he_kgs=0.05, **kw),
+                  mode="overboard_duct")
+    hw_hx = size_hardware(exh_hx, xs=xs_c, rs=rs_c, throat_dia_m=2 * rt, nozzle_eps=4.0)
+    can = hw_hx["hx"]
+    c6b = (can is not None and can["dia_inlet_m"] > can["dia_outlet_m"] > 0.0
+          and can["dia_m"] > can["dia_inlet_m"] and can["gox_kgs"] == 0.4
+          and can["he_kgs"] == 0.05 and can["mass_kg"] > 0.0)
+    print(f"  (6b) HX can: {can['dia_inlet_m']*1e3:.0f} -> {can['dia_outlet_m']*1e3:.0f} mm "
+          f"tapered over {can['length_m']*1e3:.0f} mm, {can['gox_kgs']:.2f} kg/s GOX + "
+          f"{can['he_kgs']:.2f} kg/s He  [{'OK' if c6b else 'FAIL'}]")
+    ok &= c6b
 
     print("ALL TURBINE-EXHAUST SELF-TESTS OK" if ok else "*** TURBINE-EXHAUST SELF-TEST FAILED ***")
     return ok

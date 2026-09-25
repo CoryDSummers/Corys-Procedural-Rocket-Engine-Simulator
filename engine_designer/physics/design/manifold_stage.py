@@ -238,7 +238,7 @@ def jacket_manifolds_and_stability(self, s):
            f"Impingement included angle {self.impingement_angle_deg:.0f} deg is outside the "
            f"satisfactory 20-45 deg range [Huzel 4.5] - too shallow mixes poorly, too steep "
            f"risks splash-back onto the injector face.")
-    a_e_ms = combustion_stability.speed_of_sound(s.gamma, s.m_molar, s.tc)
+    a_e_ms = combustion_stability.speed_of_sound(s.gamma_chamber, s.m_molar, s.tc)
     s.chamber_acoustics = combustion_stability.acoustic_modes(
         a_e_ms, s.geo["chamber_length_m"], s.geo["chamber_dia_m"])
     # Raw advisory uses the EFFECTIVE dP/Pc (a stiff injector build clears it

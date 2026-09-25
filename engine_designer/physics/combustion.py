@@ -102,19 +102,22 @@ PROPELLANT_DENSITIES = {
     "H2O2": (1390.0, 1390.0),            # ~85% HTP; "ox" slot is the harmless monoprop duplicate
 }
 
-# Default combustion/injector efficiency (applied to the ideal c*), per pair.
-# Combustion efficiency genuinely varies with engine size/maturity/injector
-# quality, not just chemistry - a small simple hypergolic upper-stage engine
-# is NOT as efficient as a large mature kerolox booster's injector, even
-# with identical propellants. These three values are set by the spot-check
-# in validate.py (matched against RD-111, RL10A-3-3, and Aestus respectively)
-# and are a documented engineering estimate, not a derived quantity.
+# Combustion (c*) efficiency applied to the ideal c*, per pair.
+# 2026-09-25 (P1 performance re-anchor): for the five BIPROPELLANT pairs this is
+# now a real COMBUSTION efficiency on the shifting-equilibrium c* of the baked
+# Cantera tables - one cited value, [Huzel §4.2] ~0.975 for a good chamber +
+# injector, inside [Sutton §5.5]'s 0.96-0.99 - and the NOZZLE loss (kinetics,
+# boundary layer, anything unmodelled) is carried separately by ETA_CF below.
+# Before this date each bipropellant value was one lumped Isp calibration on the
+# old effective Tc/gamma/M table (RP-1 0.955, LH2 0.94, CH4 0.96, MMH 0.90,
+# A-50 0.9435). The monopropellants still run on that legacy table and keep
+# their lumped calibrations.
 DEFAULT_ETA_CSTAR = {
-    "LOX/RP-1": 0.955,   # large mature kerolox booster class (RD-111-calibrated)
-    "LOX/LH2": 0.94,     # well-developed restartable upper-stage class (RL10-calibrated)
-    "LOX/CH4": 0.96,     # modern high-Pc staged/FFSC methalox class (Raptor-2-calibrated)
-    "N2O4/MMH": 0.90,    # small/simple storable-hypergolic upper-stage class (Aestus-calibrated)
-    "Aerozine-50/NTO": 0.9435,  # long-flown, mature engine class (AJ10-137-calibrated)
+    "LOX/RP-1": 0.975,
+    "LOX/LH2": 0.975,
+    "LOX/CH4": 0.975,
+    "N2O4/MMH": 0.975,
+    "Aerozine-50/NTO": 0.975,
     "Hydrazine": 0.80,          # catalytic decomposition, inherently less energetic than
                                 # bipropellant combustion - lower than any bipropellant
                                 # pair here, which is a correctness signal, not a fudge
@@ -122,6 +125,31 @@ DEFAULT_ETA_CSTAR = {
     "H2O2": 0.95,               # catalytic decomposition efficiency (near 1.0 for a good bed);
                                 # the low absolute Isp is carried by the low Tc in the table,
                                 # same pattern as Hydrazine (Sprite-calibrated)
+}
+
+# Nozzle (thrust-coefficient) efficiency vs the IDEAL shifting-equilibrium CF
+# of the baked tables, per bipropellant pair: everything between ideal
+# shifting-equilibrium expansion and the real engine that is not combustion
+# efficiency or divergence (kinetic/finite-rate recombination, boundary-layer
+# drag/heat loss, residual non-uniformity). REVERSE-SOLVED (P1, 2026-09-25) so
+# each pair's validate SPOT_CHECKS anchor hits its real vacuum Isp through the
+# same path as the design (eta_c* 0.975, 80%-bell reference nozzle):
+# RD-111 / RL10A-3-3 / Raptor-2 / Aestus / AJ10-137. One number per pair is the
+# chosen loss model ("option A"): other engines of the same pair miss by the
+# spread their real losses actually have - reported per engine by validate's
+# performance-residual table, not tuned away. A kinetic/boundary-layer split
+# (JANNAF ODK/TDK/BLM-style) would replace this; the tables already carry the
+# frozen-expansion Isp bound it needs (thermo_tables.isp_vac_ideal_s(frozen=True)).
+# The monopropellants have no equilibrium table: 1.0 (their legacy path's
+# DEFAULT_ETA_CSTAR still carries the whole loss).
+ETA_CF = {
+    "LOX/RP-1": 0.9358,          # RD-111 309.5 s
+    "LOX/LH2": 0.9826,           # RL10A-3-3 442.2 s
+    "LOX/CH4": 0.9588,           # Raptor-2 347.0 s
+    "N2O4/MMH": 0.9088,          # Aestus 306.0 s
+    "Aerozine-50/NTO": 0.9518,   # AJ10-137 314.5 s
+    "Hydrazine": 1.0,
+    "H2O2": 1.0,
 }
 
 # --- combustion completeness vs. L* ---------------------------------------
@@ -181,6 +209,12 @@ def propellant_densities(pair):
 
 
 def mr_bounds(pair):
+    """MR range the performance data covers: the equilibrium table's grid for
+    a bipropellant pair, the legacy table's for a monopropellant."""
+    from . import thermo_tables
+    if thermo_tables.has_gas_table(pair):
+        s = thermo_tables.gas_state(pair, 0.0, 1e6)
+        return s["mr_range"]
     t = _TABLES[pair]
     return min(t["mr"]), max(t["mr"])
 
@@ -195,6 +229,72 @@ def combustion_state(pair, mr):
     gamma = float(np.interp(mr, mr_arr, t["gamma"]))
     m_molar = float(np.interp(mr, mr_arr, t["m"]))
     return tc, gamma, m_molar
+
+
+def performance_state(pair, mr, pc_pa):
+    """Chamber state the PERFORMANCE path runs on (P1 re-anchor, 2026-09-25).
+
+    A bipropellant pair reads the baked Cantera equilibrium tables at the actual
+    (MR, Pc): tc_k, m_molar, gamma_chamber = the chamber gas's FROZEN gamma
+    (chamber Mach, sound speed, a tap-off drive gas), gamma_s = its shifting
+    isentropic exponent, cstar_ideal_ms = the shifting-equilibrium c*, and
+    source "equilibrium". Pressure along the nozzle comes from
+    exit_pressure_ratio() (the table's own expansion), and expansion_gamma()
+    fits the one-gamma exponent the downstream area relations use. The ideal vacuum thrust
+    coefficient comes from cf_vac_ideal() on the same table. A monopropellant
+    (no table) falls back to the legacy _TABLES row (source "legacy",
+    cstar_ideal from the frozen one-gamma formula).
+    """
+    from . import isentropic as iso, thermo_tables
+    g = thermo_tables.gas_state(pair, mr, pc_pa)
+    if g is not None:
+        return dict(tc_k=g["tc_k"], m_molar=g["m_molar"], gamma_chamber=g["gamma_frozen"],
+                    gamma_s=g["gamma_s"], cstar_ideal_ms=g["cstar_ms"], source="equilibrium",
+                    mr_clamped=g["mr_clamped"], pc_clamped=g["pc_clamped"])
+    tc, gamma, m = combustion_state(pair, mr)
+    return dict(tc_k=tc, m_molar=m, gamma_chamber=gamma, gamma_s=gamma,
+                cstar_ideal_ms=iso.c_star(tc, gamma, m, 1.0),
+                source="legacy", mr_clamped=False, pc_clamped=False)
+
+
+def exit_pressure_ratio(pair, mr, pc_pa, eps, state):
+    """Exit static / chamber pressure at area ratio eps: the table's shifting-
+    equilibrium expansion for an "equilibrium" state, the one-gamma relation
+    for a legacy one."""
+    from . import isentropic as iso, thermo_tables
+    if state["source"] == "equilibrium":
+        return thermo_tables.pe_over_pc_at_eps(pair, mr, pc_pa, eps)[0]
+    return iso.pe_over_pc_from_eps(eps, state["gamma_chamber"])
+
+
+def expansion_gamma(eps, pe_pc):
+    """The single isentropic exponent whose one-gamma relation gives pe_pc at
+    area ratio eps - an 'effective expansion gamma' for the downstream
+    one-gamma area/pressure/temperature relations (local wall pressure, static
+    temperature along the nozzle), fitted to the real exit state (bisection)."""
+    from . import isentropic as iso
+    lo, hi = 1.01, 1.67
+    for _ in range(80):
+        mid = 0.5 * (lo + hi)
+        # pe/pc at fixed eps rises as gamma falls
+        if iso.pe_over_pc_from_eps(eps, mid) > pe_pc:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
+
+def cf_vac_ideal(pair, mr, pc_pa, eps, state):
+    """(ideal vacuum CF, eps_clamped) at area ratio eps for a performance_state
+    `state`: the table's shifting-equilibrium Isp x g0 / c* for a bipropellant,
+    the one-gamma isentropic CF for a legacy (monopropellant) state."""
+    from . import isentropic as iso, thermo_tables
+    if state["source"] == "equilibrium":
+        isp, clamped = thermo_tables.isp_vac_ideal_s(pair, mr, pc_pa, eps)
+        return isp * iso.G0 / state["cstar_ideal_ms"], clamped
+    g = state["gamma_chamber"]
+    pe_pc = iso.pe_over_pc(iso.mach_from_area_ratio(eps, g), g)
+    return iso.cf_vacuum(g, pe_pc, eps), False
 
 
 _R_UNIVERSAL_J_KMOL_K = 8314.462

@@ -1,0 +1,19 @@
+Cooled-length cut tolerance fix (2026-09-25)
+============================================
+Bug: cooling/march.py (2 sites) and cooling/profile.py (3 sites) cut the actively-cooled
+zone with a STRICT `local eps > transition_area_ratio`, while station_treatments uses
+`eps <= cut + 1e-9`. When the cut equals the expansion ratio (a full-length regen nozzle,
+or cooling_transition_eps >= eps) the exit segment's area ratio can come out a rounding
+hair above it (4.500000000000001 > 4.5), so the march silently dropped the last segment:
+that station kept a REGEN treatment but got no coolant (NaN velocity) and the wall balance
+read it uncooled. Found in the P1 performance re-anchor, where a slightly different throat
+tipped validate's 4 kN / 20 bar film case (film-overlay check (c)) onto the exit station
+(1028 K, which the chamber film cannot reach). Fix: the same +1e-9 tolerance.
+
+Corpus designs affected (vs the committed goldens, same environment):
+  engines/J-2            Isp vac 419.45029 -> 419.45029 s (rounding level)
+  engines/Raptor-2       Isp vac 350.410 -> 350.460 s, dry 9361.8 -> 9362.5 kg
+  user_designs/RS-29A    Isp vac 308.645 -> 308.668 s, dry 2429.0 -> 2428.8 kg
+  user_designs/RS-29C    Isp vac 304.609 -> 304.632 s, dry 4276.1 -> 4275.7 kg
+(each regains the last cooled segment's regen heat credit / jacket geometry).
+Every other design bit-identical; validate 27/27.

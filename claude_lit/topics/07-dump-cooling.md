@@ -265,3 +265,13 @@ ever extended, though no citation exists yet for sizing one.
   tube-count/bypass-split numbers are folded into `topics/12b-structures-manifolds-and-hardware.md`; its
   real GG feed-pressure-budget chain is folded into `topics/10-gas-generators.md`. Report-only
   — no code changed.
+- **Applied 2026-09-25** (`engine_designer` turbine exhaust, round 2):
+  - F-1 injection back pressure: 58 psia `[F1-Man]` -> `EXHAUST_INJECTION_PRESSURE_RATIO`,
+    interim. Per-engine manifold/slot physics is wanted (`OPEN_QUESTIONS.md`).
+  - Corpus F-1 chamber MR 2.40 (not the engine-overall 2.27).
+  - Plausibility probes: exhaust temperature vs the 1,138 °F extension coolant, and duct bore
+    vs the ~24 in heat-exchanger outlet end. The model gives 24.3 in, the first check on
+    `TURBINE_EXHAUST_DUCT_MACH`.
+  - The injection torus is now tapered (decreasing section `[F1-Man §1-18]`).
+  - See `engine_designer/plans/2026-09-25_turbine_exhaust_round2.md` for the gas-film law and
+    heat-exchanger items that follow.

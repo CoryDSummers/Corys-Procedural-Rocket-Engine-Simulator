@@ -146,8 +146,14 @@ class EngineDesign:
                                                    # a fraction of the exit diameter (Tier 3 -
                                                    # [H1-Man] says "extending beyond", no size).
     turbine_exhaust_hx_gox_kgs: float = 0.0       # LOX->GOX pressurant heat exchanger in the
-                                                   # exhaust (H-1 [H1-Man §1-47]): GOX flow it
-                                                   # heats, kg/s. 0 = none. LOX pairs only.
+                                                   # exhaust (H-1 [H1-Man §1-47], F-1 [F1-Man
+                                                   # §1-71/1-72]): GOX flow it heats, kg/s. 0 =
+                                                   # none. LOX pairs only.
+    turbine_exhaust_hx_he_kgs: float = 0.0        # Helium coil in the SAME exhaust heat
+                                                   # exchanger (the F-1's own is BOTH a LOX coil
+                                                   # AND a helium coil [F1-Man §1-71/1-72]): He
+                                                   # flow it heats, kg/s. 0 = none. Any pair
+                                                   # (helium is a pressurant, not a propellant).
     # Regenerative coolant-channel design (physics/cooling.py). "flat" keeps the
     # legacy flat JACKET_DP_PA (1.6 MPa) - the neutral default, so no existing
     # design or spot check moves. "channels" runs the 1-D counterflow coolant
@@ -373,7 +379,10 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 9   # 9 (2026-09-24): turbine_exhaust_* / aspirator_* fields added
+    SCHEMA_VERSION = 10  # 10 (2026-09-25): turbine_exhaust_hx_he_kgs added (a second,
+                         # helium, coil in the same exhaust heat exchanger) - no key
+                         # migration; a v9 file's new field takes its default (0, off).
+                         # 9 (2026-09-24): turbine_exhaust_* / aspirator_* fields added
                          # (physics/turbine_exhaust.py) - no key migration; a v8 file's
                          # new fields take defaults (overboard duct, sonic exit, no HX).
                          # 8 (2026-09-23): film became an OVERLAY - "film" is no longer a

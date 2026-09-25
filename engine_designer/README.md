@@ -162,9 +162,15 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   Aerozine-50/NTO (storable hypergolics), and two monopropellants —
   **Hydrazine** and **H2O2** (high-test peroxide) — no mixture ratio, one
   `PROPELLANT` block, always pressure-fed, decomposed over a catalyst bed
-  instead of combusted. Each is calibrated against a real RO engine (RD-111,
-  RL10A-3-3, Raptor-2 + BE-4, Aestus, AJ10-137/Apollo SPS, MR-80B/Mars Landing
-  Engine, Sprite/de Havilland HTP JATO respectively — see `physics/validate.py`).
+  instead of combusted. Since the 2026-09-25 P1 re-anchor the five bipropellants
+  run on Cantera shifting-equilibrium tables at the actual MR **and chamber
+  pressure** (ideal c*, Isp and exit pressure at area ratios 2–250), times a cited
+  combustion efficiency (0.975) and one reverse-solved nozzle efficiency per pair
+  (`ETA_CF`). Each pair is anchored on a real RO engine (RD-111, RL10A-3-3,
+  Raptor-2 + BE-4, Aestus, AJ10-137/Apollo SPS, MR-80B/Mars Landing Engine,
+  Sprite/de Havilland HTP JATO respectively — see `physics/validate/`); the other
+  corpus engines' residuals (RS-25 −1.8 %, RD-180 −3.7 %, Merlin −4.8 %, ...) are in
+  `validation_engines/reports/2026-09-25_performance_reanchor_before_after.txt`.
   The two monopropellants reuse the entire bipropellant pipeline via a deliberate
   trick (a single-point combustion table that always returns the same
   decomposition state) rather than a parallel code path — see
@@ -174,10 +180,11 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 - **Isp-vs-mixture-ratio**: the Combustion Chamber tab shows the vacuum-Isp peak
   MR for the current design and an "Optimize MR" button that jumps the slider
   there (`physics/mixture_ratio.py` — a pure sweep over `compute()`, no physics
-  constant, moves no spot check). For LOX/LH2 the "best" MR is the low end of
-  the table range (vacuum Isp rises as the mix goes hydrogen-rich) — real
-  engines run richer for tank-density reasons; the tool reports that honestly
-  rather than pretending there's an interior optimum.
+  constant, moves no spot check). With the equilibrium tables every pair has a
+  real interior optimum (e.g. LOX/LH2 ~4.75, LOX/RP-1 ~2.8, LOX/CH4 ~3.4 at
+  7 MPa / eps 40); real LOX/LH2 engines still run richer for tank-density
+  reasons. (Before 2026-09-25 the old hand table put the LOX/LH2 "optimum" at
+  its low edge - an artifact of its effective gamma/M.)
 - **Cycles**: gas generator, pressure-fed, tap-off, fuel-rich staged combustion
   (FRSC), oxidizer-rich staged combustion (ORSC), full-flow staged combustion
   (FFSC), expander, and electric pump-fed. Each cycle now has its own physics,
@@ -205,7 +212,13 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
     - The exhaust's own Isp is an ideal expansion times a 0.96 efficiency
       pinned on the F-1's 16,000 lbf. It replaces the old flat 0.55 / 0.80
       dump fractions.
-    - Optional LOX->GOX heat exchanger (H-1): lowers the exhaust temperature.
+    - Optional exhaust heat exchanger with a LOX->GOX coil (H-1, F-1; LOX
+      pairs only) and/or a helium coil (F-1; any pair): the duties add and
+      lower the exhaust temperature. Outlet temperatures and the can's size
+      are anchored on the real F-1 [F1-Man]; the can is drawn tapered.
+    - Injection mode: back pressure anchored on the F-1's 58 psia turbine
+      exit (interim lumped loss); the exhaust's gas film on the extension
+      uses the TN D-3836 (modified Hatch-Papell) correlation.
     - Hardware (termination, the auto-routed duct to the new turbine exhaust
       port, the heat-exchanger can) is massed and drawn. The duct is a
       `turbine_exhaust` plumbing host, editable in the Shape Lab.

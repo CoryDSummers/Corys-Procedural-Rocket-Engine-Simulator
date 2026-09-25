@@ -145,7 +145,7 @@ def march_coolant(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolant_kgs, pa
     seg = []
     for i in range(len(rs) - 1):
         if (transition_area_ratio is not None and i >= throat_idx
-                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio):
+                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio + 1e-9):
             continue
         seg.append(i)
     seg_flow = list(reversed(seg))
@@ -303,7 +303,7 @@ def march_coolant_two_pass(xs_m, rs_m, q_profile_w_m2, throat_dia_m, mdot_coolan
     seg = []
     for i in range(len(rs) - 1):
         if (transition_area_ratio is not None and i >= throat_idx
-                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio):
+                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio + 1e-9):
             continue
         seg.append(i)
 

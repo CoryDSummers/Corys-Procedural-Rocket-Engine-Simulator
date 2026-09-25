@@ -177,3 +177,9 @@ injector face, where both propellants arrive simultaneously.
   that this fraction is engine-specific rather than a universal constant. Real engine-vs-
   chamber MR split (2.27:1 overall vs. 2.40:1 main-chamber-only) — a clean real illustration
   of GG-bleed mixture-ratio dilution, corroborating the same effect `[H1-Man]`'s numbers show.
+- **Applied 2026-09-25**: the `[F1-Man]` turbine numbers are now in code.
+  `turbine_exhaust.GG_TURBINE_INLET_PC_FRACTION` is the mean of the H-1 (0.869) and F-1
+  (945/1,125 = 0.840) anchors, 0.855. Injection mode's back pressure is reverse-solved on the
+  F-1's 58 psia turbine exit (`EXHAUST_INJECTION_PRESSURE_RATIO`, interim). The corpus F-1
+  now runs PR 16.6 (real 16.3), not the old flat cap of 22. Its GG share (2.36 % vs the real
+  2.91 %) is checked as plausibility only; the gap is pump power, see `OPEN_QUESTIONS.md`.

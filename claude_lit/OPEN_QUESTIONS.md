@@ -35,6 +35,26 @@ into that and makes no claims about it.
 
 ## Open literature gaps
 
+- **Nozzle-loss split for the performance path (wanted — P1 re-anchor, 2026-09-25).** Isp now
+  runs on the equilibrium tables with ONE fitted nozzle efficiency per pair (`combustion.
+  ETA_CF`); Merlin-1D (−4.8 %) and Rutherford (−4.3 %) show the spread one number can't carry.
+  Splitting it into kinetic + boundary-layer terms (the JANNAF ERE/ODK/TDK/BLM method) needs,
+  in priority order:
+  1. **JANNAF Rocket Engine Performance Prediction and Evaluation Manual**, CPIA Publication 246
+     (1975) — the standard loss methodology, the core source.
+  2. **TDK / ODK program documentation** (Nickerson, Coats et al., SEA Inc. reports for NASA,
+     NTRS) — kinetic loss vs Pc and throat size.
+  3. **Bray, K.N.C. (1959)**, "Atomic recombination in a hypersonic wind-tunnel nozzle", *J.
+     Fluid Mech.* 6 — the sudden-freezing criterion (a cheap kinetics stand-in; the tables
+     already carry the frozen-expansion Isp bound, `isp_vac_frozen_s_by_eps`).
+  4. **Boundary-layer thrust loss**: JANNAF BLM / NASA "TBL" or BLIMP-J documentation, or any NASA
+     TN correlating BL thrust decrement with throat Reynolds number and area ratio.
+  5. **Measured per-engine loss breakdowns** (ERE / kinetic / BL / divergence) for RS-25, RL10,
+     J-2 and an RP-1 booster — the anchors that would separate a split model from option A.
+  Already in hand: `[STBE]` has one itemized LOX/RP-1 stack (ideal 345.4 → delivered 322.1 s via
+  ERE/KIN/TDK/BLM), `[Sutton §3.5]` typical loss magnitudes. Also a cheap cross-check still to
+  do: `[Schmucker-CycleCalc eq.31]`'s LOX/LH2 c* fit against the new table c*.
+
 - **Oxidiser-rich preburner temperature at high Pc (RD-170/180, Raptor ox side) — OPEN
   (2026-09-23).** `staged_combustion.py` now SOLVES the turbine PR from a preburner
   temperature input, and the only sourced ox-rich value is NK-33's **628 K**
@@ -166,6 +186,30 @@ into that and makes no claims about it.
     re-derived from them yet), the LR-91 GG flow (the model under-predicts its 865 lbf by
     ~40%, item d), the heat-exchanger GOX duty (item h), and the duct Mach and hardware
     constants (`ASSUMPTIONS.md`).
+  - **Per-engine injection back pressure (wanted — Cory, 2026-09-25).** Injection mode's
+    turbine back pressure is today ONE lumped ratio, `turbine_exhaust.
+    EXHAUST_INJECTION_PRESSURE_RATIO` = 2.50, reverse-solved on the F-1's 58 psia turbine exit
+    `[F1-Man Fig 1-16/3-14]`. The real physics is per engine: the hot-gas torus loss
+    (decreasing section, inlet splitter plates, exit flow vanes, omega joints `[F1-Man §1-18]`)
+    plus the slot/eyelet discharge (F-1: 23 rows of overlapping shingles `[F1-Man §1-23]`; J-2:
+    115 in² of eyelets at eps 10.45-11.40 `[RPE-J2Blog]`), i.e. K·q losses and a discharge
+    coefficient from geometry. Wanted: a J-2 turbine-exit pressure (a second anchor), shingle
+    slot heights / eyelet counts, and `[SP-8120]` §2.2.5.1 manifold-hydraulics loss numbers
+    applied to a hot gas. Until then the constant is Tier 2 INTERIM (ASSUMPTIONS).
+  - **Liquid films still use the Tier-3 decay law (2026-09-25).** The turbine-exhaust GAS film
+    now uses `[TN-D3836]`'s correlation, but the chamber curtain and nozzle-slot LIQUID films
+    (`cooling/film.py`, eta_f0 = min(0.75, 7f), decay over 2.5 local diameters) are unchanged.
+    `[SP-8124]` App. B's liquid-film length equation needs Λ(X_e) and a(X_e, X_r) read off Fig.
+    B-1, which is not digitized. Next steps: re-render SP-8124 PDF leaves ~100-111 as images and
+    digitize Figs. A-1/A-2/B-1, or chase its refs. 51/76/81/103/107.
+  - **F-1 pump power is under-predicted (2026-09-25, not a literature gap — a turbopump
+    calibration item).** The corpus F-1's turbine specific work matches the real ~508 kJ/kg
+    (53,146 bhp / 172 lb/s `[F1-Man Fig 3-14]`), but its GG flow is ~62 kg/s vs the real
+    75.7 kg/s (2.36 % vs 2.91 % of total flow), so the modelled pump power is ~20 % low. Part
+    of it is the corpus Pc (6.77 MPa from RO vs the real 1,125 psia injector-end Pc); the real
+    pump discharges (ox 1,602 / fuel 1,870 psia) and pump powers (30.3k / 22.7k bhp) are in
+    `[F1-Man Fig 3-14]` to calibrate against. Checked as a x0.5-2 plausibility band only
+    (`validate` turbine-exhaust (i)).
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
@@ -209,9 +253,13 @@ into that and makes no claims about it.
 
   (h) **Exhaust heat exchanger** (LOX→GOX, H-1 `[H1-Man §1-47]`; Titan I superheater
   `[SP-8120]`):
-  - The heat-exchanger duty (GOX flow, outlet temperature) is not given anywhere.
-  - The heat-exchanger temperature drop and mass in `engine_designer` are Tier 3 until a
-    stage-pressurisation source is found.
+  - **Mostly RESOLVED 2026-09-25 via `[F1-Man]`**: real outlet temperatures (LOX 90 -> 516 K,
+    He 63 -> 397 K) and nominal flows (4 / 0.6 lb/s) [Fig 3-29], both coils in one shell
+    [§1-71/1-72], and the can envelope (43 x 58 in, tapering 40 -> 24 in) [§1-72] are now in
+    code (`LOX_TO_GOX_DH_J_KG`, `HE_HX_DH_J_KG`, `HX_CAN_*`). Still open: the can's WEIGHT
+    (`HX_MASS_SHELL_MULT` stays Tier 3) and any heat-transfer sizing rule (duty vs coil area) -
+    one dimensioned can is not enough to scale by duty. `[H1-Man]`'s H-1 exchanger (3 LOX coils,
+    no He) has no dimensions to give a second anchor.
   Anything left unfound is calibrated purely by reverse-solving against RO headers (say which).
 
 ## Pending `ASSUMPTIONS.md` citation upgrades
@@ -300,7 +348,8 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   now has a real citation, `[F1-Man §1-16]` — a real, dimensioned 30%/70% fuel bypass-vs-
   cooling split at each F-1 fuel-down tube, from Rocketdyne's own engine manual for the exact
   engine this cooling topology is sourced from. Previously an uncited Tier-3 value. See
-  `topics/12b-structures-manifolds-and-hardware.md`.
+  `topics/12b-structures-manifolds-and-hardware.md`. **APPLIED 2026-09-25** — `ASSUMPTIONS.md`'s
+  `cooling_flow_topology` / `manifold_bypass_fraction` row now cites `[F1-Man §1-16]` directly.
 
 ## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
 

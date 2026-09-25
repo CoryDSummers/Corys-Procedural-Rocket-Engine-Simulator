@@ -1,5 +1,5 @@
 {
-  "schema_version": 9,
+  "schema_version": 10,
   "design": {
     "propellant_pair": "LOX/LH2",
     "mixture_ratio": 5.5,
@@ -30,6 +30,7 @@
     "aspirator_fwd_length_frac": 0.3,
     "aspirator_overhang_frac": 0.05,
     "turbine_exhaust_hx_gox_kgs": 0.0,
+    "turbine_exhaust_hx_he_kgs": 0.0,
     "regen_channel_model": "channels",
     "regen_channel_count": 360,
     "regen_channel_aspect_ratio": 0.0,

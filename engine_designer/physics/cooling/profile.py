@@ -93,7 +93,7 @@ def heat_flux_profile(xs_m, rs_m, throat_dia_m, pc_pa, transition_area_ratio=Non
     weighted = 0.0
     for i in range(len(rs) - 1):
         if (transition_area_ratio is not None and i >= throat_idx
-                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio):
+                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio + 1e-9):
             continue
         a = _frustum_area(xs[i], rs[i], xs[i + 1], rs[i + 1])
         total_area += a
@@ -119,7 +119,7 @@ def wall_heat_total_w(xs_m, rs_m, q_profile_w_m2, throat_dia_m=None, transition_
     total = 0.0
     for i in range(len(rs) - 1):
         if (transition_area_ratio is not None and rt > 0 and i >= throat_idx
-                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio):
+                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio + 1e-9):
             continue
         a = _frustum_area(xs[i], rs[i], xs[i + 1], rs[i + 1])
         total += a * 0.5 * (q[i] + q[i + 1])
@@ -139,7 +139,7 @@ def area_weighted_mean(xs_m, rs_m, values, throat_dia_m=None, transition_area_ra
     tot_va = 0.0
     for i in range(len(rs) - 1):
         if (transition_area_ratio is not None and rt > 0 and i >= throat_idx
-                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio):
+                and _local_area_ratio(max(rs[i], rs[i + 1]), rt) > transition_area_ratio + 1e-9):
             continue
         a = _frustum_area(xs[i], rs[i], xs[i + 1], rs[i + 1])
         tot_a += a

@@ -28,15 +28,33 @@ def combustion_setup(self, s):
     _check(s.checklist, s.warnings, "propellant/cycle", "Mixture ratio within table range",
            mr_lo <= self.mixture_ratio <= mr_hi,
            f"Mixture ratio {self.mixture_ratio:.2f} is outside the "
-           f"literature-anchored table range [{mr_lo}, {mr_hi}] for "
+           f"performance-table range [{mr_lo}, {mr_hi}] for "
            f"{self.propellant_pair} - the tables are CLAMPED at that edge, so combustion "
            f"numbers are the edge value, not extrapolated.")
 
-    s.tc, s.gamma, s.m_molar = combustion.combustion_state(self.propellant_pair, self.mixture_ratio)
+    # Chamber state for performance (P1 re-anchor, 2026-09-25): the baked
+    # equilibrium tables at the actual (MR, Pc) for a bipropellant, the legacy
+    # table for a monopropellant - see combustion.performance_state.
+    s.perf = combustion.performance_state(self.propellant_pair, self.mixture_ratio,
+                                          self.chamber_pressure_pa)
+    s.tc, s.m_molar = s.perf["tc_k"], s.perf["m_molar"]
+    s.gamma_chamber = s.perf["gamma_chamber"]
+    if s.perf["source"] == "equilibrium":
+        _check(s.checklist, s.warnings, "propellant/cycle", "Chamber pressure within table range",
+               not s.perf["pc_clamped"],
+               f"Chamber pressure {self.chamber_pressure_pa/1e6:.2f} MPa is outside the "
+               f"equilibrium tables' 0.5-30 MPa grid - the chamber state is the edge value, "
+               f"not extrapolated.")
     s.rho_fuel, s.rho_ox = combustion.propellant_densities(self.propellant_pair)
 
-    mach = iso.mach_from_area_ratio(self.expansion_ratio, s.gamma)
-    s.pe_pc = iso.pe_over_pc(mach, s.gamma)
+    # Exit pressure from the table's own (shifting-equilibrium) expansion;
+    # s.gamma = the one-gamma exponent that reproduces it at the design area
+    # ratio, for the downstream one-gamma nozzle relations (local wall
+    # pressure, static temperature). Legacy monopropellant: the table gamma.
+    s.pe_pc = combustion.exit_pressure_ratio(self.propellant_pair, self.mixture_ratio,
+                                             self.chamber_pressure_pa, self.expansion_ratio, s.perf)
+    s.gamma = (combustion.expansion_gamma(self.expansion_ratio, s.pe_pc)
+               if s.perf["source"] == "equilibrium" else s.gamma_chamber)
     s.pe_pa = s.pe_pc * self.chamber_pressure_pa
 
     s.injector = injectors.INJECTORS[self.injector_type]
@@ -45,7 +63,7 @@ def combustion_setup(self, s):
     # c* - before any efficiency multiplier - specifically to avoid a circular
     # dependency: completeness feeds eta_cstar, so it can't also depend on the
     # eta_cstar-scaled c*). See combustion.completeness_factor's docstring.
-    cstar_ideal = iso.c_star(s.tc, s.gamma, s.m_molar, eta_cstar=1.0)
+    cstar_ideal = s.perf["cstar_ideal_ms"]
     s.residence_time_s = self.lstar_m / cstar_ideal
     s.completeness = combustion.completeness_factor(
         self.lstar_m, self.propellant_pair, s.injector.atomization_time_modifier)
@@ -69,7 +87,7 @@ def combustion_setup(self, s):
         # a small c* hit [claude_lit/topics/14].
         s.eta_cstar *= (1.0 - combustion_stability.BAFFLE_CSTAR_PENALTY)
     s.eta_cstar = min(s.eta_cstar, ETA_CSTAR_CEILING)
-    s.cstar = iso.c_star(s.tc, s.gamma, s.m_molar, s.eta_cstar)
+    s.cstar = cstar_ideal * s.eta_cstar
 
     # Combustion-gas transport properties + recovery temp (physics/combustion.py
     # derives these, not tabulated) - computed this early because the
@@ -122,7 +140,19 @@ def nozzle_performance(self, s):
     lam_reference = nozzle_shapes.reference_lambda(self.expansion_ratio)
     s.lam_relative = s.lam / lam_reference
 
-    cf_vac_eff = iso.cf_vacuum(s.gamma, s.pe_pc, self.expansion_ratio) * s.lam_relative
+    # Ideal vacuum CF from the equilibrium tables (shifting-equilibrium Isp x g0
+    # / c*) - or the one-gamma formula for a legacy monopropellant state - times
+    # the divergence score and the pair's fitted nozzle efficiency ETA_CF
+    # (kinetics + boundary layer + residual; combustion.py).
+    s.cf_vac_ideal, _eps_cl = combustion.cf_vac_ideal(
+        self.propellant_pair, self.mixture_ratio, self.chamber_pressure_pa,
+        self.expansion_ratio, s.perf)
+    s.eta_cf = combustion.ETA_CF[self.propellant_pair]
+    _check(s.checklist, s.warnings, "nozzle/aero", "Area ratio within performance-table range",
+           not _eps_cl,
+           f"Expansion ratio {self.expansion_ratio:.1f} is outside the equilibrium tables' "
+           f"2-250 area-ratio grid - the ideal Isp is the edge value, not extrapolated.")
+    cf_vac_eff = s.cf_vac_ideal * s.lam_relative * s.eta_cf
     cf_sl_eff = cf_vac_eff - self.expansion_ratio * (PA_SEA_LEVEL / self.chamber_pressure_pa)
 
     s.isp_vac_chamber = iso.isp_from_cf(s.cstar, cf_vac_eff)

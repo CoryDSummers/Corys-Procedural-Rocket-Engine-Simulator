@@ -61,7 +61,7 @@ def injector_and_cooling_routing(self, s):
     # injector-END pressure, which exceeds the nozzle-stagnation Pc that
     # sets thrust/Isp. Always computed & reported; only routed into the feed
     # chain when apply_chamber_pressure_loss is on.
-    s.chamber_flow = combustion.chamber_flow(self.contraction_ratio, s.gamma)
+    s.chamber_flow = combustion.chamber_flow(self.contraction_ratio, s.gamma_chamber)
     s.pc_feed = (self.chamber_pressure_pa * s.chamber_flow["injector_end_pressure_ratio"]
                if self.apply_chamber_pressure_loss else self.chamber_pressure_pa)
     # Looked up here (not just at the thermal-margin check further down) because the
@@ -177,8 +177,8 @@ def turbomachinery_cycle(self, s):
         # Tapped gas = main-chamber combustion products, film-cooled to a
         # turbine-tolerable temperature (NOT the fuel-rich GG mix).
         tap_tin_k = min(s.tc * TAP_OFF_TEMP_FRACTION, TAP_OFF_TURBINE_LIMIT_K)
-        tap_gas = dict(tin_k=tap_tin_k, cp=combustion.mixture_cp_j_kgk(s.gamma, s.m_molar),
-                       gamma=s.gamma)
+        tap_gas = dict(tin_k=tap_tin_k, cp=combustion.mixture_cp_j_kgk(s.gamma_chamber, s.m_molar),
+                       gamma=s.gamma_chamber)
         _pr = _exhaust_back_pressure(self, s, tap_gas["gamma"],
                                      turbine_exhaust.TAP_OFF_TURBINE_INLET_PC_FRACTION,
                                      TAP_OFF_PRESSURE_RATIO)
@@ -388,11 +388,14 @@ def _exhaust_back_pressure(self, s, gamma, inlet_pc_fraction, pr_cap):
     s.te_inject_eps = min(max(float(self.turbine_exhaust_inject_eps), 1.5),
                           float(self.expansion_ratio))
     s.te_local_static_pa = (self.chamber_pressure_pa
-                            * iso.pe_over_pc_from_eps(s.te_inject_eps, s.gamma))
+                            * combustion.exit_pressure_ratio(
+                                self.propellant_pair, self.mixture_ratio,
+                                self.chamber_pressure_pa, s.te_inject_eps, s.perf))
     s.te_discharge_pa = turbine_exhaust.discharge_pressure_pa(
         s.te_mode, s.te_ambient_pa, s.te_local_static_pa)
     s.te_p_in_pa = inlet_pc_fraction * self.chamber_pressure_pa
-    s.te_p_out_req_pa = turbine_exhaust.required_turbine_outlet_pa(gamma, s.te_discharge_pa)
+    s.te_p_out_req_pa = turbine_exhaust.required_turbine_outlet_pa(gamma, s.te_discharge_pa,
+                                                                 s.te_mode)
     # A baked exhaust-duct run's computed loss (previous pass) replaces the
     # lumped duct allowance when it is the larger of the two.
     s.te_duct_loss_pa = (s.line_loss_override or {}).get("turbine_exhaust")
@@ -417,6 +420,7 @@ def _apply_exhaust(self, s, gas, pr):
         main_exit_static_pa=s.pe_pa, main_exit_dia_m=s.geo["exit_dia_m"],
         nozzle_eps=self.turbine_exhaust_nozzle_eps, cant_deg=self.turbine_exhaust_cant_deg,
         hx_gox_kgs=max(0.0, float(self.turbine_exhaust_hx_gox_kgs or 0.0)),
+        hx_he_kgs=max(0.0, float(self.turbine_exhaust_hx_he_kgs or 0.0)),
         lox_pair=self.propellant_pair.startswith("LOX/"))
     exh.update(turbine_inlet_pa=s.te_p_in_pa, turbine_pressure_ratio=pr,
                pr_cap=s.te_pr_cap, back_pressure_limited=s.te_pr_limited,
@@ -431,8 +435,27 @@ def _apply_exhaust(self, s, gas, pr):
         # manifold - applied by the NEXT pass's thermal solve (compute())
         exh["film_carry"] = dict(
             film_ratio=turbine_exhaust.film_mdot_ratio_to_fuel(exh["mdot_kgs"], s.mdot_fuel_kgs),
-            inject_eps=s.te_inject_eps, t_k=exh["t_exhaust_k"], mdot_kgs=exh["mdot_kgs"])
+            inject_eps=s.te_inject_eps, t_k=exh["t_exhaust_k"], mdot_kgs=exh["mdot_kgs"],
+            cp=exh["cp"], slot_area_m2=exh.get("slot_area_m2", 0.0),
+            slot_velocity_ms=exh.get("slot_velocity_ms", 0.0),
+            slot_density_kg_m3=exh.get("slot_density_kg_m3", 0.0))
         exh["gas_film_applied"] = getattr(s, "gas_film_phi", None) is not None
+        gf = getattr(s, "gas_film_info", None)
+        exh["gas_film"] = gf
+        if gf is not None:
+            lo, hi = turbine_exhaust.GAS_FILM_VELOCITY_RATIO_BAND
+            vr = gf["velocity_ratio_c_over_g"]
+            # informational: real F-1/J-2 slots run well below SP-8124's
+            # flow-minimising band, so this is a note, never a warning
+            _gf_note = (f"Exhaust film {gf['slot_h_m']*1e3:.1f} mm slot, effectiveness "
+                        f"{gf['eta_exit']:.2f} at the exit; coolant/core velocity ratio "
+                        f"{vr:.2f} (SP-8124's flow-minimising band {lo:.2f}-{hi:.2f}"
+                        f"{'' if lo <= vr <= hi else ' - outside it, so more film flow is needed per unit effectiveness than an optimised slot'}). "
+                        f"Correlation valid to ~{turbine_exhaust.GAS_FILM_VALID_SLOT_HEIGHTS:.0f} "
+                        f"slot heights (x/S at exit {gf['x_over_s_exit']:.0f}); beyond that it "
+                        f"over-predicts wall temperature (conservative).")
+            _check(s.checklist, s.warnings, "turbopump", "Turbine-exhaust gas film (TN D-3836)",
+                   True, _gf_note, _gf_note)
     s.cyc["gg_dump_isp_fraction"] = k_vac           # now computed, not the flat 0.55 / 0.80
     s.cyc["turbine_pressure_ratio"] = pr
     s.cyc["turbine_exhaust"] = exh
@@ -454,15 +477,17 @@ def _apply_exhaust(self, s, gas, pr):
                f"into {_p(s.te_discharge_pa)})" if s.te_pr_limited
                else f"at the {s.te_pr_cap:.0f} cap (discharge {_p(s.te_discharge_pa)})")))
     if exh["hx_on"]:
+        _coils = " + ".join(filter(None, [
+            f"{exh['hx_gox_kgs']:.2f} kg/s GOX" if exh["hx_gox_kgs"] > 0.0 else "",
+            f"{exh['hx_he_kgs']:.2f} kg/s He" if exh["hx_he_kgs"] > 0.0 else ""]))
         _check(s.checklist, s.warnings, "turbopump", "Exhaust heat-exchanger outlet temperature",
                exh["t_exhaust_k"] >= turbine_exhaust.EXHAUST_T_FLOOR_K,
-               f"The LOX->GOX heat exchanger ({exh['hx_gox_kgs']:.2f} kg/s GOX, "
-               f"{exh['hx_duty_w']/1e3:.0f} kW) chills the turbine exhaust to "
-               f"{exh['t_exhaust_k']:.0f} K, below ~{turbine_exhaust.EXHAUST_T_FLOOR_K:.0f} K "
-               f"where fuel-rich exhaust starts condensing heavy species/water in the duct. "
-               f"Heat less GOX.",
+               f"The exhaust heat exchanger ({_coils}, {exh['hx_duty_w']/1e3:.0f} kW) chills "
+               f"the turbine exhaust to {exh['t_exhaust_k']:.0f} K, below "
+               f"~{turbine_exhaust.EXHAUST_T_FLOOR_K:.0f} K where fuel-rich exhaust starts "
+               f"condensing heavy species/water in the duct. Heat less GOX/He.",
                f"OK - exhaust {exh['t_turbine_exit_k']:.0f} -> {exh['t_exhaust_k']:.0f} K "
-               f"({exh['hx_gox_kgs']:.2f} kg/s GOX)")
+               f"({_coils})")
     elif (self.turbine_exhaust_hx_gox_kgs or 0.0) > 0.0:
         _check(s.checklist, s.warnings, "turbopump", "Exhaust heat exchanger",
                False,
