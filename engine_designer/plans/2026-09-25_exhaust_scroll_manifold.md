@@ -7,11 +7,11 @@ below says "schema 11"; the branch had moved on to 14 by the time it was approve
 migration lands as **schema 15**.
 
 ## Status
-- [ ] Commit 0: this document
-- [ ] Commit 1: scroll torus + tangential duct entry (manifold/turbine_exhaust/plumbing, schema 15, scroll mesh, validate row (k), corpus report)
-- [ ] Commit 2: outlet neck + flame shield (geometry, mass, drawing, corpus report)
-- [ ] Commit 3: omega-joint bands (cosmetic)
-- [ ] Commit 4: docs (ASSUMPTIONS, CLAUDE.md, README, claude_lit, OPEN_QUESTIONS)
+- [x] Commit 0: this document (7c2bd6a)
+- [x] Commit 1: scroll torus + tangential duct entry (manifold/turbine_exhaust/plumbing, schema 15, scroll mesh, validate row (k), corpus report) (12447a0). Seed route refined on the way: the tangent leg runs out to the turbine port's radius and the auto legs close on a chord (the F-1's exhaust port faces forward, 0.6 m outside the ring - a radial approach had no room).
+- [x] Commit 2: outlet neck + flame shield (geometry, mass, drawing, corpus report) (b77ce40)
+- [x] Commit 3: omega-joint bands (cosmetic; F-1 = 15 pinned in validate (k)) (341d803)
+- [x] Commit 4: docs (ASSUMPTIONS, CLAUDE.md, README, claude_lit, OPEN_QUESTIONS). ROUND COMPLETE.
 
 ## Context
 Cory asked for a closer look at the shape of the nozzle-injection exhaust manifold, using photos of the J-2

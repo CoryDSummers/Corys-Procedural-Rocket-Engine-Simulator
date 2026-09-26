@@ -590,3 +590,15 @@ for other agents/sessions about the new layout.
 
 No physics, no `ASSUMPTIONS.md` number, and no `validate.py` behavior changed — purely a
 documentation reorganization.
+
+## 2026-09-25 — web photos: F-1 / J-2 turbine-exhaust manifold shape (no new PDF)
+
+Cory supplied a J-2 museum photo (Science Museum Group 1977-0402) and an F-1 callout photo
+(heroicrelics.org — HTTP-only, not fetchable from this sandbox); the F-1 thrust-chamber photo
+and the F-1 manifold cutaway were fetched instead from enginehistory.org *Rocket Propulsion
+Evolution* §8.12 (`F-1ThrustChamber.jpg`, `F-1ExManNozzleExt.jpg`) and viewed as images. No
+text extraction and no new citation tag: the findings (tangential single inlet / scroll,
+forward-outboard placement on a neck, flame shield, visible omega joints) were folded into
+`topics/12b` ("Real F-1 / J-2 exhaust-manifold SHAPE") and a caveat in
+`sources/f1-engine-manual-r3896-1.md`, and applied in `engine_designer` (`ASSUMPTIONS.md`
+"Injection SCROLL manifold"). Photos give shape and proportion only, not dimensions.

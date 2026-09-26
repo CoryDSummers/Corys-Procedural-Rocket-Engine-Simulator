@@ -204,7 +204,13 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
         slot [H1-Man].
       - **nozzle injection**: F-1 at eps 10, J-2 cat-eyes at eps 10.9. The
         exhaust also lays a gas film on the nozzle wall downstream, applied by
-        a second compute pass.
+        a second compute pass. The manifold is a **tangentially-fed scroll**
+        like the real F-1 / J-2: one inlet sized on the full flow (the F-1's
+        lands on its real 24 in), tapering one way round, sitting forward of
+        the injection station on an outlet neck over a flame shield, with the
+        F-1's 15 omega expansion joints drawn. The duct leaves it along the
+        tangent (a pre-schema-15 baked run keeps its old radial T, with a
+        warning; the Shape Lab's "Tangential inlet" box / Route to pump fix it).
     - The exhaust must leave **sonic** into its discharge (sea level, vacuum,
       or the local nozzle static pressure). That sets the turbine outlet
       pressure, so the turbine PR = min(22 cap, inlet / outlet); the H-1 lands
