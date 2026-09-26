@@ -115,8 +115,11 @@ EXHAUST_INJECTION_PRESSURE_RATIO = 2.19
 # validate/turbine_exhaust_checks.py, which pins it). Independent
 # plausibility checks: LR-91 865 lbf [RO header], and the theoretical fuel-
 # rich GG exhaust Isp dumped into a main nozzle, 141.6 s (O2/CH4) and 282.7 s
-# (O2/H2) [Tripropellant-CR150444 Table 2].
-EXHAUST_THRUST_EFFICIENCY = 0.96
+# (O2/H2) [Tripropellant-CR150444 Table 2]. Re-solved 2026-09-26 (turbopump
+# Round 0): 0.96 -> 0.868 when the LOX/RP-1 GG gas cp was corrected 2100 ->
+# 2735 J/kg-K [SP-8110 Table III] - the higher cp raised the IDEAL exhaust
+# expansion ~11 %, so the same real 16,000 lbf pin needs a lower efficiency.
+EXHAUST_THRUST_EFFICIENCY = 0.868
 
 # LOX -> GOX pressurant heat-exchanger enthalpy rise per kg of oxygen: 90 K
 # liquid (pump discharge, supercritical) to 516 K (470 F) gas. Tier 2
