@@ -48,7 +48,7 @@ if __name__ == "__main__":
                            chamber_wall_fillet_r_over_rt=1.2,
                            chamber_cooling_method="uncooled", nozzle_cooling_method="radiative",
                            ablative_target_burn_time_s=350.0,
-                           nozzle_liner_material_key="zirconia", nozzle_liner_thickness_m=0.0008,
+                           nozzle_liner_material_key="zirconia",
                            nozzle_extension_stiffening_style="orthogrid",
                            film_cooling_fraction=0.06, chamber_film_inject_area_ratio=1.8,
                            nozzle_film_fraction=0.03, nozzle_film_inject_eps=12.0,
@@ -133,6 +133,13 @@ if __name__ == "__main__":
     old_v9 = EngineDesign.from_dict({"schema_version": 9, "design": {"cycle": "gas_generator"}})
     assert old_v9.turbine_exhaust_hx_he_kgs == 0.0
     assert EngineDesign().to_dict()["schema_version"] >= 10
+    # A schema-13 file's stored liner thickness (removed in schema 14 - the
+    # thickness is now computed) is dropped; the liner material survives.
+    old_v13 = EngineDesign.from_dict({"schema_version": 13, "design": {
+        "nozzle_liner_material_key": "zirconia", "nozzle_liner_thickness_m": 0.0008}})
+    assert old_v13.nozzle_liner_material_key == "zirconia"
+    assert not hasattr(old_v13, "nozzle_liner_thickness_m")
+    assert EngineDesign().to_dict()["schema_version"] >= 14
     loaded = json.loads(json.dumps(d.to_dict()))
     rebuilt = EngineDesign.from_dict(loaded)
     assert rebuilt.plumbing_runs == d.plumbing_runs

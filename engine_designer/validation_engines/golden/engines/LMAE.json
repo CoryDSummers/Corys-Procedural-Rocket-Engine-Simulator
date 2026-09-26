@@ -2545,9 +2545,6 @@
 "__f__": "15.0"
 },
 "nozzle_liner_material_key": "",
-"nozzle_liner_thickness_m": {
-"__f__": "0.0"
-},
 "nozzle_type": "bell",
 "npsh_available_fuel_ft": {
 "__f__": "0.0"
@@ -2925,6 +2922,13 @@
 },
 "nozzle_liner_gas_face_temp_k": null,
 "nozzle_liner_mass_kg": {
+"__f__": "0.0"
+},
+"nozzle_liner_required_thickness_m": {
+"__f__": "0.0"
+},
+"nozzle_liner_target_shell_k": null,
+"nozzle_liner_thickness_m": {
 "__f__": "0.0"
 },
 "orifice_cd": {

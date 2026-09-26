@@ -43,6 +43,7 @@ from engine_designer.physics.cooling import (  # noqa: F401
     nozzle_film_effectiveness_profile,
     passage_velocity_ms,
     radiative_wall_temperature,
+    required_liner_resistance_m2k_w,
     recovery_temperature,
     reference_area_avg_flux_w_m2,
     regen_feasible,
@@ -155,6 +156,15 @@ if __name__ == "__main__":
     assert t_liner_face_lo >= t_shell_lo and t_liner_face_hi >= t_shell_hi  # gas-facing face is never cooler than the shell
     imbalance_hi = q_hi - 0.85 * STEFAN_BOLTZMANN_W_M2K4 * t_shell_hi ** 4
     assert abs(imbalance_hi) / q_hi < 1e-2   # the shell's own radiative balance still closes
+    # required_liner_resistance_m2k_w is the exact inverse: feeding its R back
+    # through the solve lands the shell on the target; a target the bare shell
+    # already meets needs no liner.
+    for _R_in in (1e-4, 5e-4, 1e-3):                 # realistic 0.2-2 mm of ZrO2
+        _face = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=_R_in)
+        _shell = _face - 200.0 * (2500.0 - _face) * _R_in
+        _R = required_liner_resistance_m2k_w(200.0, 2500.0, 0.85, _shell)
+        assert abs(_R - _R_in) / _R_in < 0.05, (_R_in, _R)
+    assert required_liner_resistance_m2k_w(200.0, 2500.0, 0.85, t_rad + 50.0) == 0.0
 
     # --- regen Isp credit -------------------------------------------------
     # credit ~ 0.5 x recovered heat / chamber enthalpy flow, capped

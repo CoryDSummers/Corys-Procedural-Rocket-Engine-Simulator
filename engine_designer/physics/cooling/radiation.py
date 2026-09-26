@@ -57,3 +57,22 @@ def radiative_wall_temperature(h_gc_w_m2k, t_aw_k, emissivity, liner_resistance_
         t_shell = 0.5 * (lo + hi)
     q = emissivity * STEFAN_BOLTZMANN_W_M2K4 * t_shell ** 4
     return t_shell + q * liner_resistance_m2k_w
+
+
+def required_liner_resistance_m2k_w(h_gc_w_m2k, t_aw_k, emissivity, t_shell_target_k):
+    """
+    Liner conduction resistance (thickness / conductivity) that holds a
+    radiation-cooled STRUCTURAL shell at exactly t_shell_target_k - the closed-
+    form inverse of radiative_wall_temperature's liner equilibrium. With the
+    shell at T*, it re-radiates q* = emissivity*sigma*T*^4; flux continuity
+    through the gas film fixes the liner face at T_face = T_aw - q*/h_gc; the
+    liner must drop T_face - T* at that flux, so R = (T_face - T*)/q*.
+    0.0 when the bare shell already runs at or below the target. Exact for a
+    fixed h_gc - Bartz's wall-temperature correction makes h_gc drift as the
+    liner face heats, which callers absorb by re-solving and re-sizing.
+    """
+    if h_gc_w_m2k <= 0 or emissivity <= 0 or t_shell_target_k <= 0:
+        return 0.0
+    q_star = emissivity * STEFAN_BOLTZMANN_W_M2K4 * t_shell_target_k ** 4
+    t_face = t_aw_k - q_star / h_gc_w_m2k
+    return max(0.0, (t_face - t_shell_target_k) / q_star)

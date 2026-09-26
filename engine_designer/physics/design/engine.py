@@ -47,17 +47,13 @@ class EngineDesign:
                                                    # radiative-cooled nozzle extension's
                                                    # STRUCTURAL shell (cooling/radiation.py's
                                                    # liner_resistance_m2k_w), real physics: it
-                                                   # measurably lowers the temperature the shell
-                                                   # material sees (cooling_stage.
-                                                   # nozzle_extension_thermal's t_shell_k),
-                                                   # which is what makes a low-max-service-temp
-                                                   # material like titanium_6al4v survivable at
-                                                   # real nozzle-extension conditions. Only
-                                                   # active where nozzle cooling resolves to
-                                                   # radiative/uncooled AND nozzle_liner_
-                                                   # thickness_m > 0 (both required).
-    nozzle_liner_thickness_m: float = 0.0         # liner thickness (m); 0.0 = no liner
-                                                   # regardless of nozzle_liner_material_key.
+                                                   # lowers the temperature the shell material
+                                                   # sees (t_shell_k). Its THICKNESS is computed
+                                                   # (cooling_stage.thermal: hold the shell at the
+                                                   # bell material's thin-margin point, capped at
+                                                   # the liner's buildable max) - not an input.
+                                                   # Only active where nozzle cooling resolves to
+                                                   # radiative/uncooled.
     nozzle_extension_stiffening_style: str = "rings"
                                                    # "rings" (default, today's mandatory
                                                    # behaviour on a radiative nozzle extension -
@@ -440,7 +436,11 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 13  # 13 (2026-09-25): nozzle_extension_stiffening_style added ("rings" |
+    SCHEMA_VERSION = 14  # 14 (2026-09-25): nozzle_liner_thickness_m REMOVED - the liner's
+                         # thickness is now computed, not an input. A v12/v13 file's stored
+                         # value is dropped by from_dict (unknown key); a file that named a
+                         # liner material now gets it at the computed thickness.
+                         # 13 (2026-09-25): nozzle_extension_stiffening_style added ("rings" |
                          # "orthogrid" | "smooth") - no key migration, a v12 file's new field
                          # takes its default ("rings" - today's mandatory ring-bump behavior on
                          # a radiative nozzle extension, bit-identical).

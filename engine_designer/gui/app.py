@@ -524,10 +524,12 @@ class EngineDesignerApp:
             next((disp for disp, k in self.liner_display_to_key.items()
                   if k == self.design.nozzle_liner_material_key), "(none)"),
             width=28)
-        self.nozzle_liner_thickness_var = tk.DoubleVar(
-            value=self.design.nozzle_liner_thickness_m * 1000.0)
-        self._add_slider(self.nozzle_liner_group, _liner_row, "Liner thickness [mm]",
-                          self.nozzle_liner_thickness_var, 0.0, 3.0, decimals=2)
+        # Thickness is COMPUTED (cooling_stage.thermal) - read-only readout,
+        # refreshed from each result by _update_liner_readouts.
+        self.nozzle_liner_readout_var = tk.StringVar(value="")
+        ttk.Label(self.nozzle_liner_group, textvariable=self.nozzle_liner_readout_var,
+                  wraplength=260, foreground="#666666").grid(
+            row=_liner_row, column=0, columnspan=2, sticky="w")
         self._register_gate(
             self.nozzle_liner_group,
             lambda: self._effective_nozzle_cooling_method() in ("radiative", "uncooled"))
@@ -1814,7 +1816,6 @@ class EngineDesignerApp:
             self.design.regen_nozzle_end_eps = self.regen_nozzle_end_var.get()
             self.design.nozzle_liner_material_key = self.liner_display_to_key.get(
                 self.nozzle_liner_material_var.get(), self.design.nozzle_liner_material_key)
-            self.design.nozzle_liner_thickness_m = self.nozzle_liner_thickness_var.get() / 1000.0
             self.design.nozzle_extension_stiffening_style = self.nozzle_extension_stiffening_style_var.get()
             self.design.dump_coolant_fraction = self.dump_coolant_fraction_var.get() / 100.0
             self.design.wall_construction = self.wall_construction_var.get()
@@ -1970,6 +1971,25 @@ class EngineDesignerApp:
                             roll=getattr(self.ax3d, "roll", 0))
         self.canvas3d.draw_idle()
 
+    def _update_liner_readouts(self, result):
+        """Read-only computed-thickness readouts (the thicknesses are outputs)."""
+        var = getattr(self, "nozzle_liner_readout_var", None)
+        if var is not None:
+            req = result.get("nozzle_liner_required_thickness_m") or 0.0
+            app = result.get("nozzle_liner_thickness_m") or 0.0
+            target = result.get("nozzle_liner_target_shell_k")
+            if target is None:
+                var.set("")
+            elif req <= 0.0:
+                var.set(f"Computed thickness: none needed (shell already under {target:.0f} K)")
+            elif app < req:
+                var.set(f"Computed thickness: {app * 1e3:.2f} mm applied (buildable max) - "
+                        f"{req * 1e3:.0f} mm would be needed to hold the shell at "
+                        f"{target:.0f} K; see the checklist")
+            else:
+                var.set(f"Computed thickness: {app * 1e3:.2f} mm (holds the shell at "
+                        f"{target:.0f} K)")
+
     def _update_hatband_summary(self, result):
         """One-line readout of the sized hatbands under the hatband controls."""
         label = getattr(self, "hatband_summary_label", None)
@@ -2091,6 +2111,7 @@ class EngineDesignerApp:
             return
         self.last_result = result
         self._update_hatband_summary(result)
+        self._update_liner_readouts(result)
 
         # Redraw only the currently-visible result tab; the rest are marked
         # dirty and catch up on exactly one redraw when the user switches to
@@ -2628,7 +2649,6 @@ class EngineDesignerApp:
         self.nozzle_liner_material_var.set(next(
             (disp for disp, k in self.liner_display_to_key.items()
              if k == d.nozzle_liner_material_key), "(none)"))
-        self.nozzle_liner_thickness_var.set(d.nozzle_liner_thickness_m * 1000.0)
         self.nozzle_extension_stiffening_style_var.set(d.nozzle_extension_stiffening_style)
         self.dump_coolant_fraction_var.set(d.dump_coolant_fraction * 100.0)
         self.wall_construction_var.set(d.wall_construction)

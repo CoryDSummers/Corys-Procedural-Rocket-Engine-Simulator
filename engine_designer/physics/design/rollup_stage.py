@@ -308,6 +308,9 @@ def checks_and_result(self, s):
         "ablative_liner_thickness_m": s.ablative_liner_thickness_m,
         "ablative_liner_mass_kg": s.ablative_liner_mass_kg,
         "nozzle_liner_mass_kg": s.nozzle_liner_mass_kg,
+        "nozzle_liner_thickness_m": s.nozzle_liner_thickness_m_eff,
+        "nozzle_liner_required_thickness_m": s.nozzle_liner_required_thickness_m,
+        "nozzle_liner_target_shell_k": s.nozzle_liner_target_shell_k,
         "warnings": s.warnings,
         "checklist": s.checklist,
     }

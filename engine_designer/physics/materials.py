@@ -592,8 +592,9 @@ for _m in MATERIALS.values():
 @dataclass(frozen=True)
 class LinerMaterial:
     """A thin insulating liner between the hot gas and a RADIATIVE-cooled
-    nozzle-extension's structural shell (EngineDesign.nozzle_liner_material_key/
-    nozzle_liner_thickness_m) - a small, separate catalog from Material (a
+    nozzle-extension's structural shell (EngineDesign.nozzle_liner_material_key;
+    its thickness is COMPUTED, see design/cooling_stage.thermal) - a small,
+    separate catalog from Material (a
     liner is not itself a cooling method or a structural shell material,
     just a conduction resistance the shell's radiative-equilibrium solve now
     accounts for, see cooling/radiation.py). A named, dropdown-driven catalog
@@ -608,6 +609,8 @@ class LinerMaterial:
                                         # thermal margin (which now reads the liner-
                                         # protected, lower shell temperature)
     relative_cost_factor: float
+    max_practical_thickness_m: float   # thickest coat actually buildable - the
+                                        # computed thickness is capped here (and warned)
     notes: str
 
 
@@ -625,6 +628,12 @@ LINER_MATERIALS = {
                                           # citation found for this specific liner
                                           # application; flagged honestly
         relative_cost_factor=1.3,
+        max_practical_thickness_m=1.0e-3,  # Tier 3 - thick sprayed ceramic coats spall
+                                            # on thermal-expansion mismatch. Real applied
+                                            # thicknesses for context: flame-sprayed ZrO2
+                                            # ~0.010 in (0.25 mm) [TN-D3836 p.22-25];
+                                            # 0.076 mm [Quentmeyer-CR185257]. 1 mm is
+                                            # ~4x the thickest cited, not a cited limit.
         notes="Yttria-stabilized zirconia thermal-barrier liner between the hot gas "
               "and a radiative-cooled nozzle-extension's structural shell (e.g. "
               "titanium_6al4v, whose real Bell XLR81/Agena hardware used exactly this "

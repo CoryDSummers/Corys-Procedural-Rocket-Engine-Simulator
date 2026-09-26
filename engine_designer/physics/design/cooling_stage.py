@@ -115,16 +115,15 @@ def thermal(self, s):
     # the temperature the structural shell actually sees (cooling/radiation.py's
     # liner_resistance_m2k_w) - see cooling.solve_thermal's t_shell_k output,
     # read by nozzle_extension_thermal()/margins_stage.py instead of the raw
-    # gas-facing t_wg_k wherever a liner is active. "" / 0.0 thickness = no
-    # liner, bit-identical (zero resistance everywhere).
+    # gas-facing t_wg_k wherever a liner is active. Its thickness is COMPUTED
+    # after the bare solve below (not an input). "" = no liner, bit-identical.
+    liner_mask = nozzle & (treat == cooling.RADIATIVE)
     s.liner = (materials.LINER_MATERIALS.get(self.nozzle_liner_material_key)
-              if self.nozzle_liner_material_key and self.nozzle_liner_thickness_m > 0.0
-              else None)
-    liner_active = s.liner is not None
-    s.nozzle_liner_thickness_m_eff = self.nozzle_liner_thickness_m if liner_active else 0.0
-    liner_resistance = (np.where(nozzle & (treat == cooling.RADIATIVE),
-                                 s.nozzle_liner_thickness_m_eff / s.liner.thermal_conductivity_w_mk, 0.0)
-                        if liner_active else np.zeros(len(s.rs)))
+              if self.nozzle_liner_material_key and np.any(liner_mask) else None)
+    s.nozzle_liner_thickness_m_eff = 0.0
+    s.nozzle_liner_required_thickness_m = 0.0
+    s.nozzle_liner_target_shell_k = None
+    liner_resistance = np.zeros(len(s.rs))
     s.coolant_inlet_k = COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0)
     s.coolant_limit_k = cooling.coolant_limit_k(self.propellant_pair)
     regen_chamber = s.chamber_cooling in ("regenerative", "dump")
@@ -145,12 +144,8 @@ def thermal(self, s):
     jdp = JACKET_DP_PA
     dump_mdot = 0.0
     passes = THERMAL_OUTER_PASSES if (sized or s.nozzle_cooling == "dump") else 1
-    for _ in range(passes):
-        s.mdot_coolant_jacket_kgs = max(_jacket_fuel - dump_mdot, 0.0)
-        # coolant properties at the mean jacket pressure (injector feed + half the jacket)
-        p_cool = s.pc_feed + s.dp_injector_fuel + 0.5 * jdp
-        s.coolant_p_pa = p_cool
-        s.thermal = cooling.solve_thermal(
+    def _solve(p_cool, liner_resistance):
+        return cooling.solve_thermal(
             xs_m=s.xs, rs_m=s.rs, throat_dia_m=s.geo["throat_dia_m"],
             pc_pa=self.chamber_pressure_pa, cstar_ms=s.cstar, t0_k=s.tc_ht, gamma=s.gamma_ht,
             cp_gas=s.cp_gas, mu_gas=s.mu_gas, pr_gas=s.pr_gas, pair=self.propellant_pair,
@@ -166,6 +161,13 @@ def thermal(self, s):
             calibration=cooling.BARTZ_ABS_FLUX_CALIBRATION.get(self.propellant_pair, 1.0),
             deposit_factor=cooling.GAS_SIDE_DEPOSIT_FACTOR.get(self.propellant_pair, 1.0),
             liner_resistance_m2k_w=liner_resistance)
+
+    for _ in range(passes):
+        s.mdot_coolant_jacket_kgs = max(_jacket_fuel - dump_mdot, 0.0)
+        # coolant properties at the mean jacket pressure (injector feed + half the jacket)
+        p_cool = s.pc_feed + s.dp_injector_fuel + 0.5 * jdp
+        s.coolant_p_pa = p_cool
+        s.thermal = _solve(p_cool, liner_resistance)
         march = s.thermal["march"]
         jdp = (march["jacket_dp_pa"] if (march is not None and self.regen_channel_model == "channels")
                else JACKET_DP_PA)
@@ -207,6 +209,28 @@ def thermal(self, s):
             s.hot_wall_thickness_m, s.hot_wall_sizing_limit = mass_model.regen_hot_wall_thickness_m(
                 _jp_throat - self.chamber_pressure_pa, _r_span, _k_per_m,
                 s.chamber_material.allowable_stress_pa, _t_floor, REGEN_HOT_WALL_THICKNESS_M)
+
+    if s.liner is not None:
+        # Size the liner (one uniform sprayed coat) so the hottest radiative
+        # extension station's SHELL just reaches the bell material's thin-margin
+        # point - max_service / THIN_MARGIN_THRESHOLD, where the "Nozzle-extension
+        # material thermal margin" row turns OK - capped at the thickest coat that
+        # is actually buildable. Closed form per station from the bare solve's
+        # h_g / film T_aw, then re-solved; the second round absorbs Bartz's
+        # wall-temperature-dependent h_g (the liner face runs hotter).
+        s.nozzle_liner_target_shell_k = (s.bell_material.max_service_temp_k
+                                         / materials.THIN_MARGIN_THRESHOLD)
+        k_liner = s.liner.thermal_conductivity_w_mk
+        for _ in range(2):
+            th = s.thermal
+            r_req = max(cooling.required_liner_resistance_m2k_w(
+                float(th["h_g_w_m2k"][i]), float(th["t_aw_film_k"][i]), float(emis[i]),
+                s.nozzle_liner_target_shell_k) for i in np.flatnonzero(liner_mask))
+            s.nozzle_liner_required_thickness_m = r_req * k_liner
+            s.nozzle_liner_thickness_m_eff = min(s.nozzle_liner_required_thickness_m,
+                                                 s.liner.max_practical_thickness_m)
+            liner_resistance = np.where(liner_mask, s.nozzle_liner_thickness_m_eff / k_liner, 0.0)
+            s.thermal = _solve(s.coolant_p_pa, liner_resistance)
 
     # Jacket dP the pump chain sees: the real-contour march ("channels") or the
     # legacy flat constant ("flat" now only means a flat DP - the thermal side
@@ -327,6 +351,22 @@ def nozzle_extension_thermal(self, s):
 
     # Liner's OWN survival (warn-only, separate from the shell's margin check
     # above): the gas/liner-facing face runs HOTTER than the protected shell.
+    if s.liner is not None:
+        _req, _app = s.nozzle_liner_required_thickness_m, s.nozzle_liner_thickness_m_eff
+        _check(s.checklist, s.warnings, "materials", "Nozzle-extension liner thickness",
+               _req <= s.liner.max_practical_thickness_m,
+               f"[nozzle liner] holding {s.bell_material.display_name} at "
+               f"{s.nozzle_liner_target_shell_k:.0f} K would need {_req * 1e3:.1f} mm of "
+               f"{s.liner.display_name} - far past a buildable "
+               f"~{s.liner.max_practical_thickness_m * 1e3:.1f} mm coat (thick sprayed "
+               f"ceramic spalls), so {_app * 1e3:.2f} mm is applied and the shell still runs "
+               f"hot. A radiation-cooled shell can only reject emissivity*sigma*T^4; lower "
+               f"the gas-side load instead - nozzle film cooling, or move the material "
+               f"transition to a higher area ratio.",
+               (f"OK - {_app * 1e3:.2f} mm computed (holds {s.bell_material.display_name} "
+                f"at {s.nozzle_liner_target_shell_k:.0f} K)" if _req > 0 else
+                f"OK - none needed ({s.bell_material.display_name} already under "
+                f"{s.nozzle_liner_target_shell_k:.0f} K bare)"))
     if s.nozzle_liner_gas_face_temp_k is not None:
         _liner_ok = s.nozzle_liner_gas_face_temp_k <= s.liner.max_service_temp_k
         _check(s.checklist, s.warnings, "materials", "Nozzle-extension liner thermal margin",

@@ -260,7 +260,9 @@ touching any cooling number.** What changed structurally:
    slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24;
    F-1 back pressure / GG share / duct bore [F1-Man] + J-2 gas-film slot area, 2026-09-25) and
    "ALL ZIRCONIA-LINER CHECKS OK" (nozzle-extension radiative thermal-barrier liner - real
-   physics, lowers the STRUCTURAL shell's temperature vs. the raw gas-facing one; includes an
+   physics, lowers the STRUCTURAL shell's temperature vs. the raw gas-facing one; thickness is
+   COMPUTED (holds the shell at the bell material's thin-margin point, capped at a buildable
+   coat); includes an
    honestly-reported (not gated) Quentmeyer-CR185257 flux-cut comparison, 2026-09-25)
    (28 banners
    total - the old "15" here had drifted stale;
