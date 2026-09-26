@@ -388,7 +388,7 @@ class EngineDesignerApp:
                           self.ablative_target_burn_time_var, 0.0, 600.0, decimals=0)
         self._register_gate(
             self.ablative_burn_time_group,
-            lambda: self.chamber_cooling_method_var.get() == "ablative")
+            lambda: self._effective_chamber_cooling_method() == "ablative")
 
         cc2_row = self._add_dropdown(
             ccb, cc2_row, "Cooled-wall construction", "wall_construction_var",
@@ -530,7 +530,7 @@ class EngineDesignerApp:
                           self.nozzle_liner_thickness_var, 0.0, 3.0, decimals=2)
         self._register_gate(
             self.nozzle_liner_group,
-            lambda: self.nozzle_cooling_method_var.get() in ("radiative", "uncooled"))
+            lambda: self._effective_nozzle_cooling_method() in ("radiative", "uncooled"))
 
         # Nozzle-extension stiffening detail (2026-09-25): "rings" is today's
         # mandatory axisymmetric ring-bump behavior on a radiative extension;
@@ -549,7 +549,7 @@ class EngineDesignerApp:
             width=16)
         self._register_gate(
             self.nozzle_stiffening_group,
-            lambda: self.nozzle_cooling_method_var.get() in ("radiative", "uncooled"))
+            lambda: self._effective_nozzle_cooling_method() in ("radiative", "uncooled"))
 
         # (The 3D tube-drawing style - single pass / F-1 double pass / J-2 two
         # pass - now follows "Cooling jacket flow topology" automatically:
@@ -1709,6 +1709,29 @@ class EngineDesignerApp:
                         f"({mat.cooling_method}). " + hint)
             if hasattr(self, hint_var):
                 getattr(self, hint_var).set(hint)
+
+    def _effective_cooling_method(self, mat_var, meth_var):
+        """Resolve a section's EFFECTIVE cooling method for gate predicates: the
+        dropdown's own value if explicitly set, else the current material's
+        `cooling_method` default (what "auto" actually resolves to - see
+        `_filter_cooling_dropdowns`). Gates that compared the raw dropdown var
+        directly stayed hidden forever for the tool's normal "pick a material,
+        leave cooling on auto" usage pattern (2026-09-25 bugfix)."""
+        cur = getattr(self, meth_var).get()
+        if cur != "auto":
+            return cur
+        mat_var_widget = getattr(self, mat_var, None)  # may not exist yet during
+        if mat_var_widget is None:                     # __init__ (registered before
+            return "auto"                              # bell_material_var is built)
+        key = self.material_display_to_key.get(mat_var_widget.get())
+        mat = materials.MATERIALS.get(key)
+        return mat.cooling_method if mat is not None else "auto"
+
+    def _effective_chamber_cooling_method(self):
+        return self._effective_cooling_method("material_var", "chamber_cooling_method_var")
+
+    def _effective_nozzle_cooling_method(self):
+        return self._effective_cooling_method("bell_material_var", "nozzle_cooling_method_var")
 
     def _on_control_change(self, *_args):
         # Reads every input widget into self.design, then recomputes. Its exact
