@@ -589,6 +589,57 @@ for _m in MATERIALS.values():
     assert _m.roughness is None or 0.0 <= _m.roughness <= 1.0, _m.key
 
 
+@dataclass(frozen=True)
+class LinerMaterial:
+    """A thin insulating liner between the hot gas and a RADIATIVE-cooled
+    nozzle-extension's structural shell (EngineDesign.nozzle_liner_material_key/
+    nozzle_liner_thickness_m) - a small, separate catalog from Material (a
+    liner is not itself a cooling method or a structural shell material,
+    just a conduction resistance the shell's radiative-equilibrium solve now
+    accounts for, see cooling/radiation.py). A named, dropdown-driven catalog
+    for consistency with every other material choice in this tool, rather
+    than two raw float fields."""
+    key: str
+    display_name: str
+    thermal_conductivity_w_mk: float  # Tier 2, standard handbook figure
+    density_kg_m3: float               # Tier 2, standard handbook figure - liner mass
+    max_service_temp_k: float          # the LINER's own hot-face limit - a separate,
+                                        # warn-only check from the structural shell's own
+                                        # thermal margin (which now reads the liner-
+                                        # protected, lower shell temperature)
+    relative_cost_factor: float
+    notes: str
+
+
+LINER_MATERIALS = {
+    "zirconia": LinerMaterial(
+        key="zirconia",
+        display_name="Zirconia (YSZ) Thermal-Barrier Liner",
+        thermal_conductivity_w_mk=2.0,   # standard bulk yttria-stabilized-zirconia
+                                          # figure (Tier 2) - NOT independently re-
+                                          # derived for this application; validated
+                                          # against a real regen-liner TBC result
+                                          # instead (see notes and ASSUMPTIONS.md)
+        density_kg_m3=5700.0,            # Tier 2, standard YSZ figure
+        max_service_temp_k=1500.0,       # Tier 3, reasoned TBC-service figure - no
+                                          # citation found for this specific liner
+                                          # application; flagged honestly
+        relative_cost_factor=1.3,
+        notes="Yttria-stabilized zirconia thermal-barrier liner between the hot gas "
+              "and a radiative-cooled nozzle-extension's structural shell (e.g. "
+              "titanium_6al4v, whose real Bell XLR81/Agena hardware used exactly this "
+              "construction). Real regen-chamber analog: [Quentmeyer-CR185257 Sec."
+              "Thermal Barrier Coatings p.3] - a ZrO2 (0.076mm) + NiCr bond coat on an "
+              "electroformed-Cu chamber liner cut heat flux ~50% vs. an uncoated liner "
+              "at the same geometry/conditions. That is a REGEN-liner TBC result, a "
+              "different cooling context from this radiative-shell application, so it "
+              "is used here as a VALIDATION spot-check anchor on this liner's "
+              "conductivity (physics/validate.py), not as the tuned input itself - see "
+              "ASSUMPTIONS.md.",
+    ),
+}
+
+
 def available_materials():
     return list(MATERIALS.keys())
 

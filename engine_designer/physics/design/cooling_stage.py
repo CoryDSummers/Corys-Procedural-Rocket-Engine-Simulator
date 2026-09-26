@@ -109,6 +109,22 @@ def thermal(self, s):
     emis = np.where(nozzle, s.bell_material.emissivity, s.chamber_material.emissivity)
     t_surf = np.where(nozzle, s.bell_material.max_service_temp_k,
                       s.chamber_material.max_service_temp_k)
+
+    # Zirconia-class radiative-nozzle-extension liner (real physics, 2026-09-25):
+    # a conduction resistance between the hot gas and the bell MATERIAL, lowering
+    # the temperature the structural shell actually sees (cooling/radiation.py's
+    # liner_resistance_m2k_w) - see cooling.solve_thermal's t_shell_k output,
+    # read by nozzle_extension_thermal()/margins_stage.py instead of the raw
+    # gas-facing t_wg_k wherever a liner is active. "" / 0.0 thickness = no
+    # liner, bit-identical (zero resistance everywhere).
+    s.liner = (materials.LINER_MATERIALS.get(self.nozzle_liner_material_key)
+              if self.nozzle_liner_material_key and self.nozzle_liner_thickness_m > 0.0
+              else None)
+    liner_active = s.liner is not None
+    s.nozzle_liner_thickness_m_eff = self.nozzle_liner_thickness_m if liner_active else 0.0
+    liner_resistance = (np.where(nozzle & (treat == cooling.RADIATIVE),
+                                 s.nozzle_liner_thickness_m_eff / s.liner.thermal_conductivity_w_mk, 0.0)
+                        if liner_active else np.zeros(len(s.rs)))
     s.coolant_inlet_k = COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0)
     s.coolant_limit_k = cooling.coolant_limit_k(self.propellant_pair)
     regen_chamber = s.chamber_cooling in ("regenerative", "dump")
@@ -148,7 +164,8 @@ def thermal(self, s):
             march_kw=march_kw, dump_fraction_fixed=self.dump_coolant_fraction,
             mdot_fuel_kgs=s.mdot_fuel_kgs, coolant_limit_k=s.coolant_limit_k,
             calibration=cooling.BARTZ_ABS_FLUX_CALIBRATION.get(self.propellant_pair, 1.0),
-            deposit_factor=cooling.GAS_SIDE_DEPOSIT_FACTOR.get(self.propellant_pair, 1.0))
+            deposit_factor=cooling.GAS_SIDE_DEPOSIT_FACTOR.get(self.propellant_pair, 1.0),
+            liner_resistance_m2k_w=liner_resistance)
         march = s.thermal["march"]
         jdp = (march["jacket_dp_pa"] if (march is not None and self.regen_channel_model == "channels")
                else JACKET_DP_PA)
@@ -280,24 +297,45 @@ def nozzle_extension_thermal(self, s):
     ext = np.flatnonzero((s.station_section == "nozzle") & ~th["ablative_mask"])
     s.bell_wall_temp_k = None
     s.bell_wall_temp_eps = None
+    s.nozzle_liner_gas_face_temp_k = None
     if ext.size:
-        worst = int(ext[np.argmax(th["t_wg_k"][ext])])
-        s.bell_wall_temp_k = float(th["t_wg_k"][worst])
+        # Ranked by t_shell_k - the STRUCTURAL shell's own temperature, what the
+        # bell material's margin check actually needs (bit-identical to t_wg_k
+        # wherever no liner is active, since t_shell_k == t_wg_k there).
+        worst = int(ext[np.argmax(th["t_shell_k"][ext])])
+        s.bell_wall_temp_k = float(th["t_shell_k"][worst])
         s.bell_wall_temp_eps = float(s.eps_st[worst])
+        if s.liner is not None and th["treatment"][worst] == cooling.RADIATIVE:
+            s.nozzle_liner_gas_face_temp_k = float(th["t_wg_k"][worst])
     s.bell_material_margin = materials.thermal_margin(
         self.bell_material_key, s.t_local, wall_temp_k=s.bell_wall_temp_k)
     if s.bell_wall_temp_k is not None:
         _kind = {cooling.REGEN: "regen-cooled", cooling.DUMP: "dump-cooled",
                  cooling.RADIATIVE: "radiation equilibrium"}.get(
             th["treatment"][worst], th["treatment"][worst])
+        _liner_note = (f", {s.liner.display_name} liner (gas face "
+                       f"~{s.nozzle_liner_gas_face_temp_k:.0f} K)"
+                       if s.nozzle_liner_gas_face_temp_k is not None else "")
         _bell_basis = (f"hottest extension station eps {s.bell_wall_temp_eps:.1f}, {_kind} "
-                       f"~{s.bell_wall_temp_k:.0f} K")
+                       f"~{s.bell_wall_temp_k:.0f} K{_liner_note}")
     else:
         _bell_basis = f"ablative, local gas T {s.t_local:.0f} K"
     _check(s.checklist, s.warnings, "materials", "Nozzle-extension material thermal margin",
            not s.bell_material_margin["warning"],
            f"[nozzle extension] {s.bell_material_margin['warning']} ({_bell_basis})",
            f"OK - {s.bell_material_margin['margin_ratio']:.2f}x margin ({_bell_basis})")
+
+    # Liner's OWN survival (warn-only, separate from the shell's margin check
+    # above): the gas/liner-facing face runs HOTTER than the protected shell.
+    if s.nozzle_liner_gas_face_temp_k is not None:
+        _liner_ok = s.nozzle_liner_gas_face_temp_k <= s.liner.max_service_temp_k
+        _check(s.checklist, s.warnings, "materials", "Nozzle-extension liner thermal margin",
+               _liner_ok,
+               f"[nozzle liner] {s.liner.display_name}: gas-facing temperature "
+               f"{s.nozzle_liner_gas_face_temp_k:.0f} K EXCEEDS its "
+               f"{s.liner.max_service_temp_k:.0f} K max service temp.",
+               f"OK - {s.nozzle_liner_gas_face_temp_k:.0f} K vs "
+               f"{s.liner.max_service_temp_k:.0f} K max")
 
 
 def coolant_capacity_and_isp(self, s):

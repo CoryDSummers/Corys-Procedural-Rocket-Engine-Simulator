@@ -97,6 +97,7 @@ from .cooling_wall_film import (  # noqa: F401
     WIESENECK_COPPER_T_WG_MAX_K,
     run_coupled_wall_temperature_check,
     run_film_overlay_check,
+    run_zirconia_liner_check,
 )
 from .turbine_exhaust_checks import run_turbine_exhaust_check  # noqa: F401
 
@@ -129,4 +130,5 @@ ALL_CHECKS = (
     run_film_overlay_check,
     run_pump_pressure_chain_check,
     run_turbine_exhaust_check,
+    run_zirconia_liner_check,
 )

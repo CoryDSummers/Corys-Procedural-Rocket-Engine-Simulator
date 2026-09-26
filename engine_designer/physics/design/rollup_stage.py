@@ -96,11 +96,18 @@ def burn_time_and_mass(self, s):
            f"the pattern is over-crowded; use larger orifices or a wider chamber.",
            f"OK - ~{_elem_density:,.0f} elements/m^2")
 
+    # Zirconia-class radiative-nozzle-extension liner mass (0.0 when inactive -
+    # see cooling_stage.thermal's s.liner/s.nozzle_liner_thickness_m_eff).
+    s.nozzle_liner_mass_kg = (
+        mass_model.constant_thickness_shell_mass_kg(
+            s.ext_xs, s.ext_rs, s.nozzle_liner_thickness_m_eff, s.liner.density_kg_m3)
+        if s.liner is not None and s.has_extension else 0.0)
+
     s.computed_dry_mass_kg = (s.chamber_wall_mass_kg + s.bell_wall_mass_kg + s.turbopump_mass_kg
                             + battery_motor_mass_kg + s.stability_aid_mass_kg
                             + s.injector_plate_mass_kg + s.jacket_structure_mass_kg
                             + s.manifold_mass_kg + s.jacket_manifold_mass_kg + s.plumbing_mass_kg
-                            + s.hatband_mass_kg + s.te_hardware_mass_kg)
+                            + s.hatband_mass_kg + s.te_hardware_mass_kg + s.nozzle_liner_mass_kg)
 
     _check(s.checklist, s.warnings, "manifold", "Manifold structural mass fraction",
            s.manifold_mass_kg <= manifold.MANIFOLD_MASS_DRY_FRACTION_WARN
@@ -237,6 +244,7 @@ def checks_and_result(self, s):
         "injector_stiffness_ok_at_floor": s.inj_ok,
         "material_margin": s.margin,
         "bell_material_margin": s.bell_material_margin,
+        "nozzle_liner_gas_face_temp_k": s.nozzle_liner_gas_face_temp_k,
         "chamber_heat_flux_factor": s.chamber_heat_flux_factor,
         "t_local_at_transition_k": s.t_local,
         "eps_for_transition": s.eps_for_transition,
@@ -299,6 +307,7 @@ def checks_and_result(self, s):
         "rated_burn_time_s": s.rated_burn_time_s,
         "ablative_liner_thickness_m": s.ablative_liner_thickness_m,
         "ablative_liner_mass_kg": s.ablative_liner_mass_kg,
+        "nozzle_liner_mass_kg": s.nozzle_liner_mass_kg,
         "warnings": s.warnings,
         "checklist": s.checklist,
     }

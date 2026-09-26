@@ -40,6 +40,24 @@ class EngineDesign:
     # film_cooling_fraction / nozzle_film_* fields), not a method.
     chamber_cooling_method: str = "auto"
     nozzle_cooling_method: str = "auto"
+    nozzle_liner_material_key: str = ""           # "" = no liner (bit-identical default).
+                                                   # materials.LINER_MATERIALS key otherwise
+                                                   # (currently only "zirconia") - a thin
+                                                   # insulating liner between the hot gas and a
+                                                   # radiative-cooled nozzle extension's
+                                                   # STRUCTURAL shell (cooling/radiation.py's
+                                                   # liner_resistance_m2k_w), real physics: it
+                                                   # measurably lowers the temperature the shell
+                                                   # material sees (cooling_stage.
+                                                   # nozzle_extension_thermal's t_shell_k),
+                                                   # which is what makes a low-max-service-temp
+                                                   # material like titanium_6al4v survivable at
+                                                   # real nozzle-extension conditions. Only
+                                                   # active where nozzle cooling resolves to
+                                                   # radiative/uncooled AND nozzle_liner_
+                                                   # thickness_m > 0 (both required).
+    nozzle_liner_thickness_m: float = 0.0         # liner thickness (m); 0.0 = no liner
+                                                   # regardless of nozzle_liner_material_key.
     regen_nozzle_end_eps: float = 0.0             # >0 (and nozzle_cooling in ("regenerative",
                                                    # "dump")): push active cooling (flux
                                                    # integration, coolant march, expander cooled-
@@ -403,7 +421,11 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 11  # 11 (2026-09-25): ablative_target_burn_time_s added - ablative
+    SCHEMA_VERSION = 12  # 12 (2026-09-25): nozzle_liner_material_key/nozzle_liner_thickness_m
+                         # added (a real radiative-nozzle-extension thermal-barrier liner,
+                         # cooling/radiation.py) - no key migration, a v11 file's new fields
+                         # take their default ("", 0.0 - no liner, bit-identical behavior).
+                         # 11 (2026-09-25): ablative_target_burn_time_s added - ablative
                          # rated burn time is now a design INPUT (see the field's own
                          # comment) rather than purely derived; no key migration, a v10
                          # file's new field takes its default (200s, today's flat

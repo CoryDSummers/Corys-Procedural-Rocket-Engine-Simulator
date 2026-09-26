@@ -24,8 +24,10 @@ def wall_structure(self, s):
     # for pump-fed cycles). A LOWER BOUND on real dry mass - no injector/valves/
     # actuators/mounting structure. See physics/mass_model.py's module docstring.
     # (bell_material was looked up above for the nozzle-extension thermal check.)
-    s.body_xs, s.body_rs, s.ext_xs, ext_rs, s.has_extension = geometry.split_profile_by_area_ratio(
+    s.body_xs, s.body_rs, s.ext_xs, s.ext_rs, s.has_extension = geometry.split_profile_by_area_ratio(
         s.xs, s.rs, s.geo["throat_dia_m"], s.eps_for_transition)
+    ext_rs = s.ext_rs   # local alias, unchanged below; also read by rollup_stage
+                        # for the zirconia-liner mass (s.ext_xs/s.ext_rs)
     # For chamber_cooling == "ablative", this hoop-stress shell is the STRUCTURAL
     # OVERWRAP behind the sacrificial char liner, not the liner itself - rollup_stage.
     # burn_time_and_mass adds the liner's own mass (mass_model.ablative_liner_thickness_m/

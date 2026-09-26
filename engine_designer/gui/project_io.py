@@ -48,6 +48,7 @@ if __name__ == "__main__":
                            chamber_wall_fillet_r_over_rt=1.2,
                            chamber_cooling_method="uncooled", nozzle_cooling_method="radiative",
                            ablative_target_burn_time_s=350.0,
+                           nozzle_liner_material_key="zirconia", nozzle_liner_thickness_m=0.0008,
                            film_cooling_fraction=0.06, chamber_film_inject_area_ratio=1.8,
                            nozzle_film_fraction=0.03, nozzle_film_inject_eps=12.0,
                            turbine_exhaust_mode="aspirator", turbine_exhaust_nozzle_eps=3.0,

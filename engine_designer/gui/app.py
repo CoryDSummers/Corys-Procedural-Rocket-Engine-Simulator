@@ -507,6 +507,31 @@ class EngineDesignerApp:
             "Regen/dump nozzle end [eps] (0 = stop at cooling transition)",
             self.regen_nozzle_end_var, 0.0, 150.0, decimals=1)
 
+        # Real physics (2026-09-25): a thin insulating liner (e.g. the real
+        # XLR81/Agena zirconia liner ahead of a titanium shell) that lowers the
+        # STRUCTURAL shell's own temperature below the raw gas-facing one -
+        # cooling/radiation.py's liner_resistance_m2k_w. Only meaningful on a
+        # radiative/uncooled nozzle extension.
+        self.nozzle_liner_group = ttk.Frame(ncb)
+        self.nozzle_liner_group.grid(row=nc_row, column=0, columnspan=2, sticky="ew")
+        nc_row += 1
+        self.liner_display_to_key = {"(none)": "",
+                                     **{lm.display_name: lm.key
+                                        for lm in materials.LINER_MATERIALS.values()}}
+        _liner_row = self._add_dropdown(
+            self.nozzle_liner_group, 0, "Nozzle liner material", "nozzle_liner_material_var",
+            list(self.liner_display_to_key.keys()),
+            next((disp for disp, k in self.liner_display_to_key.items()
+                  if k == self.design.nozzle_liner_material_key), "(none)"),
+            width=28)
+        self.nozzle_liner_thickness_var = tk.DoubleVar(
+            value=self.design.nozzle_liner_thickness_m * 1000.0)
+        self._add_slider(self.nozzle_liner_group, _liner_row, "Liner thickness [mm]",
+                          self.nozzle_liner_thickness_var, 0.0, 3.0, decimals=2)
+        self._register_gate(
+            self.nozzle_liner_group,
+            lambda: self.nozzle_cooling_method_var.get() in ("radiative", "uncooled"))
+
         # (The 3D tube-drawing style - single pass / F-1 double pass / J-2 two
         # pass - now follows "Cooling jacket flow topology" automatically:
         # design.REGEN_CIRCUIT_STYLE_BY_TOPOLOGY. No separate dropdown.)
@@ -1745,6 +1770,9 @@ class EngineDesignerApp:
             self.design.ablative_target_burn_time_s = self.ablative_target_burn_time_var.get()
             self.design.nozzle_cooling_method = self.nozzle_cooling_method_var.get()
             self.design.regen_nozzle_end_eps = self.regen_nozzle_end_var.get()
+            self.design.nozzle_liner_material_key = self.liner_display_to_key.get(
+                self.nozzle_liner_material_var.get(), self.design.nozzle_liner_material_key)
+            self.design.nozzle_liner_thickness_m = self.nozzle_liner_thickness_var.get() / 1000.0
             self.design.dump_coolant_fraction = self.dump_coolant_fraction_var.get() / 100.0
             self.design.wall_construction = self.wall_construction_var.get()
             self.design.cooling_flow_topology = self.cooling_flow_topology_var.get()
@@ -2554,6 +2582,10 @@ class EngineDesignerApp:
         self.ablative_target_burn_time_var.set(d.ablative_target_burn_time_s)
         self.nozzle_cooling_method_var.set(d.nozzle_cooling_method)
         self.regen_nozzle_end_var.set(d.regen_nozzle_end_eps)
+        self.nozzle_liner_material_var.set(next(
+            (disp for disp, k in self.liner_display_to_key.items()
+             if k == d.nozzle_liner_material_key), "(none)"))
+        self.nozzle_liner_thickness_var.set(d.nozzle_liner_thickness_m * 1000.0)
         self.dump_coolant_fraction_var.set(d.dump_coolant_fraction * 100.0)
         self.wall_construction_var.set(d.wall_construction)
         self.cooling_flow_topology_var.set(d.cooling_flow_topology)

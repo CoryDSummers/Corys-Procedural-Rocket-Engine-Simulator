@@ -5,7 +5,8 @@ single-file cooling.py - see cooling/__init__.py for the package overview)."""
 
 from .gas_side import STEFAN_BOLTZMANN_W_M2K4
 
-def radiative_wall_temperature(h_gc_w_m2k, t_aw_k, emissivity, tol=0.5, max_iter=60):
+def radiative_wall_temperature(h_gc_w_m2k, t_aw_k, emissivity, liner_resistance_m2k_w=0.0,
+                               tol=0.5, max_iter=60):
     """
     Equilibrium wall temperature of a RADIATION-cooled surface (no active
     coolant loop): the temperature that satisfies both the gas-side convective
@@ -15,22 +16,44 @@ def radiative_wall_temperature(h_gc_w_m2k, t_aw_k, emissivity, tol=0.5, max_iter
     niobium / C-103 / rhenium nozzle extension actually survives where the
     cooling transition is placed - materials.py otherwise just compares the
     local GAS temperature to the material limit.
+
+    liner_resistance_m2k_w (0.0 = today's bare-material behavior, bit-
+    identical): a series conduction resistance (thickness / conductivity)
+    between the actual gas/liner-facing surface and the STRUCTURAL SHELL that
+    re-radiates. With a liner present, the equilibrium is solved on the
+    SHELL's own temperature T_shell (h_gc*(T_aw - T_liner_face) = emissivity*
+    sigma_SB*T_shell^4, where T_liner_face = T_shell + q*liner_resistance_m2k_w
+    is hotter than the shell by the conduction drop across the liner), but
+    this function still RETURNS T_liner_face - the gas-facing temperature -
+    to preserve its existing contract for every caller that uses it to
+    compute heat flux (q = h_gc*(T_aw - T_wg) stays correct at every station,
+    lined or not). A caller that needs the STRUCTURAL shell's own temperature
+    (the bell material's thermal-margin check) derives it separately as
+    T_shell = T_liner_face - q*liner_resistance_m2k_w, exact at the converged
+    fixed point (see cooling/thermal_solve.py's t_shell_k output) - no second
+    bisection needed.
     """
     if h_gc_w_m2k <= 0 or emissivity <= 0:
         return t_aw_k
     lo, hi = 0.0, t_aw_k
 
-    def imbalance(twg):
-        return h_gc_w_m2k * (t_aw_k - twg) - emissivity * STEFAN_BOLTZMANN_W_M2K4 * twg ** 4
+    def imbalance(t_shell):
+        q = emissivity * STEFAN_BOLTZMANN_W_M2K4 * t_shell ** 4
+        t_liner_face = t_shell + q * liner_resistance_m2k_w
+        return h_gc_w_m2k * (t_aw_k - t_liner_face) - q
 
     for _ in range(max_iter):
         mid = 0.5 * (lo + hi)
         f = imbalance(mid)
         if abs(f) < tol or (hi - lo) < tol:
-            return mid
-        # imbalance is monotonically decreasing in twg
+            t_shell = mid
+            break
+        # imbalance is monotonically decreasing in t_shell
         if f > 0:
             lo = mid
         else:
             hi = mid
-    return 0.5 * (lo + hi)
+    else:
+        t_shell = 0.5 * (lo + hi)
+    q = emissivity * STEFAN_BOLTZMANN_W_M2K4 * t_shell ** 4
+    return t_shell + q * liner_resistance_m2k_w
