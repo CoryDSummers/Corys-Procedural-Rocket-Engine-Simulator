@@ -8,10 +8,27 @@ until Cory has tested it.
 
 ## Status
 - [x] C0: this document + draft PR
-- [ ] C1: literature (SP-8052 / SP-8110 / SP-8125 / SP-8121 / SP-8101 downloaded + distilled + integrated; H-1 pump discharge pressures from [H1-Man])
-- [ ] C2: saturation-property table (`saturation_properties.json` + `thermo_tables.saturation`)
-- [ ] C3: F-1 feed-system + pump/turbine calibration (corpus-wide shift + report)
-- [ ] C4: docs (ASSUMPTIONS, OPEN_QUESTIONS, CLAUDE.md, README, roadmap tick)
+- [x] C1: literature (SP-8052 / SP-8110 / SP-8125 / SP-8121 / SP-8101 downloaded + distilled + integrated; H-1 pump discharge pressures from [H1-Man Fig 1-44]) (feee118)
+- [x] C2: saturation-property table (`saturation_properties.json` + `thermo_tables.saturation`) (b735058)
+- [x] C3: F-1 feed-system + pump/turbine calibration (corpus-wide shift + report) (9d0cb17)
+- [x] C4: docs (ASSUMPTIONS, OPEN_QUESTIONS, CLAUDE.md, README, roadmap tick). ROUND COMPLETE.
+
+**Where C3 deviated from the plan below, and why:**
+- **No injector ox/fuel dP split.** Only the F-1 documents one. The per-leg feed-loss fit
+  already absorbs the ox/fuel asymmetry, and both engines land within 10 % without it.
+- **Staging rule.** It is keyed on the ACHIEVABLE U/C0 [SP-8110 §3.1.4], not on "high PR →
+  velocity-compounded". [H1-Man Fig 1-44] showed the H-1 is pressure-compounded at PR 17.7,
+  because it is geared.
+- **Two extra constants moved, both cited:**
+  - LOX/RP-1 GG gas cp 2100 → 2735 [SP-8110 Table III]. The correct staging exposed it: the
+    old η 0.76 had been masking a 23 % low cp.
+  - `EXHAUST_THRUST_EFFICIENCY` re-solved on its F-1 pin (0.96 → 0.868).
+- **No corpus input change.** The new check builds the F-1 at its real injector-end Pc
+  instead.
+- **No pump-η curve re-fit.** Only the anchor data were corrected; the real-Ns residuals are
+  within about ±0.04.
+- **Feed loss is scoped to open cycles.** Staged / expander / electric / pressure-fed keep the
+  flat 0.5 MPa, because their chains are pinned separately.
 
 ## Context
 Findings from the read-only investigation:

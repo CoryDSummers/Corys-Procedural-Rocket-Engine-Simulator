@@ -21,7 +21,7 @@ same design file.
 
 ## Status
 - [x] Commit 0: this document
-- [ ] Round 0: groundwork (distill new PDFs, acquire SP-8052/8110/8125/8121/8101, vapor-pressure table columns, F-1 pump-power fix)
+- [x] Round 0: groundwork (distill new PDFs, acquire SP-8052/8110/8125/8121/8101, vapor-pressure table columns, F-1 pump-power fix) - branch `turbopump/round-0`, PR #18, `plans/2026-09-26_turbopump_round0.md`
 - [ ] Round 1: suction side (inducer.py, computed NPSHr + thermodynamic suppression, tank/line/boost pump)
 - [ ] E1: pump placement/orientation/mounting + clash check (can run alongside Round 1)
 - [ ] Round 2: pump meanline hydraulics + pump heating into the thermal solve
