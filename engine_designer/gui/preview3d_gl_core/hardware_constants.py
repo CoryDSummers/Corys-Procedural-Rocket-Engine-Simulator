@@ -31,18 +31,19 @@ FLANGE_HEIGHT_THROAT_DIA_MULT = 0.04       # flange collar height, x throat diam
 RING_SPACING_THROAT_DIA_MULT = 2.5   # nozzle stiffening-ring spacing, x throat diameter
 RING_HALF_WIDTH_FACTOR = 1.5     # stiffening-ring half-width, x local wall thickness
 RING_HEIGHT_FACTOR = 0.3         # stiffening-ring height, x local wall thickness
-ORTHOGRID_RIB_SPACING_THROAT_DIA_MULT = 1.2   # orthogrid rib pitch (both circumferential
-                                  # and axial), x throat diameter - cosmetic/rendering only,
-                                  # same tier as RING_SPACING_THROAT_DIA_MULT above. The
-                                  # MASS implication of an orthogrid pattern lives solely in
-                                  # mass_model.ORTHOGRID_MASS_FRACTION, kept deliberately
-                                  # separate from this purely-visual rib density.
-ORTHOGRID_POCKET_DEPTH_FRACTION = 0.5   # orthogrid pocket recess depth, x local wall
-                                  # thickness (clamped to 0.6x by tube_bundle.
-                                  # orthogrid_modulated_grid regardless) - cosmetic/
-                                  # rendering only, no mass/physics implication.
-ORTHOGRID_RIB_FRACTION = 0.2     # orthogrid rib width as a fraction of the pitch, in
-                                  # EACH direction (theta and axial) - cosmetic only.
+# Orthogrid (waffle) nozzle-extension ribs - ALL cosmetic/rendering only, sized off
+# throat diameter for the same reason as the flange above (a radiative skirt's hoop
+# wall is sub-mm, so a thickness-relative rib is invisible). Rib height is a visible
+# exaggeration, not a structural rib depth; the MASS implication lives solely in
+# mass_model.ORTHOGRID_MASS_FRACTION.
+ORTHOGRID_RIB_SPACING_THROAT_DIA_MULT = 0.5   # rib pitch (both directions), x throat dia
+ORTHOGRID_RIB_HEIGHT_THROAT_DIA_MULT = 0.04   # rib height proud of the skin, x throat dia
+ORTHOGRID_RIB_FRACTION = 0.075   # rib HALF-width as a fraction of the pitch, each
+                                  # direction (~15% of the pitch is rib - thin ribs,
+                                  # wide pockets, like the Bell 8247 extension)
+ORTHOGRID_SAMPLES_PER_PITCH = 16  # mesh samples per rib pitch, each direction - the
+                                  # extension piece is resampled this densely so the
+                                  # thin ribs actually land on grid vertices
 TUBE_BRAZE_SEAM_FRAC = 0.03   # tube_wall: each drawn tube's circumferential width is
                                # (1 - this) x the local centre-to-centre chord, so
                                # neighbouring tubes always touch across a thin braze seam

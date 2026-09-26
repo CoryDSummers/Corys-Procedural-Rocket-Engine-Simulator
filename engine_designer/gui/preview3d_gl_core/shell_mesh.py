@@ -112,7 +112,7 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
     (double_pass_tube_pieces' down_start_idx). None = down tubes throughout.
 
     `orthogrid_spec`, if given (a dict of n_ribs_theta/n_ribs_axial/
-    amplitude_m/rib_fraction), draws a 2-D waffle stiffening pattern
+    rib_height_m/rib_fraction), draws a 2-D waffle stiffening pattern
     (tube_bundle.orthogrid_modulated_grid) on the outer wall INSTEAD of the
     `construction`/channel-modulation branch below - orthogonal to
     `wall_construction` (a regen-jacket cooling concept), since this is a
@@ -137,11 +137,14 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
 
     extra_pieces = []
     has_channel_data = channel_height_profile_m is not None and n_channels_physical > 0
+    # orthogrid ribs stand proud of the skin, and a rib ring sits at each end -
+    # the end caps must reach the rib tops or a sliver gap shows there
+    cap_rib_extra_m = float(orthogrid_spec["rib_height_m"]) if orthogrid_spec else 0.0
     if orthogrid_spec:
         X, Y, Z = orthogrid_modulated_grid(
             outer_xs, outer_rs, n_theta, orthogrid_spec["n_ribs_theta"],
-            orthogrid_spec["n_ribs_axial"], orthogrid_spec["amplitude_m"],
-            orthogrid_spec["rib_fraction"], thickness_m)
+            orthogrid_spec["n_ribs_axial"], orthogrid_spec["rib_height_m"],
+            orthogrid_spec["rib_fraction"])
         normals_flat = grid_vertex_normals(X, Y, Z).reshape(-1, 3)
         outer_pieces = [mesh_from_grid(X, Y, Z, base_color_rgb, normals=normals_flat,
                                         specular_strength=specular_strength, shininess=shininess)]
@@ -248,11 +251,13 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
 
     pieces = [inner, *outer_pieces, *extra_pieces]
     if cap_start:
-        pieces.append(end_cap_ring(float(xs_m[0]), float(rs_m[0]), float(outer_rs[0]),
+        pieces.append(end_cap_ring(float(xs_m[0]), float(rs_m[0]),
+                                    float(outer_rs[0]) + cap_rib_extra_m,
                                     n_theta, base_color_rgb, facing_sign=-1.0,
                                     specular_strength=specular_strength, shininess=shininess))
     if cap_end:
-        pieces.append(end_cap_ring(float(xs_m[-1]), float(rs_m[-1]), float(outer_rs[-1]),
+        pieces.append(end_cap_ring(float(xs_m[-1]), float(rs_m[-1]),
+                                    float(outer_rs[-1]) + cap_rib_extra_m,
                                     n_theta, base_color_rgb, facing_sign=1.0,
                                     specular_strength=specular_strength, shininess=shininess))
     return ShellMesh(pieces=pieces, outer_xs=outer_xs, outer_rs=outer_rs)
@@ -319,12 +324,23 @@ def self_test():
         xs_shell, rs_shell, thick, n_theta, (0.5, 0.5, 0.5),
         construction="milled_channel", channel_height_profile_m=ch_height,
         n_channels_physical=224, land_fraction=0.35, cap_start=True, cap_end=True,
-        orthogrid_spec=dict(n_ribs_theta=6, n_ribs_axial=4, amplitude_m=0.003, rib_fraction=0.2))
+        orthogrid_spec=dict(n_ribs_theta=6, n_ribs_axial=4, rib_height_m=0.003, rib_fraction=0.2))
     assert len(shell_orthogrid.pieces) == 4   # inner, outer (orthogrid), 2 caps - no channel pieces
     for piece in shell_orthogrid.pieces:
         assert not np.any(np.isnan(piece.vertices))
         assert not np.any(np.isnan(piece.normals))
     assert shell_orthogrid.pieces[1].meta == {"orthogrid": True, "n_ribs_theta": 6, "n_ribs_axial": 4}
+    # ribs stand proud of the smooth envelope by exactly the rib height, and the
+    # end caps reach the rib tops (a rib ring sits at each end)
+    _v = shell_orthogrid.pieces[1].vertices          # (n_theta, n_stations) grid, C-order
+    _dr = (np.hypot(_v[:, 1], _v[:, 2]).reshape(n_theta, -1)
+           - shell_orthogrid.outer_rs[None, :])
+    _tol = 1e-6                                      # vertices are float32
+    assert abs(float(np.max(_dr)) - 0.003) < _tol and float(np.min(_dr)) > -_tol
+    for _cap, _end_r in zip(shell_orthogrid.pieces[2:], (shell_orthogrid.outer_rs[0],
+                                                         shell_orthogrid.outer_rs[-1])):
+        _cr = np.hypot(_cap.vertices[:, 1], _cap.vertices[:, 2])
+        assert abs(float(np.max(_cr)) - (float(_end_r) + 0.003)) < _tol
     shell_plain = build_shell_mesh(
         xs_shell, rs_shell, thick, n_theta, (0.5, 0.5, 0.5),
         construction="milled_channel", channel_height_profile_m=ch_height,

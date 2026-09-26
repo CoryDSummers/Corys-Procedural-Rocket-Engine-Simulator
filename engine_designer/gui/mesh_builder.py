@@ -352,14 +352,11 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             skirt_length = float(ext_xs[-1] - ext_xs[0])
             mean_r = float(np.mean(ext_rs))
             rib_spacing = preview3d_gl_core.ORTHOGRID_RIB_SPACING_THROAT_DIA_MULT * throat_dia_m
-            n_ribs_axial = max(2, round(skirt_length / rib_spacing)) if rib_spacing > 0 else 2
-            n_ribs_theta = (max(4, round(2.0 * np.pi * mean_r / rib_spacing))
-                            if rib_spacing > 0 else 8)
-            t_rep = (float(np.median(ext_thickness_eff)) if len(ext_thickness_eff)
-                     else joint_thickness)
+            n_ribs_axial = max(2, round(skirt_length / rib_spacing))
+            n_ribs_theta = max(4, round(2.0 * np.pi * mean_r / rib_spacing))
             ext_orthogrid_spec = dict(
                 n_ribs_theta=n_ribs_theta, n_ribs_axial=n_ribs_axial,
-                amplitude_m=preview3d_gl_core.ORTHOGRID_POCKET_DEPTH_FRACTION * t_rep,
+                rib_height_m=preview3d_gl_core.ORTHOGRID_RIB_HEIGHT_THROAT_DIA_MULT * throat_dia_m,
                 rib_fraction=preview3d_gl_core.ORTHOGRID_RIB_FRACTION)
         # stiffening_style == "smooth": both ext_bumps and ext_orthogrid_spec
         # stay empty/None - a newly-possible bare radiative extension.
@@ -418,15 +415,31 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             specular_strength=body_spec, shininess=body_shin)
         pieces.extend(_stamp_material(body_shell.pieces, chamber_mat, body_colors))
     if has_extension:
-        ext_colors = q_colors(ext_xs)
+        ext_n_theta = _N_THETA
+        ext_xs_p, ext_rs_p, ext_thk_p, ext_ch_p = ext_xs, ext_rs, ext_thickness_eff, ext_channel_heights
+        ext_rib_h = 0.0
+        if ext_orthogrid_spec:
+            # The extension's own contour can be as coarse as 2 stations, which
+            # puts every sample on an axial rib (no pockets at all), and 32
+            # theta samples can't resolve ~20 thin ribs - resample this one
+            # piece to a fixed number of samples per rib pitch, both ways.
+            spp = preview3d_gl_core.ORTHOGRID_SAMPLES_PER_PITCH
+            ext_xs_p = np.linspace(float(ext_xs[0]), float(ext_xs[-1]),
+                                   ext_orthogrid_spec["n_ribs_axial"] * spp + 1)
+            ext_rs_p = np.interp(ext_xs_p, ext_xs, ext_rs)
+            ext_thk_p = np.interp(ext_xs_p, ext_xs, ext_thickness_eff)
+            ext_ch_p = None
+            ext_n_theta = ext_orthogrid_spec["n_ribs_theta"] * spp + 1
+            ext_rib_h = float(ext_orthogrid_spec["rib_height_m"])
+        ext_colors = q_colors(ext_xs_p)
         ext_spec, ext_shin = spec_for(ext_colors, bell_mat)
         ext_shell = preview3d_gl_core.build_shell_mesh(
-            ext_xs, ext_rs, ext_thickness_eff, _N_THETA, bell_rgb,
+            ext_xs_p, ext_rs_p, ext_thk_p, ext_n_theta, bell_rgb,
             colors_per_station=ext_colors, construction=construction,
-            channel_height_profile_m=ext_channel_heights,
-            n_channels_physical=n_channels_for_piece(ext_rs), land_fraction=land_fraction,
+            channel_height_profile_m=ext_ch_p,
+            n_channels_physical=n_channels_for_piece(ext_rs_p), land_fraction=land_fraction,
             structural_bumps=ext_bumps, cap_start=False, cap_end=True,
-            tube_split_x_m=tube_split_x_for_piece(ext_xs, ext_rs),
+            tube_split_x_m=tube_split_x_for_piece(ext_xs_p, ext_rs_p),
             regen_circuit_style=regen_circuit_style, tube_cutoff_x_m=x_tube_end,
             down_tube_start_x_m=down_tube_start_x_m, orthogrid_spec=ext_orthogrid_spec,
             specular_strength=ext_spec, shininess=ext_shin)
@@ -443,7 +456,8 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
         # The flange bump above only decorates each side's OWN profile;
         # it can't reconcile two already-different base radii on its own.
         bx = np.array([body_shell.outer_xs[-1], ext_shell.outer_xs[0]])
-        br = np.array([body_shell.outer_rs[-1], ext_shell.outer_rs[0]])
+        # an orthogrid extension starts on a raised rib ring - meet its top
+        br = np.array([body_shell.outer_rs[-1], ext_shell.outer_rs[0] + ext_rib_h])
         order = np.argsort(bx)  # each side offsets x along its own local
                                  # normal - guard against the two landing
                                  # in reversed order at the joint
