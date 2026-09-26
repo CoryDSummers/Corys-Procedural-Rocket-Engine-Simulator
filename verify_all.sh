@@ -33,6 +33,7 @@ MODULES=(
   engine_designer.physics.cost_model
   engine_designer.physics.turbopump_materials
   engine_designer.physics.turbopump_efficiency
+  engine_designer.physics.inducer             # suction: Brumfield / NPSHr / TSH vs SP-8107 Table II
   engine_designer.physics.turbopump_sizing
   engine_designer.physics.validate
   engine_designer.physics.flow_network

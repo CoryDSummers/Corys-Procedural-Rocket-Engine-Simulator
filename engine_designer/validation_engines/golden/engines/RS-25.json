@@ -181,13 +181,13 @@
 },
 {
 "category": "turbopump",
-"detail": "OK - fuel-rich PR 1.40 @ 1113 K (margin 1.00); drive-pump discharge 1.94 x Pc",
+"detail": "OK - fuel-rich PR 1.43 @ 1113 K (margin 1.00); drive-pump discharge 1.99 x Pc",
 "name": "Staged-combustion power balance",
 "passed": true
 },
 {
 "category": "turbopump",
-"detail": "OK - PR 1.40, discharge 1.94 x Pc",
+"detail": "OK - PR 1.43, discharge 1.99 x Pc",
 "name": "Staged-combustion turbine PR / discharge plausibility",
 "passed": true
 },
@@ -367,7 +367,31 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] required head/tip-speed combination implies wanting ~32 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.; Cronidur 30 (15Cr-N stainless): bearing DN 2,815,959 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"detail": "OK - 7645 ft available vs 313 ft required at 33,137 rpm (TSH credit 197 ft)",
+"name": "Fuel pump suction (NPSH)",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "OK - boost pump +15.2 bar at 8,206 rpm, eta 0.77; its hydraulic drive costs the main pump 33.9 bar of head (drive eta 0.58, SSME-anchored)",
+"name": "Fuel pump boost pump",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "OK - 739 ft available vs 73 ft required at 13,355 rpm (TSH credit 11 ft)",
+"name": "Ox pump suction (NPSH)",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "OK - boost pump +19.3 bar at 3,372 rpm, eta 0.78; its hydraulic drive costs the main pump 36.6 bar of head (drive eta 0.68, SSME-anchored)",
+"name": "Ox pump boost pump",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "[turbopump] required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.; Cronidur 30 (15Cr-N stainless): bearing DN 2,865,483 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -466,7 +490,7 @@
 "__f__": "0.9991657256065474"
 },
 "computed_dry_mass_kg": {
-"__f__": "35665.249105266426"
+"__f__": "35836.5969395865"
 },
 "convergent_half_angle_deg": {
 "__f__": "30.0"
@@ -2930,11 +2954,11 @@
 "__f__": "0.0"
 },
 "boost_discharge_ox_pa": {
-"__f__": "38400475.802591346"
+"__f__": "39337623.974705875"
 },
 "cycle": "frsc",
 "drive_discharge_over_pc": {
-"__f__": "1.9434905861369371"
+"__f__": "1.9892497742284667"
 },
 "drive_gas": {
 "cp": {
@@ -2960,19 +2984,19 @@
 "has_turbopump": true,
 "oxidizer_rich": false,
 "power_margin": {
-"__f__": "1.0000000000000213"
+"__f__": "1.0000000000000027"
 },
 "preburner_flow_fraction": {
 "__f__": "0.2114285714285714"
 },
 "preburner_gas_kind": "fuel_rich",
 "preburner_pressure_pa": {
-"__f__": "32956935.480514217"
+"__f__": "33771846.93452685"
 },
 "preburner_sides": [
 {
 "dh_j_kg": {
-"__f__": "656534.3462144017"
+"__f__": "701980.1276637859"
 },
 "drive": "fuel",
 "eta_turbine": {
@@ -2994,41 +3018,41 @@
 "__f__": "101.80024149862194"
 },
 "p_pb_inj_in": {
-"__f__": "37900475.802591346"
+"__f__": "38837623.974705875"
 },
 "p_turb_in": {
-"__f__": "32956935.480514217"
+"__f__": "33771846.93452685"
 },
 "p_turb_out": {
 "__f__": "23552000.0"
 },
 "power_available_w": {
-"__f__": "66835354.99676596"
+"__f__": "71461746.52340688"
 },
 "power_required_w": {
-"__f__": "66835354.996764526"
+"__f__": "71461746.52340668"
 },
 "powers": [
 "fuel",
 "ox"
 ],
 "pr": {
-"__f__": "1.3993264045734637"
+"__f__": "1.4339269248695166"
 }
 }
 ],
 "pump_discharge_fuel_pa": {
-"__f__": "39802687.20408447"
+"__f__": "40739835.376199"
 },
 "pump_discharge_ox_pa": {
 "__f__": "26816800.0"
 },
 "required_tank_pressure_pa": null,
 "turbine_pressure_ratio": {
-"__f__": "1.3993264045734637"
+"__f__": "1.4339269248695166"
 },
 "turbine_specific_work_j_kg": {
-"__f__": "656534.3462144017"
+"__f__": "701980.1276637859"
 },
 "turbopump": {
 "mdot_fuel_kgs": {
@@ -3038,16 +3062,16 @@
 "__f__": "412.70368175117005"
 },
 "power_fuel_w": {
-"__f__": "53973612.770072915"
+"__f__": "57938787.16621149"
 },
 "power_ox_w": {
-"__f__": "12861742.226691607"
+"__f__": "13522959.357195187"
 },
 "power_total_w": {
-"__f__": "66835354.996764526"
+"__f__": "71461746.52340668"
 },
 "turbopump_mass_kg": {
-"__f__": "1856.5376387990145"
+"__f__": "1985.0485145390746"
 }
 }
 },
@@ -3347,6 +3371,12 @@
 "bell_percent_length": {
 "__f__": "80.0"
 },
+"boost_pump_rise_fuel_pa": {
+"__f__": "1516846.5399999998"
+},
+"boost_pump_rise_ox_pa": {
+"__f__": "1930531.96"
+},
 "chamber_cooling_method": "regenerative",
 "chamber_film_inject_area_ratio": {
 "__f__": "0.0"
@@ -3487,6 +3517,12 @@
 "__f__": "0.0"
 },
 "propellant_pair": "LOX/LH2",
+"propellant_temp_fuel_k": {
+"__f__": "0.0"
+},
+"propellant_temp_ox_k": {
+"__f__": "0.0"
+},
 "pump_specific_power_w_kg": {
 "__f__": "36000.0"
 },
@@ -3506,6 +3542,25 @@
 },
 "regen_nozzle_end_eps": {
 "__f__": "77.5"
+},
+"suction_accel_g": {
+"__f__": "1.0"
+},
+"suction_head_fuel_m": {
+"__f__": "0.0"
+},
+"suction_head_ox_m": {
+"__f__": "0.0"
+},
+"suction_line_length_m": {
+"__f__": "0.0"
+},
+"suction_model": "computed",
+"tank_pressure_fuel_pa": {
+"__f__": "206842.71"
+},
+"tank_pressure_ox_pa": {
+"__f__": "689475.7"
 },
 "target_vac_thrust_n": {
 "__f__": "2090000.0"
@@ -4179,10 +4234,18 @@
 ]
 },
 "pump_discharge_fuel_pa": {
-"__f__": "39802687.20408447"
+"__f__": "40739835.376199"
 },
 "pump_discharge_ox_pa": {
 "__f__": "26816800.0"
+},
+"pump_inlet_pa": {
+"fuel": {
+"__f__": "1723689.2499999998"
+},
+"ox": {
+"__f__": "2620007.66"
+}
 },
 "rated_burn_time_s": {
 "__f__": "234.45356247611784"
@@ -4231,6 +4294,179 @@
 "stay_time_s": {
 "__f__": "0.0010239975305628179"
 },
+"suction": {
+"fuel": {
+"boost": {
+"d_impeller_m": {
+"__f__": "0.3401852883014694"
+},
+"drive_efficiency": {
+"__f__": "0.58"
+},
+"drive_head_pa": {
+"__f__": "3388608.1406846703"
+},
+"eta": {
+"__f__": "0.7717778352040434"
+},
+"inlet_eye_dia_m": {
+"__f__": "0.33420954677965303"
+},
+"n_rpm": {
+"__f__": "8205.924140669944"
+},
+"n_stages": 2,
+"npsh_required_ft": {
+"__f__": "32.04455701381678"
+},
+"rise_pa": {
+"__f__": "1516846.5399999998"
+},
+"rpm_ns_optimum": {
+"__f__": "8205.924140669944"
+},
+"shaft_power_w": {
+"__f__": "1904048.855141031"
+},
+"suction_limited": false
+},
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "1723689.2499999998"
+},
+"npsh_available_ft": {
+"__f__": "7644.593229434173"
+},
+"npsh_inlet_ft": {
+"__f__": "497.2002874517227"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "497.2002874517227"
+},
+"p_inlet_pa": {
+"__f__": "206842.71"
+},
+"p_tank_pa": {
+"__f__": "206842.71"
+},
+"p_vapor_pa": {
+"__f__": "101324.99999999999"
+},
+"propellant": "LH2",
+"ss_water": {
+"__f__": "38279.65462514671"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "20.271147840194008"
+},
+"tsh_ft": {
+"__f__": "196.5440901449854"
+},
+"z_min": {
+"__f__": "1.3"
+}
+},
+"ox": {
+"boost": {
+"d_impeller_m": {
+"__f__": "0.3294905724429825"
+},
+"drive_efficiency": {
+"__f__": "0.677"
+},
+"drive_head_pa": {
+"__f__": "3655895.08767943"
+},
+"eta": {
+"__f__": "0.78"
+},
+"inlet_eye_dia_m": {
+"__f__": "0.32370269576958066"
+},
+"n_rpm": {
+"__f__": "3371.8563041941297"
+},
+"n_stages": 1,
+"npsh_required_ft": {
+"__f__": "8.980009713597802"
+},
+"rise_pa": {
+"__f__": "1930531.96"
+},
+"rpm_ns_optimum": {
+"__f__": "3371.8563041941297"
+},
+"shaft_power_w": {
+"__f__": "895230.9575836564"
+},
+"suction_limited": false
+},
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "2620007.66"
+},
+"npsh_available_ft": {
+"__f__": "738.5028408025648"
+},
+"npsh_inlet_ft": {
+"__f__": "172.45164294338576"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "172.45164294338576"
+},
+"p_inlet_pa": {
+"__f__": "689475.7"
+},
+"p_tank_pa": {
+"__f__": "689475.7"
+},
+"p_vapor_pa": {
+"__f__": "101324.99999999999"
+},
+"propellant": "LOX",
+"ss_water": {
+"__f__": "36657.29291078755"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "90.18795408190961"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
+},
+"z_min": {
+"__f__": "2.3"
+}
+}
+},
+"suction_model": "computed",
 "t_local_at_transition_k": {
 "__f__": "2005.7415966587519"
 },
@@ -4706,13 +4942,13 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.4405069313197461"
+"__f__": "0.4212227908575734"
 },
 {
-"__f__": "1.5994752340262102"
+"__f__": "1.638675555747608"
 },
 {
-"__f__": "-0.7409592820282251"
+"__f__": "-0.7703877071027498"
 }
 ]
 },
@@ -4735,13 +4971,13 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.4405069313197461"
+"__f__": "0.4212227908575734"
 },
 {
-"__f__": "1.5994752340262102"
+"__f__": "1.638675555747608"
 },
 {
-"__f__": "-0.9945272076338708"
+"__f__": "-1.0239556327083954"
 }
 ]
 }
@@ -4753,15 +4989,15 @@
 "__f__": "0.10983315135925825"
 },
 {
-"__f__": "1.8328586240286602"
+"__f__": "1.858448558876073"
 },
 {
-"__f__": "-0.7409592820282251"
+"__f__": "-0.7703877071027498"
 }
 ]
 },
 "dia_m": {
-"__f__": "0.1978111947132255"
+"__f__": "0.2098737721396599"
 },
 "dir": {
 "__nd__": [
@@ -4779,13 +5015,13 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "-0.038525244675660875"
+"__f__": "-0.047572177745486666"
 },
 {
-"__f__": "1.8328586240286602"
+"__f__": "1.858448558876073"
 },
 {
-"__f__": "-0.7409592820282251"
+"__f__": "-0.7703877071027498"
 }
 ]
 }
@@ -4796,13 +5032,13 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.3025017585381069"
+"__f__": "0.2948923247258305"
 },
 {
-"__f__": "1.6098097018201334"
+"__f__": "1.644208938999139"
 },
 {
-"__f__": "0.7409592820282251"
+"__f__": "0.7703877071027498"
 }
 ]
 },
@@ -4825,13 +5061,13 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.3025017585381069"
+"__f__": "0.2948923247258305"
 },
 {
-"__f__": "1.6098097018201334"
+"__f__": "1.644208938999139"
 },
 {
-"__f__": "0.8541205704089647"
+"__f__": "0.8835489954834894"
 }
 ]
 }
@@ -4843,15 +5079,15 @@
 "__f__": "0.10983315135925828"
 },
 {
-"__f__": "1.8328586240286602"
+"__f__": "1.858448558876073"
 },
 {
-"__f__": "0.7409592820282251"
+"__f__": "0.7703877071027498"
 }
 ]
 },
 "dia_m": {
-"__f__": "0.18905190202740138"
+"__f__": "0.20458962895936958"
 },
 "dir": {
 "__nd__": [
@@ -4869,13 +5105,13 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "-0.03195577516129275"
+"__f__": "-0.0436090703602689"
 },
 {
-"__f__": "1.8328586240286602"
+"__f__": "1.858448558876073"
 },
 {
-"__f__": "0.7409592820282251"
+"__f__": "0.7703877071027498"
 }
 ]
 }
@@ -4885,10 +5121,10 @@
 "turbopump_sizing": {
 "arrangement": "dual_shaft",
 "assembly_length_m": {
-"__f__": "1.0296496335126755"
+"__f__": "1.0400207007355358"
 },
 "assembly_od_m": {
-"__f__": "1.2886248383099568"
+"__f__": "1.3398047080047824"
 },
 "auto_arrangement": "dual_shaft",
 "auto_turbine_staging": "reaction",
@@ -4899,10 +5135,10 @@
 "center": 0,
 "kind": "pump",
 "length_m": {
-"__f__": "0.6613475599209757"
+"__f__": "0.6227792789966303"
 },
 "od_m": {
-"__f__": "0.4667667800049002"
+"__f__": "0.4395460062569299"
 },
 "x0_m": {
 "__f__": "0.0"
@@ -4912,23 +5148,23 @@
 "center": 0,
 "kind": "turbine",
 "length_m": {
-"__f__": "0.275568709049007"
+"__f__": "0.269997112380699"
 },
 "od_m": {
-"__f__": "0.551137418098014"
+"__f__": "0.539994224761398"
 },
 "x0_m": {
-"__f__": "0.6613475599209757"
+"__f__": "0.6227792789966303"
 }
 },
 {
 "center": 1,
 "kind": "pump",
 "length_m": {
-"__f__": "0.38533721435769724"
+"__f__": "0.3701183467331444"
 },
 "od_m": {
-"__f__": "0.4460978444170538"
+"__f__": "0.4284792397538681"
 },
 "x0_m": {
 "__f__": "0.0"
@@ -4938,13 +5174,13 @@
 "center": 1,
 "kind": "turbine",
 "length_m": {
-"__f__": "0.6443124191549784"
+"__f__": "0.6699023540023913"
 },
 "od_m": {
-"__f__": "1.2886248383099568"
+"__f__": "1.3398047080047824"
 },
 "x0_m": {
-"__f__": "0.38533721435769724"
+"__f__": "0.3701183467331444"
 }
 }
 ],
@@ -4968,115 +5204,119 @@
 },
 "feasible": false,
 "fuel_bearing_dn": {
-"__f__": "2815959.054422782"
+"__f__": "2865483.0064651077"
 },
 "fuel_pump": {
 "auto_stages": 8,
 "body_length_m": {
-"__f__": "0.48279090038037664"
+"__f__": "0.4842890433869035"
 },
 "d_impeller_m": {
-"__f__": "0.21296551129365893"
+"__f__": "0.21362636217366648"
 },
 "eta": {
 "__f__": "0.7090451572076446"
 },
 "head_m": {
-"__f__": "56734.55013831082"
+"__f__": "56035.77010253677"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.1978111947132255"
+"__f__": "0.2098737721396599"
 },
 "n_rpm": {
-"__f__": "33446.15902150506"
+"__f__": "33136.722226185106"
 },
 "n_stages": 8,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "7644.593229434173"
 },
 "npsh_required_ft": {
-"__f__": "296.34623696870284"
+"__f__": "313.138684069748"
 },
 "ns_pump_us": {
 "__f__": "462.49302838954304"
 },
 "ns_us": {
-"__f__": "2200.0"
+"__f__": "2199.9999999999995"
 },
 "nss_class": "lh2_class",
 "nss_target_us": {
-"__f__": "58027.0"
+"__f__": "38279.65462514671"
 },
 "q_m3s": {
 "__f__": "0.9687879853313852"
 },
 "rpm_ns_optimum": {
-"__f__": "33446.15902150506"
+"__f__": "33136.722226185106"
 },
 "shaft_limited": false,
 "suction_limited": false,
+"suction_model": "computed",
 "tip_speed_margin": {
-"__f__": "1.6624076915047967"
+"__f__": "1.6727408962700816"
+},
+"tsh_ft": {
+"__f__": "196.5440901449854"
 },
 "u_tip_m_s": {
-"__f__": "372.953038636859"
+"__f__": "370.6491551575567"
 },
 "volute_od_m": {
-"__f__": "0.3407448180698543"
+"__f__": "0.3418021794778664"
 },
 "warnings": [
-"required head/tip-speed combination implies wanting ~32 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware."
+"required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware."
 ]
 },
 "fuel_shaft_rpm": {
-"__f__": "33446.15902150506"
+"__f__": "33136.722226185106"
 },
 "geared": false,
 "mass_geometry_kg": {
-"__f__": "963.0092445637333"
+"__f__": "1244.57573587138"
 },
 "mass_kg": {
-"__f__": "2475.383518398686"
+"__f__": "2646.731352718766"
 },
 "mass_modifier": {
 "__f__": "1.0"
 },
 "mass_specific_power_kg": {
-"__f__": "1856.5376387990145"
+"__f__": "1985.0485145390746"
 },
 "material_display": "Inconel 718 (nickel superalloy)",
 "material_key": "inconel_718",
 "n_bodies": 2,
 "n_turbines": 2,
 "ox_bearing_dn": {
-"__f__": "991032.8245629439"
+"__f__": "962639.5379396535"
 },
 "ox_pump": {
 "auto_stages": 2,
 "body_length_m": {
-"__f__": "0.2813003508957505"
+"__f__": "0.28781346156558074"
 },
 "d_impeller_m": {
-"__f__": "0.2035351691529539"
+"__f__": "0.20824773733025803"
 },
 "eta": {
 "__f__": "0.7717778352040434"
 },
 "head_m": {
-"__f__": "2369.8169041448846"
+"__f__": "2162.4769019419937"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.18905190202740138"
+"__f__": "0.20458962895936958"
 },
 "n_rpm": {
-"__f__": "14304.729491776297"
+"__f__": "13355.40808504066"
 },
 "n_stages": 2,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "738.5028408025648"
 },
 "npsh_required_ft": {
-"__f__": "80.21100289068093"
+"__f__": "72.76614637006138"
 },
 "ns_pump_us": {
 "__f__": "1308.1278265029932"
@@ -5086,95 +5326,99 @@
 },
 "nss_class": "lox_class",
 "nss_target_us": {
-"__f__": "40411.0"
+"__f__": "36657.29291078755"
 },
 "q_m3s": {
 "__f__": "0.3617034897030412"
 },
 "rpm_ns_optimum": {
-"__f__": "14304.729491776297"
+"__f__": "13355.40808504066"
 },
 "shaft_limited": false,
 "suction_limited": false,
+"suction_model": "computed",
 "tip_speed_margin": {
-"__f__": "4.066997965969274"
+"__f__": "4.257509375926127"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
 },
 "u_tip_m_s": {
-"__f__": "152.44659702017762"
+"__f__": "145.62504630189633"
 },
 "volute_od_m": {
-"__f__": "0.32565627064472624"
+"__f__": "0.3331963797284129"
 },
 "warnings": []
 },
 "ox_shaft_rpm": {
-"__f__": "14304.729491776297"
+"__f__": "13355.40808504066"
 },
 "ox_turbine": {
 "blade_tip_speed_margin": {
-"__f__": "1.2023625822103776"
+"__f__": "1.162791287237759"
 },
 "c0_m_s": {
-"__f__": "1145.8920945834188"
+"__f__": "1184.8882881215293"
 },
 "d_mean_m": {
-"__f__": "0.6884588153321618"
+"__f__": "0.7624899704100433"
 },
 "disk_od_m": {
-"__f__": "0.8399197547052374"
+"__f__": "0.9302377639002528"
 },
 "disk_thickness_m": {
-"__f__": "0.134387160752838"
+"__f__": "0.14883804222404046"
 },
 "eta": {
 "__f__": "0.8"
 },
 "manifold_length_m": {
-"__f__": "0.33596790188209497"
+"__f__": "0.37209510556010117"
 },
 "manifold_od_m": {
-"__f__": "0.940710125269866"
+"__f__": "1.0418662955682831"
 },
 "staging": "reaction",
 "u_over_c0": {
 "__f__": "0.45"
 },
 "u_pitchline_m_s": {
-"__f__": "515.6514425625385"
+"__f__": "533.1997296546882"
 },
 "warnings": []
 },
 "turbine": {
 "blade_tip_speed_margin": {
-"__f__": "1.2023625822103776"
+"__f__": "1.162791287237759"
 },
 "c0_m_s": {
-"__f__": "1145.8920945834188"
+"__f__": "1184.8882881215293"
 },
 "d_mean_m": {
-"__f__": "0.29444986831591585"
+"__f__": "0.307313579359689"
 },
 "disk_od_m": {
-"__f__": "0.35922883934541733"
+"__f__": "0.3749225668188206"
 },
 "disk_thickness_m": {
-"__f__": "0.05747661429526677"
+"__f__": "0.059987610691011294"
 },
 "eta": {
 "__f__": "0.8"
 },
 "manifold_length_m": {
-"__f__": "0.14369153573816693"
+"__f__": "0.14996902672752824"
 },
 "manifold_od_m": {
-"__f__": "0.40233630006686744"
+"__f__": "0.4199132748370791"
 },
 "staging": "reaction",
 "u_over_c0": {
 "__f__": "0.45"
 },
 "u_pitchline_m_s": {
-"__f__": "515.6514425625385"
+"__f__": "533.1997296546882"
 },
 "warnings": []
 },
@@ -5183,9 +5427,9 @@
 },
 "turbine_staging": "reaction",
 "warnings": [
-"required head/tip-speed combination implies wanting ~32 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
+"required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
 "Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
-"Cronidur 30 (15Cr-N stainless): bearing DN 2,815,959 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material."
+"Cronidur 30 (15Cr-N stainless): bearing DN 2,865,483 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material."
 ]
 },
 "warnings": [
@@ -5194,7 +5438,7 @@
 "Resultant injection beta angle +5.3 deg is outside the -4 to +2 deg band LOX/LH2 prefers - it wants a slightly negative beta (~0 or below). Adjust the impingement angle or element momentum ratio.",
 "First tangential mode ~2908 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.",
 "Near the end of active cooling (area ratio ~77.5), estimated jacket/coolant pressure (~25.0 MPa) exceeds local hot-gas static pressure (~0.0 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~20.8 mm channel width, this reversed ~24.9 MPa differential is ~21653 MPa against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
-"[turbopump] required head/tip-speed combination implies wanting ~32 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.; Cronidur 30 (15Cr-N stainless): bearing DN 2,815,959 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"[turbopump] required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.; Cronidur 30 (15Cr-N stainless): bearing DN 2,865,483 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.180) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]

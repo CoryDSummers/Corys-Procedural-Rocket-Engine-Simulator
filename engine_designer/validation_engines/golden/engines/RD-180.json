@@ -190,13 +190,13 @@
 },
 {
 "category": "turbopump",
-"detail": "The preburner drive gas cannot power the pumps at this chamber pressure: best achievable power margin 0.91 (oxidizer-rich PR 2.75 @ 628 K (margin 0.91)) with the turbine PR searched up to 3.0. A hotter preburner (preburner temperature inputs), better turbomachinery, or a lower Pc closes it - this is the staged-cycle Pc ceiling [SP-8107 Table VI].",
+"detail": "The preburner drive gas cannot power the pumps at this chamber pressure: best achievable power margin 0.86 (oxidizer-rich PR 2.56 @ 628 K (margin 0.86)) with the turbine PR searched up to 3.0. A hotter preburner (preburner temperature inputs), better turbomachinery, or a lower Pc closes it - this is the staged-cycle Pc ceiling [SP-8107 Table VI].",
 "name": "Staged-combustion power balance",
 "passed": false
 },
 {
 "category": "turbopump",
-"detail": "Turbine PR 2.75 / drive-pump discharge 3.66 x Pc is outside real staged-combustion practice (PR < ~2.0, SSME 1.56-1.59; discharge ~2.1-2.3 x Pc - SSME/RD-0124/NK-33) - the turbine is being asked for an unusually large pressure drop.",
+"detail": "Turbine PR 2.56 / drive-pump discharge 3.40 x Pc is outside real staged-combustion practice (PR < ~2.0, SSME 1.56-1.59; discharge ~2.1-2.3 x Pc - SSME/RD-0124/NK-33) - the turbine is being asked for an unusually large pressure drop.",
 "name": "Staged-combustion turbine PR / discharge plausibility",
 "passed": false
 },
@@ -376,13 +376,25 @@
 },
 {
 "category": "turbopump",
-"detail": "required pump discharge dP (~97 MPa) exceeds ~55 MPa, beyond real flight-turbopump historical practice [SP-8107 Tables V-VI] - the pump is being solved to deliver this dP anyway (this tool has no independent pump-performance ceiling), but real hardware delivering this flow at this pressure is unproven; treat downstream Isp/thrust as optimistic until checked against a real high-pressure-pump analog.",
+"detail": "required pump discharge dP (~90 MPa) exceeds ~55 MPa, beyond real flight-turbopump historical practice [SP-8107 Tables V-VI] - the pump is being solved to deliver this dP anyway (this tool has no independent pump-performance ceiling), but real hardware delivering this flow at this pressure is unproven; treat downstream Isp/thrust as optimistic until checked against a real high-pressure-pump analog.",
 "name": "Feed-system pump plausibility",
 "passed": false
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (Ni-Cu) (medium strength class) is under-strength for the housings/impellers - real staged-combustion turbopumps use HIP powder-metallurgy superalloys.; Cronidur 30 (15Cr-N stainless): bearing DN 1,971,748 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"detail": "OK - 124 ft available vs 42 ft required at 7,613 rpm (TSH credit 0 ft)",
+"name": "Fuel pump suction (NPSH)",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 7,613 rpm instead of its specific-speed optimum 11,869 rpm - a larger, heavier, less efficient pump. About 1.9 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
+"name": "Ox pump suction (NPSH)",
+"passed": false
+},
+{
+"category": "turbopump",
+"detail": "[turbopump] Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (Ni-Cu) (medium strength class) is under-strength for the housings/impellers - real staged-combustion turbopumps use HIP powder-metallurgy superalloys.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -481,7 +493,7 @@
 "__f__": "0.9976454466176654"
 },
 "computed_dry_mass_kg": {
-"__f__": "20325.237741600205"
+"__f__": "20252.117698766015"
 },
 "convergent_half_angle_deg": {
 "__f__": "30.0"
@@ -2942,14 +2954,14 @@
 },
 "cycle_result": {
 "boost_discharge_fuel_pa": {
-"__f__": "97570662.97468354"
+"__f__": "90608353.35443039"
 },
 "boost_discharge_ox_pa": {
 "__f__": "0.0"
 },
 "cycle": "orsc",
 "drive_discharge_over_pc": {
-"__f__": "3.659814815254446"
+"__f__": "3.3986629165202698"
 },
 "drive_gas": {
 "cp": {
@@ -2975,19 +2987,19 @@
 "has_turbopump": true,
 "oxidizer_rich": true,
 "power_margin": {
-"__f__": "0.9080846654318276"
+"__f__": "0.86209112049004"
 },
 "preburner_flow_fraction": {
 "__f__": "0.7526881720430108"
 },
 "preburner_gas_kind": "oxidizer_rich",
 "preburner_pressure_pa": {
-"__f__": "84409272.15189874"
+"__f__": "78355089.87341774"
 },
 "preburner_sides": [
 {
 "dh_j_kg": {
-"__f__": "121816.86167950157"
+"__f__": "113912.51521947703"
 },
 "drive": "ox",
 "eta_turbine": {
@@ -3009,26 +3021,26 @@
 "__f__": "981.2775151528107"
 },
 "p_pb_inj_in": {
-"__f__": "97070662.97468354"
+"__f__": "90108353.35443039"
 },
 "p_turb_in": {
-"__f__": "84409272.15189874"
+"__f__": "78355089.87341774"
 },
 "p_turb_out": {
 "__f__": "30659000.0"
 },
 "power_available_w": {
-"__f__": "119536147.33257495"
+"__f__": "111779789.87937516"
 },
 "power_required_w": {
-"__f__": "131635465.15316512"
+"__f__": "129661223.996642"
 },
 "powers": [
 "fuel",
 "ox"
 ],
 "pr": {
-"__f__": "2.7531645569620253"
+"__f__": "2.555696202531646"
 }
 }
 ],
@@ -3036,14 +3048,14 @@
 "__f__": "32158385.605309304"
 },
 "pump_discharge_ox_pa": {
-"__f__": "97570662.97468354"
+"__f__": "90608353.35443039"
 },
 "required_tank_pressure_pa": null,
 "turbine_pressure_ratio": {
-"__f__": "2.7531645569620253"
+"__f__": "2.555696202531646"
 },
 "turbine_specific_work_j_kg": {
-"__f__": "121816.86167950157"
+"__f__": "113912.51521947703"
 },
 "turbopump": {
 "mdot_fuel_kgs": {
@@ -3053,16 +3065,16 @@
 "__f__": "953.2410147198732"
 },
 "power_fuel_w": {
-"__f__": "21324936.956399713"
+"__f__": "22021060.87825098"
 },
 "power_ox_w": {
-"__f__": "110310528.19676541"
+"__f__": "107640163.11839102"
 },
 "power_total_w": {
-"__f__": "131635465.15316512"
+"__f__": "129661223.996642"
 },
 "turbopump_mass_kg": {
-"__f__": "3656.540698699031"
+"__f__": "3601.700666573389"
 }
 }
 },
@@ -3344,6 +3356,12 @@
 "bell_percent_length": {
 "__f__": "80.0"
 },
+"boost_pump_rise_fuel_pa": {
+"__f__": "0.0"
+},
+"boost_pump_rise_ox_pa": {
+"__f__": "0.0"
+},
 "chamber_cooling_method": "regenerative",
 "chamber_film_inject_area_ratio": {
 "__f__": "0.0"
@@ -3484,6 +3502,12 @@
 "__f__": "0.0"
 },
 "propellant_pair": "LOX/RP-1",
+"propellant_temp_fuel_k": {
+"__f__": "0.0"
+},
+"propellant_temp_ox_k": {
+"__f__": "0.0"
+},
 "pump_specific_power_w_kg": {
 "__f__": "36000.0"
 },
@@ -3503,6 +3527,25 @@
 },
 "regen_nozzle_end_eps": {
 "__f__": "36.87"
+},
+"suction_accel_g": {
+"__f__": "1.0"
+},
+"suction_head_fuel_m": {
+"__f__": "0.0"
+},
+"suction_head_ox_m": {
+"__f__": "0.0"
+},
+"suction_line_length_m": {
+"__f__": "0.0"
+},
+"suction_model": "computed",
+"tank_pressure_fuel_pa": {
+"__f__": "0.0"
+},
+"tank_pressure_ox_pa": {
+"__f__": "0.0"
 },
 "target_vac_thrust_n": {
 "__f__": "4152000.0"
@@ -4179,7 +4222,15 @@
 "__f__": "32158385.605309304"
 },
 "pump_discharge_ox_pa": {
-"__f__": "97570662.97468354"
+"__f__": "90608353.35443039"
+},
+"pump_inlet_pa": {
+"fuel": {
+"__f__": "300000.0"
+},
+"ox": {
+"__f__": "300000.0"
+}
 },
 "rated_burn_time_s": {
 "__f__": "124.14758268951745"
@@ -4230,6 +4281,113 @@
 "stay_time_s": {
 "__f__": "0.001319582034849474"
 },
+"suction": {
+"fuel": {
+"boost": null,
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "300000.0"
+},
+"npsh_available_ft": {
+"__f__": "123.90353193312677"
+},
+"npsh_inlet_ft": {
+"__f__": "123.90353193312677"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "123.90353193312677"
+},
+"p_inlet_pa": {
+"__f__": "300000.0"
+},
+"p_tank_pa": {
+"__f__": "300000.0"
+},
+"p_vapor_pa": {
+"__f__": "11.68211227922749"
+},
+"propellant": "RP-1",
+"ss_water": {
+"__f__": "38279.65462514671"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "293.15"
+},
+"tsh_ft": {
+"__f__": "0.0"
+},
+"z_min": {
+"__f__": "3.0"
+}
+},
+"ox": {
+"boost": null,
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "300000.0"
+},
+"npsh_available_ft": {
+"__f__": "58.253488709232464"
+},
+"npsh_inlet_ft": {
+"__f__": "58.253488709232464"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "58.253488709232464"
+},
+"p_inlet_pa": {
+"__f__": "300000.0"
+},
+"p_tank_pa": {
+"__f__": "300000.0"
+},
+"p_vapor_pa": {
+"__f__": "101324.99999999999"
+},
+"propellant": "LOX",
+"ss_water": {
+"__f__": "36657.29291078755"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "90.18795408190961"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
+},
+"z_min": {
+"__f__": "2.3"
+}
+}
+},
+"suction_model": "computed",
 "t_local_at_transition_k": {
 "__f__": "2384.171696947266"
 },
@@ -4705,10 +4863,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.48112632642463243"
+"__f__": "0.5399563223895769"
 },
 {
-"__f__": "1.133168574327496"
+"__f__": "1.1427121490800811"
 },
 {
 "__f__": "0.0"
@@ -4734,10 +4892,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.48112632642463243"
+"__f__": "0.5399563223895769"
 },
 {
-"__f__": "1.133168574327496"
+"__f__": "1.1427121490800811"
 },
 {
 "__f__": "-0.2318595473234935"
@@ -4749,10 +4907,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.0942092353341531"
+"__f__": "0.09420923533415304"
 },
 {
-"__f__": "1.527496084821259"
+"__f__": "1.5969963954880764"
 },
 {
 "__f__": "0.0"
@@ -4760,7 +4918,7 @@
 ]
 },
 "dia_m": {
-"__f__": "0.2096413550760209"
+"__f__": "0.26192634080723753"
 },
 "dir": {
 "__nd__": [
@@ -4778,10 +4936,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "-0.0630217809728626"
+"__f__": "-0.10223552027127511"
 },
 {
-"__f__": "1.527496084821259"
+"__f__": "1.5969963954880764"
 },
 {
 "__f__": "0.0"
@@ -4795,10 +4953,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "2.4634005006836412"
+"__f__": "2.7921711796899946"
 },
 {
-"__f__": "1.0778079330656951"
+"__f__": "1.0978188185086792"
 },
 {
 "__f__": "0.0"
@@ -4824,10 +4982,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "2.4634005006836412"
+"__f__": "2.7921711796899946"
 },
 {
-"__f__": "1.0778079330656951"
+"__f__": "1.0978188185086792"
 },
 {
 "__f__": "0.18903225884127606"
@@ -4839,10 +4997,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "2.992328626610212"
+"__f__": "3.3793093092260307"
 },
 {
-"__f__": "1.527496084821259"
+"__f__": "1.5969963954880764"
 },
 {
 "__f__": "0.0"
@@ -4850,7 +5008,7 @@
 ]
 },
 "dia_m": {
-"__f__": "0.26105562235994006"
+"__f__": "0.32616343224408145"
 },
 "dir": {
 "__nd__": [
@@ -4868,10 +5026,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "3.188120343380167"
+"__f__": "3.623931883409092"
 },
 {
-"__f__": "1.527496084821259"
+"__f__": "1.5969963954880764"
 },
 {
 "__f__": "0.0"
@@ -4884,10 +5042,10 @@
 "turbopump_sizing": {
 "arrangement": "single_shaft",
 "assembly_length_m": {
-"__f__": "2.8981193912760586"
+"__f__": "3.2851000738918774"
 },
 "assembly_od_m": {
-"__f__": "0.9694808702199625"
+"__f__": "1.1084814915535974"
 },
 "auto_arrangement": "single_shaft",
 "auto_turbine_staging": "reaction",
@@ -4898,10 +5056,10 @@
 "center": 0,
 "kind": "pump",
 "length_m": {
-"__f__": "0.7738341821809587"
+"__f__": "0.8914941741108477"
 },
 "od_m": {
-"__f__": "0.7886550209875262"
+"__f__": "0.9085684928159903"
 },
 "x0_m": {
 "__f__": "0.0"
@@ -4911,26 +5069,26 @@
 "center": 0,
 "kind": "turbine",
 "length_m": {
-"__f__": "0.4847404351099812"
+"__f__": "0.5542407457767987"
 },
 "od_m": {
-"__f__": "0.9694808702199625"
+"__f__": "1.1084814915535974"
 },
 "x0_m": {
-"__f__": "1.0646784432469474"
+"__f__": "1.224038621576927"
 }
 },
 {
 "center": 0,
 "kind": "pump",
 "length_m": {
-"__f__": "1.0578562518531411"
+"__f__": "1.1742762590720723"
 },
 "od_m": {
-"__f__": "0.899376303511128"
+"__f__": "0.9983551539587943"
 },
 "x0_m": {
-"__f__": "1.8402631394229174"
+"__f__": "2.1108238148198053"
 }
 }
 ],
@@ -4938,13 +5096,13 @@
 "__f__": "1.0"
 },
 "eta_overall": {
-"__f__": "0.5956930902383158"
+"__f__": "0.5674952932921546"
 },
 "eta_pump_fuel": {
-"__f__": "0.7525474531173254"
+"__f__": "0.7178146826383873"
 },
 "eta_pump_ox": {
-"__f__": "0.736685272478464"
+"__f__": "0.7009235505919993"
 },
 "eta_turbine": {
 "__f__": "0.8"
@@ -4954,44 +5112,44 @@
 },
 "feasible": false,
 "fuel_bearing_dn": {
-"__f__": "1971747.6311519493"
+"__f__": "1405991.7216114611"
 },
 "fuel_pump": {
 "auto_stages": 3,
 "body_length_m": {
-"__f__": "0.38691709109047934"
+"__f__": "0.6377336931673423"
 },
 "d_impeller_m": {
-"__f__": "0.2464546940586019"
+"__f__": "0.40621741933768796"
 },
 "eta": {
-"__f__": "0.7525474531173254"
+"__f__": "0.7178146826383873"
 },
 "head_m": {
 "__f__": "4010.6805334613023"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.2096413550760209"
+"__f__": "0.26192634080723753"
 },
 "n_rpm": {
-"__f__": "12548.390541366309"
+"__f__": "7613.188417283024"
 },
 "n_stages": 3,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "123.90353193312677"
 },
 "npsh_required_ft": {
-"__f__": "75.90012917320921"
+"__f__": "41.904053224028935"
 },
 "ns_pump_us": {
-"__f__": "845.8223421275834"
+"__f__": "513.1657989872998"
 },
 "ns_us": {
-"__f__": "1928.0579978098444"
+"__f__": "1169.7650601793866"
 },
 "nss_class": "lox_class",
 "nss_target_us": {
-"__f__": "40411.0"
+"__f__": "38279.65462514671"
 },
 "q_m3s": {
 "__f__": "0.43266204371817046"
@@ -5001,131 +5159,139 @@
 },
 "shaft_limited": true,
 "suction_limited": false,
+"suction_model": "computed",
 "tip_speed_margin": {
 "__f__": "3.0877793682034502"
+},
+"tsh_ft": {
+"__f__": "0.0"
 },
 "u_tip_m_s": {
 "__f__": "161.92866794459894"
 },
 "volute_od_m": {
-"__f__": "0.3943275104937631"
+"__f__": "0.6499478709403008"
 },
 "warnings": []
 },
 "fuel_shaft_rpm": {
-"__f__": "12548.390541366309"
+"__f__": "7613.188417283024"
 },
 "geared": false,
 "mass_geometry_kg": {
-"__f__": "415.8921510451414"
+"__f__": "1757.95968873986"
 },
 "mass_kg": {
-"__f__": "4875.387598265374"
+"__f__": "4802.2675554311845"
 },
 "mass_modifier": {
 "__f__": "1.0"
 },
 "mass_specific_power_kg": {
-"__f__": "3656.540698699031"
+"__f__": "3601.700666573389"
 },
 "material_display": "Monel K-500 (Ni-Cu)",
 "material_key": "monel_k500",
 "n_bodies": 1,
 "n_turbines": 1,
 "ox_bearing_dn": {
-"__f__": "1858942.7357012497"
+"__f__": "1321409.750243102"
 },
 "ox_pump": {
 "auto_stages": 5,
 "body_length_m": {
-"__f__": "0.5289281259265706"
+"__f__": "0.8400229157343307"
 },
 "d_impeller_m": {
-"__f__": "0.28105509484722746"
+"__f__": "0.44636068434056553"
 },
 "eta": {
-"__f__": "0.736685272478464"
+"__f__": "0.7009235505919993"
 },
 "head_m": {
-"__f__": "8693.11762334765"
+"__f__": "8070.893258795123"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.26105562235994006"
+"__f__": "0.32616343224408145"
 },
 "n_rpm": {
-"__f__": "12548.390541366309"
+"__f__": "7613.188417283024"
 },
 "n_stages": 5,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "58.253488709232464"
 },
 "npsh_required_ft": {
-"__f__": "117.69410229048444"
+"__f__": "58.253488709232464"
 },
 "ns_pump_us": {
-"__f__": "657.9534637373371"
+"__f__": "422.05028056340296"
 },
 "ns_us": {
-"__f__": "2200.0"
+"__f__": "1411.2101666967728"
 },
 "nss_class": "lox_class",
 "nss_target_us": {
-"__f__": "40411.0"
+"__f__": "36657.29291078755"
 },
 "q_m3s": {
 "__f__": "0.8354434835406426"
 },
 "rpm_ns_optimum": {
-"__f__": "12548.390541366309"
+"__f__": "11868.547232215"
 },
 "shaft_limited": false,
-"suction_limited": false,
+"suction_limited": true,
+"suction_model": "computed",
 "tip_speed_margin": {
-"__f__": "2.707646057527256"
+"__f__": "2.8100811976503413"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
 },
 "u_tip_m_s": {
-"__f__": "184.66224512986105"
+"__f__": "177.93080157899945"
 },
 "volute_od_m": {
-"__f__": "0.449688151755564"
+"__f__": "0.7141770949449049"
 },
 "warnings": []
 },
 "ox_shaft_rpm": {
-"__f__": "12548.390541366309"
+"__f__": "7613.188417283024"
 },
 "ox_turbine": null,
 "turbine": {
 "blade_tip_speed_margin": {
-"__f__": "2.1451218190699683"
+"__f__": "2.161391095974293"
 },
 "c0_m_s": {
-"__f__": "517.9711013301988"
+"__f__": "514.0722163520592"
 },
 "d_mean_m": {
-"__f__": "0.35475734419641486"
+"__f__": "0.5803252214612994"
 },
 "disk_od_m": {
-"__f__": "0.4328039599196261"
+"__f__": "0.7079967701827853"
 },
 "disk_thickness_m": {
-"__f__": "0.06924863358714017"
+"__f__": "0.11327948322924565"
 },
 "eta": {
 "__f__": "0.8"
 },
 "manifold_length_m": {
-"__f__": "0.17312158396785043"
+"__f__": "0.28319870807311415"
 },
 "manifold_od_m": {
-"__f__": "0.48474043510998127"
+"__f__": "0.7929563826047196"
 },
 "staging": "reaction",
 "u_over_c0": {
 "__f__": "0.45"
 },
 "u_pitchline_m_s": {
-"__f__": "233.08699559858948"
+"__f__": "231.33249735842662"
 },
 "warnings": []
 },
@@ -5134,13 +5300,12 @@
 },
 "turbine_staging": "reaction",
 "warnings": [
-"Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (Ni-Cu) (medium strength class) is under-strength for the housings/impellers - real staged-combustion turbopumps use HIP powder-metallurgy superalloys.",
-"Cronidur 30 (15Cr-N stainless): bearing DN 1,971,748 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material."
+"Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (Ni-Cu) (medium strength class) is under-strength for the housings/impellers - real staged-combustion turbopumps use HIP powder-metallurgy superalloys."
 ]
 },
 "warnings": [
-"The preburner drive gas cannot power the pumps at this chamber pressure: best achievable power margin 0.91 (oxidizer-rich PR 2.75 @ 628 K (margin 0.91)) with the turbine PR searched up to 3.0. A hotter preburner (preburner temperature inputs), better turbomachinery, or a lower Pc closes it - this is the staged-cycle Pc ceiling [SP-8107 Table VI].",
-"Turbine PR 2.75 / drive-pump discharge 3.66 x Pc is outside real staged-combustion practice (PR < ~2.0, SSME 1.56-1.59; discharge ~2.1-2.3 x Pc - SSME/RD-0124/NK-33) - the turbine is being asked for an unusually large pressure drop.",
+"The preburner drive gas cannot power the pumps at this chamber pressure: best achievable power margin 0.86 (oxidizer-rich PR 2.56 @ 628 K (margin 0.86)) with the turbine PR searched up to 3.0. A hotter preburner (preburner temperature inputs), better turbomachinery, or a lower Pc closes it - this is the staged-cycle Pc ceiling [SP-8107 Table VI].",
+"Turbine PR 2.56 / drive-pump discharge 3.40 x Pc is outside real staged-combustion practice (PR < ~2.0, SSME 1.56-1.59; discharge ~2.1-2.3 x Pc - SSME/RD-0124/NK-33) - the turbine is being asked for an unusually large pressure drop.",
 "Oxidizer-rich staged combustion needs an oxidizer-resistant turbine (hot O2-rich gas is highly corrosive/erosive) - historically achieved reliably only by late-Soviet/Russian engines (RD-170 family). Treat reliability figures as optimistic for other eras/manufacturers.",
 "[nozzle extension] Inconel 718 Nickel Superalloy: only 5% thermal margin (computed wall temp 1191 K vs 1250 K max). Thin margin. (hottest extension station eps 6.8, regen-cooled ~1191 K)",
 "NARloy-Z Copper Alloy (Cu-Ag-Zr): computed wall temp 1089 K EXCEEDS its 800 K max service temp (Tc 3893 K, regenerative cooling). Marginal/unsuitable as designed. Basis: coupled throat wall balance: gas h_g ~20.7 kW/m2K incl. carbon-deposit credit, T_aw ~3839 K, coolant ~37 m/s (coolant-side wall ~1001 K), 0.50 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
@@ -5148,8 +5313,9 @@
 "Resultant injection beta angle +6.0 deg is outside the -2 to +6 deg band LOX/RP-1 prefers - it wants a slightly negative beta (~0 or below). Adjust the impingement angle or element momentum ratio.",
 "First tangential mode ~1785 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.",
 "Near the end of active cooling (area ratio ~36.9), estimated jacket/coolant pressure (~31.7 MPa) exceeds local hot-gas static pressure (~0.1 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~18.3 mm channel width, this reversed ~31.6 MPa differential is ~17666 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
-"required pump discharge dP (~97 MPa) exceeds ~55 MPa, beyond real flight-turbopump historical practice [SP-8107 Tables V-VI] - the pump is being solved to deliver this dP anyway (this tool has no independent pump-performance ceiling), but real hardware delivering this flow at this pressure is unproven; treat downstream Isp/thrust as optimistic until checked against a real high-pressure-pump analog.",
-"[turbopump] Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (Ni-Cu) (medium strength class) is under-strength for the housings/impellers - real staged-combustion turbopumps use HIP powder-metallurgy superalloys.; Cronidur 30 (15Cr-N stainless): bearing DN 1,971,748 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"required pump discharge dP (~90 MPa) exceeds ~55 MPa, beyond real flight-turbopump historical practice [SP-8107 Tables V-VI] - the pump is being solved to deliver this dP anyway (this tool has no independent pump-performance ceiling), but real hardware delivering this flow at this pressure is unproven; treat downstream Isp/thrust as optimistic until checked against a real high-pressure-pump analog.",
+"Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 7,613 rpm instead of its specific-speed optimum 11,869 rpm - a larger, heavier, less efficient pump. About 1.9 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
+"[turbopump] Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (Ni-Cu) (medium strength class) is under-strength for the housings/impellers - real staged-combustion turbopumps use HIP powder-metallurgy superalloys.",
 "Coaxial swirl / shear coaxial is unusual for LOX/RP-1; it's typically used for LOX/LH2. Efficiency numbers may be optimistic."
 ]
 }

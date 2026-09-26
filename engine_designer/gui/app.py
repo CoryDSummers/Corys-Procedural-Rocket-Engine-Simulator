@@ -1034,8 +1034,8 @@ class EngineDesignerApp:
 
         self.suction_limit_var = tk.BooleanVar(value=self.design.enforce_suction_limit)
         ttk.Checkbutton(tcb,
-                         text="Enforce suction-specific-speed limit (NPSH required, not "
-                              "available - no tank model)",
+                         text="Enforce suction-specific-speed limit (legacy suction model "
+                              "only - extra stages vs historical NPSH)",
                          variable=self.suction_limit_var, command=self._on_control_change).grid(
             row=tc_row, column=0, columnspan=2, sticky="w")
         tc_row += 1
@@ -1043,11 +1043,47 @@ class EngineDesignerApp:
         # model): 0 = not limiting; > 0 caps that pump's rpm at its suction-
         # specific-speed limit (bigger impeller, lower efficiency).
         self.npsh_fuel_var = tk.DoubleVar(value=self.design.npsh_available_fuel_ft)
-        tc_row = self._add_slider(tcb, tc_row, "Fuel pump inlet NPSH available [ft] (0 = not limiting)",
+        tc_row = self._add_slider(tcb, tc_row, "Fuel pump NPSH available OVERRIDE [ft] (0 = computed)",
                                    self.npsh_fuel_var, 0.0, 300.0, decimals=0)
         self.npsh_ox_var = tk.DoubleVar(value=self.design.npsh_available_ox_ft)
-        tc_row = self._add_slider(tcb, tc_row, "Ox pump inlet NPSH available [ft] (0 = not limiting)",
+        tc_row = self._add_slider(tcb, tc_row, "Ox pump NPSH available OVERRIDE [ft] (0 = computed)",
                                    self.npsh_ox_var, 0.0, 300.0, decimals=0)
+        # Pump suction (turbopump Round 1, design/suction_stage.py): tank ->
+        # liquid head -> suction line -> optional boost pump -> NPSH available;
+        # each pump's rpm is capped at its inducer suction limit. "legacy" = the
+        # pre-Round-1 model (flat 0.3 MPa inlet, only the override above).
+        tc_row = self._add_dropdown(tcb, tc_row, "Pump suction model", "suction_model_var",
+                                    ["computed", "legacy"], self.design.suction_model)
+        self.tank_p_fuel_var = tk.DoubleVar(value=self.design.tank_pressure_fuel_pa / 1e5)
+        tc_row = self._add_slider(tcb, tc_row, "Fuel tank pressure [bar] (0 = auto, 3 bar net)",
+                                   self.tank_p_fuel_var, 0.0, 10.0, decimals=2)
+        self.tank_p_ox_var = tk.DoubleVar(value=self.design.tank_pressure_ox_pa / 1e5)
+        tc_row = self._add_slider(tcb, tc_row, "Ox tank pressure [bar] (0 = auto, 3 bar net)",
+                                   self.tank_p_ox_var, 0.0, 10.0, decimals=2)
+        self.prop_t_fuel_var = tk.DoubleVar(value=self.design.propellant_temp_fuel_k)
+        tc_row = self._add_slider(tcb, tc_row, "Fuel inlet temperature [K] (0 = auto: NBP / 293 K)",
+                                   self.prop_t_fuel_var, 0.0, 400.0, decimals=1)
+        self.prop_t_ox_var = tk.DoubleVar(value=self.design.propellant_temp_ox_k)
+        tc_row = self._add_slider(tcb, tc_row, "Ox inlet temperature [K] (0 = auto: NBP / 293 K)",
+                                   self.prop_t_ox_var, 0.0, 400.0, decimals=1)
+        self.suc_head_fuel_var = tk.DoubleVar(value=self.design.suction_head_fuel_m)
+        tc_row = self._add_slider(tcb, tc_row, "Fuel liquid head above pump [m]",
+                                   self.suc_head_fuel_var, 0.0, 60.0, decimals=1)
+        self.suc_head_ox_var = tk.DoubleVar(value=self.design.suction_head_ox_m)
+        tc_row = self._add_slider(tcb, tc_row, "Ox liquid head above pump [m]",
+                                   self.suc_head_ox_var, 0.0, 60.0, decimals=1)
+        self.suc_accel_var = tk.DoubleVar(value=self.design.suction_accel_g)
+        tc_row = self._add_slider(tcb, tc_row, "Vehicle acceleration on the head [g]",
+                                   self.suc_accel_var, 0.0, 6.0, decimals=2)
+        self.suc_line_var = tk.DoubleVar(value=self.design.suction_line_length_m)
+        tc_row = self._add_slider(tcb, tc_row, "Tank-to-pump suction line length [m] (0 = none)",
+                                   self.suc_line_var, 0.0, 30.0, decimals=1)
+        self.boost_fuel_var = tk.DoubleVar(value=self.design.boost_pump_rise_fuel_pa / 1e5)
+        tc_row = self._add_slider(tcb, tc_row, "Fuel boost pump rise [bar] (0 = none)",
+                                   self.boost_fuel_var, 0.0, 60.0, decimals=1)
+        self.boost_ox_var = tk.DoubleVar(value=self.design.boost_pump_rise_ox_pa / 1e5)
+        tc_row = self._add_slider(tcb, tc_row, "Ox boost pump rise [bar] (0 = none)",
+                                   self.boost_ox_var, 0.0, 60.0, decimals=1)
         # Staged-combustion preburner temperatures - design INPUTS; the turbine PR
         # (hence pump discharge) is solved from them (staged_combustion.py). 0 = the
         # propellant pair's default. Ignored by non-staged cycles.
@@ -1781,6 +1817,17 @@ class EngineDesignerApp:
             self.design.enforce_suction_limit = bool(self.suction_limit_var.get())
             self.design.npsh_available_fuel_ft = max(0.0, float(self.npsh_fuel_var.get()))
             self.design.npsh_available_ox_ft = max(0.0, float(self.npsh_ox_var.get()))
+            self.design.suction_model = self.suction_model_var.get() or "computed"
+            self.design.tank_pressure_fuel_pa = max(0.0, float(self.tank_p_fuel_var.get())) * 1e5
+            self.design.tank_pressure_ox_pa = max(0.0, float(self.tank_p_ox_var.get())) * 1e5
+            self.design.propellant_temp_fuel_k = max(0.0, float(self.prop_t_fuel_var.get()))
+            self.design.propellant_temp_ox_k = max(0.0, float(self.prop_t_ox_var.get()))
+            self.design.suction_head_fuel_m = max(0.0, float(self.suc_head_fuel_var.get()))
+            self.design.suction_head_ox_m = max(0.0, float(self.suc_head_ox_var.get()))
+            self.design.suction_accel_g = max(0.0, float(self.suc_accel_var.get()))
+            self.design.suction_line_length_m = max(0.0, float(self.suc_line_var.get()))
+            self.design.boost_pump_rise_fuel_pa = max(0.0, float(self.boost_fuel_var.get())) * 1e5
+            self.design.boost_pump_rise_ox_pa = max(0.0, float(self.boost_ox_var.get())) * 1e5
             self.design.preburner_tin_k = max(0.0, float(self.pb_tin_fr_var.get()))
             self.design.ox_preburner_tin_k = max(0.0, float(self.pb_tin_or_var.get()))
             self.design.turbine_exhaust_mode = self.te_mode_display_to_key.get(
@@ -2476,6 +2523,20 @@ class EngineDesignerApp:
                     f"Bearings ({sizing['bearing_material_display']}): fuel DN "
                     f"{sizing['fuel_bearing_dn']:,.0f} / ox DN {sizing['ox_bearing_dn']:,.0f} mm*rpm "
                     f"(engineering-estimate limits, not literature-sourced - see ASSUMPTIONS.md)")
+                for _nm, _leg in (("Fuel", "fuel"), ("Ox", "ox")):
+                    _su = (result.get("suction") or {}).get(_leg)
+                    if not _su:
+                        continue
+                    _pp = fp if _leg == "fuel" else op
+                    tp_lines.append(
+                        f"{_nm} suction ({_su['propellant'] or _leg} @ {_su['t_k']:.1f} K, p_v "
+                        f"{_su['p_vapor_pa'] / 1e3:.0f} kPa): inlet {_su['p_inlet_pa'] / 1e5:.2f} bar"
+                        + (f" + boost {_su['boost']['rise_pa'] / 1e5:.1f} bar "
+                           f"({_su['boost']['n_rpm']:,.0f} rpm)" if _su['boost'] else "")
+                        + f"; NPSH available {_su['npsh_available_ft']:.0f} ft"
+                        + (" (override)" if _su['npsh_override'] else "")
+                        + f" vs required {_pp.get('npsh_required_ft', 0.0):.0f} ft "
+                        f"(TSH {_su['tsh_ft']:.0f} ft, inducer Ss {_su['ss_water']:,.0f})")
                 for _nm, _pp in (("Fuel", fp), ("Ox", op)):
                     if _pp.get("suction_limited"):
                         tp_lines.append(
@@ -2491,8 +2552,8 @@ class EngineDesignerApp:
                 if self.design.enforce_suction_limit:
                     tp_lines.append(
                         f"NPSH required: fuel ~{fp['npsh_required_ft']:.0f} ft / "
-                        f"ox ~{op['npsh_required_ft']:.0f} ft (REQUIRED, not available - "
-                        f"this tool has no tank/vapor-pressure model)")
+                        f"ox ~{op['npsh_required_ft']:.0f} ft (legacy model: REQUIRED vs the "
+                        f"historical class anchor)")
                 tp_lines.append(
                     f"Assembly: ~{sizing['assembly_length_m']:.2f} x {sizing['assembly_od_m']:.2f} m, "
                     f"{sizing['mass_kg']*sizing['mass_modifier']:.0f} kg "
@@ -2644,6 +2705,17 @@ class EngineDesignerApp:
         self.suction_limit_var.set(bool(d.enforce_suction_limit))
         self.npsh_fuel_var.set(d.npsh_available_fuel_ft)
         self.npsh_ox_var.set(d.npsh_available_ox_ft)
+        self.suction_model_var.set(d.suction_model)
+        self.tank_p_fuel_var.set(d.tank_pressure_fuel_pa / 1e5)
+        self.tank_p_ox_var.set(d.tank_pressure_ox_pa / 1e5)
+        self.prop_t_fuel_var.set(d.propellant_temp_fuel_k)
+        self.prop_t_ox_var.set(d.propellant_temp_ox_k)
+        self.suc_head_fuel_var.set(d.suction_head_fuel_m)
+        self.suc_head_ox_var.set(d.suction_head_ox_m)
+        self.suc_accel_var.set(d.suction_accel_g)
+        self.suc_line_var.set(d.suction_line_length_m)
+        self.boost_fuel_var.set(d.boost_pump_rise_fuel_pa / 1e5)
+        self.boost_ox_var.set(d.boost_pump_rise_ox_pa / 1e5)
         self.pb_tin_fr_var.set(d.preburner_tin_k)
         self.pb_tin_or_var.set(d.ox_preburner_tin_k)
         self.te_mode_var.set(turbine_exhaust.MODE_LABELS[

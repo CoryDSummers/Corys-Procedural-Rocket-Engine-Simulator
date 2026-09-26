@@ -392,17 +392,19 @@ open item if ever needed.
   shaft rule (F-1 vs J-2). Anchored so the J-2 LH2 pump comes out ~7 stages. Spot-checked
   in `physics/validate.py::run_turbopump_sizing_check()` against real J-2 / F-1 / RD-0110
   rotor & tip speeds with wide (factor ~2-3) bands.
-- **NPSH / cavitation / suction specific speed**: still NOT modelled - so the 1-D sizing
-  above over-predicts rotor speed for extreme high-head pumps a real designer slows with
-  extra axial stages for cavitation margin. `[SP-8107 §2.1.1.2, §2.2.1]` has the framework
-  if a real NPSH model is ever added. **Update**: `[SP-8109 §3.2.1.2]` now gives this a real
-  citation — the pending NPSH/suction-specific-speed feature plan's `NSS_TARGET_US
-  ["lox_class"] = 40_000.0` seed value matches this monograph's integral-inducer
-  recommendation exactly (though `[SP-8109]` frames 40,000 as a general inducer-equipped
-  limit, not LOX-specific, and gives no separate LH2-class number — the plan's `lh2_class:
-  58_000.0` still rests on the F-1/J-2 two-anchor derivation, not this source). The
-  3.0/2.3/1.3 NPSH-margin-factor-by-propellant-class numbers above are new and have no
-  counterpart in `turbopump_sizing.py` yet.
+- **NPSH / cavitation / suction specific speed: MODELLED since turbopump Round 1
+  (2026-09-26)** - `physics/inducer.py` + `design/suction_stage.py`:
+  - NPSH required = the `[SP-8052 §2.1.3]` Brumfield inducer at a design K back-solved to
+    `[SP-8109 §3.2.1.2]`'s 40,000 recommended Ss, less the `[SP-8052 eq. 54]` tip-clearance
+    loss, minus a TSH credit (`[SP-8052 §2.1.4]` F-1 LOX / J-2 LH2 anchors scaled with
+    vapor pressure), floored at SP-8109's 2.3 (LOX) / 1.3 (LH2) / 3.0 c_m²/2g.
+  - NPSH available = tank pressure + liquid head - suction line (`[SP-8052 eq. 57]`
+    velocity limit) + optional boost pump - vapor pressure (Round 0 saturation table).
+  - Each pump's rpm is capped where the two meet (exact inversion). Validated against all
+    `[SP-8107 Table II]` pumps (the table's suction columns are now in the SP-8107 source
+    note); F-1 LOX sits at 0.92 of the cap, J-2 LOX 0.88, J-2 LH2 0.86.
+  - Still open (OPEN_QUESTIONS): TSH for CH4/N2O4, TSH speed scaling, storable vapor
+    pressure, RD-180 boost pressures; the speed a designer CHOOSES below the cap (Round 2).
 - **Bearing DN Tier-3 estimate now has a real citation**: `[SP-8048 §3.1.2]`'s 1.0×10⁶/
   3.0×10⁶ DN bands are noticeably **more permissive** than `turbopump_materials.py`'s current
   flagged-estimate `max_dn_mm_rpm` values (~1.2M–2.4M) — either the tool's numbers are

@@ -255,6 +255,27 @@ into that and makes no claims about it.
     RP-1 via n-dodecane). N2O4 (≈ 1 atm at room temperature, the one that matters for NPSH),
     MMH, UDMH, N2H4 and H2O2 need a cited vapor-pressure curve before Round 1's NPSH model
     covers them. Look first at `[Sutton]` Ch. 7 propellant tables and `[Huzel]`.
+    **Round 1 (2026-09-26) status:** the computed suction model takes their vapor pressure as
+    ZERO (NPSH available optimistic, said so on the checklist row) until a curve is baked.
+  - **Pump-suction model follow-ups (2026-09-26, turbopump Round 1).** Wanted:
+    - **TSH for CH4 and N2O4.** `inducer.TSH_ANCHORS` has only `[SP-8052]`'s F-1 LOX
+      (11 ft) and J-2 LH2 (250 ft). SP-8052 names N2O4 as a thermodynamic-effect fluid and
+      methane surely is one; both get 0 today (conservative). A methalox inducer TSH or a
+      Ruggeri-Moore B-factor dataset with constants would close it.
+    - **TSH speed scaling.** SP-8052 says TSH "rises with rpm at fixed phi" but gives no
+      exponent; the model scales with vapor pressure only.
+    - **RD-180 boost-pump pressures.** The corpus RD-180's LOX pump is now suction-limited on
+      the default inlet (its staged balance already did not close: margin 0.91 -> 0.86). The
+      real engine has LOX and kerosene boost pumps, but claude_lit has no RD-180 inlet /
+      boost-discharge pressures (KBKhA covers only the RD-0110/RD-0124).
+    - **Model rotor speeds sit below real on high-pressure pumps.** The Ns-optimum speed
+      (flat stage Ns 2,200) gives the RS-25 HPOTP 13.4k vs the real 22.2k rpm and Merlin
+      ~22k vs ~36k class; the suction cap can only lower it. `validate` PUMP SUCTION (g)
+      shows the cap itself is right at the REAL HPOTP speed (exceeded at 100 psia, satisfied
+      at the boosted 380 psia). A later round (pump meanline, Round 2) owns the speed choice.
+    - **Legacy `NSS_TARGET_US["lh2_class"]` error.** It was back-solved with the J-2 LH2 pump
+      at 3,000 gpm; `[SP-8107 Table II]` gives 8,530 gpm (Ss at NPSH_crit ~98,000). Kept only
+      on the legacy path for bit-identity.
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
@@ -313,7 +334,10 @@ Real citations now exist for the following, but no `engine_designer/ASSUMPTIONS.
 edit has actually been made — `claude_lit`'s standing rule is "report-only, propose no
 edits," so these are sitting in topic-file prose waiting for whoever next touches the code.
 
-- **NPSH/suction-specific-speed feature plan** (see the historical plan file's
+- **RESOLVED 2026-09-26 (turbopump Round 1): the 40,000 limit and the 3.0/2.3/1.3 Z factors
+  are now used directly** (`inducer.DESIGN_CAVITATION_NUMBER` back-solved to 40,000;
+  `inducer.Z_MIN`), validated against SP-8107 Table II. Original note:
+  **NPSH/suction-specific-speed feature plan** (see the historical plan file's
   `NSS_TARGET_US["lox_class"] = 40_000.0` seed value): now has a direct real-criterion
   citation, `[SP-8109 §3.2.1.2]` — *"For a pump with an integral inducer, maximum suction
   specific speed of 40,000 for the inducer is recommended. Without an integral inducer,

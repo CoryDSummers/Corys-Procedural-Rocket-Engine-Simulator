@@ -12,7 +12,6 @@ from .constants import (
     LINE_LOSS_PA,
     FEED_LOSS_OVER_PC,
     FEED_LOSS_SCALED_CYCLES,
-    TANK_HEAD_PA,
     GG_PRESSURE_RATIO,
     EXPANDER_TURBINE_PR,
     GG_GAS_PROPERTIES,
@@ -167,8 +166,11 @@ def turbomachinery_cycle(self, s):
     else:
         eff_staging = self.turbine_staging
     s.eta_pf = s.eta_po = s.eta_turb = 0.0   # derived per turbopump cycle branch below
-    s._suction_kw = dict(npsh_available_fuel_ft=max(0.0, float(self.npsh_available_fuel_ft or 0.0)),
-                       npsh_available_ox_ft=max(0.0, float(self.npsh_available_ox_ft or 0.0)))
+    # s._suction_kw / s.pump_inlet_pa / s.boost_drive_dp: suction_stage.pump_suction
+    # (the per-leg main-pump inlet pressure every dP below starts from, and the
+    # boost-pump drive head charged to each pump's POWER, never its discharge).
+    _in_f, _in_o = s.pump_inlet_pa["fuel"], s.pump_inlet_pa["ox"]
+    _bd_f, _bd_o = s.boost_drive_dp["fuel"], s.boost_drive_dp["ox"]
     # The EFFECTIVE shaft arrangement: pumps on one shaft share its speed
     # (turbopump_sizing.size_pump_pair) in the power balance AND the sizing.
     s.tp_arrangement = ("electric" if self.cycle == cycles.ELECTRIC_PUMP else
@@ -180,22 +182,22 @@ def turbomachinery_cycle(self, s):
                      staging_info=s.turbine_staging_info)
 
     if self.cycle == cycles.GAS_GENERATOR:
-        s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - TANK_HEAD_PA
-        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - TANK_HEAD_PA
+        s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - _in_f
+        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - _in_o
         # Turbine PR: the flat cap, unless the exhaust's back pressure leaves
         # less (physics/turbine_exhaust.py).
         _pr = _exhaust_back_pressure(self, s, s.gg_gas["gamma"],
                                      turbine_exhaust.GG_TURBINE_INLET_PC_FRACTION,
                                      GG_PRESSURE_RATIO)
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_efficiencies(
-            s.mdot, self.mixture_ratio, s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox,
+            s.mdot, self.mixture_ratio, s.dp_fuel + _bd_f, s.dp_ox + _bd_o, s.rho_fuel, s.rho_ox,
             self.turbopump_material_key, eff_staging, s.gg_gas["tin_k"], s.gg_gas["cp"],
             s.gg_gas["gamma"], _pr, _pr, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
             enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw, **s._arr_kw)
         s.cyc = cycles.gas_generator_result(
-            s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
+            s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel + _bd_f, s.dp_ox + _bd_o,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
             s.gg_gas["tin_k"], s.gg_gas["cp"], s.eta_turb, _pr, s.gg_gas["gamma"],
             GG_DUMP_ISP_FRACTION, cycle_name=cycles.GAS_GENERATOR,
@@ -212,8 +214,8 @@ def turbomachinery_cycle(self, s):
                f"OK - {s.cyc['gg_flow_fraction']*100:.1f}% flow fraction")
 
     elif self.cycle == cycles.TAP_OFF:
-        s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - TANK_HEAD_PA
-        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - TANK_HEAD_PA
+        s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - _in_f
+        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - _in_o
         # Tapped gas = main-chamber combustion products, film-cooled to a
         # turbine-tolerable temperature (NOT the fuel-rich GG mix).
         tap_tin_k = min(s.tc * TAP_OFF_TEMP_FRACTION, TAP_OFF_TURBINE_LIMIT_K)
@@ -223,14 +225,14 @@ def turbomachinery_cycle(self, s):
                                      turbine_exhaust.TAP_OFF_TURBINE_INLET_PC_FRACTION,
                                      TAP_OFF_PRESSURE_RATIO)
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_efficiencies(
-            s.mdot, self.mixture_ratio, s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox,
+            s.mdot, self.mixture_ratio, s.dp_fuel + _bd_f, s.dp_ox + _bd_o, s.rho_fuel, s.rho_ox,
             self.turbopump_material_key, eff_staging, tap_gas["tin_k"], tap_gas["cp"],
             tap_gas["gamma"], _pr, _pr, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
             enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw, **s._arr_kw)
         s.cyc = cycles.gas_generator_result(
-            s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
+            s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel + _bd_f, s.dp_ox + _bd_o,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
             tap_gas["tin_k"], tap_gas["cp"], s.eta_turb, _pr, tap_gas["gamma"],
             TAP_OFF_DUMP_ISP_FRACTION, cycle_name=cycles.TAP_OFF,
@@ -267,11 +269,12 @@ def turbomachinery_cycle(self, s):
         staged_balance = staged_combustion.solve_staged_power_balance(
             self.cycle, self.propellant_pair, s.mdot, self.mixture_ratio, s.pc_feed,
             s.dp_injector_fuel, s.dp_injector_ox, s.jacket_dp_pa, s.line_loss_fuel_pa,
-            s.line_loss_ox_pa, TANK_HEAD_PA, s.rho_fuel, s.rho_ox,
+            s.line_loss_ox_pa, (_in_f, _in_o), s.rho_fuel, s.rho_ox,
             s.injector.dp_over_pc_nominal,   # preburner injector: same dP/P rule as the main one
             _staged_eff,
             tin_fuel_rich_k=max(0.0, float(self.preburner_tin_k or 0.0)),
-            tin_ox_rich_k=max(0.0, float(self.ox_preburner_tin_k or 0.0)))
+            tin_ox_rich_k=max(0.0, float(self.ox_preburner_tin_k or 0.0)),
+            boost_drive_dp_pa=(_bd_f, _bd_o))
         s.dp_fuel = staged_balance["dp_fuel_pa"]
         s.dp_ox = staged_balance["dp_ox_pa"]
         s.eta_pf = staged_balance["eta_pump_fuel"]
@@ -342,8 +345,8 @@ def turbomachinery_cycle(self, s):
         # discharge: turbine exit = injector inlet, turbine inlet = exit x PR
         # [SP-8107 3.1.1.1; RL10 fuel discharge ~2.5 x Pc, SP-8107 p.25].
         s.dp_fuel = ((s.pc_feed + s.dp_injector_fuel) * EXPANDER_TURBINE_PR + s.jacket_dp_pa
-                   + s.line_loss_fuel_pa - TANK_HEAD_PA)
-        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - TANK_HEAD_PA
+                   + s.line_loss_fuel_pa - _in_f)
+        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - _in_o
         # Needs the nozzle profile for cooled-area, so this is computed further down
         # (after geo/profile) and cyc is filled in there; placeholder for now.
         s.cyc = None
@@ -373,17 +376,17 @@ def turbomachinery_cycle(self, s):
         # Pc-based (no preburner boost). cyc is built provisionally here so the
         # turbopump sizing has something to work with; it is rebuilt with the
         # real burn time (for the battery) after rated_burn_time_s is known.
-        s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - TANK_HEAD_PA
-        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - TANK_HEAD_PA
+        s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - _in_f
+        s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - _in_o
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_efficiencies(
-            s.mdot, self.mixture_ratio, s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox,
+            s.mdot, self.mixture_ratio, s.dp_fuel + _bd_f, s.dp_ox + _bd_o, s.rho_fuel, s.rho_ox,
             self.turbopump_material_key, eff_staging, 300.0, 1000.0, 1.3,
             2.0, 2.0, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
             enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw, **s._arr_kw)
         s.cyc = electric_pump.electric_pump_result(
-            s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
+            s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel + _bd_f, s.dp_ox + _bd_o,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
             BASE_RATED_BURN_TIME_S)
         s.isp_vac_eng = s.isp_vac_chamber

@@ -788,6 +788,49 @@ def run_pressure_loss_pa(resolved, hook, viscosity_pa_s):
     return sum(parts.values()), parts
 
 
+# --- tank-to-pump suction line (turbopump Round 1) ---------------------------
+# A straight, lumped duct - no drawn geometry until the exterior track (E1) adds
+# a suction host. Sized at a fraction of the [SP-8052 §3.3.2 eq. 57] inlet-line
+# velocity limit: v < sqrt(2g NPSH_tank / 3) for every propellant but LH2, and
+# 10-15 % below sqrt(2g NPSH_tank) for LH2 (its TSH lets the inducer swallow
+# nearly the full tank NPSH). Tier 3: the 0.8 fraction and the minor-loss K
+# (sharp tank outlet 0.5 + an open prevalve / anti-vortex fittings ~0.5).
+SUCTION_LINE_VELOCITY_OF_LIMIT = 0.8
+SUCTION_LINE_LH2_LIMIT_FRACTION = 0.875
+SUCTION_LINE_MINOR_K = 1.0
+
+
+def suction_line_velocity_limit_ms(npsh_tank_m, lh2=False):
+    """[SP-8052 eq. 57] maximum suction-line velocity for the tank NPSH (m)."""
+    if npsh_tank_m <= 0:
+        return 0.0
+    g = 9.80665
+    return (SUCTION_LINE_LH2_LIMIT_FRACTION * math.sqrt(2.0 * g * npsh_tank_m) if lh2
+            else math.sqrt(2.0 * g * npsh_tank_m / 3.0))
+
+
+def suction_line_loss_pa(mdot_kgs, rho_kg_m3, npsh_tank_m, length_m, viscosity_pa_s,
+                         lh2=False):
+    """Static-pressure loss of the tank-to-pump line: Darcy friction
+    (cooling._darcy_friction, PIPE_ROUGHNESS_M) + SUCTION_LINE_MINOR_K, the bore
+    set so the line runs at SUCTION_LINE_VELOCITY_OF_LIMIT x the SP-8052
+    velocity limit. Returns (loss_pa, {"bore_m", "velocity_ms", "v_limit_ms"});
+    zero loss for no line (length 0) or no tank NPSH to size it against."""
+    info = {"bore_m": 0.0, "velocity_ms": 0.0, "v_limit_ms": 0.0}
+    if length_m <= 0 or mdot_kgs <= 0 or rho_kg_m3 <= 0:
+        return 0.0, info
+    v_lim = suction_line_velocity_limit_ms(npsh_tank_m, lh2)
+    info["v_limit_ms"] = v_lim
+    if v_lim <= 0:
+        return 0.0, info
+    v = SUCTION_LINE_VELOCITY_OF_LIMIT * v_lim
+    bore = math.sqrt(4.0 * mdot_kgs / (rho_kg_m3 * v * math.pi))
+    re = rho_kg_m3 * v * bore / viscosity_pa_s if viscosity_pa_s > 0 else 1e7
+    f = _darcy_friction(re, bore, PIPE_ROUGHNESS_M)
+    info.update(bore_m=bore, velocity_ms=v)
+    return (f * length_m / bore + SUCTION_LINE_MINOR_K) * 0.5 * rho_kg_m3 * v * v, info
+
+
 def seed_route_to_port(hook, port, ring_center_r_m, ring_tube_r_m, host="jacket_inlet",
                        bend_radius_dia_mult=1.0):
     """The Shape Lab's "Route to pump" seed: an editable, orthogonal run from

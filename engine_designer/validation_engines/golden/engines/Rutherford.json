@@ -397,6 +397,18 @@
 },
 {
 "category": "turbopump",
+"detail": "OK - 124 ft available vs 94 ft required at 163,714 rpm (TSH credit 0 ft)",
+"name": "Fuel pump suction (NPSH)",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 93,038 rpm instead of its specific-speed optimum 121,737 rpm - a larger, heavier, less efficient pump. About 1.0 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
+"name": "Ox pump suction (NPSH)",
+"passed": false
+},
+{
+"category": "turbopump",
 "detail": "OK - geared, 0 turbine(s), peak tip speed within Inconel 718 (nickel superalloy) limit",
 "name": "Turbopump sizing / material feasibility",
 "passed": true
@@ -502,7 +514,7 @@
 "__f__": "0.9963814956044865"
 },
 "computed_dry_mass_kg": {
-"__f__": "100.68521062812368"
+"__f__": "100.83665681540654"
 },
 "convergent_half_angle_deg": {
 "__f__": "30.0"
@@ -2963,14 +2975,14 @@
 },
 "cycle_result": {
 "battery_mass_kg": {
-"__f__": "48.443725104024196"
+"__f__": "48.519330198234194"
 },
 "cycle": "electric_pump",
 "electrical_energy_j": {
-"__f__": "34879482.07489742"
+"__f__": "34933917.74272862"
 },
 "electrical_power_w": {
-"__f__": "278693.98181615013"
+"__f__": "279128.9336020775"
 },
 "gg_dump_isp_fraction": {
 "__f__": "1.0"
@@ -2983,7 +2995,7 @@
 },
 "has_turbopump": true,
 "motor_mass_kg": {
-"__f__": "27.869398181615015"
+"__f__": "27.912893360207747"
 },
 "required_tank_pressure_pa": null,
 "turbine_specific_work_j_kg": {
@@ -3000,13 +3012,13 @@
 "__f__": "111960.63663322592"
 },
 "power_ox_w": {
-"__f__": "136745.87273950645"
+"__f__": "137134.02371326802"
 },
 "power_total_w": {
-"__f__": "248706.50937273237"
+"__f__": "249094.66034649394"
 },
 "turbopump_mass_kg": {
-"__f__": "6.908514149242566"
+"__f__": "6.919296120735943"
 }
 }
 },
@@ -3210,6 +3222,12 @@
 "bell_percent_length": {
 "__f__": "80.0"
 },
+"boost_pump_rise_fuel_pa": {
+"__f__": "0.0"
+},
+"boost_pump_rise_ox_pa": {
+"__f__": "0.0"
+},
 "chamber_cooling_method": "regenerative",
 "chamber_film_inject_area_ratio": {
 "__f__": "0.0"
@@ -3350,6 +3368,12 @@
 "__f__": "0.0"
 },
 "propellant_pair": "LOX/RP-1",
+"propellant_temp_fuel_k": {
+"__f__": "0.0"
+},
+"propellant_temp_ox_k": {
+"__f__": "0.0"
+},
 "pump_specific_power_w_kg": {
 "__f__": "36000.0"
 },
@@ -3369,6 +3393,25 @@
 },
 "regen_nozzle_end_eps": {
 "__f__": "10.5"
+},
+"suction_accel_g": {
+"__f__": "1.0"
+},
+"suction_head_fuel_m": {
+"__f__": "0.0"
+},
+"suction_head_ox_m": {
+"__f__": "0.0"
+},
+"suction_line_length_m": {
+"__f__": "0.0"
+},
+"suction_model": "computed",
+"tank_pressure_fuel_pa": {
+"__f__": "0.0"
+},
+"tank_pressure_ox_pa": {
+"__f__": "0.0"
 },
 "target_vac_thrust_n": {
 "__f__": "26190.0"
@@ -4047,6 +4090,14 @@
 "pump_discharge_ox_pa": {
 "__f__": "14600000.0"
 },
+"pump_inlet_pa": {
+"fuel": {
+"__f__": "300000.0"
+},
+"ox": {
+"__f__": "300000.0"
+}
+},
 "rated_burn_time_s": {
 "__f__": "125.15333789269569"
 },
@@ -4096,6 +4147,113 @@
 "stay_time_s": {
 "__f__": "0.001322964101688643"
 },
+"suction": {
+"fuel": {
+"boost": null,
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "300000.0"
+},
+"npsh_available_ft": {
+"__f__": "123.90353193312677"
+},
+"npsh_inlet_ft": {
+"__f__": "123.90353193312677"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "123.90353193312677"
+},
+"p_inlet_pa": {
+"__f__": "300000.0"
+},
+"p_tank_pa": {
+"__f__": "300000.0"
+},
+"p_vapor_pa": {
+"__f__": "11.68211227922749"
+},
+"propellant": "RP-1",
+"ss_water": {
+"__f__": "38279.65462514671"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "293.15"
+},
+"tsh_ft": {
+"__f__": "0.0"
+},
+"z_min": {
+"__f__": "3.0"
+}
+},
+"ox": {
+"boost": null,
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "300000.0"
+},
+"npsh_available_ft": {
+"__f__": "58.253488709232464"
+},
+"npsh_inlet_ft": {
+"__f__": "58.253488709232464"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "58.253488709232464"
+},
+"p_inlet_pa": {
+"__f__": "300000.0"
+},
+"p_tank_pa": {
+"__f__": "300000.0"
+},
+"p_vapor_pa": {
+"__f__": "101324.99999999999"
+},
+"propellant": "LOX",
+"ss_water": {
+"__f__": "36657.29291078755"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "90.18795408190961"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
+},
+"z_min": {
+"__f__": "2.3"
+}
+}
+},
+"suction_model": "computed",
 "t_local_at_transition_k": {
 "__f__": "2258.744211027357"
 },
@@ -4571,10 +4729,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.1208381577466143"
+"__f__": "0.1208890805705719"
 },
 {
-"__f__": "0.08199412637766866"
+"__f__": "0.0820009880784227"
 },
 {
 "__f__": "0.0"
@@ -4600,10 +4758,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.1208381577466143"
+"__f__": "0.1208890805705719"
 },
 {
-"__f__": "0.08199412637766866"
+"__f__": "0.0820009880784227"
 },
 {
 "__f__": "-0.014456959411138703"
@@ -4615,10 +4773,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.022901337165564778"
+"__f__": "0.022901337165564764"
 },
 {
-"__f__": "0.167688844386087"
+"__f__": "0.16774026355780394"
 },
 {
 "__f__": "0.0"
@@ -4626,7 +4784,7 @@
 ]
 },
 "dia_m": {
-"__f__": "0.01726339060307518"
+"__f__": "0.018259455881164382"
 },
 "dir": {
 "__nd__": [
@@ -4644,10 +4802,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.009953794213258392"
+"__f__": "0.009206745254691479"
 },
 {
-"__f__": "0.167688844386087"
+"__f__": "0.16774026355780394"
 },
 {
 "__f__": "0.0"
@@ -4661,10 +4819,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.36812862971376437"
+"__f__": "0.36830813266821494"
 },
 {
-"__f__": "0.08199412637766866"
+"__f__": "0.0820009880784227"
 },
 {
 "__f__": "0.0"
@@ -4690,10 +4848,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.36812862971376437"
+"__f__": "0.36830813266821494"
 },
 {
-"__f__": "0.08199412637766866"
+"__f__": "0.0820009880784227"
 },
 {
 "__f__": "0.018170941966644212"
@@ -4705,10 +4863,10 @@
 "base": {
 "__nd__": [
 {
-"__f__": "0.27019180913271484"
+"__f__": "0.2703203892632078"
 },
 {
-"__f__": "0.167688844386087"
+"__f__": "0.16774026355780394"
 },
 {
 "__f__": "0.0"
@@ -4716,7 +4874,7 @@
 ]
 },
 "dia_m": {
-"__f__": "0.023070685537872147"
+"__f__": "0.026689704081032845"
 },
 "dir": {
 "__nd__": [
@@ -4734,10 +4892,10 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.2528887949793107"
+"__f__": "0.25030311120243315"
 },
 {
-"__f__": "0.167688844386087"
+"__f__": "0.16774026355780394"
 },
 {
 "__f__": "0.0"
@@ -4750,10 +4908,10 @@
 "turbopump_sizing": {
 "arrangement": "geared",
 "assembly_length_m": {
-"__f__": "0.8387297792487157"
+"__f__": "0.8391658817139918"
 },
 "assembly_od_m": {
-"__f__": "0.19778283305973338"
+"__f__": "0.1978856714031673"
 },
 "auto_arrangement": "geared",
 "auto_turbine_staging": "pressure_compounded_2stage",
@@ -4764,10 +4922,10 @@
 "center": 0,
 "kind": "pump",
 "length_m": {
-"__f__": "0.19587364116209904"
+"__f__": "0.19597548681001428"
 },
 "od_m": {
-"__f__": "0.17138943601683668"
+"__f__": "0.1714785509587625"
 },
 "x0_m": {
 "__f__": "0.0"
@@ -4777,26 +4935,26 @@
 "center": 0,
 "kind": "pump",
 "length_m": {
-"__f__": "0.19587364116209904"
+"__f__": "0.19597548681001428"
 },
 "od_m": {
-"__f__": "0.17138943601683668"
+"__f__": "0.1714785509587625"
 },
 "x0_m": {
-"__f__": "0.24729047196715007"
+"__f__": "0.24741905209764303"
 }
 },
 {
 "center": 0,
 "kind": "motor",
 "length_m": {
-"__f__": "0.39556566611946664"
+"__f__": "0.3957713428063344"
 },
 "od_m": {
-"__f__": "0.19778283305973338"
+"__f__": "0.1978856714031673"
 },
 "x0_m": {
-"__f__": "0.4431641131292491"
+"__f__": "0.44339453890765734"
 }
 }
 ],
@@ -4804,13 +4962,13 @@
 "__f__": "1.0"
 },
 "eta_overall": {
-"__f__": "0.257438768268266"
+"__f__": "0.25707250407080956"
 },
 "eta_pump_fuel": {
 "__f__": "0.5788333764030326"
 },
 "eta_pump_ox": {
-"__f__": "0.585"
+"__f__": "0.5833441868509212"
 },
 "eta_turbine": {
 "__f__": "0.44239798151160015"
@@ -4837,17 +4995,17 @@
 "__f__": "2588.323511000452"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.01726339060307518"
+"__f__": "0.018259455881164382"
 },
 "n_rpm": {
 "__f__": "163714.2510740059"
 },
 "n_stages": 2,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "123.90353193312677"
 },
 "npsh_required_ft": {
-"__f__": "87.60677850670857"
+"__f__": "94.170127776451"
 },
 "ns_pump_us": {
 "__f__": "1308.1278265029932"
@@ -4857,7 +5015,7 @@
 },
 "nss_class": "lox_class",
 "nss_target_us": {
-"__f__": "40411.0"
+"__f__": "38279.65462514671"
 },
 "q_m3s": {
 "__f__": "0.003152061430217714"
@@ -4867,8 +5025,12 @@
 },
 "shaft_limited": false,
 "suction_limited": false,
+"suction_model": "computed",
 "tip_speed_margin": {
 "__f__": "3.891545145952418"
+},
+"tsh_ft": {
+"__f__": "0.0"
 },
 "u_tip_m_s": {
 "__f__": "159.31975005991123"
@@ -4886,20 +5048,20 @@
 "__f__": "11.296342828396597"
 },
 "mass_kg": {
-"__f__": "20.725542447727697"
+"__f__": "20.75788836220783"
 },
 "mass_modifier": {
 "__f__": "1.0"
 },
 "mass_specific_power_kg": {
-"__f__": "6.908514149242566"
+"__f__": "6.919296120735943"
 },
 "material_display": "Inconel 718 (nickel superalloy)",
 "material_key": "inconel_718",
 "n_bodies": 2,
 "n_turbines": 0,
 "ox_bearing_dn": {
-"__f__": "908353.4198853694"
+"__f__": "760014.9541086558"
 },
 "ox_pump": {
 "auto_stages": 1,
@@ -4907,36 +5069,36 @@
 "__f__": "0.16"
 },
 "d_impeller_m": {
-"__f__": "0.024838130868129613"
+"__f__": "0.032500009198088105"
 },
 "eta": {
-"__f__": "0.585"
+"__f__": "0.5833441868509212"
 },
 "head_m": {
 "__f__": "1277.9966560547218"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.023070685537872147"
+"__f__": "0.026689704081032845"
 },
 "n_rpm": {
-"__f__": "121737.01848896392"
+"__f__": "93037.51202946361"
 },
 "n_stages": 1,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "58.253488709232464"
 },
 "npsh_required_ft": {
-"__f__": "86.51250085506074"
+"__f__": "58.253488709232464"
 },
 "ns_pump_us": {
-"__f__": "2200.0"
+"__f__": "1681.349921374783"
 },
 "ns_us": {
-"__f__": "2200.0"
+"__f__": "1681.349921374783"
 },
 "nss_class": "lox_class",
 "nss_target_us": {
-"__f__": "40411.0"
+"__f__": "36657.29291078755"
 },
 "q_m3s": {
 "__f__": "0.005594149339343445"
@@ -4945,9 +5107,13 @@
 "__f__": "121737.01848896392"
 },
 "shaft_limited": false,
-"suction_limited": false,
+"suction_limited": true,
+"suction_model": "computed",
 "tip_speed_margin": {
 "__f__": "3.9160794580394205"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
 },
 "u_tip_m_s": {
 "__f__": "158.32160880371976"
@@ -4958,7 +5124,7 @@
 "warnings": []
 },
 "ox_shaft_rpm": {
-"__f__": "121737.01848896392"
+"__f__": "93037.51202946361"
 },
 "ox_turbine": null,
 "turbine": null,
@@ -4974,6 +5140,7 @@
 "Inconel 718 Nickel Superalloy: computed wall temp 1733 K EXCEEDS its 1250 K max service temp (Tc 3728 K, regenerative cooling). Marginal/unsuitable as designed. Basis: coupled throat wall balance: gas h_g ~15.4 kW/m2K incl. carbon-deposit credit, T_aw ~3671 K, coolant ~37 m/s (coolant-side wall ~737 K), 0.50 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
 "Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~1737 K, 0.72x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Near the end of active cooling (area ratio ~10.5), estimated jacket/coolant pressure (~20.4 MPa) exceeds local hot-gas static pressure (~0.2 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~2.5 mm channel width, this reversed ~20.2 MPa differential is ~258 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
+"Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 93,038 rpm instead of its specific-speed optimum 121,737 rpm - a larger, heavier, less efficient pump. About 1.0 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
 "Battery + motor (76 kg) is a large fraction of the engine dry mass - electric pump-fed only pays off at small scale / short burn (battery mass scales with burn time). Real electric pump-fed engines (Rutherford) are small and stage their batteries."
 ]
 }
