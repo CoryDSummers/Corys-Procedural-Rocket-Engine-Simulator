@@ -64,7 +64,8 @@ import warnings
 import numpy as np
 
 from .cooling import COOLANT_TRANSPORT, _COOLANT_TRANSPORT_FALLBACK, _darcy_friction
-from .manifold import (MANIFOLD_DENSITY_KG_M3, ring_flow_radius_at, velocity_cap_warning)
+from .manifold import (MANIFOLD_DENSITY_KG_M3, ring_flow_radius_at, ring_is_scroll,
+                       velocity_cap_warning)
 
 KINDS = ("manifold", "pipe")
 ROLES = ("fuel_manifold", "ox_manifold", "coolant_supply_manifold", "coolant_return_manifold",
@@ -151,6 +152,19 @@ ELBOW_K90_BY_RD = ((0.5, 0.9), (1.0, 0.35), (1.5, 0.25), (2.0, 0.2), (5.0, 0.2))
 REDUCER_K_BY_HALF_ANGLE = ((0.0, 0.02), (10.0, 0.05), (15.0, 0.08), (30.0, 0.3),
                            (45.0, 0.5), (90.0, 1.0))
 RING_ENTRY_K = 1.0                 # x the ring's design velocity head (Borda-Carnot split)
+# A TANGENTIAL entry into a scroll ring (manifold.RING_KIND_SCROLL): the duct
+# runs straight on into the scroll's inlet at the scroll's own design velocity
+# - no split, no sudden expansion, so no Borda-Carnot dump. Tier 3 (the scroll's
+# own wall friction round the ring is not modelled, as for the split rings).
+SCROLL_ENTRY_K = 0.0
+# Seeded tangent leg out of a scroll's inlet, x its bore (room for the elbow
+# that turns the duct toward the turbine - the F-1 photo's big elbow). Tier 3.
+SCROLL_SEED_TANGENT_LEG_DIA_MULT = 2.0
+# How a run leaves its ring: "auto" = tangentially off a scroll ring, from the
+# tube surface (poloidal angle) everywhere else; "surface" / "tangential" force
+# one. A tangential root starts at the scroll's inlet face and leaves along the
+# tangent against the flow (manifold ring's attach_direction_xyz).
+ROOT_MODES = ("auto", "surface", "tangential")
 VALVE_AND_UNMODELED_K = 2.0        # main valve + undrawn fittings, x the dynamic head in the
                                    # run's largest-bore pipe (added in design.py per pump leg)
 # Liquid oxidizer dynamic viscosity (Pa.s) at feed conditions; fuel viscosity
@@ -224,6 +238,7 @@ class PlumbingRun:
     connect_to_pump: bool = False       # close the run onto HOST_PUMP[host]'s discharge port
                                         # (two AUTO legs appended by resolve_run)
     port_standoff_dia_mult: float = 2.5  # straight entry into the port, x port bore
+    root_mode: str = "auto"             # ROOT_MODES: how pipe 1 leaves the ring
     pipes: list = field(default_factory=list)   # list[PipeSegment]
 
 
@@ -265,6 +280,9 @@ def run_from_dict(d):
     r.connect_to_pump = bool(r.connect_to_pump)
     r.port_standoff_dia_mult = _clamp(r.port_standoff_dia_mult, PORT_STANDOFF_DIA_MULT_MIN,
                                       PORT_STANDOFF_DIA_MULT_MAX)
+    if r.root_mode not in ROOT_MODES:
+        warnings.warn(f"plumbing: unknown root_mode {r.root_mode!r} - using 'auto'")
+        r.root_mode = "auto"
     if r.connect_to_pump and r.host not in CONNECTABLE_HOSTS:
         warnings.warn(f"plumbing: a {r.host!r} run can't connect to a pump - flag cleared")
         r.connect_to_pump = False
@@ -313,6 +331,26 @@ def root_frame(attach_angle_deg, attach_poloidal_deg):
     return t, n, b
 
 
+def root_is_tangential(run, hook):
+    """Does `run` leave `hook` tangentially (see ROOT_MODES)? Only a scroll
+    ring has a tangential inlet; "tangential" on any other ring falls back to
+    the surface root."""
+    mode = getattr(run, "root_mode", "auto")
+    return ring_is_scroll(hook) and mode in ("auto", "tangential")
+
+
+def tangential_root_frame(hook, attach_angle_deg):
+    """(t, n, b) at a scroll's inlet face: t = the ring tangent against the
+    flow (the duct's direction away from the ring), n = -x (forward, the same
+    'pitch +90 turns forward' convention as root_frame at poloidal 0),
+    b = t x n."""
+    th = math.radians(attach_angle_deg)
+    sd = 1.0 if hook.get("scroll_dir", 1) >= 0 else -1.0
+    t = np.array([0.0, sd * math.sin(th), -sd * math.cos(th)])
+    n = np.array([-1.0, 0.0, 0.0])
+    return t, n, np.cross(t, n)
+
+
 def _corner_trim(bend_radius_m, d_in, d_out, len_in, len_out):
     """fillet_polyline's trim-back distance for one corner, whether it had to
     be clamped (= the adjacent straight is too short for that elbow), and the
@@ -333,7 +371,10 @@ def _corner_trim(bend_radius_m, d_in, d_out, len_in, len_out):
 
 def _root_flow_radius_m(hook, attach_angle_deg):
     """The ring's local flow radius where a run leaves it (tapered header
-    rings are fattest at their inlet) - what the root reducer starts from."""
+    rings are fattest at their inlet) - what the root reducer starts from. A
+    scroll's run always leaves at its inlet (the scroll turns to the run)."""
+    if ring_is_scroll(hook):
+        return float(hook["inlet_flow_radius_m"])
     if "inlet_flow_radius_m" in hook:
         return float(ring_flow_radius_at(hook, attach_angle_deg))
     return float(hook.get("flow_radius_m", float(hook["inner_diameter_m"]) / 2.0))
@@ -400,11 +441,22 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
     th = math.radians(run.attach_angle_deg)
     x0 = float(hook["attach_axial_station_m"])
     centre = np.array([x0, ring_center_r_m * math.cos(th), ring_center_r_m * math.sin(th)])
-    t, n, b = root_frame(run.attach_angle_deg, run.attach_poloidal_deg)
-    surface = centre + ring_tube_r_m * t
+    tangential = root_is_tangential(run, hook)
+    if tangential:
+        # pipe 1 starts AT the scroll's inlet face, on its centreline
+        t, n, b = tangential_root_frame(hook, run.attach_angle_deg)
+        root_off = 0.0
+    else:
+        t, n, b = root_frame(run.attach_angle_deg, run.attach_poloidal_deg)
+        root_off = ring_tube_r_m
+    surface = centre + root_off * t
 
     advisories = []
-    if 90.0 < run.attach_poloidal_deg < 270.0:
+    if ring_is_scroll(hook) and not tangential:
+        advisories.append(f"Run on {run.host}: a radial T into a tangential scroll manifold - "
+                          "real scrolls (F-1/J-2) are fed tangentially; 'Route to pump' "
+                          "re-seeds a tangential entry.")
+    if not tangential and 90.0 < run.attach_poloidal_deg < 270.0:
         advisories.append(f"Run on {run.host}: poloidal attach angle {run.attach_poloidal_deg:.0f} deg "
                           "points the pipe inward, toward the chamber wall.")
 
@@ -500,7 +552,7 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
         r_out = radii[k]
         if abs(r_out - r_in) <= 1e-6 * max(r_out, r_in, 1e-12):
             continue
-        start_off = ring_tube_r_m if k == 0 else trims[k - 1]
+        start_off = root_off if k == 0 else trims[k - 1]
         avail = max(seg_lens[k] - start_off - (trims[k] if k < n_pipes - 1 else 0.0), 0.0)
         want = REDUCER_LENGTH_DIA_MULT * 2.0 * max(r_in, r_out)
         length = min(want, avail)
@@ -563,7 +615,7 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
                        "flange": bool(pipes[k].flange_at_end), "r_m": radii[k],
                        "flange_dims": fl_k})
 
-    total_length = float(seg_lens.sum() - ring_tube_r_m) if n_pipes else 0.0
+    total_length = float(seg_lens.sum() - root_off) if n_pipes else 0.0
     return {
         "waypoints_xyz": waypoints,
         "bend_radii_m": bend_radii,
@@ -575,7 +627,8 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
         "root_flow_radius_m": r_root,
         "reducers": reducers,
         "segment_lengths_m": [float(v) for v in seg_lens],
-        "ring_tube_r_m": float(ring_tube_r_m),
+        "ring_tube_r_m": float(root_off),   # pipe 1's hidden start inside the ring
+        "root_tangential": tangential,
         "segment_dirs": dirs,
         "joint_frames": joints,
         "flange": flange,
@@ -730,7 +783,8 @@ def run_pressure_loss_pa(resolved, hook, viscosity_pa_s):
         r_small = min(rd["r_start_m"], rd["r_end_m"])
         parts["reducers_pa"] += _interp_table(REDUCER_K_BY_HALF_ANGLE, half) * _q(r_small)[0]
     v_ring = float(hook.get("design_feed_velocity_ms", 0.0) or 0.0)
-    parts["entry_pa"] = RING_ENTRY_K * 0.5 * rho * v_ring * v_ring
+    k_entry = SCROLL_ENTRY_K if resolved.get("root_tangential") else RING_ENTRY_K
+    parts["entry_pa"] = k_entry * 0.5 * rho * v_ring * v_ring
     return sum(parts.values()), parts
 
 
@@ -747,7 +801,13 @@ def seed_route_to_port(hook, port, ring_center_r_m, ring_tube_r_m, host="jacket_
     chunks), and auto leg A then turns outward to S along a direction square
     to the port axis, leg B into the port - every corner ~90 deg. If S is too
     close to the ring's radius for an inward approach, pipe 1 overshoots it
-    and leg A comes back in instead."""
+    and leg A comes back in instead.
+
+    A SCROLL ring (manifold.RING_KIND_SCROLL) gets the real F-1/J-2 route
+    instead (_seed_scroll_route): tangentially out of the inlet, an elbow
+    pitched toward the port's station, then straight along the axis."""
+    if ring_is_scroll(hook):
+        return _seed_scroll_route(hook, port, ring_center_r_m, host, bend_radius_dia_mult)
     dia = float(hook["inner_diameter_m"])
     run = PlumbingRun(role=HOST_RING_ROLE.get(host, "coolant_supply_manifold"), host=host,
                       connect_to_pump=True)
@@ -775,6 +835,62 @@ def seed_route_to_port(hook, port, ring_center_r_m, ring_tube_r_m, host="jacket_
                                                                 PIPE_LENGTH_DIA_MULT_MAX),
                          bend_radius_dia_mult=bend_radius_dia_mult)]
     dx = float(s_pt[0] - hook["attach_axial_station_m"])
+    if abs(dx) > 2.0 * dia:
+        n_chunks = max(1, math.ceil(abs(dx) / dia / PIPE_LENGTH_DIA_MULT_MAX))
+        for i in range(n_chunks):
+            pipes.append(PipeSegment(
+                role=role_pipe, length_dia_mult=abs(dx) / dia / n_chunks,
+                pitch_deg=(90.0 if dx < 0 else -90.0) if i == 0 else 0.0,
+                bend_radius_dia_mult=bend_radius_dia_mult))
+    run.pipes = pipes
+    return run
+
+
+def _seed_scroll_route(hook, port, ring_center_r_m, host, bend_radius_dia_mult):
+    """seed_route_to_port for a scroll: pipe 1 leaves the inlet along the
+    tangent out to the radius of the port's standoff point S (a tangent line
+    is how a duct gets from the ring out to a larger radius; never shorter
+    than SCROLL_SEED_TANGENT_LEG_DIA_MULT - room for its elbow); pipe 2 turns
+    90 deg toward S's station and runs axially (chunked like the orthogonal
+    seed); the auto legs then close onto the port - leg A a chord of
+    SEED_APPROACH_DIA_MULT x port bore round to S, leg B into the port, every
+    corner ~90 deg. The inlet angle is picked so pipe 1 ends that chord short
+    of S's angle round the engine (theta0 = theta_S + dir x (chord angle +
+    atan(L1 / R))) - the F-1 thrust-chamber photo's heat-exchanger ->
+    manifold route, whatever side of the ring the turbine's port faces."""
+    dia = float(hook["inner_diameter_m"])
+    run = PlumbingRun(role=HOST_RING_ROLE.get(host, "coolant_supply_manifold"), host=host,
+                      connect_to_pump=True, root_mode="auto")
+    role_pipe = HOST_PIPE_ROLE.get(host, "coolant_supply")
+    p_dir = np.asarray(port["dir"], dtype=float)
+    p_dir = p_dir / np.linalg.norm(p_dir)
+    d_port = float(port.get("dia_m") or 0.0) or dia
+    p_pos = np.asarray(port["pos"], dtype=float)
+    s_pt = p_pos + run.port_standoff_dia_mult * d_port * p_dir
+    x0 = float(hook["attach_axial_station_m"])
+    if abs(s_pt[0] - x0) <= 2.0 * dia and abs(p_dir[0]) > 1e-6:
+        # S lands just off the ring's plane (too close for an axial pipe):
+        # pull it INTO the plane when the port faces the ring, so the chord
+        # stays square to both the tangent leg and the port entry
+        k = (x0 - p_pos[0]) / (p_dir[0] * d_port)
+        if PORT_STANDOFF_DIA_MULT_MIN <= k <= PORT_STANDOFF_DIA_MULT_MAX:
+            run.port_standoff_dia_mult = k
+            s_pt = p_pos + k * d_port * p_dir
+    sd = 1.0 if hook.get("scroll_dir", 1) >= 0 else -1.0
+    theta_s = math.degrees(math.atan2(s_pt[2], s_pt[1]))
+    r_c = max(float(ring_center_r_m), 1e-9)
+    r_s = math.hypot(s_pt[1], s_pt[2])
+    l_reach = math.sqrt(max(r_s * r_s - r_c * r_c, 0.0))
+    l1_mult = _clamp(max(SCROLL_SEED_TANGENT_LEG_DIA_MULT, bend_radius_dia_mult + 1.0,
+                         l_reach / dia), PIPE_LENGTH_DIA_MULT_MIN, PIPE_LENGTH_DIA_MULT_MAX)
+    r_p1 = math.hypot(r_c, l1_mult * dia)
+    chord = SEED_APPROACH_DIA_MULT * d_port
+    delta = 2.0 * math.asin(min(chord / (2.0 * r_p1), 1.0))
+    run.attach_angle_deg = (theta_s + sd * math.degrees(delta + math.atan(l1_mult * dia / r_c))
+                            ) % 360.0
+    pipes = [PipeSegment(role=role_pipe, length_dia_mult=l1_mult,
+                         bend_radius_dia_mult=bend_radius_dia_mult)]
+    dx = float(s_pt[0] - x0)
     if abs(dx) > 2.0 * dia:
         n_chunks = max(1, math.ceil(abs(dx) / dia / PIPE_LENGTH_DIA_MULT_MAX))
         for i in range(n_chunks):
@@ -1086,6 +1202,53 @@ def self_test():
     assert liquid_viscosity_pa_s("LOX/RP-1", "jacket_inlet") == COOLANT_TRANSPORT["LOX/RP-1"][1]
     print(f"line pressure loss: OK (10-dia straight {loss / 1e3:.1f} kPa, "
           f"connected seed {run_pressure_loss_pa(sres, hook, mu)[0] / 1e3:.1f} kPa)")
+
+    # --- Tangential root on a scroll ring (the F-1/J-2 exhaust manifold) ---
+    from .manifold import _assemble, RING_KIND_SCROLL, scroll_rotated_to
+    scroll = _assemble(20.0, 60.0, 30.0, 1.5, 2.0, 0.15, 0.003, 4e5, taper_blend=1.0,
+                       kind=RING_KIND_SCROLL)
+    sc_run = PlumbingRun(host="turbine_exhaust", role="turbine_exhaust_manifold",
+                         attach_angle_deg=30.0, pipes=[PipeSegment(role="turbine_exhaust",
+                                                                   length_dia_mult=3.0)])
+    assert root_is_tangential(sc_run, scroll) and not root_is_tangential(sc_run, hook)
+    sc = resolve_run(sc_run, scroll, 1.5, scroll["outer_radius_m"], supercritical=True)
+    t_sc = scroll["attach_direction_xyz"]
+    assert sc["root_tangential"] and not sc["reducers"]          # inlet bore = pipe bore
+    assert np.allclose(sc["waypoints_xyz"][0], [2.0, 1.5 * math.cos(math.radians(30.0)),
+                                                1.5 * math.sin(math.radians(30.0))])
+    assert abs(float(np.dot(sc["segment_dirs"][0], t_sc)) - 1.0) < 1e-12
+    assert abs(float(np.dot(t_sc, [0.0, math.cos(math.radians(30.0)),
+                                   math.sin(math.radians(30.0))]))) < 1e-12   # tangent _|_ radial
+    assert abs(sc["total_length_m"] - 3.0 * 0.3) < 1e-9       # measured from the inlet face
+    assert run_pressure_loss_pa(sc, scroll, 2e-5)[1]["entry_pa"] == 0.0     # SCROLL_ENTRY_K
+    # "surface" keeps the radial T (a migrated pre-schema-15 run), with an advisory
+    sf = resolve_run(PlumbingRun(**{**asdict(sc_run), "root_mode": "surface",
+                                    "pipes": sc_run.pipes}), scroll, 1.5,
+                     scroll["outer_radius_m"], supercritical=True)
+    assert not sf["root_tangential"] and any("radial T" in a for a in sf["advisories"])
+    assert run_pressure_loss_pa(sf, scroll, 2e-5)[1]["entry_pa"] > 0.0
+    assert run_from_dict(run_to_dict(sc_run)).root_mode == "auto"
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        assert run_from_dict({**run_to_dict(sc_run), "root_mode": "bogus"}).root_mode == "auto"
+    # the scroll seed: tangent leg, then an elbow toward the port's station
+    port_sc = {"pos": np.array([0.5, 2.6, 0.4]), "dir": np.array([1.0, 0.0, 0.0]), "dia_m": 0.3}
+    seed_sc = seed_route_to_port(scroll, port_sc, 1.5, scroll["outer_radius_m"], "turbine_exhaust")
+    assert seed_sc.pipes[0].length_dia_mult >= SCROLL_SEED_TANGENT_LEG_DIA_MULT
+    assert seed_sc.pipes[1].pitch_deg == 90.0                    # port is forward of the ring
+    ssc = resolve_run(seed_sc, scroll_rotated_to(scroll, seed_sc.attach_angle_deg), 1.5,
+                      scroll["outer_radius_m"], supercritical=True, port=port_sc)
+    assert ssc["closes_on_port"] and ssc["root_tangential"]
+    assert np.linalg.norm(ssc["waypoints_xyz"][-1] - port_sc["pos"]) < 1e-9
+    # pipe 1 reaches the standoff point's radius, a SEED_APPROACH chord short
+    # of its angle; every corner of the closed route stays within the cap
+    s_pt = port_sc["pos"] + seed_sc.port_standoff_dia_mult * 0.3 * port_sc["dir"]
+    w1 = ssc["waypoints_xyz"][1]
+    assert abs(math.hypot(w1[1], w1[2]) - math.hypot(s_pt[1], s_pt[2])) < 1e-9
+    assert abs(np.linalg.norm(ssc["waypoints_xyz"][-2][1:] - w1[1:])
+               - SEED_APPROACH_DIA_MULT * 0.3) < 1e-9
+    assert not [a for a in ssc["advisories"] if "turn" in a], ssc["advisories"]
+    print("scroll tangential root / entry loss / seed: OK")
 
     print("ALL PLUMBING CHECKS OK")
 

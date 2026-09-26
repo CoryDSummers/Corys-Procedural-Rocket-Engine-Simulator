@@ -242,6 +242,62 @@ def ring_mesh_for(ring, inner_edge_r_m, rgb):
         shininess=preview3d_gl_core.HARDWARE_SHININESS)
 
 
+# A scroll's drawn tail stops this many inlet tube diameters short of its own
+# inlet, so the small tail doesn't run into the tangential duct leaving the
+# inlet (a real volute's tongue sits there). Cosmetic - the physics mass still
+# integrates the full 360 deg.
+SCROLL_TAIL_GAP_INLET_DIA_MULT = 1.0
+# Drawn flame-shield thickness floor, x the scroll's inlet tube radius (the
+# real 1 mm sheet would be invisible at engine scale). Cosmetic.
+EXHAUST_SHIELD_DRAW_T_TUBE_R_MULT = 0.04
+
+
+# Omega expansion-joint bands (turbine_exhaust.OMEGA_JOINT_SPACING_M count):
+# raised this much over the local tube radius, this wide x the local tube
+# diameter. Cosmetic (the F-1 photo's visible bands).
+OMEGA_BAND_RADIUS_MULT = 1.06
+OMEGA_BAND_WIDTH_TUBE_DIA_MULT = 0.12
+
+
+def scroll_ring_pieces(ring, inner_edge_r_m, rgb, n_theta_main=_N_THETA, omega_joints=0):
+    """The drawn tangentially-fed scroll (physics/manifold.py RING_KIND_SCROLL):
+    an open arc from its inlet (attach_angular_position_deg) round the flow
+    direction to a capped tail, inner edge flush on the wall like every ring,
+    each station at the physics taper (manifold.ring_outer_radius_at), plus
+    `omega_joints` raised expansion-joint bands spread evenly along it."""
+    a0 = float(ring.get("attach_angular_position_deg", 0.0))
+    sd = 1.0 if ring.get("scroll_dir", 1) >= 0 else -1.0
+    r_in = float(ring["outer_radius_m"])
+    gap = np.degrees(2.0 * SCROLL_TAIL_GAP_INLET_DIA_MULT * r_in / max(inner_edge_r_m + r_in, 1e-9))
+    span = sd * (360.0 - min(gap, 90.0))
+    angles = a0 + np.linspace(0.0, span, n_theta_main)
+    tube = np.array([manifold.ring_outer_radius_at(ring, a) for a in angles])
+    kw = dict(specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
+              shininess=preview3d_gl_core.HARDWARE_SHININESS)
+    x0 = ring["attach_axial_station_m"]
+    pieces = preview3d_gl_core.scroll_manifold_mesh(
+        x0, inner_edge_r_m + tube, tube, np.radians(a0), np.radians(span), 12, rgb, **kw)
+    n_j = int(omega_joints or 0)
+    for k in range(n_j):
+        a_c = a0 + span * (k + 0.5) / n_j
+        r_t = manifold.ring_outer_radius_at(ring, a_c)
+        r_band = OMEGA_BAND_RADIUS_MULT * r_t
+        half = np.degrees(0.5 * OMEGA_BAND_WIDTH_TUBE_DIA_MULT * 2.0 * r_t
+                          / max(inner_edge_r_m + r_t, 1e-9))
+        # the band shares the tube's centreline (inner edge + local tube radius)
+        pieces.extend(preview3d_gl_core.scroll_manifold_mesh(
+            x0, np.full(4, inner_edge_r_m + r_t), np.full(4, r_band), np.radians(a_c - half),
+            np.radians(2.0 * half), 12, rgb, cap_inlet=True, **kw))
+    return pieces
+
+
+def ring_pieces_for(ring, inner_edge_r_m, rgb, omega_joints=0):
+    """ring_mesh_for as a list, dispatching a scroll ring to scroll_ring_pieces."""
+    if manifold.ring_is_scroll(ring):
+        return scroll_ring_pieces(ring, inner_edge_r_m, rgb, omega_joints=omega_joints)
+    return [ring_mesh_for(ring, inner_edge_r_m, rgb)]
+
+
 def ring_render_inner_edge_r(result, ring):
     """_ring_inner_edge_r from a bare compute() result (see
     ring_render_center_r for the cost note)."""
@@ -293,6 +349,7 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
     # summed into the outer wall before any tube/channel modulation - see
     # gui/preview3d_gl_core.build_shell_mesh's `structural_bumps`.
     body_bumps, ext_bumps = [], []
+    ext_orthogrid_spec = None
     if has_extension and throat_dia_m > 0:
         joint_thickness = max(float(body_thickness_eff[-1]) if len(body_thickness_eff) else 0.0,
                                float(ext_thickness_eff[0]) if len(ext_thickness_eff) else 0.0,
@@ -325,7 +382,9 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             flange_height_m = (width_override_m if width_override_m > 0
                                 else preview3d_gl_core.FLANGE_HEIGHT_THROAT_DIA_MULT * throat_dia_m)
 
-        if cooling_result.get("nozzle_cooling_method") == "radiative" and len(ext_xs) >= 2:
+        stiffening_style = cooling_result.get("nozzle_extension_stiffening_style", "rings")
+        if (cooling_result.get("nozzle_cooling_method") == "radiative"
+                and len(ext_xs) >= 2 and stiffening_style == "rings"):
             skirt_length = float(ext_xs[-1] - ext_xs[0])
             spacing = preview3d_gl_core.RING_SPACING_THROAT_DIA_MULT * throat_dia_m
             n_rings = max(2, round(skirt_length / spacing)) if spacing > 0 else 0
@@ -339,6 +398,24 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
                                       2.0 * ext_local_dx),
                     height_m=preview3d_gl_core.RING_HEIGHT_FACTOR * t_local,
                     shape="smooth"))
+        elif (cooling_result.get("nozzle_cooling_method") in ("radiative", "uncooled")
+                and len(ext_xs) >= 2 and stiffening_style == "orthogrid"):
+            # 2-D waffle stiffening (real precedent: the Bell Model 8247
+            # XLR81/Agena titanium nozzle extension) - REPLACES rather than
+            # stacks with the ring bumps above (ext_bumps stays empty); its
+            # mass effect (mass_model.ORTHOGRID_MASS_FRACTION) is applied
+            # separately in structure_stage.py.
+            skirt_length = float(ext_xs[-1] - ext_xs[0])
+            mean_r = float(np.mean(ext_rs))
+            rib_spacing = preview3d_gl_core.ORTHOGRID_RIB_SPACING_THROAT_DIA_MULT * throat_dia_m
+            n_ribs_axial = max(2, round(skirt_length / rib_spacing))
+            n_ribs_theta = max(4, round(2.0 * np.pi * mean_r / rib_spacing))
+            ext_orthogrid_spec = dict(
+                n_ribs_theta=n_ribs_theta, n_ribs_axial=n_ribs_axial,
+                rib_height_m=preview3d_gl_core.ORTHOGRID_RIB_HEIGHT_THROAT_DIA_MULT * throat_dia_m,
+                rib_fraction=preview3d_gl_core.ORTHOGRID_RIB_FRACTION)
+        # stiffening_style == "smooth": both ext_bumps and ext_orthogrid_spec
+        # stay empty/None - a newly-possible bare radiative extension.
 
 
     if chamber_tube_jacket and construction == "tube_wall" and len(body_rs) >= 3:
@@ -394,17 +471,33 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             specular_strength=body_spec, shininess=body_shin)
         pieces.extend(_stamp_material(body_shell.pieces, chamber_mat, body_colors))
     if has_extension:
-        ext_colors = q_colors(ext_xs)
+        ext_n_theta = _N_THETA
+        ext_xs_p, ext_rs_p, ext_thk_p, ext_ch_p = ext_xs, ext_rs, ext_thickness_eff, ext_channel_heights
+        ext_rib_h = 0.0
+        if ext_orthogrid_spec:
+            # The extension's own contour can be as coarse as 2 stations, which
+            # puts every sample on an axial rib (no pockets at all), and 32
+            # theta samples can't resolve ~20 thin ribs - resample this one
+            # piece to a fixed number of samples per rib pitch, both ways.
+            spp = preview3d_gl_core.ORTHOGRID_SAMPLES_PER_PITCH
+            ext_xs_p = np.linspace(float(ext_xs[0]), float(ext_xs[-1]),
+                                   ext_orthogrid_spec["n_ribs_axial"] * spp + 1)
+            ext_rs_p = np.interp(ext_xs_p, ext_xs, ext_rs)
+            ext_thk_p = np.interp(ext_xs_p, ext_xs, ext_thickness_eff)
+            ext_ch_p = None
+            ext_n_theta = ext_orthogrid_spec["n_ribs_theta"] * spp + 1
+            ext_rib_h = float(ext_orthogrid_spec["rib_height_m"])
+        ext_colors = q_colors(ext_xs_p)
         ext_spec, ext_shin = spec_for(ext_colors, bell_mat)
         ext_shell = preview3d_gl_core.build_shell_mesh(
-            ext_xs, ext_rs, ext_thickness_eff, _N_THETA, bell_rgb,
+            ext_xs_p, ext_rs_p, ext_thk_p, ext_n_theta, bell_rgb,
             colors_per_station=ext_colors, construction=construction,
-            channel_height_profile_m=ext_channel_heights,
-            n_channels_physical=n_channels_for_piece(ext_rs), land_fraction=land_fraction,
+            channel_height_profile_m=ext_ch_p,
+            n_channels_physical=n_channels_for_piece(ext_rs_p), land_fraction=land_fraction,
             structural_bumps=ext_bumps, cap_start=False, cap_end=True,
-            tube_split_x_m=tube_split_x_for_piece(ext_xs, ext_rs),
+            tube_split_x_m=tube_split_x_for_piece(ext_xs_p, ext_rs_p),
             regen_circuit_style=regen_circuit_style, tube_cutoff_x_m=x_tube_end,
-            down_tube_start_x_m=down_tube_start_x_m,
+            down_tube_start_x_m=down_tube_start_x_m, orthogrid_spec=ext_orthogrid_spec,
             specular_strength=ext_spec, shininess=ext_shin)
         pieces.extend(_stamp_material(ext_shell.pieces, bell_mat, ext_colors))
 
@@ -419,7 +512,8 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
         # The flange bump above only decorates each side's OWN profile;
         # it can't reconcile two already-different base radii on its own.
         bx = np.array([body_shell.outer_xs[-1], ext_shell.outer_xs[0]])
-        br = np.array([body_shell.outer_rs[-1], ext_shell.outer_rs[0]])
+        # an orthogrid extension starts on a raised rib ring - meet its top
+        br = np.array([body_shell.outer_rs[-1], ext_shell.outer_rs[0] + ext_rib_h])
         order = np.argsort(bx)  # each side offsets x along its own local
                                  # normal - guard against the two landing
                                  # in reversed order at the joint
@@ -1030,7 +1124,9 @@ def exhaust_render_edge(hardware, body_shell, ext_shell, has_extension, chamber_
     if hk.get("point_hook"):
         return None
     if hardware["mode"] == "nozzle_injection":
-        return _ring_inner_edge_r(body_shell, ext_shell, has_extension, hk, chamber_shell)
+        # + the scroll's own stand-off from the wall (the flame shield's space)
+        return (_ring_inner_edge_r(body_shell, ext_shell, has_extension, hk, chamber_shell)
+                + float(hk.get("wall_gap_m", 0.0)))
     return hk["major_radius_m"] - hk["outer_radius_m"]
 
 
@@ -1040,7 +1136,8 @@ def exhaust_run_root(hardware, edge, angle_deg):
     hk = hardware["exhaust"]
     if edge is None:
         return float(hk["major_radius_m"]), float(hk["outer_radius_m"])
-    return ring_local_render(hk, edge, angle_deg)
+    # a scroll turns so its inlet is wherever the run lands
+    return ring_local_render(manifold.scroll_rotated_to(hk, angle_deg), edge, angle_deg)
 
 
 def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXHAUST_RGB,
@@ -1050,12 +1147,31 @@ def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXH
     outer line back) + its inlet collar, or the overboard exhaust nozzle
     (duct_meshes.exhaust_nozzle_mesh, canted as designed). `angle_deg` (the
     duct run's attach angle) swings the overboard nozzle round the engine axis
-    with its duct root; the rings are axisymmetric and ignore it."""
+    with its duct root, and turns a nozzle-injection scroll's inlet to it (the
+    aspirator collar is axisymmetric and ignores it)."""
     kw = dict(specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
               shininess=preview3d_gl_core.HARDWARE_SHININESS)
     mode = hardware["mode"]
     if mode == "nozzle_injection":
-        return [ring_mesh_for(hardware["exhaust"], edge, rgb)]
+        ring = hardware["exhaust"]
+        if angle_deg is not None:
+            ring = manifold.scroll_rotated_to(ring, angle_deg)
+        pieces = ring_pieces_for(ring, edge, rgb,
+                                 omega_joints=hardware.get("omega_joint_count", 0))
+        nk = hardware.get("neck")
+        if nk:
+            # the outlet neck into the wall + the flame shield on the wall
+            # (a drawn thickness floor so the 1 mm sheet reads at all)
+            pieces.append(preview3d_gl_core.revolve_closed_section(
+                nk["section_xs"], nk["section_rs"], n_theta, rgb, **kw))
+            t_draw = max(nk["shield_thickness_m"], EXHAUST_SHIELD_DRAW_T_TUBE_R_MULT
+                         * float(ring["outer_radius_m"]))
+            sx = np.asarray(nk["shield_xs"], dtype=float)
+            sr = np.asarray(nk["shield_rs"], dtype=float) + preview3d_gl_core.MANIFOLD_RING_WALL_CLEARANCE_M
+            pieces.append(preview3d_gl_core.revolve_closed_section(
+                np.concatenate([sx, sx[::-1]]), np.concatenate([sr, (sr + t_draw)[::-1]]),
+                n_theta, rgb, **kw))
+        return pieces
     if mode == "aspirator":
         a = hardware["aspirator"]
         sec_x = np.concatenate([a["xs"], a["xs"][::-1]])
@@ -1387,11 +1503,15 @@ def build_flow_pieces(result, flow_anchors, body_shell, ext_shell, has_extension
         elif seg.kind == "manifold_ring" and host in rings:
             ring, edge = rings[host]
             ang0 = float(ring.get("attach_angular_position_deg", 0.0))
-            angles = ang0 + np.linspace(0.0, 360.0, 97)
+            # a scroll flows one way round from its inlet
+            sd = -1.0 if manifold.ring_is_scroll(ring) and ring.get("scroll_dir", 1) < 0 else 1.0
+            angles = ang0 + sd * np.linspace(0.0, 360.0, 97)
             rr = np.array([ring_local_render(ring, edge, a)[0] for a in angles])
             tube_r = FLOW_TUBE_BORE_FRACTION * float(ring["outer_radius_m"])
-            loop = preview3d_gl_core.ring_loop_points(ring["attach_axial_station_m"], rr, ang0,
-                                                      n=angles.size)
+            loop = preview3d_gl_core.ring_loop_points(
+                ring["attach_axial_station_m"], rr if sd > 0 else rr[::-1], ang0, n=angles.size)
+            if sd < 0:
+                loop = loop[::-1]
             _advance(seg.propellant, _add(preview3d_gl_core.flow_tube_mesh(
                 loop, seg.t_k[0], tube_r, s_offset_m=s_run[seg.propellant])))
         elif seg.kind == "jacket_pass" and not jacket_drawn:
@@ -2122,6 +2242,35 @@ def self_test():
         _port = _r["turbopump_ports"]["turbine"]["exhaust"]
         assert np.linalg.norm(_res_run["waypoints_xyz"][-1] - _port["pos"]) < 1e-9
         assert (_edge is None) == (_mode == "overboard_duct")
+        if _mode == "nozzle_injection":
+            # a tangential scroll: open arc + tail cap, inlet at the run's angle
+            # (fattest there), the duct leaving along the tangent from its inlet
+            _ring = _hw["exhaust"]
+            # scroll body + tail cap + one closed band (body + 2 caps) per
+            # omega joint + outlet neck + flame shield
+            _nj = _hw["omega_joint_count"]
+            assert manifold.ring_is_scroll(_ring) and _nj >= 4 and len(_term) == 4 + 3 * _nj
+            _nk = _hw["neck"]
+            assert _nk["mass_kg"] > 0 and _nk["neck_mass_kg"] > 0 and _nk["shield_mass_kg"] > 0
+            # the neck ends on the wall at the injection station, the scroll
+            # sits forward of it and off the wall by its gap
+            assert abs(0.5 * (_nk["section_xs"][1] + _nk["section_xs"][2])
+                       - _nk["inject_station_m"]) < 1e-9
+            assert _ring["attach_axial_station_m"] < _nk["inject_station_m"]
+            assert _ring["wall_gap_m"] > 0
+            assert abs(_ring["attach_angular_position_deg"] - _run["attach_angle_deg"]) < 1e-9
+            assert _res_run["root_tangential"] and not _res_run["reducers"]
+            _t0 = _res_run["segment_dirs"][0]
+            assert abs(float(np.dot(_t0, _ring["attach_direction_xyz"])) - 1.0) < 1e-9
+            _rr, _rt = exhaust_run_root(_hw, _edge, _run["attach_angle_deg"])
+            assert abs(_rt - _ring["outer_radius_m"]) < 1e-12
+            # the Lab draws the scroll turned to wherever the run is dragged
+            _rot = turbine_exhaust_termination_pieces(_hw, _edge, angle_deg=123.0)
+            _c = _rot[1].vertices.mean(axis=0)   # tail cap: just short of the inlet
+            _tail_ang = np.degrees(np.arctan2(_c[2], _c[1])) % 360.0
+            _gap = np.degrees(2.0 * SCROLL_TAIL_GAP_INLET_DIA_MULT * _ring["outer_radius_m"]
+                              / (_edge + _ring["outer_radius_m"]))
+            assert abs((123.0 - _tail_ang) % 360.0 - _gap) < 0.5, (_tail_ang, _gap)
         if _mode == "overboard_duct":
             # nothing of the nozzle upstream of the hook plane, where the duct's
             # first leg lives (the old inlet collar z-fought with it)

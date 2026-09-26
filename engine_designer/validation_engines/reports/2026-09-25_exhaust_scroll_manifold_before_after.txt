@@ -1,0 +1,160 @@
+Turbine-exhaust scroll manifold, commit 1: tangential scroll + tangential duct entry (2026-09-25)
+==============================================================================================
+Changes:
+- The nozzle_injection exhaust manifold is now a SCROLL (manifold.RING_KIND_SCROLL), like the
+  real F-1 and J-2: the duct runs TANGENTIALLY into a one-way torus "of decreasing (from inlet to
+  exit) cross-sectional area" [F1-Man §1-18] (photos: F-1 thrust chamber, enginehistory.org RPE
+  8.12; J-2, Science Museum 1977-0402). It was a T-split header sized on HALF the flow per
+  branch (inlet bore = duct bore / sqrt 2), tapering symmetrically at blend 0.5.
+- Sized on the FULL exhaust flow at its inlet (inlet bore = the duct bore), constant-velocity
+  taper (EXHAUST_SCROLL_TAPER_BLEND 1.0 - Cory's call), floored at MANIFOLD_TAPER_MIN_AREA_
+  FRACTION 0.15 (reached at ~306 deg). The scroll turns so its inlet sits wherever its duct lands.
+- plumbing.PlumbingRun.root_mode ("auto" | "surface" | "tangential", schema 15): a
+  turbine_exhaust run leaves a scroll tangentially from its inlet face - no root reducer, and
+  SCROLL_ENTRY_K = 0 (no Borda-Carnot split dump; Tier 3). The default duct seed for a scroll is
+  the F-1 photo's route: tangent leg out to the port's radius, an elbow toward the turbine's
+  station, then the auto legs close onto the port. A pre-15 baked exhaust run is migrated to
+  root_mode "surface" (its radial T kept, warn-only advisory).
+- Validate turbine-exhaust row (k): corpus F-1 inlet bore 24.3 in vs the real 24 in heat-
+  exchanger manifold end [F1-Man §1-72] (+1.3 %).
+A/B = the golden (HEAD 7c2bd6a, verified bit-identical before the change) vs the working tree,
+same environment. Only F-1 and J-2 (the two nozzle_injection designs) move numerically; every
+other open-cycle design only gains the new keys (implicit_run root_mode, plumbing_results
+root_tangential / root_reducer) - a schema-only diff. Performance (Isp, film, back pressure) is
+unchanged: the default duct's loss is reported only (the lumped EXHAUST_INJECTION_PRESSURE_RATIO
+stays in charge), and the ring geometry does not enter the gas film.
+
+Key numbers, before -> after:
+F-1
+  ring inlet bore [in]                    17.19 ->      24.31
+  ring tail bore [in]                     12.16 ->       9.42
+  ring major radius [m]                    1.71 ->       1.80
+  ring mass [kg]                          99.30 ->     109.03
+  exhaust hardware mass [kg]             337.95 ->     347.68
+  default duct length [m]                 10.36 ->       9.64
+  default duct mass [kg]                 494.65 ->     434.86
+  duct loss (reported only) [kPa]         29.13 ->      14.79
+    of which ring entry [kPa]             12.38 ->       0.00
+    of which root reducer [kPa]            1.82 ->       0.00
+  dry mass [kg]                        24988.19 ->   24938.13
+  engine vac Isp [s]                     301.67 ->     301.67
+J-2
+  ring inlet bore [in]                     7.53 ->      10.65
+  ring tail bore [in]                      5.32 ->       4.12
+  ring major radius [m]                    0.71 ->       0.75
+  ring mass [kg]                          18.10 ->      18.39
+  exhaust hardware mass [kg]              18.10 ->      18.39
+  default duct length [m]                  2.90 ->       2.45
+  default duct mass [kg]                  49.72 ->      39.66
+  duct loss (reported only) [kPa]         36.27 ->       9.53
+    of which ring entry [kPa]             10.62 ->       0.00
+    of which root reducer [kPa]            1.75 ->       0.00
+  dry mass [kg]                         5253.60 ->    5243.85
+  engine vac Isp [s]                     431.16 ->     431.16
+
+Reading it: the F-1's scroll inlet now matches its real 24 in (the old split header's 17.2 in
+was the half-flow bore); the scroll narrows to 9.4 in at its tail. The ring is ~10 % heavier
+(bigger section) but the tangential duct is shorter and lighter (no radial standoff + U-turn),
+so dry mass falls ~50 kg (F-1) / ~10 kg (J-2). The reported duct loss halves or better: no
+ring-entry dump and no root reducer.
+
+Full --check diff (golden vs working tree):
+IDENTICAL engines/AJ10-137
+IDENTICAL engines/Aestus
+CHANGED   engines/F-1
+    /checklist[47]/detail: 'OK - 10.36 m, 494.6 kg, -> turbine, line loss 29 kPa' -> 'OK - 9.64 m, 434.9 kg, -> turbine, line loss 15 kPa'
+    /checklist[51]/detail: 'OK - 494.6 kg over 10.36 m' -> 'OK - 434.9 kg over 9.64 m'
+    /computed_dry_mass_kg/__f__: '24988.18646339357' -> '24938.128994685223'
+    /plumbing_mass_kg/__f__: '494.6473604095992' -> '434.8623191598829'
+    /plumbing_results[0]/flange_mass_kg/__f__: '274.9669990817946' -> '274.73134201024675'
+    /plumbing_results[0]/mass_kg/__f__: '494.6473604095992' -> '434.8623191598829'
+    /plumbing_results[0]/pipe_mass_kg/__f__: '219.6803613278046' -> '160.13097714963615'
+    /plumbing_results[0]/pressure_loss_pa/__f__: '29125.452770062722' -> '14794.510992604894'
+    /plumbing_results[0]/pressure_loss_parts_pa/entry_pa/__f__: '12377.048023015006' -> '0.0'
+    /plumbing_results[0]/pressure_loss_parts_pa/friction_pa/__f__: '1934.1412750396048' -> '1798.610568439137'
+    /plumbing_results[0]/pressure_loss_parts_pa/reducers_pa/__f__: '1818.3630478423554' -> '0.0'
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /plumbing_results[0]/total_length_m/__f__: '10.363690980865785' -> '9.637478071937057'
+    /plumbing_total_length_m/__f__: '10.363690980865785' -> '9.637478071937057'
+    /turbine_exhaust_hardware/exhaust/attach_angular_position_deg/__f__: '0.0' -> '86.98556701673328'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[1]/__f__: '1.0' -> '0.9986163194821002'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[2]/__f__: '0.0' -> '-0.052587512434264655'
+    /turbine_exhaust_hardware/exhaust/attach_radial_offset_m/__f__: '1.7085660500118123' -> '1.799083427940019'
+    /turbine_exhaust_hardware/exhaust/feed_wall_thickness_m/__f__: '0.001414213562373095' -> '0.0010822225601713807'
+    /turbine_exhaust_hardware/exhaust/flow_radius_m/__f__: '0.21832977860482827' -> '0.30876493397286336'
+    /turbine_exhaust_hardware/exhaust/inlet_flow_radius_m/__f__: '0.21832977860482827' -> '0.30876493397286336'
+    /turbine_exhaust_hardware/exhaust/major_radius_m/__f__: '1.7085660500118123' -> '1.799083427940019'
+    /turbine_exhaust_hardware/exhaust/mass_kg/__f__: '99.3005460346962' -> '109.02811857606663'
+    /turbine_exhaust_hardware/exhaust/min_flow_radius_m/__f__: '0.15438246698643168' -> '0.11958414471697325'
+    /turbine_exhaust_hardware/exhaust/ring_kind: added
+    /turbine_exhaust_hardware/exhaust/scroll_dir: added
+CHANGED   engines/J-2
+    /checklist[49]/detail: 'OK - 2.90 m, 49.7 kg, -> turbine, line loss 36 kPa' -> 'OK - 2.45 m, 39.7 kg, -> turbine, line loss 10 kPa'
+    /checklist[53]/detail: 'OK - 49.7 kg over 2.90 m' -> 'OK - 39.7 kg over 2.45 m'
+    /computed_dry_mass_kg/__f__: '5253.603752329823' -> '5243.845136228888'
+    /plumbing_mass_kg/__f__: '49.71623257473499' -> '39.662726311570694'
+    /plumbing_results[0]/advisories: len 4 -> 1
+    /plumbing_results[0]/flange_mass_kg/__f__: '23.190306867599652' -> '23.1339376671169'
+    /plumbing_results[0]/mass_kg/__f__: '49.71623257473499' -> '39.662726311570694'
+    /plumbing_results[0]/pipe_dias_m[0]/__f__: '0.2703894027447229' -> '0.27038940274472284'
+    /plumbing_results[0]/pipe_mass_kg/__f__: '26.525925707135332' -> '16.528788644453794'
+    /plumbing_results[0]/pipe_velocities_ms[1]/__f__: '331.7486185658087' -> '331.74861856580856'
+    /plumbing_results[0]/pipe_velocities_ms[2]/__f__: '331.7486185658087' -> '331.74861856580856'
+    /plumbing_results[0]/pressure_loss_pa/__f__: '36265.81262770341' -> '9527.061098735678'
+    /plumbing_results[0]/pressure_loss_parts_pa/elbows_pa/__f__: '22434.431517428842' -> '8292.979537336912'
+    /plumbing_results[0]/pressure_loss_parts_pa/entry_pa/__f__: '10621.78960009284' -> '0.0'
+    /plumbing_results[0]/pressure_loss_parts_pa/friction_pa/__f__: '1456.4347280157933' -> '1234.0815613987647'
+    /plumbing_results[0]/pressure_loss_parts_pa/reducers_pa/__f__: '1753.1567821659346' -> '0.0'
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /plumbing_results[0]/total_length_m/__f__: '2.8961319150379174' -> '2.453980893875'
+    /plumbing_total_length_m/__f__: '2.8961319150379174' -> '2.453980893875'
+    /turbine_exhaust_hardware/exhaust/attach_angular_position_deg/__f__: '0.0' -> '75.15814801799996'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[1]/__f__: '1.0' -> '0.9666365390882433'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[2]/__f__: '0.0' -> '-0.2561519105911626'
+    /turbine_exhaust_hardware/exhaust/attach_radial_offset_m/__f__: '0.7091447787326276' -> '0.748742389984102'
+    /turbine_exhaust_hardware/exhaust/feed_wall_thickness_m/__f__: '0.001414213562373095' -> '0.001'
+    /turbine_exhaust_hardware/exhaust/ring_kind: added
+    /turbine_exhaust_hardware/exhaust/scroll_dir: added
+IDENTICAL engines/LMAE
+CHANGED   engines/Merlin-1D
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+IDENTICAL engines/RD-180
+IDENTICAL engines/RL10A-3-3
+IDENTICAL engines/RS-25
+IDENTICAL engines/Raptor-2
+IDENTICAL engines/Rutherford
+CHANGED   engines/Vulcain
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+IDENTICAL user_designs/AJ-90k
+CHANGED   user_designs/LR-100
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+CHANGED   user_designs/RS-29
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+CHANGED   user_designs/RS-29A
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+CHANGED   user_designs/RS-29C
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+CHANGED   user_designs/RS-30
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+IDENTICAL user_designs/TRW-270
+CHANGED   user_designs/j-2_test_bed
+    /plumbing_results[0]/root_reducer: added
+    /plumbing_results[0]/root_tangential: added
+    /turbine_exhaust_hardware/implicit_run/root_mode: added
+CORPUS CHECK FAILED

@@ -82,6 +82,20 @@ ABLATIVE_CONSUMPTION_RATE_M_S = 1.5e-4  # ~0.15 mm/s - a reasoned point within
                                          # ablative chamber; NOT scaled by
                                          # heat flux/Pc here (Tier 3 simplification)
 
+CHAR_DEPTH_SAFETY_FACTOR = 1.25  # [SP-8124 Sec.2.1/3.1]: real cited char-depth safety
+                                  # factor for sizing an ablative liner's sacrificial
+                                  # thickness against its predicted char depth over the
+                                  # design's target burn time (mass_model.
+                                  # ablative_liner_thickness_m). Tier 1/validated - a
+                                  # real NASA design criterion, not an estimate (unlike
+                                  # ABLATIVE_CONSUMPTION_RATE_M_S itself, which stays
+                                  # Tier 2/3). Notably, mass_model.SAFETY_FACTOR (1.5,
+                                  # the structural hoop-stress margin used for the
+                                  # OVERWRAP behind this liner) independently sits
+                                  # inside SP-8124's own cited 1.5-1.8 fiberglass-
+                                  # overwrap safety-factor band - a nice cross-check,
+                                  # not a coincidence forced to fit.
+
 _REFRASIL_CONSUMPTION_RATE_M_S = 2.7e-5  # ~74x more erosion-resistant than the 4000psi
                                           # extreme-case baseline above - the top of this
                                           # docstring's own cited "6-75x more erosion-
@@ -524,6 +538,47 @@ MATERIALS = {
               "because of its much higher density (10200 vs. niobium's 8600 kg/m3) - a real "
               "mass penalty, not a performance deficiency.",
     ),
+    "titanium_6al4v": Material(
+        key="titanium_6al4v",
+        display_name="Titanium 6Al-4V Alloy (radiative)",
+        density_kg_m3=4430.0,
+        max_service_temp_k=700.0,
+        relative_cost_factor=2.0,
+        cooling_method="radiative",
+        allowed_cooling_methods=("radiative", "uncooled"),
+        cooling_effectiveness=0.50,
+        color_hex="#8A8D91",
+        thermal_conductivity_w_mk=6.7,
+        tech_era_hint="Mature (1960s+, Bell Aerosystems Agena XLR81 titanium radiative "
+                      "nozzle extensions - Model 8096/8247)",
+        allowable_stress_pa=9.0e+07,
+        emissivity=0.6,
+        youngs_modulus_pa=1.14e+11,
+        cte_per_k=8.6e-06,
+        specular_strength=0.35,
+        shininess=40.0,
+        metallic=0.9,
+        roughness=0.5,
+        notes="Real Bell Model 8096/8247 XLR81 (Agena) nozzle-extension alloy "
+              "(Engine_Configs/Agena_XLR81_Config.cfg header: Pc 3.48 MPa, eps 45, "
+              "IRFNA/UDMH-USO, vac Isp 289.8-300 s). max_service_temp_k (700 K, 800F) "
+              "cites [SP-8124 Sec.2.1/3.1]'s real structural-shell temperature limit for "
+              "titanium - that source states it for an ablative structural overwrap, not "
+              "a bare radiative bell specifically, but it is the best real anchor found "
+              "and more defensible than a hand-picked figure. This is deliberately much "
+              "lower than niobium_c103 (1650 K) or molybdenum_tzm (1950 K) - by design, "
+              "since it is WHY a nozzle_liner_material_key='zirconia' liner (see "
+              "EngineDesign) is load-bearing rather than decorative for this material: "
+              "without one, titanium will typically fail/warn on thermal margin at real "
+              "nozzle-extension conditions, which is correct 'warn don't block' behavior, "
+              "not a bug. The real hardware's molybdenum reinforcement bands at the aft "
+              "attach point are NOT modeled as a separate blended Material here (unlike "
+              "refrasil_phenolic's genuinely homogeneous 3-layer liner, Mo reinforcement "
+              "is localized structural banding, not a property blended through the whole "
+              "shell thickness) - they are this tool's existing axisymmetric nozzle-"
+              "extension stiffening-ring bumps (gui/mesh_builder.py), now attributable to "
+              "this real material choice.",
+    ),
 }
 
 # Every material's own default method must be one it allows (import-time check -
@@ -532,6 +587,66 @@ for _m in MATERIALS.values():
     assert _m.cooling_method in _m.allowed_cooling_methods, (_m.key, _m.cooling_method)
     assert _m.metallic is None or 0.0 <= _m.metallic <= 1.0, _m.key
     assert _m.roughness is None or 0.0 <= _m.roughness <= 1.0, _m.key
+
+
+@dataclass(frozen=True)
+class LinerMaterial:
+    """A thin insulating liner between the hot gas and a RADIATIVE-cooled
+    nozzle-extension's structural shell (EngineDesign.nozzle_liner_material_key;
+    its thickness is COMPUTED, see design/cooling_stage.thermal) - a small,
+    separate catalog from Material (a
+    liner is not itself a cooling method or a structural shell material,
+    just a conduction resistance the shell's radiative-equilibrium solve now
+    accounts for, see cooling/radiation.py). A named, dropdown-driven catalog
+    for consistency with every other material choice in this tool, rather
+    than two raw float fields."""
+    key: str
+    display_name: str
+    thermal_conductivity_w_mk: float  # Tier 2, standard handbook figure
+    density_kg_m3: float               # Tier 2, standard handbook figure - liner mass
+    max_service_temp_k: float          # the LINER's own hot-face limit - a separate,
+                                        # warn-only check from the structural shell's own
+                                        # thermal margin (which now reads the liner-
+                                        # protected, lower shell temperature)
+    relative_cost_factor: float
+    max_practical_thickness_m: float   # thickest coat actually buildable - the
+                                        # computed thickness is capped here (and warned)
+    notes: str
+
+
+LINER_MATERIALS = {
+    "zirconia": LinerMaterial(
+        key="zirconia",
+        display_name="Zirconia (YSZ) Thermal-Barrier Liner",
+        thermal_conductivity_w_mk=2.0,   # standard bulk yttria-stabilized-zirconia
+                                          # figure (Tier 2) - NOT independently re-
+                                          # derived for this application; validated
+                                          # against a real regen-liner TBC result
+                                          # instead (see notes and ASSUMPTIONS.md)
+        density_kg_m3=5700.0,            # Tier 2, standard YSZ figure
+        max_service_temp_k=1500.0,       # Tier 3, reasoned TBC-service figure - no
+                                          # citation found for this specific liner
+                                          # application; flagged honestly
+        relative_cost_factor=1.3,
+        max_practical_thickness_m=1.0e-3,  # Tier 3 - thick sprayed ceramic coats spall
+                                            # on thermal-expansion mismatch. Real applied
+                                            # thicknesses for context: flame-sprayed ZrO2
+                                            # ~0.010 in (0.25 mm) [TN-D3836 p.22-25];
+                                            # 0.076 mm [Quentmeyer-CR185257]. 1 mm is
+                                            # ~4x the thickest cited, not a cited limit.
+        notes="Yttria-stabilized zirconia thermal-barrier liner between the hot gas "
+              "and a radiative-cooled nozzle-extension's structural shell (e.g. "
+              "titanium_6al4v, whose real Bell XLR81/Agena hardware used exactly this "
+              "construction). Real regen-chamber analog: [Quentmeyer-CR185257 Sec."
+              "Thermal Barrier Coatings p.3] - a ZrO2 (0.076mm) + NiCr bond coat on an "
+              "electroformed-Cu chamber liner cut heat flux ~50% vs. an uncoated liner "
+              "at the same geometry/conditions. That is a REGEN-liner TBC result, a "
+              "different cooling context from this radiative-shell application, so it "
+              "is used here as a VALIDATION spot-check anchor on this liner's "
+              "conductivity (physics/validate.py), not as the tuned input itself - see "
+              "ASSUMPTIONS.md.",
+    ),
+}
 
 
 def available_materials():

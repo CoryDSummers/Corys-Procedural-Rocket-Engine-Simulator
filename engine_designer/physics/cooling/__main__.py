@@ -43,6 +43,7 @@ from engine_designer.physics.cooling import (  # noqa: F401
     nozzle_film_effectiveness_profile,
     passage_velocity_ms,
     radiative_wall_temperature,
+    required_liner_resistance_m2k_w,
     recovery_temperature,
     reference_area_avg_flux_w_m2,
     regen_feasible,
@@ -136,6 +137,34 @@ if __name__ == "__main__":
     convective = 200.0 * (2500.0 - t_rad)
     imbalance = convective - 0.85 * STEFAN_BOLTZMANN_W_M2K4 * t_rad ** 4
     assert abs(imbalance) / convective < 1e-3, (t_rad, imbalance, convective)  # balance solved
+
+    # --- zirconia-liner conduction resistance (2026-09-25) - the function still
+    # returns the gas/liner-facing temperature (bit-identical at resistance=0),
+    # but a thicker liner lowers the STRUCTURAL SHELL's own temperature ---
+    t_rad0 = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=0.0)
+    assert abs(t_rad0 - t_rad) < 1e-9   # explicit 0.0 == the default, bit-identical
+    resist_lo, resist_hi = 5e-5, 2e-4   # ~0.076mm/2.0 W/mK and ~2x that
+    t_liner_face_lo = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=resist_lo)
+    t_liner_face_hi = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=resist_hi)
+    # Recover each case's shell temperature via q = h_gc*(T_aw - T_liner_face)
+    # (flux is conserved through the liner) and T_shell = T_liner_face - q*R.
+    q_lo = 200.0 * (2500.0 - t_liner_face_lo)
+    q_hi = 200.0 * (2500.0 - t_liner_face_hi)
+    t_shell_lo = t_liner_face_lo - q_lo * resist_lo
+    t_shell_hi = t_liner_face_hi - q_hi * resist_hi
+    assert t_shell_hi < t_shell_lo < t_rad   # thicker liner -> cooler shell, both cooler than the bare case's T_wg
+    assert t_liner_face_lo >= t_shell_lo and t_liner_face_hi >= t_shell_hi  # gas-facing face is never cooler than the shell
+    imbalance_hi = q_hi - 0.85 * STEFAN_BOLTZMANN_W_M2K4 * t_shell_hi ** 4
+    assert abs(imbalance_hi) / q_hi < 1e-2   # the shell's own radiative balance still closes
+    # required_liner_resistance_m2k_w is the exact inverse: feeding its R back
+    # through the solve lands the shell on the target; a target the bare shell
+    # already meets needs no liner.
+    for _R_in in (1e-4, 5e-4, 1e-3):                 # realistic 0.2-2 mm of ZrO2
+        _face = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=_R_in)
+        _shell = _face - 200.0 * (2500.0 - _face) * _R_in
+        _R = required_liner_resistance_m2k_w(200.0, 2500.0, 0.85, _shell)
+        assert abs(_R - _R_in) / _R_in < 0.05, (_R_in, _R)
+    assert required_liner_resistance_m2k_w(200.0, 2500.0, 0.85, t_rad + 50.0) == 0.0
 
     # --- regen Isp credit -------------------------------------------------
     # credit ~ 0.5 x recovered heat / chamber enthalpy flow, capped

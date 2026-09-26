@@ -21,16 +21,20 @@ from .checklist import _check
 
 def burn_time_and_mass(self, s):
     """Rated burn time, electric-pump battery/motor, injector plate, dry-mass rollup."""
-    # Rated burn time: ablative chambers are capped by char consumption (the SAME
-    # hoop-stress-derived chamber wall thickness used for its mass above ALSO caps how
-    # long it can fire before burning through) - matches the real "ablative, no extra
-    # time" pattern (testedBurnTime approx= ratedBurnTime) found in RealismOverhaul
-    # reference configs. Every other material scales a flat baseline by chamber thermal
-    # margin instead (see BASE_RATED_BURN_TIME_S's comment above). Computed before the
-    # dry-mass sum because the electric pump-fed cycle's battery mass scales with it.
+    # Rated burn time: ablative chambers TARGET a burn time (ablative_target_burn_time_s,
+    # a design input) rather than deriving one. That target sizes a real, independent
+    # char-depth liner thickness (mass_model.ablative_liner_thickness_m, SP-8124's 1.25
+    # char-depth safety factor) - the sacrificial material genuinely consumed over the
+    # burn - separate from the hoop-stress wall thickness, which now correctly sizes the
+    # STRUCTURAL OVERWRAP behind that liner (matching refrasil_phenolic's real documented
+    # 3-layer liner+insulation+overwrap construction) rather than standing in for the
+    # liner itself, as it used to (see ASSUMPTIONS.md for the gap this replaces). Every
+    # other material scales a flat baseline by chamber thermal margin instead (see
+    # BASE_RATED_BURN_TIME_S's comment above). Computed before the dry-mass sum because
+    # the electric pump-fed cycle's battery mass scales with it.
+    s.ablative_liner_thickness_m = 0.0
+    s.ablative_liner_mass_kg = 0.0
     if s.chamber_cooling == "ablative":
-        chamber_wall_thickness_m = mass_model.wall_thickness_m(
-            self.chamber_pressure_pa, s.geo["chamber_dia_m"] / 2.0, s.chamber_material.allowable_stress_pa)
         consumption_rate_m_s = (s.chamber_material.ablative_consumption_rate_m_s
                                  or materials.ABLATIVE_CONSUMPTION_RATE_M_S)
         # Film overlay on an ablative (LMDE/AJ10-style injector film): char
@@ -38,8 +42,14 @@ def burn_time_and_mass(self, s):
         # film's throat flux multiplier scales the rate (Tier 3 - direction
         # sound, magnitude unanchored). No chamber film -> x1.0, unchanged.
         consumption_rate_m_s *= float(s.film_phi[s._throat_idx])
-        s.rated_burn_time_s = mass_model.ablative_rated_burn_time_s(
-            chamber_wall_thickness_m, consumption_rate_m_s)
+        s.rated_burn_time_s = self.ablative_target_burn_time_s
+        s.ablative_liner_thickness_m = mass_model.ablative_liner_thickness_m(
+            consumption_rate_m_s, self.ablative_target_burn_time_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
+        s.ablative_liner_mass_kg = mass_model.constant_thickness_shell_mass_kg(
+            s.body_xs, s.body_rs, s.ablative_liner_thickness_m, s.chamber_material.density_kg_m3)
+        s.chamber_wall_mass_kg += s.ablative_liner_mass_kg  # existing hoop-stress mass
+                                                             # (structure_stage.wall_structure)
+                                                             # is now the OVERWRAP, not the liner
     else:
         # the WORST of the throat row and the full-length peak row (the throat
         # alone used to set it even when another station ran hotter - audit W7)
@@ -47,6 +57,39 @@ def burn_time_and_mass(self, s):
         margin_mult = _margin / materials.THIN_MARGIN_THRESHOLD
         margin_mult = max(RATED_TIME_MARGIN_MULT_MIN, min(RATED_TIME_MARGIN_MULT_MAX, margin_mult))
         s.rated_burn_time_s = BASE_RATED_BURN_TIME_S * margin_mult
+
+    # Ablative NOZZLE EXTENSION: the same char-depth sizing, per station. The
+    # char rate is the throat-referenced material rate scaled by the local
+    # ablative-surface heat flux (h_g x (film T_aw - char T)) over the same
+    # quantity at the throat - the Tier-3 "recession ~ local wall flux"
+    # assumption the chamber's film scaling above already uses. A tapered liner,
+    # thickest at the extension entrance. The consumable extension is sized for
+    # the target burn, so it also caps the engine's rating.
+    s.ext_ablative_liner_thickness_m = np.zeros(len(s.ext_xs))
+    s.ext_ablative_liner_mass_kg = 0.0
+    if s.nozzle_cooling == "ablative" and s.has_extension and len(s.ext_xs) >= 2:
+        th = s.thermal
+        t_char = s.bell_material.max_service_temp_k
+        q_abl = th["h_g_w_m2k"] * np.maximum(th["t_aw_film_k"] - t_char, 0.0)
+        ti = s._throat_idx
+        q_ref = float(th["h_g_w_m2k"][ti]) * max(float(th["t_aw_k"][ti]) - t_char, 0.0)
+        if q_ref > 0.0:
+            base_rate = (s.bell_material.ablative_consumption_rate_m_s
+                         or materials.ABLATIVE_CONSUMPTION_RATE_M_S)
+            rate_ext = base_rate * np.interp(s.ext_xs, s.xs, q_abl) / q_ref
+            s.ext_ablative_liner_thickness_m = mass_model.ablative_liner_thickness_m(
+                rate_ext, self.ablative_target_burn_time_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
+            s.ext_ablative_liner_mass_kg = mass_model.constant_thickness_shell_mass_kg(
+                s.ext_xs, s.ext_rs, s.ext_ablative_liner_thickness_m, s.bell_material.density_kg_m3)
+            s.bell_wall_mass_kg += s.ext_ablative_liner_mass_kg
+        s.rated_burn_time_s = min(s.rated_burn_time_s, self.ablative_target_burn_time_s)
+
+    # Render the ablative liners as part of the wall (these thickness arrays are
+    # read only by the 3D preview): the hoop-sized overwrap + the sacrificial liner.
+    if s.ablative_liner_thickness_m > 0.0:
+        s.body_wall_thickness_m = s.body_wall_thickness_m + s.ablative_liner_thickness_m
+    if np.any(s.ext_ablative_liner_thickness_m > 0.0):
+        s.ext_wall_thickness_m = s.ext_wall_thickness_m + s.ext_ablative_liner_thickness_m
 
     # Electric pump-fed: size the battery + motor for the whole burn and add
     # their mass. (cyc was built provisionally in the cycle branch; rebuild it
@@ -86,11 +129,18 @@ def burn_time_and_mass(self, s):
            f"the pattern is over-crowded; use larger orifices or a wider chamber.",
            f"OK - ~{_elem_density:,.0f} elements/m^2")
 
+    # Zirconia-class radiative-nozzle-extension liner mass (0.0 when inactive -
+    # see cooling_stage.thermal's s.liner/s.nozzle_liner_thickness_m_eff).
+    s.nozzle_liner_mass_kg = (
+        mass_model.constant_thickness_shell_mass_kg(
+            s.ext_xs, s.ext_rs, s.nozzle_liner_thickness_m_eff, s.liner.density_kg_m3)
+        if s.liner is not None and s.has_extension else 0.0)
+
     s.computed_dry_mass_kg = (s.chamber_wall_mass_kg + s.bell_wall_mass_kg + s.turbopump_mass_kg
                             + battery_motor_mass_kg + s.stability_aid_mass_kg
                             + s.injector_plate_mass_kg + s.jacket_structure_mass_kg
                             + s.manifold_mass_kg + s.jacket_manifold_mass_kg + s.plumbing_mass_kg
-                            + s.hatband_mass_kg + s.te_hardware_mass_kg)
+                            + s.hatband_mass_kg + s.te_hardware_mass_kg + s.nozzle_liner_mass_kg)
 
     _check(s.checklist, s.warnings, "manifold", "Manifold structural mass fraction",
            s.manifold_mass_kg <= manifold.MANIFOLD_MASS_DRY_FRACTION_WARN
@@ -227,6 +277,7 @@ def checks_and_result(self, s):
         "injector_stiffness_ok_at_floor": s.inj_ok,
         "material_margin": s.margin,
         "bell_material_margin": s.bell_material_margin,
+        "nozzle_liner_gas_face_temp_k": s.nozzle_liner_gas_face_temp_k,
         "chamber_heat_flux_factor": s.chamber_heat_flux_factor,
         "t_local_at_transition_k": s.t_local,
         "eps_for_transition": s.eps_for_transition,
@@ -287,6 +338,14 @@ def checks_and_result(self, s):
         "jacket_thermal_stress_pa": s.jacket_thermal_stress_pa,
         "computed_dry_mass_kg": s.computed_dry_mass_kg,
         "rated_burn_time_s": s.rated_burn_time_s,
+        "ablative_liner_thickness_m": s.ablative_liner_thickness_m,
+        "ablative_liner_mass_kg": s.ablative_liner_mass_kg,
+        "nozzle_liner_mass_kg": s.nozzle_liner_mass_kg,
+        "ext_ablative_liner_thickness_m": s.ext_ablative_liner_thickness_m,
+        "ext_ablative_liner_mass_kg": s.ext_ablative_liner_mass_kg,
+        "nozzle_liner_thickness_m": s.nozzle_liner_thickness_m_eff,
+        "nozzle_liner_required_thickness_m": s.nozzle_liner_required_thickness_m,
+        "nozzle_liner_target_shell_k": s.nozzle_liner_target_shell_k,
         "warnings": s.warnings,
         "checklist": s.checklist,
     }

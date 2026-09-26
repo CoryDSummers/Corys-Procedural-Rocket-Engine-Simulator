@@ -63,7 +63,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from tkinter import messagebox
 
 from . import shape_lab_geometry
-from ..physics import plumbing
+from ..physics import manifold, plumbing
 
 # Prefer the GPU-rendered OpenGL widget (real-time orbit camera), same
 # availability flag / fallback convention as gui/app.py's own 3D Preview
@@ -366,6 +366,12 @@ class PlumbingLabPanel(_ShapeLabBase):
         rr = self._add_ctl(run_box, rr, "attach_poloidal_deg",
                            "Position around ring tube [deg] (0 out, 90 fwd)", 0.0, 360.0,
                            r.attach_poloidal_deg, 1)
+        if manifold.ring_is_scroll(self._hook):
+            # a tangentially-fed scroll (the F-1/J-2 exhaust manifold): off =
+            # the old radial T (a migrated pre-schema-15 run's root)
+            rr = self._add_bool(run_box, rr, "root_tangential",
+                                "Tangential inlet (scroll - pipe leaves along the ring)",
+                                r.root_mode != "surface")
         rr = self._add_bool(run_box, rr, "flange_at_root", "Flange at manifold joint",
                             r.flange_at_root)
         rr = self._add_ctl(run_box, rr, "flange_lip_dia_mult", "Flange lip height [x pipe dia]",
@@ -584,6 +590,7 @@ class PlumbingLabPanel(_ShapeLabBase):
         r = self.run
         r.attach_angle_deg, r.attach_poloidal_deg = seed.attach_angle_deg, seed.attach_poloidal_deg
         r.connect_to_pump, r.port_standoff_dia_mult = True, seed.port_standoff_dia_mult
+        r.root_mode = seed.root_mode
         r.pipes = seed.pipes
         self._syncing = True
         try:
@@ -591,6 +598,8 @@ class PlumbingLabPanel(_ShapeLabBase):
             self._set_ctl("attach_poloidal_deg", r.attach_poloidal_deg)
             self._set_ctl("port_standoff_dia_mult", r.port_standoff_dia_mult)
             self._bools["connect_to_pump"].set(True)
+            if "root_tangential" in self._bools:
+                self._bools["root_tangential"].set(r.root_mode != "surface")
         finally:
             self._syncing = False
         self._selected = 0
@@ -606,6 +615,8 @@ class PlumbingLabPanel(_ShapeLabBase):
         r.attach_angle_deg = self._ctl_value("attach_angle_deg")
         r.attach_poloidal_deg = self._ctl_value("attach_poloidal_deg")
         r.flange_at_root = bool(self._bools["flange_at_root"].get())
+        if "root_tangential" in self._bools:
+            r.root_mode = "auto" if self._bools["root_tangential"].get() else "surface"
         r.flange_lip_dia_mult = self._ctl_value("flange_lip_dia_mult")
         r.flange_width_dia_mult = self._ctl_value("flange_width_dia_mult")
         try:

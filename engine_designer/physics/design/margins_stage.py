@@ -69,7 +69,11 @@ def thermal_margins(self, s):
     nozzle = s.station_section == "nozzle"
     limit = np.where(nozzle, s.bell_material.max_service_temp_k,
                      s.chamber_material.max_service_temp_k)
-    s.t_wg_profile_k = np.where(th["ablative_mask"], np.nan, th["t_wg_k"])
+    # t_shell_k (== t_wg_k wherever no nozzle liner is active - bit-identical
+    # there): the material's own thermal-margin check needs the STRUCTURAL
+    # shell temperature, not the raw gas-facing one, wherever a liner is
+    # protecting it (see cooling_stage.thermal/nozzle_extension_thermal).
+    s.t_wg_profile_k = np.where(th["ablative_mask"], np.nan, th["t_shell_k"])
     s.peak_wall_temp_k = None
     s.peak_wall_temp_zone = None
     s.peak_wall_temp_eps = None

@@ -8,6 +8,7 @@ import numpy as np
 from .. import (cooling, cycles, manifold, materials)
 
 from . import (combustion_stage, feed_stage, cooling_stage, geometry_stage, manifold_stage, margins_stage, structure_stage, turbomachinery_stage, rollup_stage)
+from .constants import BASE_RATED_BURN_TIME_S
 from .state import PassState
 
 
@@ -39,6 +40,39 @@ class EngineDesign:
     # film_cooling_fraction / nozzle_film_* fields), not a method.
     chamber_cooling_method: str = "auto"
     nozzle_cooling_method: str = "auto"
+    nozzle_liner_material_key: str = ""           # "" = no liner (bit-identical default).
+                                                   # materials.LINER_MATERIALS key otherwise
+                                                   # (currently only "zirconia") - a thin
+                                                   # insulating liner between the hot gas and a
+                                                   # radiative-cooled nozzle extension's
+                                                   # STRUCTURAL shell (cooling/radiation.py's
+                                                   # liner_resistance_m2k_w), real physics: it
+                                                   # lowers the temperature the shell material
+                                                   # sees (t_shell_k). Its THICKNESS is computed
+                                                   # (cooling_stage.thermal: hold the shell at the
+                                                   # bell material's thin-margin point, capped at
+                                                   # the liner's buildable max) - not an input.
+                                                   # Only active where nozzle cooling resolves to
+                                                   # radiative/uncooled.
+    nozzle_extension_stiffening_style: str = "rings"
+                                                   # "rings" (default, today's mandatory
+                                                   # behaviour on a radiative nozzle extension -
+                                                   # axisymmetric ring bumps, bit-identical) |
+                                                   # "orthogrid" (real precedent: the Bell
+                                                   # 8247 XLR81/Agena's waffle-pattern titanium
+                                                   # shell - a 2-D theta x axial rib pattern,
+                                                   # gui/preview3d_gl_core/tube_bundle.
+                                                   # orthogrid_modulated_grid, REPLACES rather
+                                                   # than stacks with "rings"; also applies
+                                                   # mass_model.ORTHOGRID_MASS_FRACTION to the
+                                                   # extension shell mass) | "smooth" (no
+                                                   # stiffening detail - a newly-possible bare
+                                                   # radiative extension). Only meaningful when
+                                                   # the resolved nozzle cooling is radiative/
+                                                   # uncooled AND there's a separate extension
+                                                   # piece; no-op otherwise. Purely a mass/mesh
+                                                   # concept, unrelated to wall_construction
+                                                   # (a regen-jacket cooling concept).
     regen_nozzle_end_eps: float = 0.0             # >0 (and nozzle_cooling in ("regenerative",
                                                    # "dump")): push active cooling (flux
                                                    # integration, coolant march, expander cooled-
@@ -58,6 +92,29 @@ class EngineDesign:
                                                    # 0.0 = auto-size to the pair's coking/boiling
                                                    # coolant-dT limit (cooling.
                                                    # size_dump_coolant_fraction).
+    ablative_target_burn_time_s: float = BASE_RATED_BURN_TIME_S
+                                                   # chamber_cooling_method=="ablative" only: the
+                                                   # RATED burn time this design TARGETS, replacing
+                                                   # today's purely-derived value for ablative
+                                                   # chambers (rollup_stage.burn_time_and_mass).
+                                                   # Sizes a real, independent char-depth liner
+                                                   # thickness (mass_model.ablative_liner_thickness_m,
+                                                   # materials.CHAR_DEPTH_SAFETY_FACTOR = 1.25,
+                                                   # [SP-8124]) BEHIND which the existing hoop-stress
+                                                   # wall_thickness_m now sizes a separate STRUCTURAL
+                                                   # OVERWRAP, not the liner itself - matching
+                                                   # refrasil_phenolic's real documented 3-layer
+                                                   # construction. Non-ablative sections are
+                                                   # completely unaffected (unchanged margin-driven
+                                                   # rated_burn_time_s path). Default = today's flat
+                                                   # BASE_RATED_BURN_TIME_S (200s) so an unset field
+                                                   # reads the same NUMBER as before, but NOTE: this
+                                                   # is a deliberate, flagged exception to bit-
+                                                   # identical backward compat for ablative designs
+                                                   # specifically - the OLD rated_burn_time_s was
+                                                   # DERIVED (varied by Pc/geometry), the new one is
+                                                   # a flat 200s default until dialed in. See
+                                                   # ASSUMPTIONS.md.
     cooling_flow_topology: str = "single_pass_countercurrent"  # | "f1_split_reverse_flow"
                                                    # | "j2_mid_nozzle_inlet"
                                                    # (physics/manifold.size_jacket_manifolds).
@@ -379,7 +436,32 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 10  # 10 (2026-09-25): turbine_exhaust_hx_he_kgs added (a second,
+    SCHEMA_VERSION = 15  # 15 (2026-09-25): plumbing runs gained root_mode ("auto" |
+                         # "surface" | "tangential"); the nozzle-injection exhaust manifold
+                         # is a tangentially-fed scroll. A pre-15 turbine_exhaust run (no
+                         # root_mode key) is migrated to "surface" in from_dict - its radial
+                         # T is kept (with a warn-only advisory).
+                         # 14 (2026-09-25): nozzle_liner_thickness_m REMOVED - the liner's
+                         # thickness is now computed, not an input. A v12/v13 file's stored
+                         # value is dropped by from_dict (unknown key); a file that named a
+                         # liner material now gets it at the computed thickness.
+                         # 13 (2026-09-25): nozzle_extension_stiffening_style added ("rings" |
+                         # "orthogrid" | "smooth") - no key migration, a v12 file's new field
+                         # takes its default ("rings" - today's mandatory ring-bump behavior on
+                         # a radiative nozzle extension, bit-identical).
+                         # 12 (2026-09-25): nozzle_liner_material_key/nozzle_liner_thickness_m
+                         # added (a real radiative-nozzle-extension thermal-barrier liner,
+                         # cooling/radiation.py) - no key migration, a v11 file's new fields
+                         # take their default ("", 0.0 - no liner, bit-identical behavior).
+                         # 11 (2026-09-25): ablative_target_burn_time_s added - ablative
+                         # rated burn time is now a design INPUT (see the field's own
+                         # comment) rather than purely derived; no key migration, a v10
+                         # file's new field takes its default (200s, today's flat
+                         # BASE_RATED_BURN_TIME_S) - NOTE this is a deliberate exception
+                         # to bit-identical behavior for ABLATIVE designs specifically:
+                         # the old rated_burn_time_s value for those designs was derived
+                         # per-design and will differ. Non-ablative designs are unaffected.
+                         # 10 (2026-09-25): turbine_exhaust_hx_he_kgs added (a second,
                          # helium, coil in the same exhaust heat exchanger) - no key
                          # migration; a v9 file's new field takes its default (0, off).
                          # 9 (2026-09-24): turbine_exhaust_* / aspirator_* fields added
@@ -441,6 +523,16 @@ class EngineDesign:
                     float(payload.get("nozzle_film_fraction", 0.0) or 0.0), _ref)
                 payload.setdefault("nozzle_film_inject_eps",
                                    float(payload.get("cooling_transition_eps", 6.0)))
+        # Schema 14 -> 15: the nozzle-injection exhaust manifold became a
+        # tangentially-fed scroll, and runs gained root_mode ("auto" roots a
+        # turbine_exhaust run tangentially on it). A run saved before that (no
+        # root_mode key) keeps the radial T it was drawn and routed with.
+        if payload.get("plumbing_runs"):
+            payload["plumbing_runs"] = [
+                (dict(r, root_mode="surface")
+                 if isinstance(r, dict) and r.get("host") == "turbine_exhaust"
+                 and "root_mode" not in r else r)
+                for r in payload["plumbing_runs"]]
         known = {f.name for f in dataclasses.fields(cls)}
         return cls(**{k: v for k, v in payload.items() if k in known})
 

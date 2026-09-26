@@ -24,8 +24,15 @@ def wall_structure(self, s):
     # for pump-fed cycles). A LOWER BOUND on real dry mass - no injector/valves/
     # actuators/mounting structure. See physics/mass_model.py's module docstring.
     # (bell_material was looked up above for the nozzle-extension thermal check.)
-    s.body_xs, s.body_rs, s.ext_xs, ext_rs, s.has_extension = geometry.split_profile_by_area_ratio(
+    s.body_xs, s.body_rs, s.ext_xs, s.ext_rs, s.has_extension = geometry.split_profile_by_area_ratio(
         s.xs, s.rs, s.geo["throat_dia_m"], s.eps_for_transition)
+    ext_rs = s.ext_rs   # local alias, unchanged below; also read by rollup_stage
+                        # for the zirconia-liner mass (s.ext_xs/s.ext_rs)
+    # For chamber_cooling == "ablative", this hoop-stress shell is the STRUCTURAL
+    # OVERWRAP behind the sacrificial char liner, not the liner itself - rollup_stage.
+    # burn_time_and_mass adds the liner's own mass (mass_model.ablative_liner_thickness_m/
+    # constant_thickness_shell_mass_kg) into s.chamber_wall_mass_kg afterward. See
+    # ASSUMPTIONS.md for the fix this reframing is part of.
     s.chamber_wall_mass_kg = mass_model.shell_mass_kg(
         s.body_xs, s.body_rs, self.chamber_pressure_pa,
         s.chamber_material.allowable_stress_pa, s.chamber_material.density_kg_m3)
@@ -34,6 +41,12 @@ def wall_structure(self, s):
         s.bell_wall_mass_kg = mass_model.shell_mass_kg(
             s.ext_xs, ext_rs, self.chamber_pressure_pa,
             s.bell_material.allowable_stress_pa, s.bell_material.density_kg_m3)
+        # Orthogrid nozzle-extension stiffening (2026-09-25): a machined-waffle
+        # shell pockets out material vs. a plain hoop-stress-thickness shell -
+        # see mass_model.ORTHOGRID_MASS_FRACTION's own uncited-estimate flag.
+        if (self.nozzle_extension_stiffening_style == "orthogrid"
+                and s.nozzle_cooling in ("radiative", "uncooled")):
+            s.bell_wall_mass_kg *= mass_model.ORTHOGRID_MASS_FRACTION
     # Per-station wall thickness (pointwise, not the segment-average
     # shell_mass_kg integrates for mass) - for the 3D preview's solid-shell
     # offset. Purely additive: doesn't feed any mass/thermal number above

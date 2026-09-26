@@ -188,7 +188,8 @@ into that and makes no claims about it.
     constants (`ASSUMPTIONS.md`).
   - **Per-engine injection back pressure (wanted — Cory, 2026-09-25).** Injection mode's
     turbine back pressure is today ONE lumped ratio, `turbine_exhaust.
-    EXHAUST_INJECTION_PRESSURE_RATIO` = 2.50, reverse-solved on the F-1's 58 psia turbine exit
+    EXHAUST_INJECTION_PRESSURE_RATIO` = 2.19 (2.50 before the P1 re-anchor), reverse-solved on
+    the F-1's 58 psia turbine exit
     `[F1-Man Fig 1-16/3-14]`. The real physics is per engine: the hot-gas torus loss
     (decreasing section, inlet splitter plates, exit flow vanes, omega joints `[F1-Man §1-18]`)
     plus the slot/eyelet discharge (F-1: 23 rows of overlapping shingles `[F1-Man §1-23]`; J-2:
@@ -196,6 +197,16 @@ into that and makes no claims about it.
     coefficient from geometry. Wanted: a J-2 turbine-exit pressure (a second anchor), shingle
     slot heights / eyelet counts, and `[SP-8120]` §2.2.5.1 manifold-hydraulics loss numbers
     applied to a hot gas. Until then the constant is Tier 2 INTERIM (ASSUMPTIONS).
+  - **Exhaust scroll manifold shape (2026-09-25).** The injection manifold is now a tangentially-
+    fed scroll (F-1 thrust-chamber photo + manifold cutaway, enginehistory.org RPE 8.12; J-2
+    photo, Science Museum 1977-0402; `[F1-Man §1-18]`), full-flow inlet (F-1 24.3 in vs the real
+    24 in). Still wanted: (1) the real area-vs-angle law (the model's constant-velocity taper is
+    Tier 3; an F-1 / J-2 manifold drawing with sections would pin it); (2) the neck / flame-shield
+    proportions from a dimensioned drawing (today read off the cutaway, Tier 3); (3) a real
+    manifold-assembly weight (F-1: ring 110 kg + neck/shield 103 kg in the model); (4) the J-2's
+    exhaust duct bore and manifold inlet size (the model gives 10.6 in); (5) the inlet splitter
+    plates and exit flow vanes `[F1-Man §1-18]` are not modelled - they belong with the
+    per-engine injection back-pressure item above.
   - **Liquid films still use the Tier-3 decay law (2026-09-25).** The turbine-exhaust GAS film
     now uses `[TN-D3836]`'s correlation, but the chamber curtain and nozzle-slot LIQUID films
     (`cooling/film.py`, eta_f0 = min(0.75, 7f), decay over 2.5 local diameters) are unchanged.

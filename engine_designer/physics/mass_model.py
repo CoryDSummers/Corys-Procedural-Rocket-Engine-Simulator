@@ -32,6 +32,16 @@ SAFETY_FACTOR = 1.5  # typical aerospace pressure-vessel margin on allowable
                       # human-rating; a reasonable single choice, not derived
                       # (Tier 3 - see ASSUMPTIONS.md)
 
+ORTHOGRID_MASS_FRACTION = 0.6  # applied to a radiative nozzle extension's shell mass
+                      # only when EngineDesign.nozzle_extension_stiffening_style ==
+                      # "orthogrid": a machined-waffle shell pockets out material
+                      # between ribs vs. a plain hoop-stress-thickness shell.
+                      # ARBITRARY-BUT-REASONABLE, UNCITED (same tier as
+                      # JACKET_DP_FRACTION_BY_COOLING_METHOD's "dump" value) - a
+                      # plausible, real-direction-correct mass fraction, not derived
+                      # or measured off any specific real orthogrid design. See
+                      # ASSUMPTIONS.md.
+
 MIN_WALL_THICKNESS_M = 0.5e-3  # a practical minimum-gauge/buckling floor for
                       # wall_thickness_profile_m's RENDERED thickness (only -
                       # never fed into shell_mass_kg or any other physics
@@ -293,16 +303,52 @@ def injector_plate_mass_kg(chamber_dia_m, chamber_pressure_pa):
 
 def ablative_rated_burn_time_s(chamber_wall_thickness_m, consumption_rate_m_s):
     """
-    For ablative-cooled chambers, the SAME hoop-stress-derived wall
-    thickness used for every other material's mass calc ALSO caps how long
-    the chamber can fire before the char layer is consumed through - real
-    ablative liners are sized with just enough sacrificial material for
-    their mission's burn duration. This matches the real pattern found in
-    RealismOverhaul reference configs: ablative-chamber engines get
-    testedBurnTime approx= ratedBurnTime ("ablative, no extra time"),
-    unlike the 6-17x margin seen on regen/staged-combustion engines.
+    LEGACY (no longer called from the main design path - see
+    ablative_liner_thickness_m below, added 2026-09-25). Originally: for
+    ablative-cooled chambers, the SAME hoop-stress-derived wall thickness
+    used for every other material's mass calc ALSO capped how long the
+    chamber could fire before the char layer was consumed through. That
+    conflated the sacrificial liner with the pressure-bearing structural
+    wall - real ablative liners are sized independently, for char-depth
+    life, not hoop stress (see ASSUMPTIONS.md). Kept as a documented
+    utility / its own self-test only.
     """
     return chamber_wall_thickness_m / consumption_rate_m_s
+
+
+def ablative_liner_thickness_m(consumption_rate_m_s, target_burn_time_s, char_depth_safety_factor):
+    """
+    Erosion-life liner thickness: predicted char depth over the design's
+    TARGET rated burn time, times a real char-depth safety factor
+    [SP-8124 Sec.2.1/3.1] - independent of hoop stress. The existing
+    hoop-stress wall_thickness_m now sizes the STRUCTURAL OVERWRAP behind
+    this sacrificial liner (matching refrasil_phenolic's already-documented
+    real 3-layer liner+insulation+overwrap construction), not the liner
+    itself. See constant_thickness_shell_mass_kg for the liner's mass and
+    ASSUMPTIONS.md for the fix this replaces.
+    """
+    return consumption_rate_m_s * target_burn_time_s * char_depth_safety_factor
+
+
+def constant_thickness_shell_mass_kg(xs_m, rs_m, thickness_m, density_kg_m3):
+    """
+    Mass of a revolved shell at a FIXED (caller-supplied, not hoop-stress-
+    derived) thickness - same frustum-lateral-surface-area integration as
+    shell_mass_kg above, generalized for a caller that sizes its own
+    thickness independently (an ablative char-depth liner here; a zirconia
+    thermal-barrier liner elsewhere). `thickness_m` may be a scalar or a
+    per-station array (a tapered liner - each segment uses its end mean).
+    """
+    per_station = np.ndim(thickness_m) > 0
+    mass = 0.0
+    for i in range(len(xs_m) - 1):
+        r1, r2 = rs_m[i], rs_m[i + 1]
+        x1, x2 = xs_m[i], xs_m[i + 1]
+        slant = math.hypot(x2 - x1, r2 - r1)
+        area = math.pi * (r1 + r2) * slant
+        t = 0.5 * (thickness_m[i] + thickness_m[i + 1]) if per_station else thickness_m
+        mass += area * t * density_kg_m3
+    return mass
 
 
 if __name__ == "__main__":
@@ -362,6 +408,44 @@ if __name__ == "__main__":
     assert hoop_stress_pa(-p_ref, r_ref, t_ref) == stress_at_design_p  # sign-agnostic magnitude
     assert hoop_stress_pa(p_ref, r_ref, 0.0) == float("inf")
     print("hoop_stress_pa self-check: OK")
+
+    # --- ablative_liner_thickness_m: monotonic in rate and target burn time,
+    # and (unlike the legacy ablative_rated_burn_time_s) independent of any
+    # hoop-stress wall thickness ---
+    rate_a, rate_b = 1.5e-4, 2.7e-5  # generic vs. refrasil-class rate
+    t_target_a, t_target_b = 200.0, 400.0
+    safety = 1.25
+    liner_lo = ablative_liner_thickness_m(rate_b, t_target_a, safety)
+    liner_hi_rate = ablative_liner_thickness_m(rate_a, t_target_a, safety)
+    liner_hi_time = ablative_liner_thickness_m(rate_b, t_target_b, safety)
+    assert liner_hi_rate > liner_lo   # higher consumption rate -> thicker liner at fixed target time
+    assert liner_hi_time > liner_lo   # longer target burn time -> thicker liner at fixed rate
+    assert abs(liner_lo - rate_b * t_target_a * safety) < 1e-15
+    print("ablative_liner_thickness_m self-check: OK")
+
+    # --- constant_thickness_shell_mass_kg: at a FLAT thickness equal to
+    # shell_mass_kg's own local hoop-stress thickness on a cylindrical
+    # (constant-radius) segment, the two must agree exactly - both are the
+    # same frustum-lateral-area integration, just with a different thickness
+    # source ---
+    xs_cyl = np.array([0.0, 1.0])
+    rs_cyl = np.array([0.1, 0.1])
+    flat_t = wall_thickness_m(pc_pa, rs_cyl[0], sigma_allow_pa)
+    m_flat = constant_thickness_shell_mass_kg(xs_cyl, rs_cyl, flat_t, density_kg_m3)
+    m_hoop = shell_mass_kg(xs_cyl, rs_cyl, pc_pa, sigma_allow_pa, density_kg_m3)
+    assert abs(m_flat - m_hoop) / m_hoop < 1e-9
+    # doubling thickness doubles mass (linear in thickness)
+    assert abs(constant_thickness_shell_mass_kg(xs_cyl, rs_cyl, 2.0 * flat_t, density_kg_m3)
+               - 2.0 * m_flat) < 1e-9
+    # per-station array: a uniform array matches the scalar exactly; a taper
+    # lands strictly between its end thicknesses' flat masses
+    _n = len(xs_cyl)
+    assert abs(constant_thickness_shell_mass_kg(xs_cyl, rs_cyl, np.full(_n, flat_t), density_kg_m3)
+               - m_flat) < 1e-9 * m_flat
+    _m_taper = constant_thickness_shell_mass_kg(xs_cyl, rs_cyl, np.linspace(2 * flat_t, flat_t, _n),
+                                                density_kg_m3)
+    assert m_flat < _m_taper < 2.0 * m_flat
+    print("constant_thickness_shell_mass_kg self-check: OK")
 
     # --- longitudinal_buckling_stress_pa: degenerate E_t==E_c collapses
     # (sqrt(E_t)+sqrt(E_c))^2 to 4*E, giving the simpler closed form

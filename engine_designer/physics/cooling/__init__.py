@@ -93,6 +93,7 @@ from .dump import (  # noqa: F401
 )
 from .radiation import (  # noqa: F401
     radiative_wall_temperature,
+    required_liner_resistance_m2k_w,
 )
 from .regen_credit import (  # noqa: F401
     REGEN_ISP_BONUS_MAX,

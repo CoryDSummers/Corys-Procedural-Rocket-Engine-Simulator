@@ -1,4 +1,10 @@
 {
+"ablative_liner_mass_kg": {
+"__f__": "0.0"
+},
+"ablative_liner_thickness_m": {
+"__f__": "0.0"
+},
 "bell_material_margin": {
 "assumed_wall_temp_k": {
 "__f__": "499.82879143451254"
@@ -2515,6 +2521,7 @@
 "nozzle_cooling_method": "regenerative",
 "nozzle_cooling_rejected": null,
 "nozzle_cooling_source": "explicit",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.0"
 },
@@ -3796,6 +3803,16 @@
 "eta_cstar": {
 "__f__": "0.9882412024506102"
 },
+"ext_ablative_liner_mass_kg": {
+"__f__": "0.0"
+},
+"ext_ablative_liner_thickness_m": {
+"__nd__": [
+{
+"__f__": "0.0"
+}
+]
+},
 "ext_wall_thickness_m": {
 "__nd__": []
 },
@@ -3895,6 +3912,9 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
+"ablative_target_burn_time_s": {
+"__f__": "200.0"
+},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -4016,6 +4036,7 @@
 "new_part_name": "RS-29",
 "new_part_title": "Rocketdyne",
 "nozzle_cooling_method": "regenerative",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.0"
 },
@@ -4025,6 +4046,7 @@
 "nozzle_half_angle_deg": {
 "__f__": "15.0"
 },
+"nozzle_liner_material_key": "",
 "nozzle_type": "bell",
 "npsh_available_fuel_ft": {
 "__f__": "0.0"
@@ -4412,6 +4434,17 @@
 "nozzle_efficiency_vs_reference": {
 "__f__": "1.0"
 },
+"nozzle_liner_gas_face_temp_k": null,
+"nozzle_liner_mass_kg": {
+"__f__": "0.0"
+},
+"nozzle_liner_required_thickness_m": {
+"__f__": "0.0"
+},
+"nozzle_liner_target_shell_k": null,
+"nozzle_liner_thickness_m": {
+"__f__": "0.0"
+},
 "orifice_cd": {
 "__f__": "0.65"
 },
@@ -4491,6 +4524,8 @@
 }
 },
 "role": "turbine_exhaust_manifold",
+"root_reducer": false,
+"root_tangential": false,
 "total_length_m": {
 "__f__": "2.342179523630866"
 }
@@ -5472,7 +5507,8 @@
 "port_standoff_dia_mult": {
 "__f__": "2.5"
 },
-"role": "turbine_exhaust_manifold"
+"role": "turbine_exhaust_manifold",
+"root_mode": "auto"
 },
 "manifold": null,
 "mass_kg": {
@@ -5480,6 +5516,7 @@
 },
 "material": "haynes_230",
 "mode": "overboard_duct",
+"neck": null,
 "outlet": {
 "cant_deg": {
 "__f__": "0.0"

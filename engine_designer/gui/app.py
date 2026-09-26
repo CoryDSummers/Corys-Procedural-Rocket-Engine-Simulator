@@ -373,6 +373,7 @@ class EngineDesignerApp:
         ttk.Label(ccb, textvariable=self.chamber_cooling_hint_var, wraplength=260,
                   foreground="#666666").grid(row=cc2_row, column=0, columnspan=2, sticky="w")
         cc2_row += 1
+
         cc2_row = self._add_dropdown(
             ccb, cc2_row, "Cooled-wall construction", "wall_construction_var",
             list(cooling.WALL_CONSTRUCTIONS), self.design.wall_construction, width=16)
@@ -490,9 +491,75 @@ class EngineDesignerApp:
             "Regen/dump nozzle end [eps] (0 = stop at cooling transition)",
             self.regen_nozzle_end_var, 0.0, 150.0, decimals=1)
 
+        # Real physics (2026-09-25): a thin insulating liner (e.g. the real
+        # XLR81/Agena zirconia liner ahead of a titanium shell) that lowers the
+        # STRUCTURAL shell's own temperature below the raw gas-facing one -
+        # cooling/radiation.py's liner_resistance_m2k_w. Only meaningful on a
+        # radiative/uncooled nozzle extension.
+        self.nozzle_liner_group = ttk.Frame(ncb)
+        self.nozzle_liner_group.grid(row=nc_row, column=0, columnspan=2, sticky="ew")
+        nc_row += 1
+        self.liner_display_to_key = {"(none)": "",
+                                     **{lm.display_name: lm.key
+                                        for lm in materials.LINER_MATERIALS.values()}}
+        _liner_row = self._add_dropdown(
+            self.nozzle_liner_group, 0, "Nozzle liner material", "nozzle_liner_material_var",
+            list(self.liner_display_to_key.keys()),
+            next((disp for disp, k in self.liner_display_to_key.items()
+                  if k == self.design.nozzle_liner_material_key), "(none)"),
+            width=28)
+        # Thickness is COMPUTED (cooling_stage.thermal) - read-only readout,
+        # refreshed from each result by _update_liner_readouts.
+        self.nozzle_liner_readout_var = tk.StringVar(value="")
+        ttk.Label(self.nozzle_liner_group, textvariable=self.nozzle_liner_readout_var,
+                  wraplength=260, foreground="#666666").grid(
+            row=_liner_row, column=0, columnspan=2, sticky="w")
+        self._register_gate(
+            self.nozzle_liner_group,
+            lambda: self._effective_nozzle_cooling_method() in ("radiative", "uncooled"))
+
+        # Nozzle-extension stiffening detail (2026-09-25): "rings" is today's
+        # mandatory axisymmetric ring-bump behavior on a radiative extension;
+        # "orthogrid" is the real Bell 8247 XLR81/Agena waffle-pattern
+        # alternative (also applies a mass reduction, mass_model.
+        # ORTHOGRID_MASS_FRACTION); "smooth" is a newly-possible bare option.
+        # 3D-preview + mass detail only, unrelated to Cooled-wall construction
+        # (a regen-jacket cooling concept).
+        self.nozzle_stiffening_group = ttk.Frame(ncb)
+        self.nozzle_stiffening_group.grid(row=nc_row, column=0, columnspan=2, sticky="ew")
+        nc_row += 1
+        self._add_dropdown(
+            self.nozzle_stiffening_group, 0, "Nozzle extension stiffening",
+            "nozzle_extension_stiffening_style_var",
+            ["rings", "orthogrid", "smooth"], self.design.nozzle_extension_stiffening_style,
+            width=16)
+        self._register_gate(
+            self.nozzle_stiffening_group,
+            lambda: self._effective_nozzle_cooling_method() in ("radiative", "uncooled"))
+
         # (The 3D tube-drawing style - single pass / F-1 double pass / J-2 two
         # pass - now follows "Cooling jacket flow topology" automatically:
         # design.REGEN_CIRCUIT_STYLE_BY_TOPOLOGY. No separate dropdown.)
+
+        # Ablative sections (chamber and/or nozzle extension) TARGET a burn time
+        # - a design input - which sizes each one's char-depth liner (SP-8124's
+        # 1.25 char-depth factor; the extension's tapers with local heat flux).
+        # The thicknesses themselves are outputs, shown read-only below.
+        sec_ablative = CollapsibleSection(tab_cooling, "Ablative Liner")
+        sec_ablative.grid(row=cool_tab_row, column=0, columnspan=2, sticky="ew")
+        cool_tab_row += 1
+        abb = sec_ablative.body_parent()
+        self.ablative_target_burn_time_var = tk.DoubleVar(
+            value=self.design.ablative_target_burn_time_s)
+        _abl_row = self._add_slider(abb, 0, "Ablative target burn time [s]",
+                                    self.ablative_target_burn_time_var, 0.0, 600.0, decimals=0)
+        self.ablative_liner_readout_var = tk.StringVar(value="")
+        ttk.Label(abb, textvariable=self.ablative_liner_readout_var, wraplength=260,
+                  foreground="#666666").grid(row=_abl_row, column=0, columnspan=2, sticky="w")
+        self._register_gate(
+            sec_ablative,
+            lambda: "ablative" in (self._effective_chamber_cooling_method(),
+                                   self._effective_nozzle_cooling_method()))
 
         # Everything in this section is a 3D-preview-only hardware detail that
         # only applies to wall_construction == "tube_wall" (no physics/mass
@@ -1649,6 +1716,29 @@ class EngineDesignerApp:
             if hasattr(self, hint_var):
                 getattr(self, hint_var).set(hint)
 
+    def _effective_cooling_method(self, mat_var, meth_var):
+        """Resolve a section's EFFECTIVE cooling method for gate predicates: the
+        dropdown's own value if explicitly set, else the current material's
+        `cooling_method` default (what "auto" actually resolves to - see
+        `_filter_cooling_dropdowns`). Gates that compared the raw dropdown var
+        directly stayed hidden forever for the tool's normal "pick a material,
+        leave cooling on auto" usage pattern (2026-09-25 bugfix)."""
+        cur = getattr(self, meth_var).get()
+        if cur != "auto":
+            return cur
+        mat_var_widget = getattr(self, mat_var, None)  # may not exist yet during
+        if mat_var_widget is None:                     # __init__ (registered before
+            return "auto"                              # bell_material_var is built)
+        key = self.material_display_to_key.get(mat_var_widget.get())
+        mat = materials.MATERIALS.get(key)
+        return mat.cooling_method if mat is not None else "auto"
+
+    def _effective_chamber_cooling_method(self):
+        return self._effective_cooling_method("material_var", "chamber_cooling_method_var")
+
+    def _effective_nozzle_cooling_method(self):
+        return self._effective_cooling_method("bell_material_var", "nozzle_cooling_method_var")
+
     def _on_control_change(self, *_args):
         # Reads every input widget into self.design, then recomputes. Its exact
         # inverse is _refresh_widgets_from_design() (used by New / Load) - keep
@@ -1725,8 +1815,12 @@ class EngineDesignerApp:
             self.design.jacket_inlet_velocity_mult = self.jacket_inlet_vmult_var.get()
             self.design.cooling_transition_eps = self.cooling_transition_var.get()
             self.design.chamber_cooling_method = self.chamber_cooling_method_var.get()
+            self.design.ablative_target_burn_time_s = self.ablative_target_burn_time_var.get()
             self.design.nozzle_cooling_method = self.nozzle_cooling_method_var.get()
             self.design.regen_nozzle_end_eps = self.regen_nozzle_end_var.get()
+            self.design.nozzle_liner_material_key = self.liner_display_to_key.get(
+                self.nozzle_liner_material_var.get(), self.design.nozzle_liner_material_key)
+            self.design.nozzle_extension_stiffening_style = self.nozzle_extension_stiffening_style_var.get()
             self.design.dump_coolant_fraction = self.dump_coolant_fraction_var.get() / 100.0
             self.design.wall_construction = self.wall_construction_var.get()
             self.design.cooling_flow_topology = self.cooling_flow_topology_var.get()
@@ -1881,6 +1975,37 @@ class EngineDesignerApp:
                             roll=getattr(self.ax3d, "roll", 0))
         self.canvas3d.draw_idle()
 
+    def _update_liner_readouts(self, result):
+        """Read-only computed-thickness readouts (the thicknesses are outputs)."""
+        var = getattr(self, "nozzle_liner_readout_var", None)
+        if var is not None:
+            req = result.get("nozzle_liner_required_thickness_m") or 0.0
+            app = result.get("nozzle_liner_thickness_m") or 0.0
+            target = result.get("nozzle_liner_target_shell_k")
+            if target is None:
+                var.set("")
+            elif req <= 0.0:
+                var.set(f"Computed thickness: none needed (shell already under {target:.0f} K)")
+            elif app < req:
+                var.set(f"Computed thickness: {app * 1e3:.2f} mm applied (buildable max) - "
+                        f"{req * 1e3:.0f} mm would be needed to hold the shell at "
+                        f"{target:.0f} K; see the checklist")
+            else:
+                var.set(f"Computed thickness: {app * 1e3:.2f} mm (holds the shell at "
+                        f"{target:.0f} K)")
+        var = getattr(self, "ablative_liner_readout_var", None)
+        if var is not None:
+            parts = []
+            chamber_t = result.get("ablative_liner_thickness_m") or 0.0
+            if chamber_t > 0.0:
+                parts.append(f"chamber liner {chamber_t * 1e3:.1f} mm")
+            ext_t = result.get("ext_ablative_liner_thickness_m")
+            if ext_t is not None and len(ext_t) and float(max(ext_t)) > 0.0:
+                parts.append(f"extension liner {float(ext_t[0]) * 1e3:.1f} mm at entry -> "
+                             f"{float(ext_t[-1]) * 1e3:.1f} mm at exit")
+            var.set(("Computed: " + "; ".join(parts) + " (char depth x 1.25, plus the "
+                     "structural overwrap)") if parts else "")
+
     def _update_hatband_summary(self, result):
         """One-line readout of the sized hatbands under the hatband controls."""
         label = getattr(self, "hatband_summary_label", None)
@@ -2002,6 +2127,7 @@ class EngineDesignerApp:
             return
         self.last_result = result
         self._update_hatband_summary(result)
+        self._update_liner_readouts(result)
 
         # Redraw only the currently-visible result tab; the rest are marked
         # dirty and catch up on exactly one redraw when the user switches to
@@ -2533,8 +2659,13 @@ class EngineDesignerApp:
         self.stiffness_var.set(d.injector_stiffness)
         self.chamber_sizing_method_var.set(d.chamber_sizing_method)
         self.chamber_cooling_method_var.set(d.chamber_cooling_method)
+        self.ablative_target_burn_time_var.set(d.ablative_target_burn_time_s)
         self.nozzle_cooling_method_var.set(d.nozzle_cooling_method)
         self.regen_nozzle_end_var.set(d.regen_nozzle_end_eps)
+        self.nozzle_liner_material_var.set(next(
+            (disp for disp, k in self.liner_display_to_key.items()
+             if k == d.nozzle_liner_material_key), "(none)"))
+        self.nozzle_extension_stiffening_style_var.set(d.nozzle_extension_stiffening_style)
         self.dump_coolant_fraction_var.set(d.dump_coolant_fraction * 100.0)
         self.wall_construction_var.set(d.wall_construction)
         self.cooling_flow_topology_var.set(d.cooling_flow_topology)

@@ -15,7 +15,7 @@ import numpy as np
 from ...physics import geometry3d
 from .profile_geometry import offset_profile
 from .mesh_primitives import revolve_to_buffers, mesh_from_grid, end_cap_ring, grid_vertex_normals
-from .tube_bundle import (channel_modulated_grid, tube_bundle_pieces,
+from .tube_bundle import (channel_modulated_grid, orthogrid_modulated_grid, tube_bundle_pieces,
                           double_pass_tube_pieces, visual_channel_count)
 
 @dataclass
@@ -51,7 +51,7 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
                       land_fraction=0.35, structural_bumps=None,
                       cap_start=False, cap_end=False, tube_split_x_m=None,
                       regen_circuit_style="single_pass_upflow", tube_cutoff_x_m=None,
-                      down_tube_start_x_m=None,
+                      down_tube_start_x_m=None, orthogrid_spec=None,
                       specular_strength=0.0, shininess=32.0):
     """
     Compose one profile piece (the chamber/throat body OR the nozzle
@@ -111,6 +111,14 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
     x where the DOWN tubes begin - the J-2 layout's mid-nozzle inlet manifold
     (double_pass_tube_pieces' down_start_idx). None = down tubes throughout.
 
+    `orthogrid_spec`, if given (a dict of n_ribs_theta/n_ribs_axial/
+    rib_height_m/rib_fraction), draws a 2-D waffle stiffening pattern
+    (tube_bundle.orthogrid_modulated_grid) on the outer wall INSTEAD of the
+    `construction`/channel-modulation branch below - orthogonal to
+    `wall_construction` (a regen-jacket cooling concept), since this is a
+    RADIATIVE-nozzle-extension structural-stiffening choice with no coolant
+    channels at all. Checked first, before `construction` is even consulted.
+
     Returns a ShellMesh.
     """
     xs_m = np.asarray(xs_m, dtype=float)
@@ -129,7 +137,21 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
 
     extra_pieces = []
     has_channel_data = channel_height_profile_m is not None and n_channels_physical > 0
-    if construction == "tube_wall" and has_channel_data:
+    # orthogrid ribs stand proud of the skin, and a rib ring sits at each end -
+    # the end caps must reach the rib tops or a sliver gap shows there
+    cap_rib_extra_m = float(orthogrid_spec["rib_height_m"]) if orthogrid_spec else 0.0
+    if orthogrid_spec:
+        X, Y, Z = orthogrid_modulated_grid(
+            outer_xs, outer_rs, n_theta, orthogrid_spec["n_ribs_theta"],
+            orthogrid_spec["n_ribs_axial"], orthogrid_spec["rib_height_m"],
+            orthogrid_spec["rib_fraction"])
+        normals_flat = grid_vertex_normals(X, Y, Z).reshape(-1, 3)
+        outer_pieces = [mesh_from_grid(X, Y, Z, base_color_rgb, normals=normals_flat,
+                                        specular_strength=specular_strength, shininess=shininess)]
+        outer_pieces[0].meta = {"orthogrid": True,
+                                "n_ribs_theta": int(orthogrid_spec["n_ribs_theta"]),
+                                "n_ribs_axial": int(orthogrid_spec["n_ribs_axial"])}
+    elif construction == "tube_wall" and has_channel_data:
         # Genuinely discrete round tubes, not a corrugated approximation of
         # them - see tube_bundle_pieces. `rs_m` (the un-offset inner/gas-side
         # radius) is passed through so the valley floor can never cross it.
@@ -229,11 +251,13 @@ def build_shell_mesh(xs_m, rs_m, thickness_m, n_theta, base_color_rgb, *,
 
     pieces = [inner, *outer_pieces, *extra_pieces]
     if cap_start:
-        pieces.append(end_cap_ring(float(xs_m[0]), float(rs_m[0]), float(outer_rs[0]),
+        pieces.append(end_cap_ring(float(xs_m[0]), float(rs_m[0]),
+                                    float(outer_rs[0]) + cap_rib_extra_m,
                                     n_theta, base_color_rgb, facing_sign=-1.0,
                                     specular_strength=specular_strength, shininess=shininess))
     if cap_end:
-        pieces.append(end_cap_ring(float(xs_m[-1]), float(rs_m[-1]), float(outer_rs[-1]),
+        pieces.append(end_cap_ring(float(xs_m[-1]), float(rs_m[-1]),
+                                    float(outer_rs[-1]) + cap_rib_extra_m,
                                     n_theta, base_color_rgb, facing_sign=1.0,
                                     specular_strength=specular_strength, shininess=shininess))
     return ShellMesh(pieces=pieces, outer_xs=outer_xs, outer_rs=outer_rs)
@@ -291,6 +315,39 @@ def self_test():
         assert inner_piece.indices.shape[0] == 2 * (n_theta - 1) * (xs_shell.size - 1)
         assert outer_piece.indices.shape[0] == 2 * (n_theta - 1) * (xs_shell.size - 1)
     print("build_shell_mesh self-check: OK")
+
+    # --- build_shell_mesh orthogrid_spec: takes priority over construction/
+    # channel data entirely, no NaNs, correct piece count, and the envelope
+    # (outer_xs/outer_rs) is completely unaffected - same regression pattern
+    # already used for tube_split_x_m/tube_cutoff_x_m above ---
+    shell_orthogrid = build_shell_mesh(
+        xs_shell, rs_shell, thick, n_theta, (0.5, 0.5, 0.5),
+        construction="milled_channel", channel_height_profile_m=ch_height,
+        n_channels_physical=224, land_fraction=0.35, cap_start=True, cap_end=True,
+        orthogrid_spec=dict(n_ribs_theta=6, n_ribs_axial=4, rib_height_m=0.003, rib_fraction=0.2))
+    assert len(shell_orthogrid.pieces) == 4   # inner, outer (orthogrid), 2 caps - no channel pieces
+    for piece in shell_orthogrid.pieces:
+        assert not np.any(np.isnan(piece.vertices))
+        assert not np.any(np.isnan(piece.normals))
+    assert shell_orthogrid.pieces[1].meta == {"orthogrid": True, "n_ribs_theta": 6, "n_ribs_axial": 4}
+    # ribs stand proud of the smooth envelope by exactly the rib height, and the
+    # end caps reach the rib tops (a rib ring sits at each end)
+    _v = shell_orthogrid.pieces[1].vertices          # (n_theta, n_stations) grid, C-order
+    _dr = (np.hypot(_v[:, 1], _v[:, 2]).reshape(n_theta, -1)
+           - shell_orthogrid.outer_rs[None, :])
+    _tol = 1e-6                                      # vertices are float32
+    assert abs(float(np.max(_dr)) - 0.003) < _tol and float(np.min(_dr)) > -_tol
+    for _cap, _end_r in zip(shell_orthogrid.pieces[2:], (shell_orthogrid.outer_rs[0],
+                                                         shell_orthogrid.outer_rs[-1])):
+        _cr = np.hypot(_cap.vertices[:, 1], _cap.vertices[:, 2])
+        assert abs(float(np.max(_cr)) - (float(_end_r) + 0.003)) < _tol
+    shell_plain = build_shell_mesh(
+        xs_shell, rs_shell, thick, n_theta, (0.5, 0.5, 0.5),
+        construction="milled_channel", channel_height_profile_m=ch_height,
+        n_channels_physical=224, land_fraction=0.35, cap_start=True, cap_end=True)
+    assert np.allclose(shell_orthogrid.outer_xs, shell_plain.outer_xs)
+    assert np.allclose(shell_orthogrid.outer_rs, shell_plain.outer_rs)
+    print("build_shell_mesh orthogrid_spec self-check: OK")
 
     # --- build_shell_mesh tube_split_x_m: a bell tube-split bifurcation
     # (real F-1: 178 -> 356 tubes at its 3:1 area-ratio plane) ---

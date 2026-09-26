@@ -216,6 +216,14 @@ point, not a transferable formula.
 
 ## Caveats
 
+- **Shape detail not in this manual comes from photos (2026-09-25)**: the manifold's
+  tangential single inlet (a scroll), its forward/outboard placement on an outlet neck and
+  the flame shield's run were read off the F-1 thrust-chamber photo and the manifold cutaway
+  (enginehistory.org RPE §8.12; the cutaway is `[SP-8120]`'s §2.2.5.3 figure) — see
+  `topics/12b` "Real F-1 / J-2 exhaust-manifold SHAPE". This manual's §1-18 supplies the words
+  ("decreasing (from inlet to exit) cross-sectional area", 15 omega joints, splitter plates,
+  exit vanes) and §1-72 the 24 in manifold-end diameter.
+
 - **This is a scoped read, not exhaustive.** Section II (weights/CG/instrumentation-tap
   tables, mostly hand-drawn charts or garbled numeric tables) and most of the
   logistics/maintenance narrative in Section I (§1-134 onward) were skimmed only, per the

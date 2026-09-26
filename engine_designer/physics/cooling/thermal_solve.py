@@ -94,7 +94,7 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
                   regen_mdot_kgs=0.0, regen_cut_eps=None, two_pass=False, inlet_eps=None,
                   march_kw=None, dump_fraction_fixed=0.0, mdot_fuel_kgs=0.0,
                   coolant_limit_k=None, calibration=1.0, deposit_factor=1.0,
-                  gas_film_phi=None, gas_film_t_k=None,
+                  gas_film_phi=None, gas_film_t_k=None, liner_resistance_m2k_w=None,
                   max_iter=80, tol_k=0.5, relax=0.5):
     xs = np.asarray(xs_m, dtype=float)
     rs = np.asarray(rs_m, dtype=float)
@@ -112,6 +112,8 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
     # film(., phi_gas, T_gas). None/inactive -> the old path, bit-identical.
     gphi = None if gas_film_phi is None else np.asarray(gas_film_phi, dtype=float)
     gas_film_on = gphi is not None and gas_film_t_k is not None and bool(np.any(gphi < 1.0))
+    liner_resist = (np.zeros(n) if liner_resistance_m2k_w is None
+                    else np.asarray(liner_resistance_m2k_w, dtype=float))
 
     def _taw_film(t_film_liquid):
         base = film_adiabatic_wall_temp(t_aw, phi, t_film_liquid) if film_on else t_aw
@@ -197,7 +199,8 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
                         sized=dump_fraction_fixed <= 0.0)
 
         for i in np.flatnonzero(m_rad):
-            new[i] = radiative_wall_temperature(hg[i], taw_f[i], emis[i])
+            new[i] = radiative_wall_temperature(hg[i], taw_f[i], emis[i],
+                                                liner_resistance_m2k_w=liner_resist[i])
         new[m_abl] = t_surf[m_abl]
 
         delta = float(np.nanmax(np.abs(new - twg))) if n else 0.0
@@ -213,8 +216,16 @@ def solve_thermal(*, xs_m, rs_m, throat_dia_m, pc_pa, cstar_ms, t0_k, gamma, cp_
     q = np.maximum(hg * (taw_f - twg), 0.0)
     heat_regen = (wall_heat_total_w(xs, rs, np.where(m_regen, q, 0.0), throat_dia_m=throat_dia_m,
                                     transition_area_ratio=regen_cut_eps) if regen_on else 0.0)
+    # STRUCTURAL SHELL temperature behind a radiative liner (see radiation.
+    # radiative_wall_temperature's docstring): t_wg_k above stays the true
+    # gas/liner-facing temperature (bit-identical everywhere liner_resist==0,
+    # in particular at every non-radiative station and every radiative one
+    # with no liner active), while t_shell_k is what the bell MATERIAL
+    # actually sees - exact algebra at the converged fixed point, no second
+    # bisection.
+    t_shell_k = twg - q * liner_resist
     return dict(mach=mach, recovery_factor=r_rec, t_aw_k=t_aw, t_aw_film_k=np.asarray(taw_f, float),
-                sigma=sigma, h_g_w_m2k=hg, q_w_m2=q, t_wg_k=twg, t_wc_k=twc,
+                sigma=sigma, h_g_w_m2k=hg, q_w_m2=q, t_wg_k=twg, t_wc_k=twc, t_shell_k=t_shell_k,
                 treatment=treat, regen_mask=m_regen, dump_mask=m_dump, radiative_mask=m_rad,
                 ablative_mask=m_abl, march=march, dump=dump, wall_heat_regen_w=heat_regen,
                 t_film_k=t_film, iterations=it, converged=converged,

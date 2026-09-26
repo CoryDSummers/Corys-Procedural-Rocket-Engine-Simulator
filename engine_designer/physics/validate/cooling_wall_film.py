@@ -152,7 +152,9 @@ def run_film_overlay_check():
           wall temperature, phi recovers downstream of the slot, and the Isp cost
           equals the dump-flow formula exactly (it never burns in the chamber).
       (e) convergent film ring: moves protection off the barrel onto the throat.
-      (f) ablative + film: rated burn time rises (char-rate credit).
+      (f) ablative + film: char-rate credit now shows up as a THINNER required
+          liner thickness at the same target burn time (2026-09-25: ablative
+          rated burn time is a design input, not derived - see ASSUMPTIONS.md).
     """
     print()
     print("=" * 78)
@@ -221,11 +223,19 @@ def run_film_overlay_check():
     rows.append((f"(e) convergent film ring (eps 1.5) vs face: barrel unfilmed, throat "
                  f"{face['t_wg_throat_k']:.0f} -> {ring['t_wg_throat_k']:.0f} K", e_ok))
 
-    ab0 = EngineDesign(material_key="ablative_phenolic").compute()["rated_burn_time_s"]
-    ab1 = EngineDesign(material_key="ablative_phenolic",
-                       film_cooling_fraction=0.06).compute()["rated_burn_time_s"]
-    f_ok = ab1 > ab0
-    rows.append((f"(f) ablative + 6% film: rated burn {ab0:.0f} -> {ab1:.0f} s", f_ok))
+    # Since 2026-09-25, ablative rated burn time is a design INPUT
+    # (ablative_target_burn_time_s), not derived - so film's char-rate credit
+    # (lower consumption rate -> thinner liner needed for the SAME target burn
+    # time) now shows up in ablative_liner_thickness_m instead of
+    # rated_burn_time_s (which is unchanged by construction, both cases below).
+    ab0_r = EngineDesign(material_key="ablative_phenolic").compute()
+    ab1_r = EngineDesign(material_key="ablative_phenolic",
+                         film_cooling_fraction=0.06).compute()
+    ab0, ab1 = ab0_r["ablative_liner_thickness_m"], ab1_r["ablative_liner_thickness_m"]
+    f_ok = (ab1 < ab0 and ab0_r["rated_burn_time_s"] == ab1_r["rated_burn_time_s"])
+    rows.append((f"(f) ablative + 6% film: liner thickness {ab0*1000:.2f} -> {ab1*1000:.2f} mm "
+                 f"(rated burn time unchanged, {ab0_r['rated_burn_time_s']:.0f} s - now a design input)",
+                 f_ok))
 
     for name, ok in rows:
         all_ok &= bool(ok)
@@ -234,5 +244,110 @@ def run_film_overlay_check():
     print("ALL FILM-OVERLAY CHECKS OK" if all_ok else
           "*** FILM-OVERLAY CHECK FAILED - review cooling.film_effectiveness_profile / "
           "nozzle_film_effectiveness_profile / design.EngineDesign._film_phi ***")
+    print("=" * 78)
+    return all_ok
+
+
+def run_zirconia_liner_check():
+    """
+    Nozzle-extension radiative liner (materials.LINER_MATERIALS, cooling/
+    radiation.py's liner_resistance_m2k_w, 2026-09-25) - real physics: a
+    conduction resistance between the hot gas and the bell material's
+    STRUCTURAL shell. Its thickness is COMPUTED (cooling_stage.thermal): the
+    coat that holds the hottest radiative extension station's shell at the
+    bell material's thin-margin point (max service / THIN_MARGIN_THRESHOLD),
+    capped at the liner's buildable max.
+
+      (a) bit-identical guard: a liner named on a design with no radiative
+          nozzle stations (a regen bell) changes nothing.
+      (b) solver monotonicity: more resistance cools the SHELL and heats the
+          gas face - the liner protects the shell, not itself.
+      (c) closure: where the requirement is buildable, the computed coat lands
+          the shell on the target (margin ratio = THIN_MARGIN_THRESHOLD); where
+          it isn't, the coat is capped and the thickness row warns.
+      (d) INFORMATIONAL: the computed coat vs. real applied sprayed-ZrO2
+          thicknesses - 0.076 mm [Quentmeyer-CR185257], ~0.25 mm [TN-D3836
+          p.22-25].
+      (e) [Quentmeyer-CR185257 Sec.Thermal Barrier Coatings p.3] flux-cut
+          comparison (INFORMATIONAL, not gated): 0.076mm ZrO2 on a REGEN liner
+          cut flux ~50%; a radiative shell's T^4 re-radiation responds very
+          differently to a conduction resistance, so no close match is expected
+          (see ASSUMPTIONS.md).
+    """
+    from ..cooling.radiation import radiative_wall_temperature
+
+    print()
+    print("=" * 78)
+    print("ZIRCONIA-LINER CHECK (radiative nozzle-extension thermal-barrier liner)")
+    print("=" * 78)
+
+    base = dict(propellant_pair="N2O4/MMH", mixture_ratio=1.6, chamber_pressure_pa=1.0e6,
+                expansion_ratio=40.0, cycle="pressure_fed", nozzle_type="bell",
+                bell_percent_length=80.0, material_key="stainless_steel",
+                target_vac_thrust_n=20_000.0)
+
+    # full-length regen nozzle: no radiative stations anywhere for a liner to act on
+    regen_all = dict(base, bell_material_key="inconel_718", regen_nozzle_end_eps=40.0)
+    r_regen = EngineDesign(**regen_all).compute()
+    r_regen_key = EngineDesign(**regen_all, nozzle_liner_material_key="zirconia").compute()
+    a_ok = (r_regen["bell_material_margin"] == r_regen_key["bell_material_margin"]
+            and r_regen["computed_dry_mass_kg"] == r_regen_key["computed_dry_mass_kg"]
+            and r_regen_key["nozzle_liner_mass_kg"] == 0.0)
+    print(f"  (a) liner named on a full-length regen bell (no radiative stations) changes nothing   "
+          f"[{'OK' if a_ok else 'FAIL'}]")
+
+    h_rep, taw_rep, emis_rep = 150.0, 1800.0, 0.6       # representative extension station
+    shells, faces = [], []
+    for resist in (0.0, 1e-4, 5e-4, 1e-3):
+        face = radiative_wall_temperature(h_rep, taw_rep, emis_rep, liner_resistance_m2k_w=resist)
+        faces.append(face)
+        shells.append(face - h_rep * (taw_rep - face) * resist)
+    b_ok = (all(b < a for a, b in zip(shells, shells[1:]))
+            and all(b >= a - 1e-6 for a, b in zip(faces, faces[1:])))
+    print(f"  (b) more resistance cools the shell {shells[0]:.0f} -> {shells[-1]:.0f} K, gas face "
+          f"{faces[0]:.0f} -> {faces[-1]:.0f} K   [{'OK' if b_ok else 'FAIL'}]")
+
+    rad = dict(base, nozzle_cooling_method="radiative", nozzle_liner_material_key="zirconia")
+    r_fit = EngineDesign(**rad, bell_material_key="niobium_c103", cooling_transition_eps=20.0).compute()
+    r_cap = EngineDesign(**rad, bell_material_key="titanium_6al4v", cooling_transition_eps=20.0).compute()
+    fit_req = r_fit["nozzle_liner_required_thickness_m"]
+    fit_margin = r_fit["bell_material_margin"]["margin_ratio"]
+    cap_row = next(c for c in r_cap["checklist"] if c["name"] == "Nozzle-extension liner thickness")
+    zr_max = materials.LINER_MATERIALS["zirconia"].max_practical_thickness_m
+    c_ok = (0.0 < fit_req <= zr_max
+            and r_fit["nozzle_liner_thickness_m"] == fit_req
+            and abs(fit_margin - materials.THIN_MARGIN_THRESHOLD) < 0.01
+            and r_fit["nozzle_liner_mass_kg"] > 0.0
+            and r_cap["nozzle_liner_required_thickness_m"] > zr_max
+            and r_cap["nozzle_liner_thickness_m"] == zr_max and not cap_row["passed"])
+    print(f"  (c) C-103 from eps 20: {fit_req * 1e3:.3f} mm lands the shell at "
+          f"{fit_margin:.3f}x margin (target {materials.THIN_MARGIN_THRESHOLD}x); Ti-6Al-4V "
+          f"needs {r_cap['nozzle_liner_required_thickness_m'] * 1e3:.0f} mm -> capped at "
+          f"{zr_max * 1e3:.1f} mm + warned   [{'OK' if c_ok else 'FAIL'}]")
+    print(f"  (d) informational: computed C-103 coat {fit_req * 1e3:.3f} mm vs. real sprayed ZrO2 "
+          f"0.076 mm [Quentmeyer-CR185257] / ~0.25 mm [TN-D3836]")
+
+    all_ok = a_ok and b_ok and c_ok
+
+    # (e) informational Quentmeyer spot-check, at representative Bartz-flux
+    # conditions (not this tool's typical nozzle-extension conditions, which
+    # run at much lower h_g than a chamber liner) - see docstring caveat.
+    h_gc_rep, t_aw_rep, emis_rep = 5000.0, 3000.0, 0.85
+    t_bare_rep = radiative_wall_temperature(h_gc_rep, t_aw_rep, emis_rep)
+    q_bare_rep = h_gc_rep * (t_aw_rep - t_bare_rep)
+    resist_rep = 0.076e-3 / materials.LINER_MATERIALS["zirconia"].thermal_conductivity_w_mk
+    t_lined_rep = radiative_wall_temperature(h_gc_rep, t_aw_rep, emis_rep,
+                                             liner_resistance_m2k_w=resist_rep)
+    q_lined_rep = h_gc_rep * (t_aw_rep - t_lined_rep)
+    flux_cut_pct = 100.0 * (1.0 - q_lined_rep / q_bare_rep) if q_bare_rep > 0 else 0.0
+    print(f"  (e) [Quentmeyer-CR185257] 0.076mm ZrO2 cut regen-liner flux ~50% (informational, "
+          f"not gated): this radiative-shell liner cuts flux {flux_cut_pct:.1f}% at representative "
+          f"conditions - a real, honestly-reported gap (a radiative shell's T^4 term responds "
+          f"differently to a conduction resistance than a regen liner's coolant boundary; see "
+          f"ASSUMPTIONS.md)")
+
+    print()
+    print("ALL ZIRCONIA-LINER CHECKS OK" if all_ok else
+          "*** ZIRCONIA-LINER CHECK FAILED ***")
     print("=" * 78)
     return all_ok

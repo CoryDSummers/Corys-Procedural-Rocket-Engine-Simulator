@@ -403,7 +403,45 @@ HX_MASS_SHELL_MULT = 2.0
 # as the overall envelope above).
 HX_CAN_INLET_DUCT_MULT = 1.5
 HX_CAN_OUTLET_DUCT_MULT = 0.9
-INJECTION_MANIFOLD_TAPER_BLEND = 0.5
+# Nozzle-injection manifold = a SCROLL (manifold.RING_KIND_SCROLL): the real
+# F-1 / J-2 exhaust ducts run TANGENTIALLY into a one-way torus "of decreasing
+# (from inlet to exit) cross-sectional area" [F1-Man §1-18; F-1 thrust-chamber
+# photo, enginehistory.org RPE 8.12; J-2 photo, Science Museum 1977-0402],
+# sized on the FULL exhaust flow at its inlet (the F-1's inlet = the 24 in
+# heat-exchanger manifold end [F1-Man §1-72]). Constant-velocity taper
+# (blend 1: area follows the flow still in the torus - the classic volute law,
+# Cory's call 2026-09-25; the photos read close to it), floored at
+# manifold.MANIFOLD_TAPER_MIN_AREA_FRACTION. Handedness fixed (+1 = flow
+# toward increasing angle) - Tier 3, no physics depends on it. Replaces the
+# retired T-split header at INJECTION_MANIFOLD_TAPER_BLEND 0.5.
+EXHAUST_SCROLL_TAPER_BLEND = 1.0
+EXHAUST_SCROLL_DIR = 1
+# Scroll placement + its outlet NECK and FLAME SHIELD, read off the F-1
+# turbine-exhaust-manifold cutaway ([SP-8120 §2.2.5.3] text; the figure is
+# reproduced on enginehistory.org RPE 8.12: torus, flame shield, retaining
+# band, return manifold, "rigid intermittent support", nozzle extension).
+# Tier 3 "drawing-read", in units of the scroll's INLET tube radius r:
+# - the torus centre sits NECK_AXIAL_OFFSET_TUBE_R_MULT x r FORWARD of the
+#   injection station (the gas turns aft through the neck into the extension),
+#   its inner edge NECK_RADIAL_GAP_TUBE_R_MULT x r off the nozzle wall (the
+#   flame shield's space);
+# - the neck is an annular passage NECK_WIDTH_TUBE_DIA_FRAC x the inlet tube
+#   diameter high, from inside the torus to the wall at the injection station
+#   (the same construction stands in for the J-2's flat base ring);
+# - the flame shield is one sheet on the wall from the torus's forward tangent
+#   station to the injection station (the manifold is welded to it, it to the
+#   chamber wall [F1-Man §1-18]).
+# The injection station, gas-film slot and all performance are unaffected.
+NECK_AXIAL_OFFSET_TUBE_R_MULT = 1.1
+NECK_RADIAL_GAP_TUBE_R_MULT = 0.35
+NECK_WIDTH_TUBE_DIA_FRAC = 0.25
+# Omega expansion joints round the scroll (thermal growth, ~0.5 in radial on
+# the F-1 [SP-8120 §2.2.5.3]): the F-1 has 15 [F1-Man §1-18]. Spacing
+# reverse-solved so the corpus F-1 scroll (centreline circumference 11.39 m)
+# gets exactly 15 - Tier 2 for the F-1 anchor, Tier 3 for scaling the count by
+# circumference on other engines. Drawn only (raised bands); no mass/physics.
+OMEGA_JOINT_SPACING_M = 0.76
+OMEGA_JOINT_MIN_COUNT = 4
 # Aspirator annulus at its forward (inlet) end is sized for the duct velocity;
 # it narrows linearly to the choked exit slot.
 
@@ -450,7 +488,11 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
       exhaust     the plumbing hook the "turbine_exhaust" run roots on (a
                   manifold.py-shaped ring dict; the overboard outlet is a
                   point "ring" whose tube radius is the duct bore)
-      manifold    injection torus ring dict, or None
+      manifold    injection scroll ring dict, or None
+      neck        its outlet neck + flame shield (closed meridian sections +
+                  mass - _neck_and_shield), or None
+      omega_joint_count  (nozzle_injection only) raised expansion-joint bands
+                  drawn round the scroll (OMEGA_JOINT_SPACING_M)
       aspirator   {"xs", "r_inner", "r_outer", "thickness_m", "gap_exit_m",
                    "collar"} or None
       outlet      overboard exhaust nozzle {"pos", "dir", "throat_dia_m",
@@ -474,25 +516,40 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
     ang = math.radians(attach_angle_deg)
     rho_scale = mat.density_kg_m3 / manifold.MANIFOLD_DENSITY_KG_M3
     out = dict(mode=mode, duct=duct, material=EXHAUST_HARDWARE_MATERIAL, manifold=None,
-               aspirator=None, outlet=None, hx=None, mass_kg=0.0)
+               neck=None, aspirator=None, outlet=None, hx=None, mass_kg=0.0)
 
-    def _ring(x, r_wall, v, taper_blend=0.0):
-        r_flow = manifold.required_flow_radius_m(0.5 * mdot, duct["rho_kg_m3"], v)
+    def _ring(x, r_wall, v, taper_blend=0.0, scroll=False, gap=0.0):
+        # a scroll carries the FULL flow at its inlet; a split header half
+        r_flow = manifold.required_flow_radius_m((1.0 if scroll else 0.5) * mdot,
+                                                 duct["rho_kg_m3"], v)
         wall = max(manifold.manifold_wall_thickness_m(p_out, r_flow, mat.allowable_stress_pa),
                    EXHAUST_SHEET_MIN_GAUGE_M)
-        ring = manifold._assemble(mdot, v, attach_angle_deg, r_wall + r_flow + wall, x,
-                                  r_flow, wall, p_out, taper_blend=taper_blend, split=True)
+        ring = manifold._assemble(
+            mdot, v, attach_angle_deg, r_wall + gap + r_flow + wall, x, r_flow, wall, p_out,
+            taper_blend=taper_blend, split=True,
+            kind=manifold.RING_KIND_SCROLL if scroll else manifold.RING_KIND_SPLIT,
+            scroll_dir=EXHAUST_SCROLL_DIR)
         ring["mass_kg"] *= rho_scale
         return ring
 
     if mode == "nozzle_injection":
         i = _station_at_eps(xs, rs, rt, inject_eps)
-        # the F-1 torus narrows from its inlet round the engine [F1-Man
-        # §1-18]; half-way between constant area and constant velocity, the
-        # SP-8087 "between the two" convention the fuel/ox rings use
-        ring = _ring(xs[i], rs[i], duct["velocity_ms"], taper_blend=INJECTION_MANIFOLD_TAPER_BLEND)
+        x_i, r_i = xs[i], rs[i]
+        # tangentially-fed one-way scroll (see EXHAUST_SCROLL_TAPER_BLEND),
+        # sitting forward + outboard of the injection station on its neck
+        r_in = manifold.required_flow_radius_m(mdot, duct["rho_kg_m3"], duct["velocity_ms"])
+        r_in_outer = r_in + max(manifold.manifold_wall_thickness_m(
+            p_out, r_in, mat.allowable_stress_pa), EXHAUST_SHEET_MIN_GAUGE_M)
+        x_c = max(x_i - NECK_AXIAL_OFFSET_TUBE_R_MULT * r_in_outer, x_t)
+        gap = NECK_RADIAL_GAP_TUBE_R_MULT * r_in_outer
+        ring = _ring(x_c, _interp(x_c, xs, rs), duct["velocity_ms"],
+                     taper_blend=EXHAUST_SCROLL_TAPER_BLEND, scroll=True, gap=gap)
+        ring["wall_gap_m"] = gap
         out["manifold"] = out["exhaust"] = ring
-        out["mass_kg"] += ring["mass_kg"]
+        out["neck"] = _neck_and_shield(ring, x_i, r_i, xs, rs, p_out, mat)
+        out["omega_joint_count"] = max(OMEGA_JOINT_MIN_COUNT, int(round(
+            2.0 * math.pi * ring["major_radius_m"] / OMEGA_JOINT_SPACING_M)))
+        out["mass_kg"] += ring["mass_kg"] + out["neck"]["mass_kg"]
     elif mode == "aspirator":
         l_noz = x_e - x_t
         x0 = x_e - max(0.0, min(1.0, aspirator_fwd_length_frac)) * l_noz
@@ -567,6 +624,49 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
                          duty_w=exh.get("hx_duty_w", 0.0))
         out["mass_kg"] += m
     return out
+
+
+def _neck_and_shield(ring, x_i, r_i, xs, rs, p_out, mat):
+    """The scroll's outlet neck + flame shield (see NECK_* above), as closed
+    meridian (x, r) sections for revolving plus their mass. The neck runs from
+    a point inside EVERY station's tube (half the TAIL radius in from the
+    torus's inner-aft corner, so it stays hidden in the fat inlet too) to the
+    wall at the injection station (x_i, r_i); its two walls are sheet sized on
+    the turbine outlet pressure over the passage half-height. The flame shield
+    lies on the wall from the torus's forward tangent to x_i at the minimum
+    gauge."""
+    x_c = ring["attach_axial_station_m"]
+    edge = ring["major_radius_m"] - ring["outer_radius_m"]      # torus inner edge
+    r_tail = ring["min_flow_radius_m"] * (1.0 + ring["thin_wall_ratio"])
+    h = NECK_WIDTH_TUBE_DIA_FRAC * 2.0 * ring["outer_radius_m"]
+    s0 = (x_c + 0.5 * r_tail, edge + 0.5 * r_tail)
+    s1 = (x_i, r_i)
+    dx, dr = s1[0] - s0[0], s1[1] - s0[1]
+    length = math.hypot(dx, dr)
+    ux, ur = (dx / length, dr / length) if length > 0 else (1.0, 0.0)
+    mx, mr = -ur, ux                                # in-plane normal (outboard-ish)
+    half = 0.5 * h
+    neck_x = [s0[0] + half * mx, s1[0] + half * mx, s1[0] - half * mx, s0[0] - half * mx]
+    neck_r = [s0[1] + half * mr, s1[1] + half * mr, s1[1] - half * mr, s0[1] - half * mr]
+    # never let the neck's inboard edge poke through the nozzle wall
+    neck_r = [max(r, _interp(x, xs, rs)) for x, r in zip(neck_x, neck_r)]
+    t_neck = _sheet_t(p_out, half, mat)
+    r_mid = 0.5 * (s0[1] + s1[1])
+    neck_mass = 2.0 * (2.0 * math.pi * r_mid * length) * t_neck * mat.density_kg_m3
+    # flame shield: the wall from the torus's forward tangent to the injection station
+    x0 = x_c - ring["outer_radius_m"]
+    t_sh = EXHAUST_SHEET_MIN_GAUGE_M
+    n = 12
+    sx = [x0 + (x_i - x0) * k / n for k in range(n + 1)]
+    sr = [_interp(x, xs, rs) for x in sx]
+    area = sum(2.0 * math.pi * 0.5 * (sr[k] + sr[k + 1])
+               * math.hypot(sx[k + 1] - sx[k], sr[k + 1] - sr[k]) for k in range(n))
+    shield_mass = area * t_sh * mat.density_kg_m3
+    return dict(section_xs=neck_x, section_rs=neck_r, height_m=h, length_m=length,
+                thickness_m=t_neck, neck_mass_kg=neck_mass,
+                shield_xs=sx, shield_rs=sr, shield_thickness_m=t_sh,
+                shield_mass_kg=shield_mass, inject_station_m=x_i,
+                mass_kg=neck_mass + shield_mass)
 
 
 def _interp(x, xs, rs):
@@ -715,13 +815,25 @@ def _self_test():
     inj_r = hw["nozzle_injection"]["manifold"]
     asp = hw["aspirator"]["aspirator"]
     outl = hw["overboard_duct"]["outlet"]
+    from . import manifold as _mf
     c6 = (inj_r is not None and inj_r["major_radius_m"] > inj_r["flow_radius_m"]
+          # a full-flow tangential scroll: inlet bore = the duct bore, tapering
+          and _mf.ring_is_scroll(inj_r)
+          and abs(inj_r["inner_diameter_m"] - hw["nozzle_injection"]["duct"]["dia_m"]) < 1e-9
+          and abs(2.0 * inj_r["inlet_flow_radius_m"] - inj_r["inner_diameter_m"]) < 1e-12
+          and inj_r["min_flow_radius_m"] < inj_r["inlet_flow_radius_m"]
+          # sits forward of the injection station + off the wall, on its neck
+          and hw["nozzle_injection"]["neck"]["mass_kg"] > 0
+          and inj_r["attach_axial_station_m"] < hw["nozzle_injection"]["neck"]["inject_station_m"]
+          and inj_r["major_radius_m"] - inj_r["outer_radius_m"]
+          > _interp(inj_r["attach_axial_station_m"], xs_c, rs_c) + 0.5 * inj_r["wall_gap_m"]
+          and hw["aspirator"]["neck"] is None and hw["overboard_duct"]["neck"] is None
           and abs(asp["r_inner"][-1] - re_ - asp["gap_exit_m"]) < 1e-9
           and asp["annulus_inlet_m"] >= asp["gap_exit_m"]
           and outl["exit_dia_m"] > outl["throat_dia_m"]
           and hw["overboard_duct"]["exhaust"]["point_hook"]
           and all(h["mass_kg"] > 0 and h["duct"]["dia_m"] > 0 for h in hw.values()))
-    print(f"  (6) hardware: duct {hw['aspirator']['duct']['dia_m']*1e3:.0f} mm; injection ring "
+    print(f"  (6) hardware: duct {hw['aspirator']['duct']['dia_m']*1e3:.0f} mm; injection scroll "
           f"{inj_r['flow_radius_m']*1e3:.0f} mm bore; aspirator {asp['annulus_inlet_m']*1e3:.0f} -> "
           f"{asp['gap_exit_m']*1e3:.1f} mm annulus; outlet {outl['throat_dia_m']*1e3:.0f} -> "
           f"{outl['exit_dia_m']*1e3:.0f} mm  [{'OK' if c6 else 'FAIL'}]")

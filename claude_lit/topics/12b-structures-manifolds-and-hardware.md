@@ -213,6 +213,23 @@ exhaust-introduction method must **not** be used with noncryogenic propellants (
 RP-1-trapping/LOX-RP-1-gel-detonation precedent, detailed in `topics/07-dump-cooling.md`) —
 use an annulus-at-exit or film-cooled-extension method instead for storable propellants.
 
+**Real F-1 / J-2 exhaust-manifold SHAPE — photos + the F-1 cutaway (web, 2026-09-25)**:
+the F-1 thrust-chamber photo and the F-1 manifold cutaway (the latter the `[SP-8120]`
+§2.2.5.3 figure — torus, flame shield, retaining-band "interference area", return manifold,
+"rigid intermittent support", omega joint, nozzle extension), both reproduced on
+enginehistory.org, *Rocket Propulsion Evolution* §8.12
+(`https://www.enginehistory.org/Rockets/RPE08.11/RPE08.12.shtml`: `F-1ThrustChamber.jpg`,
+`F-1ExManNozzleExt.jpg`), and a J-2 museum photo (Science Museum Group object 1977-0402,
+`https://coimages.sciencemuseumgroup.org.uk/745/48/large_1977_0402_0001.jpg`). Read off them:
+**both engines feed the torus TANGENTIALLY at ONE inlet** — the F-1's heat-exchanger duct drops
+down the chamber side and turns through a large elbow straight into the torus, which then
+narrows one way round (a volute/scroll — `[F1-Man §1-18]`'s "decreasing (from inlet to exit)
+cross-sectional area"); the J-2's duct comes down through a bellows and elbow the same way. The
+F-1 torus sits outboard and slightly FORWARD of the chamber/extension joint and feeds aft-inboard
+through a short neck into the extension's double wall; the flame shield lies on the tubes under
+it. Raised omega-joint bands are visible round the F-1 torus. Photos give shape and proportion,
+not dimensions — no area-vs-angle law or section sizes (`OPEN_QUESTIONS.md`).
+
 **Real coolant-return-manifold and nozzle-attachment braze/tolerance numbers — `[SP-8120]`
 full read, 2026-09-24** `[SP-8120 §2.2.5.4/§2.2.6 p.53-57]`: real tube-to-manifold joint
 comparison — square tube ends into slots (corner-filler/braze-peeling/oil-canning problems)
@@ -310,7 +327,11 @@ bolt holes), bolt spacing = bolt-head diameter + 2× flange thickness, seals tol
   for high-thermal-load hot-gas manifolds), and a real safety-relevant design criterion
   (never use looped-tube turbine-exhaust introduction with storable propellants). See
   `topics/07-dump-cooling.md` for the accompanying F-1 turbine-exhaust film-cooling-extension
-  content this pairs with. Report-only — no code changed.
+  content this pairs with. Report-only — no code changed. **Applied 2026-09-25**: the
+  nozzle_injection manifold is now a tangentially-fed scroll (`manifold.RING_KIND_SCROLL`,
+  full-flow inlet — the corpus F-1's lands on the real 24 in), on an outlet neck + flame shield
+  read off the cutaway (Tier 3), with the F-1's 15 omega joints drawn (`ASSUMPTIONS.md`
+  "Injection SCROLL manifold"); the ductile-material rule is already met (Haynes 230).
 - **A currently-unflagged real design tension worth surfacing**: `[SP-8120]`'s explicit
   criterion that manifold/band structural failures are as much a *combustion-instability/
   performance* risk as a structural one (the H-1 dam anecdote: a purely hydraulic/structural

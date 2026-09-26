@@ -258,8 +258,14 @@ touching any cooling number.** What changed structurally:
    pair x method x construction combos compute finite + converged - the cooling audit's
    crash/NaN guard, 2026-09-23) and "ALL TURBINE-EXHAUST CHECKS OK" (H-1 back pressure/aspirator
    slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24;
-   F-1 back pressure / GG share / duct bore [F1-Man] + J-2 gas-film slot area, 2026-09-25)
-   (27 banners
+   F-1 back pressure / GG share / duct bore [F1-Man] + J-2 gas-film slot area + F-1 scroll
+   inlet bore / omega-joint count (k), 2026-09-25) and
+   "ALL ZIRCONIA-LINER CHECKS OK" (nozzle-extension radiative thermal-barrier liner - real
+   physics, lowers the STRUCTURAL shell's temperature vs. the raw gas-facing one; thickness is
+   COMPUTED (holds the shell at the bell material's thin-margin point, capped at a buildable
+   coat); includes an
+   honestly-reported (not gated) Quentmeyer-CR185257 flux-cut comparison, 2026-09-25)
+   (28 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -377,7 +383,13 @@ flow_legend.py` colorbar),
 turbine_exhaust_mode` overboard_duct / aspirator / nozzle_injection + exhaust-nozzle eps/cant,
 inject eps, aspirator shroud, exhaust heat exchanger with a LOX->GOX coil and/or a helium coil
 `turbine_exhaust_hx_he_kgs` (schema 10), outlet temps + can size anchored on the F-1 [F1-Man],
-can drawn tapered via `preview3d_gl_core.frustum_mesh`): the exhaust leaves SONIC into its
+can drawn tapered via `preview3d_gl_core.frustum_mesh`; the injection manifold is a
+tangentially-fed one-way SCROLL (`manifold.RING_KIND_SCROLL`, full-flow inlet = duct bore,
+constant-velocity taper, turned to wherever its duct lands - `scroll_rotated_to`), forward of
+the injection station on an outlet neck + flame shield, with omega-joint bands, drawn by
+`preview3d_gl_core.scroll_manifold_mesh`; runs carry `PlumbingRun.root_mode` (schema 15:
+"auto" roots a turbine_exhaust run tangentially on a scroll, no root reducer, SCROLL_ENTRY_K 0;
+a pre-15 baked exhaust run migrates to "surface", its radial T kept + a warn row): the exhaust leaves SONIC into its
 discharge -> turbine outlet pressure -> PR = min(`GG_PRESSURE_RATIO` cap, inlet/outlet) (H-1
 33.8 psia / PR 17.7 [H1-Man]; injection uses `EXHAUST_INJECTION_PRESSURE_RATIO`, an INTERIM
 lumped loss on the F-1's 58 psia - per-engine manifold/slot physics wanted, OPEN_QUESTIONS);
