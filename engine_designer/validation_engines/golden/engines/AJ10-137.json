@@ -450,6 +450,7 @@
 "convergent_half_angle_deg": {
 "__f__": "30.0"
 },
+"coolant_inlet_source": "table",
 "coolant_inlet_t_k": {
 "__f__": "290.0"
 },
@@ -2552,6 +2553,7 @@
 "convergent_half_angle_deg": {
 "__f__": "30.0"
 },
+"coolant_inlet_model": "computed",
 "cooling_flow_topology": "single_pass_countercurrent",
 "cooling_transition_eps": {
 "__f__": "6.0"
@@ -3396,6 +3398,7 @@
 },
 "pump_discharge_fuel_pa": null,
 "pump_discharge_ox_pa": null,
+"pump_heating": {},
 "pump_inlet_pa": {
 "fuel": {
 "__f__": "300000.0"

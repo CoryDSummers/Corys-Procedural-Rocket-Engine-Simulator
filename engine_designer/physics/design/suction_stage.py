@@ -247,3 +247,74 @@ def hydraulics_checks(self, s):
         _check(s.checklist, s.warnings, "turbopump", f"{name} hydraulics", True, "",
                f"OK - {summary}; meanline eta {pump['eta']:.3f} (Ns-bell correlation "
                f"{pump['eta_correlation']:.3f})")
+
+
+# --- pump heating (turbopump Round 2 C4) -----------------------------------------
+PUMP_HEATING_STEPS = 12          # [SP-8107 p.14, §3.1.1.1]: incremental isentropic method
+# LOX has no baked coolant table: cp and the volume-expansion coefficient beta for the
+# (1/eta - 1 + T beta) liquid heating relation - Tier 3 property values near 90-110 K
+# (reproduces the SSME HPOTP main-stage rise, +10.6 K [SSME-Orientation p.19]).
+LOX_CP_J_KGK = 1700.0
+LOX_BETA_PER_K = 0.0045
+
+
+def fuel_pump_outlet_k(pair, t_in_k, p_in_pa, p_out_pa, eta, steps=PUMP_HEATING_STEPS):
+    """Liquid temperature after a pump raising p_in -> p_out at efficiency eta.
+    The isentropic enthalpy rise is marched in increments (dh_s = dp / rho along
+    the isentrope - the compressible-liquid method of [SP-8107 §3.1.1.1 eq. 17]),
+    and eta is taken on that isentropic head: h_out = h_in + dh_s / eta (the
+    (1 - eta) loss heats the fluid). Uses the baked coolant tables
+    (thermo_tables) - the three fuels they carry (LH2, CH4, RP-1). Reproduces
+    the SSME HPFTP (23.7 -> 51.5 K at 298 -> 5,956 psia, eta 0.75) within ~1.5 K."""
+    if eta <= 0 or p_out_pa <= p_in_pa:
+        return t_in_k
+    t, p = t_in_k, p_in_pa
+    h0 = h = thermo_tables.coolant_state(pair, t, p)["h_j_kg"]
+    dp = (p_out_pa - p_in_pa) / steps
+    for _ in range(steps):
+        rho = thermo_tables.coolant_state(pair, t, p)["rho_kg_m3"]
+        h += dp / rho
+        p += dp
+        t = thermo_tables.coolant_temperature_from_enthalpy(pair, h, p)
+    return thermo_tables.coolant_temperature_from_enthalpy(pair, h0 + (h - h0) / eta, p_out_pa)
+
+
+def lox_pump_rise_k(dp_pa, rho, eta, t_k):
+    """LOX temperature rise across a pump (no LOX table): dT = dp/(rho cp) *
+    (1/eta - 1 + T beta) - the loss heating plus the liquid's compression heating."""
+    if eta <= 0 or dp_pa <= 0 or rho <= 0:
+        return 0.0
+    return dp_pa / (rho * LOX_CP_J_KGK) * (1.0 / eta - 1.0 + t_k * LOX_BETA_PER_K)
+
+
+def pump_heating(self, s):
+    """Each pump's outlet temperature (tank T -> boost pump -> main pump), once the
+    pump rises and efficiencies are known. The fuel pump's outlet is the regen
+    jacket's coolant inlet (coolant_inlet_model "computed", applied on a second
+    compute pass - see EngineDesign.compute)."""
+    s.pump_heating = {}
+    if not s.suction or self.cycle == cycles.PRESSURE_FED:
+        return
+    pair = self.propellant_pair
+    for leg, dp, eta, rho in (("fuel", getattr(s, "dp_fuel", 0.0), s.eta_pf, s.rho_fuel),
+                              ("ox", getattr(s, "dp_ox", 0.0), s.eta_po, s.rho_ox)):
+        su = s.suction.get(leg) or {}
+        if not su or not dp or eta <= 0:
+            continue
+        t_in = su["t_k"]
+        b = su.get("boost")
+        p0 = su["p_inlet_pa"]
+        main_in = s.pump_inlet_pa[leg]
+        p_out = main_in + dp
+        if leg == "fuel" and thermo_tables.has_coolant_table(pair):
+            t_b = fuel_pump_outlet_k(pair, t_in, p0, main_in, b["eta"]) if b else t_in
+            t_out = fuel_pump_outlet_k(pair, t_b, main_in, p_out, eta)
+            method = "incremental isentropic (coolant table)"
+        elif leg == "ox" and su.get("propellant") == "LOX":
+            t_b = t_in + (lox_pump_rise_k(b["rise_pa"], rho, b["eta"], t_in) if b else 0.0)
+            t_out = t_b + lox_pump_rise_k(dp, rho, eta, t_b)
+            method = "liquid (1/eta - 1 + T beta) relation"
+        else:
+            continue
+        s.pump_heating[leg] = dict(t_tank_k=t_in, t_after_boost_k=t_b, t_out_k=t_out,
+                                   dt_k=t_out - t_in, p_out_pa=p_out, method=method)

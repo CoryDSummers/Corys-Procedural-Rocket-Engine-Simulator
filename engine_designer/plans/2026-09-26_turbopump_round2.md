@@ -11,7 +11,23 @@ Branch: `turbopump/round-2`, cut from `turbopump/round-1` @ 70d09f6 (stacked). D
 - [x] C0: this document + draft PR (513e7e1, PR #20)
 - [x] C1: literature (SP-8109 §2.3.1/§2.4/§3.3-3.4 + Table I, Huzel §6.3-6.4, SP-8125 blade design, pump discharge-T anchors)
 - [x] C2 (d7a003d): `physics/turbopump_intent.py` + `physics/pump_meanline.py` (pure, self-tests; corpus bit-identical)
-- [x] C3: meanline + intent wired into sizing, schema 17, PUMP MEANLINE validate banner, corpus report + snapshot
+- [x] C3 (4d14a67): meanline + intent wired into sizing, schema 17, PUMP MEANLINE validate banner, corpus report + snapshot
+- [x] C4: pump heating → jacket inlet (`coolant_inlet_model`, second pass), anchors, corpus report + snapshot
+  - Pump outlet T: the isentropic enthalpy rise is marched in increments on the coolant tables,
+    with η on the isentropic head [SP-8107 eq. 17]. Charging every increment's loss separately
+    over-heated the SSME HPFTP by 5 K; the chosen basis lands within 1.4 K. LOX has no table,
+    so it uses (Δp/ρcp)(1/η − 1 + Tβ), reproducing the HPOTP's +10.6 K; it is reported only.
+  - Runs just before the turbopump sizing stage (the expander's pump η is set in geometry_stage).
+  - Up to 3 corrective passes, under-relaxed (the RL10 expander oscillates), each refreshing the
+    nozzle-injected film carry. They merge with the existing line-loss/film second pass.
+  - Anchors: corpus RS-25 jacket inlet 52.2 K vs the real MCC coolant inlet 52.0 K; J-2 31 K
+    in [TN-Dump]'s measured 32-47 K band.
+  - Knock-on: the colder, denser LH2 inlet raises channels-mode jacket dP ~1.5-1.8x (J-2
+    3.3 → 4.9 MPa, RL10 9.3 → 12.1). Channels are sized at the INLET coolant velocity; the
+    Round 1 45 K inlet was hiding this. Two plausibility bands widened with comments, and an
+    OPEN_QUESTIONS item for a later cooling round.
+  - The mesh_builder colour-scale self-test pins the table inlet, since it needs a narrow-range
+    jacket.
 
 **Where the implementation departed from the plan, and why:**
 - **Pump type "auto" = centrifugal**, not an LH2 rule. Every LH2 pump designed after the J-2S

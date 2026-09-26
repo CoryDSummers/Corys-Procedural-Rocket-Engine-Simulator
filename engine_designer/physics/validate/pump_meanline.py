@@ -23,6 +23,13 @@
 (h) pump_model "correlation" carries no meanline (the Round 1 path).
 (i) Corpus J-2 fuel pump, axial (Mark 15-F): eta within 0.08 of 0.73, rpm within
     20 % of 28,266, design diffusion factor <= 0.60 [SP-8125 Table I/II].
+(j) Pump heating (suction_stage.pump_heating) vs the SSME Block IIA station
+    temperatures [SSME-Orientation p.19]: HPFTP LH2 23.7 -> 51.5 K within 3 K, LPFTP
+    20.4 -> 23.7 K within 2 K, HPOTP main LOX +10.6 K within 2 K.
+(k) Full pipeline: corpus RS-25 jacket inlet (tank 20.3 K + boost + HPFTP) within 3 K
+    of the real MCC coolant inlet 52.0 K [SSME-Orientation p.45]; corpus J-2 inside the
+    [TN-Dump] measured 32-47 K LH2 jacket-inlet band (1 K slack).
+(l) coolant_inlet_model "table" and pump_model "correlation" keep the Round 1 table value.
 
 Part of the physics/validate/ package - run the whole suite with
 `python3 -m engine_designer.physics.validate`."""
@@ -157,6 +164,32 @@ def run_pump_meanline_check():
                  f"(real 28,266), eta {fp['eta']:.3f} (real 0.73), DF "
                  f"{max(ml.get('df_rotor', 0), ml.get('df_stator', 0)):.2f}, tip "
                  f"{ml.get('d_tip_m', 0) / _IN:.2f} in (real 7.22)", ok_i, True))
+
+    # (j) pump heating vs the SSME Block IIA flow schematic [SSME-Orientation p.19]
+    from ..design import suction_stage as ss
+    psi = 6894.757
+    t_hp = ss.fuel_pump_outlet_k("LOX/LH2", 23.7, 298 * psi, 5956 * psi, 0.750)
+    t_lp = ss.fuel_pump_outlet_k("LOX/LH2", 20.4, 30 * psi, 298 * psi, 0.713)
+    d_ox = ss.lox_pump_rise_k((4025 - 421) * psi, 1142.0, 0.718, 93.7)
+    rows.append((f"(j) SSME pump heating: HPFTP LH2 23.7 -> {t_hp:.1f} K (real 51.5), LPFTP "
+                 f"20.4 -> {t_lp:.1f} K (real 23.7), HPOTP main LOX +{d_ox:.1f} K (real +10.6)",
+                 abs(t_hp - 51.5) <= 3.0 and abs(t_lp - 23.7) <= 2.0 and abs(d_ox - 10.6) <= 2.0,
+                 True))
+    # (k) full pipeline: corpus RS-25 jacket inlet = HPFTP discharge (real MCC coolant inlet)
+    rs = _corpus("RS-25").compute()
+    rows.append((f"(k) corpus RS-25 regen jacket inlet {rs['coolant_inlet_t_k']:.1f} K (tank 20.3 K + "
+                 f"LPFTP + HPFTP heating) vs real MCC coolant inlet 52.0 K [SSME-Orientation p.45]",
+                 abs(rs["coolant_inlet_t_k"] - 52.0) <= 3.0, True))
+    j2 = _corpus("J-2").compute()
+    rows.append((f"(k) corpus J-2 regen jacket inlet {j2['coolant_inlet_t_k']:.1f} K vs [TN-Dump] "
+                 f"measured LH2 jacket inlets 32-47 K (1 K slack)",
+                 31.0 <= j2["coolant_inlet_t_k"] <= 48.0, True))
+    # (l) the table fallbacks are the Round 1 constant
+    tb = _corpus("RS-25", coolant_inlet_model="table").compute()
+    cr2 = _corpus("RS-25", pump_model="correlation").compute()
+    rows.append((f"(l) coolant_inlet_model 'table' / pump_model 'correlation': jacket inlet "
+                 f"{tb['coolant_inlet_t_k']:.0f} / {cr2['coolant_inlet_t_k']:.0f} K (the Round 1 table)",
+                 tb["coolant_inlet_t_k"] == 45.0 and cr2["coolant_inlet_t_k"] == 45.0, True))
 
     all_ok = True
     for text, ok, gated in rows:

@@ -338,7 +338,10 @@ def checks_and_result(self, s):
         "plumbing_total_length_m": s.plumbing_total_length_m,
         "cooling_flow_topology": self.cooling_flow_topology,
         # Stream inlet temperatures (flow visualization only - see the tables).
-        "coolant_inlet_t_k": COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0),
+        "coolant_inlet_t_k": s.coolant_inlet_k,
+        "coolant_inlet_source": ("pump outlet (computed)" if getattr(s, "coolant_inlet_override", None)
+                                 else "table"),
+        "pump_heating": getattr(s, "pump_heating", {}),
         "oxidizer_inlet_t_k": OXIDIZER_INLET_TEMP_K.get(self.propellant_pair),
         "jacket_inlet_eps_effective": s.jacket_inlet_eps_eff,
         "jacket_return_split_fraction": s.jacket_return_split_fraction,

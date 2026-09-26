@@ -606,6 +606,7 @@
 "convergent_half_angle_deg": {
 "__f__": "35.0"
 },
+"coolant_inlet_source": "table (300.0 K; pump outlet 300.2 K is within 0.5 K)",
 "coolant_inlet_t_k": {
 "__f__": "300.0"
 },
@@ -4001,6 +4002,7 @@
 "convergent_half_angle_deg": {
 "__f__": "35.0"
 },
+"coolant_inlet_model": "computed",
 "cooling_flow_topology": "single_pass_countercurrent",
 "cooling_transition_eps": {
 "__f__": "18.0"
@@ -4926,6 +4928,44 @@
 },
 "pump_discharge_ox_pa": {
 "__f__": "16878000.0"
+},
+"pump_heating": {
+"fuel": {
+"dt_k": {
+"__f__": "7.001722500816868"
+},
+"method": "incremental isentropic (coolant table)",
+"p_out_pa": {
+"__f__": "17369377.377387684"
+},
+"t_after_boost_k": {
+"__f__": "293.15"
+},
+"t_out_k": {
+"__f__": "300.15172250081685"
+},
+"t_tank_k": {
+"__f__": "293.15"
+}
+},
+"ox": {
+"dt_k": {
+"__f__": "6.417897844027763"
+},
+"method": "liquid (1/eta - 1 + T beta) relation",
+"p_out_pa": {
+"__f__": "16878000.0"
+},
+"t_after_boost_k": {
+"__f__": "90.18795408190961"
+},
+"t_out_k": {
+"__f__": "96.60585192593737"
+},
+"t_tank_k": {
+"__f__": "90.18795408190961"
+}
+}
 },
 "pump_inlet_pa": {
 "fuel": {
