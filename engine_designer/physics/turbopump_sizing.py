@@ -267,15 +267,97 @@ def derive_arrangement(rho_fuel, rho_ox, thrust_n):
     return "single_shaft"
 
 
-def derive_turbine_staging(cycle, pair=""):
-    """[SP-8107 2.1.1.3-4]: expander/staged combustion -> reaction (low PR);
-    hydrogen GG -> 2-row velocity-compounded (J-2); low-energy-fuel GG -> 2-stage
-    pressure-compounded (H-1, LR87, MA-5)."""
+def effective_arrangement(arrangement, rho_fuel, rho_ox, thrust_n, cycle=""):
+    """The shaft arrangement actually used: the user's choice, else the derived
+    one (FFSC -> dual shaft: one turbopump per preburner)."""
+    if arrangement not in (None, "", "auto"):
+        return arrangement
+    if cycle == "ffsc":
+        return "dual_shaft"
+    return derive_arrangement(rho_fuel, rho_ox, thrust_n)
+
+
+def size_pump_pair(mdot_fuel, mdot_ox, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, material,
+                   arrangement, *, pump_stages_fuel=0, pump_stages_ox=0, build_quality=1.0,
+                   enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
+                   npsh_available_ox_ft=0.0):
+    """Both pumps; on a SINGLE shaft the faster-optimum pump is re-sized at the
+    slower one's speed (they share the shaft - the real F-1 turns both pumps at
+    5,490 rpm [SP-8110 Table I], which puts its RP-1 pump at Ns ~1,120, below the
+    efficiency peak). Dual-shaft / geared / electric keep independent speeds."""
+    kw = dict(build_quality=build_quality, enforce_suction_limit=enforce_suction_limit)
+    fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, material, forced_stages=pump_stages_fuel,
+                   npsh_available_ft=npsh_available_fuel_ft, **kw)
+    op = size_pump(mdot_ox, dp_ox_pa, rho_ox, material, forced_stages=pump_stages_ox,
+                   npsh_available_ft=npsh_available_ox_ft, **kw)
+    if arrangement == "single_shaft" and fp["n_rpm"] > 0 and op["n_rpm"] > 0:
+        shared = min(fp["n_rpm"], op["n_rpm"])
+        if fp["n_rpm"] > shared:
+            fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, material,
+                           forced_stages=pump_stages_fuel,
+                           npsh_available_ft=npsh_available_fuel_ft, shaft_rpm_cap=shared, **kw)
+        elif op["n_rpm"] > shared:
+            op = size_pump(mdot_ox, dp_ox_pa, rho_ox, material, forced_stages=pump_stages_ox,
+                           npsh_available_ft=npsh_available_ox_ft, shaft_rpm_cap=shared, **kw)
+    return fp, op
+
+
+# --- turbine staging from the ACHIEVABLE velocity ratio [SP-8110 §3.1.4] ------
+# SP-8110 picks the turbine type by the design U/C0 the rotor can actually reach:
+# reaction above ~0.45, single-row impulse / 2-stage pressure-compounded
+# ~0.30-0.45 (H-1 PC at 0.42, RL10 PC at 0.35), 2-row velocity-compounded
+# ~0.20-0.30 (F-1 at 0.20, J-2 fuel 0.18). U is capped by blade/disk stress
+# (pitchline 1000-1500 ft/s for the fleet) and, on a DIRECT-DRIVE shaft, by the
+# shaft speed x a wheel no bigger than a few pump diameters - so a slow, big
+# direct-drive open-cycle turbopump (F-1, 5,490 rpm, 840 ft/s) lands at U/C0
+# ~0.2 = 2-row VC, while a geared fast turbine (H-1, 32,800 rpm) reaches ~0.4 =
+# pressure-compounded.
+TURBINE_PITCHLINE_CAP_M_S = 457.2      # 1,500 ft/s: top of SP-8110's fleet pitchline range
+                                       # (J-2 fuel 1,448 ft/s, H-1 1,290) [SP-8110 Table I]
+TURBINE_DMEAN_OVER_PUMP_D = 1.9        # direct-drive wheel mean dia / the larger pump impeller
+                                       # dia - Tier 3, fitted so the corpus F-1 reaches its real
+                                       # 840 ft/s pitchline at the tool's own impeller size
+UC0_VC_MAX = 0.30                      # below: 2-row velocity-compounded [SP-8110 §3.1.4]
+UC0_PC_MAX = 0.45                      # below: 2-stage pressure-compounded; above: reaction
+OPEN_CYCLES_UC0_STAGED = ("gas_generator", "tap_off")
+
+
+def achievable_pitchline_m_s(arrangement, shaft_rpm, d_pump_max_m, material):
+    """Highest turbine pitchline speed reachable: stress-capped always; on a
+    direct-drive shaft (single / dual) also wheel-diameter-capped at the pump
+    shaft's speed. A geared turbine runs at its own (fast) speed, stress only."""
+    cap = min(TURBINE_PITCHLINE_CAP_M_S, material.max_tip_speed_m_s)
+    if arrangement in ("single_shaft", "dual_shaft") and shaft_rpm > 0 and d_pump_max_m > 0:
+        cap = min(cap, math.pi * shaft_rpm * TURBINE_DMEAN_OVER_PUMP_D * d_pump_max_m / 60.0)
+    return cap
+
+
+def derive_turbine_staging(cycle, pair="", u_over_c0_achievable=None):
+    """Closed cycles (staged combustion / expander): reaction (low PR, [SP-8107
+    2.1.1.3-4]). Open cycles (GG / tap-off) given the ACHIEVABLE U/C0: the
+    [SP-8110 §3.1.4] bands. Without it (legacy callers): hydrogen GG -> 2-row
+    velocity-compounded (J-2), otherwise 2-stage pressure-compounded (H-1)."""
     if cycle in ("frsc", "orsc", "ffsc", "expander"):
+        return "reaction"
+    if u_over_c0_achievable is not None and cycle in OPEN_CYCLES_UC0_STAGED:
+        if u_over_c0_achievable < UC0_VC_MAX:
+            return "velocity_compounded_2row"
+        if u_over_c0_achievable < UC0_PC_MAX:
+            return "pressure_compounded_2stage"
         return "reaction"
     if "LH2" in pair:
         return "velocity_compounded_2row"
     return "pressure_compounded_2stage"
+
+
+def open_cycle_turbine_staging(cycle, pair, arrangement, fuel_pump, ox_pump, c0_m_s, material):
+    """(staging, u_over_c0_achievable, u_pitch_cap_m_s) for an open-cycle turbine
+    on the FUEL pump's shaft (the main / only turbine)."""
+    d_max = max(fuel_pump.get("d_impeller_m", 0.0), ox_pump.get("d_impeller_m", 0.0)) \
+        if arrangement == "single_shaft" else fuel_pump.get("d_impeller_m", 0.0)
+    u_cap = achievable_pitchline_m_s(arrangement, fuel_pump.get("n_rpm", 0.0), d_max, material)
+    uc0 = u_cap / c0_m_s if c0_m_s > 0 else 1.0
+    return derive_turbine_staging(cycle, pair, uc0), uc0, u_cap
 
 
 GG_ETA_TURBINE_SEED = 0.62   # seed for the turbine-efficiency back-substitution and the
@@ -359,7 +441,8 @@ def derive_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, materi
                         pump_stages_fuel=0, pump_stages_ox=0,
                         eta_pump_fuel_override=0.0, eta_pump_ox_override=0.0,
                         enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                        npsh_available_ox_ft=0.0):
+                        npsh_available_ox_ft=0.0, arrangement=None, cycle="",
+                        staging_info=None):
     """
     Pump & turbine efficiency for the power balance, DERIVED from the machinery
     design (physics/turbopump_efficiency.py) BEFORE the cycle result is built.
@@ -371,18 +454,34 @@ def derive_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, materi
     GG_ETA_TURBINE_SEED. A non-zero `eta_pump_*_override` pins that pump.
 
     `enforce_suction_limit` (default False) - see size_pump()'s docstring.
+
+    `arrangement` (the EFFECTIVE shaft arrangement, see effective_arrangement):
+    when given, the pumps are sized as a pair (size_pump_pair - a single shaft
+    shares one speed) and, for an open cycle, the turbine pitchline is capped at
+    the achievable speed (achievable_pitchline_m_s); `staging == "auto"` is then
+    resolved from the achievable U/C0 [SP-8110 §3.1.4]. `staging_info` (a dict)
+    receives staging / u_over_c0_achievable / u_pitch_cap_m_s. With
+    `arrangement=None` every number is what it was before these inputs existed.
     """
     mat = turbopump_materials.MATERIALS[material_key]
     mdot_fuel = mdot / (1.0 + mr)
     mdot_ox = mdot - mdot_fuel
-    fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, mat,
-                   forced_stages=pump_stages_fuel, build_quality=build_quality,
-                   enforce_suction_limit=enforce_suction_limit,
-                   npsh_available_ft=npsh_available_fuel_ft)
-    op = size_pump(mdot_ox, dp_ox_pa, rho_ox, mat,
-                   forced_stages=pump_stages_ox, build_quality=build_quality,
-                   enforce_suction_limit=enforce_suction_limit,
-                   npsh_available_ft=npsh_available_ox_ft)
+    if arrangement is not None:
+        fp, op = size_pump_pair(mdot_fuel, mdot_ox, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, mat,
+                                arrangement, pump_stages_fuel=pump_stages_fuel,
+                                pump_stages_ox=pump_stages_ox, build_quality=build_quality,
+                                enforce_suction_limit=enforce_suction_limit,
+                                npsh_available_fuel_ft=npsh_available_fuel_ft,
+                                npsh_available_ox_ft=npsh_available_ox_ft)
+    else:
+        fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, mat,
+                       forced_stages=pump_stages_fuel, build_quality=build_quality,
+                       enforce_suction_limit=enforce_suction_limit,
+                       npsh_available_ft=npsh_available_fuel_ft)
+        op = size_pump(mdot_ox, dp_ox_pa, rho_ox, mat,
+                       forced_stages=pump_stages_ox, build_quality=build_quality,
+                       enforce_suction_limit=enforce_suction_limit,
+                       npsh_available_ft=npsh_available_ox_ft)
     eta_pf = eta_pump_fuel_override if (eta_pump_fuel_override or 0.0) > 0.0 else fp["eta"]
     eta_po = eta_pump_ox_override if (eta_pump_ox_override or 0.0) > 0.0 else op["eta"]
     eta_pf = eta_pf or GG_ETA_TURBINE_SEED   # degenerate guard
@@ -395,11 +494,23 @@ def derive_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, materi
         power += mdot_ox * dp_ox_pa / (rho_ox * eta_po)
 
     exponent = (gg_gamma - 1.0) / gg_gamma
-    uc0 = TURBINE_U_OVER_C0.get(staging, TURBINE_U_OVER_C0["velocity_compounded_2row"])
     # Pitchline uses the IDEAL isentropic spouting velocity for the whole PR
     # (the U/C0 convention), not the eta-reduced delivered work.
     dh_ideal = gg_cp * gg_tin_k * (1.0 - gg_pressure_ratio_for_dh ** (-exponent))
-    u_pitch = uc0 * math.sqrt(2.0 * max(dh_ideal, 1.0))
+    c0 = math.sqrt(2.0 * max(dh_ideal, 1.0))
+    u_cap = None
+    if arrangement is not None and cycle in OPEN_CYCLES_UC0_STAGED:
+        auto_stg, uc0_ach, u_cap = open_cycle_turbine_staging(cycle, "", arrangement, fp, op, c0, mat)
+        if staging in (None, "", "auto"):
+            staging = auto_stg
+        if staging_info is not None:
+            staging_info.update(staging=staging, u_over_c0_achievable=uc0_ach,
+                                u_pitch_cap_m_s=u_cap, c0_m_s=c0)
+    elif staging_info is not None:
+        staging_info.update(staging=staging, u_over_c0_achievable=None, u_pitch_cap_m_s=None,
+                            c0_m_s=c0)
+    uc0 = TURBINE_U_OVER_C0.get(staging, TURBINE_U_OVER_C0["velocity_compounded_2row"])
+    u_pitch = uc0 * c0 if u_cap is None else min(uc0 * c0, u_cap)
     eta_turb = turbopump_efficiency.turbine_efficiency(
         staging, u_pitch, power, turbine_pressure_ratio, build_quality)
     return eta_pf, eta_po, eta_turb
@@ -446,7 +557,7 @@ def derive_expander_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_o
 
 
 def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_quality=1.0,
-              enforce_suction_limit=False, npsh_available_ft=0.0):
+              enforce_suction_limit=False, npsh_available_ft=0.0, shaft_rpm_cap=0.0):
     """
     One propellant pump. `material` is a turbopump_materials.TurbopumpMaterial.
 
@@ -468,6 +579,12 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     count is fixed); the tip speed is head-fixed, so the impeller grows, and
     the efficiency is taken at the ACTUAL (lower) whole-pump Ns. With 0 every
     returned number is bit-for-bit what it was before this input existed.
+
+    `shaft_rpm_cap` (default 0 = none): the speed of a SHARED shaft this pump
+    sits on (size_pump_pair - a single-shaft turbopump turns both pumps at the
+    slower pump's speed, as the real F-1 does at 5,490 rpm). Same mechanics as
+    the suction cap: head-fixed tip speed, bigger impeller, efficiency at the
+    actual (lower) whole-pump Ns.
     """
     q_m3s = mdot_kgs / rho_kg_m3 if rho_kg_m3 > 0 else 0.0
     q_gpm = q_m3s * _M3S_TO_GPM
@@ -543,6 +660,12 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
             n_rpm = n_cap
             suction_limited = True
             npsh_required_ft = float(npsh_available_ft)
+    shaft_limited = False
+    if shaft_rpm_cap and shaft_rpm_cap > 0 and 0 < shaft_rpm_cap < n_rpm:
+        n_rpm = float(shaft_rpm_cap)
+        shaft_limited = True
+        if not suction_limited:
+            npsh_required_ft = required_npsh_ft(n_rpm, q_gpm, nss_target)
 
     d_impeller_m = 60.0 * u_tip / (math.pi * n_rpm) if n_rpm > 0 else 0.0
     ns_us = (n_rpm * q_gpm ** 0.5 / head_stage_ft ** 0.75) if head_stage_ft > 0 else 0.0
@@ -554,10 +677,11 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     # below the efficiency peak, which is why it is only ~73% efficient.
     ns_pump_us = NS_TARGET_US / n_stages ** 0.75 if n_stages > 0 else NS_TARGET_US
     eta = turbopump_efficiency.pump_efficiency(ns_pump_us, q_m3s, build_quality) if q_m3s > 0 else 0.0
-    if suction_limited:
+    if suction_limited or shaft_limited:
         eta_opt = eta
         ns_pump_us = ns_us / n_stages ** 0.75
         eta = turbopump_efficiency.pump_efficiency(ns_pump_us, q_m3s, build_quality)
+    if suction_limited:
         warnings.append(
             f"pump suction-limited to {n_rpm:.0f} rpm by the {npsh_available_ft:.0f} ft NPSH "
             f"available (Ns-optimum {rpm_ns_optimum:.0f} rpm) - larger impeller, efficiency "
@@ -581,6 +705,7 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
         "tip_speed_margin": tip_margin, "warnings": warnings,
         "npsh_required_ft": npsh_required_ft, "nss_class": nss_class, "nss_target_us": nss_target,
         "rpm_ns_optimum": rpm_ns_optimum, "suction_limited": suction_limited,
+        "shaft_limited": shaft_limited,
         "npsh_available_ft": float(npsh_available_ft or 0.0),
         "inlet_eye_dia_m": inlet_eye_dia_m(q_m3s, n_rpm),
     }
@@ -610,13 +735,20 @@ def feed_dp_plausibility_warning(dp_fuel_pa, dp_ox_pa):
 
 
 def size_turbine(shaft_n_rpm, specific_work_j_kg, staging, material, *,
-                 shaft_power_w=0.0, pressure_ratio=0.0, build_quality=1.0):
+                 shaft_power_w=0.0, pressure_ratio=0.0, build_quality=1.0,
+                 u_pitch_max_m_s=None):
     """One turbine on a shaft turning at `shaft_n_rpm`, driven by gas of
     `specific_work_j_kg` available enthalpy drop. `shaft_power_w` and
-    `pressure_ratio` feed the derived efficiency (partial admission, PR loss)."""
+    `pressure_ratio` feed the derived efficiency (partial admission, PR loss).
+    `u_pitch_max_m_s` caps the pitchline at the achievable speed
+    (achievable_pitchline_m_s) - the wheel then runs below its type's design
+    U/C0, as the real slow direct-drive F-1 does."""
     c0 = math.sqrt(2.0 * max(specific_work_j_kg, 1.0))
     u_over_c0 = TURBINE_U_OVER_C0.get(staging, TURBINE_U_OVER_C0["velocity_compounded_2row"])
     u_pitch = u_over_c0 * c0
+    if u_pitch_max_m_s is not None and 0 < u_pitch_max_m_s < u_pitch:
+        u_pitch = u_pitch_max_m_s
+        u_over_c0 = u_pitch / c0
     d_mean_m = 60.0 * u_pitch / (math.pi * shaft_n_rpm) if shaft_n_rpm > 0 else 0.0
     tip_margin = material.max_tip_speed_m_s / u_pitch if u_pitch > 0 else float("inf")
     eta = turbopump_efficiency.turbine_efficiency(
@@ -646,7 +778,8 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
                    eta_pump_fuel_final=0.0, eta_pump_ox_final=0.0, eta_turbine_final=0.0,
                    motor_mass_kg=0.0, bearing_material_key="cronidur_30",
                    enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                   npsh_available_ox_ft=0.0):
+                   npsh_available_ox_ft=0.0, auto_staging_resolved=None,
+                   u_pitch_cap_m_s=None):
     """
     Full turbopump preliminary sizing for a pump-fed `cyc` (the dict from
     cycles.gas_generator_result / expander.expander_result). Returns a dict for
@@ -654,6 +787,10 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
     pump/turbine efficiencies (physics/turbopump_efficiency.py).
 
     `enforce_suction_limit` (default False) - see size_pump()'s docstring.
+    `auto_staging_resolved` / `u_pitch_cap_m_s`: the open-cycle staging and
+    achievable pitchline the power balance already derived
+    (derive_efficiencies' staging_info), so the sized turbine matches it.
+    Pumps are sized as a pair (size_pump_pair: a single shaft shares one speed).
     """
     tp = cyc["turbopump"]
     mat = turbopump_materials.MATERIALS[material_key]
@@ -661,22 +798,16 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
     is_electric = cycle == "electric_pump"
 
     auto_arr = derive_arrangement(rho_fuel, rho_ox, thrust_n)
-    eff_arr = auto_arr if arrangement in (None, "", "auto") else arrangement
-    # FFSC is physically one turbopump per preburner (fuel-rich + ox-rich) -> a
-    # dual-shaft layout is the natural architecture unless the user overrides.
-    if cycle == "ffsc" and arrangement in (None, "", "auto"):
-        eff_arr = "dual_shaft"
-    auto_stg = derive_turbine_staging(cycle, pair)
+    eff_arr = effective_arrangement(arrangement, rho_fuel, rho_ox, thrust_n, cycle)
+    auto_stg = auto_staging_resolved or derive_turbine_staging(cycle, pair)
     eff_stg = auto_stg if turbine_staging in (None, "", "auto") else turbine_staging
 
-    fuel_pump = size_pump(tp["mdot_fuel_kgs"], dp_fuel_pa, rho_fuel, mat,
-                          forced_stages=pump_stages_fuel, build_quality=build_quality,
-                          enforce_suction_limit=enforce_suction_limit,
-                          npsh_available_ft=npsh_available_fuel_ft)
-    ox_pump = size_pump(tp["mdot_ox_kgs"], dp_ox_pa, rho_ox, mat,
-                        forced_stages=pump_stages_ox, build_quality=build_quality,
-                        enforce_suction_limit=enforce_suction_limit,
-                        npsh_available_ft=npsh_available_ox_ft)
+    fuel_pump, ox_pump = size_pump_pair(
+        tp["mdot_fuel_kgs"], tp["mdot_ox_kgs"], dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, mat,
+        "electric" if is_electric else eff_arr, pump_stages_fuel=pump_stages_fuel,
+        pump_stages_ox=pump_stages_ox, build_quality=build_quality,
+        enforce_suction_limit=enforce_suction_limit,
+        npsh_available_fuel_ft=npsh_available_fuel_ft, npsh_available_ox_ft=npsh_available_ox_ft)
 
     if is_electric:
         # Battery + brushless DC motors drive the pumps directly - no turbine.
@@ -707,7 +838,8 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
     dh_fuel_turb, dh_ox_turb = split_turbine_work(cycle, n_turbines, dh, tp["power_fuel_w"],
                                                   tp["power_ox_w"], cyc)
     turbine = (size_turbine(fuel_shaft_rpm, dh_fuel_turb, eff_stg, mat, shaft_power_w=fuel_turb_power,
-                            pressure_ratio=turbine_pressure_ratio, build_quality=build_quality)
+                            pressure_ratio=turbine_pressure_ratio, build_quality=build_quality,
+                            u_pitch_max_m_s=u_pitch_cap_m_s)
                if dh > 0 and fuel_shaft_rpm > 0 else None)
     ox_turbine = (size_turbine(ox_shaft_rpm, dh_ox_turb, eff_stg, mat,
                                shaft_power_w=ox_turb_power, pressure_ratio=turbine_pressure_ratio,

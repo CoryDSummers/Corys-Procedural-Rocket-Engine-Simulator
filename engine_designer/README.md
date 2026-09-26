@@ -124,7 +124,8 @@ python3 -m engine_designer.physics.validate      # 5 propellant spot checks + GG
                                                  # combustion-stability, chamber-detail
                                                  # (C1-C6), turbopump-sizing,
                                                  # per-cycle-model and explicit-cooling
-                                                 # spot checks (13 banners) - all must
+                                                 # spot checks (29 banners - see CLAUDE.md
+                                                 # for the list) - all must
                                                  # print "... OK" / "... WITHIN TOLERANCE"
 ```
 
@@ -587,7 +588,16 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   capability), and a **stage count** (anchored so the J-2 LH2 pump comes out
   ~7 stages); per turbine, a **pitchline speed / U-C0** from the staging type;
   and the **shaft arrangement** (single-shaft / dual-shaft / geared) + **turbine
-  count** from propellant pair + cycle + thrust ([SP-8107 2.1.2]). "auto"
+  count** from propellant pair + cycle + thrust ([SP-8107 2.1.2]). Since the
+  2026-09-26 turbopump Round 0:
+  - pumps on one shaft share its speed, so each is charged its real
+    off-optimum efficiency
+  - an open-cycle turbine's staging comes from the U/C0 it can actually reach
+    (stress cap, plus a wheel-size cap on a direct-drive shaft) [SP-8110 §3.1.4]:
+    the slow F-1 is 2-row velocity-compounded and a geared H-1 is
+    pressure-compounded, as the real ones are
+  - the open-cycle feed loss scales with Pc, calibrated on the F-1 and H-1 pump
+    discharge pressures (`validate` FEED/PUMP CALIBRATION) "auto"
   derives all of it; overriding any of it is the ONLY thing that moves computed
   dry mass (a documented gearbox / extra-stage modifier; the auto architecture
   is exactly 1.0). Optional per-pump **inlet NPSH available** inputs (0 = not

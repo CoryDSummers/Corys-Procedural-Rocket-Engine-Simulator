@@ -8,6 +8,8 @@ from .. import (combustion, cycles, electric_pump, gimbal, ignition, injectors,
                 manifold, mass_model, materials)
 from .constants import (
     PA_SEA_LEVEL,
+    LINE_LOSS_PA,
+    TANK_HEAD_PA,
     COOLANT_INLET_TEMP_K,
     OXIDIZER_INLET_TEMP_K,
     CONTRACTION_RATIO_TYPICAL,
@@ -308,8 +310,19 @@ def checks_and_result(self, s):
         "turbine_exhaust_hardware_mass_kg": s.te_hardware_mass_kg,
         "line_loss_fuel_pa": s.line_loss_fuel_pa,
         "line_loss_ox_pa": s.line_loss_ox_pa,
-        "line_loss_source": {"fuel": "computed" if s._llo.get("fuel") is not None else "flat",
-                             "ox": "computed" if s._llo.get("ox") is not None else "flat"},
+        # "computed" = a pump-connected plumbing run; "calibrated" = the open-cycle
+        # Pc-scaled FEED_LOSS_OVER_PC (above its LINE_LOSS_PA floor); "flat" = the floor
+        "line_loss_source": {
+            leg: ("computed" if s._llo.get(leg) is not None
+                  else "calibrated" if s.line_loss_calibrated[leg] > LINE_LOSS_PA else "flat")
+            for leg in ("fuel", "ox")},
+        "line_loss_calibrated_pa": dict(s.line_loss_calibrated),
+        # pump discharge (total) pressure = required dP + the tank head it starts from;
+        # None for a cycle with no pumps
+        "pump_discharge_fuel_pa": (s.dp_fuel + TANK_HEAD_PA
+                                   if getattr(s, "dp_fuel", None) is not None else None),
+        "pump_discharge_ox_pa": (s.dp_ox + TANK_HEAD_PA
+                                 if getattr(s, "dp_ox", None) is not None else None),
         "line_loss_computed": s.line_loss_computed,
         "line_loss_residual_pa": 0.0,
         "plumbing_mass_kg": s.plumbing_mass_kg,

@@ -25,7 +25,11 @@ TURBOPUMP_EFFICIENCY_CHECKS = [
          eta_pf=0.73, eta_po=0.80, eta_turb=0.601),
     dict(name="H-1 (LOX/RP-1, GG, 2-stage PC turbine)",
          kw=dict(propellant_pair="LOX/RP-1", mixture_ratio=2.23, chamber_pressure_pa=4.8e6,
-                 expansion_ratio=8.0, cycle="gas_generator", target_vac_thrust_n=1_030_000.0),
+                 expansion_ratio=8.0, cycle="gas_generator", target_vac_thrust_n=1_030_000.0,
+                 # the real H-1 turbine is GEARED to its pumps (32,800 rpm turbine vs
+                 # 6,717 rpm pumps [SP-8110 Table I, H1-Man Fig 1-44]; [SP-8101 p.3]) -
+                 # which is what lets it reach U/C0 ~0.42 and run pressure-compounded
+                 turbopump_arrangement="geared"),
          eta_pf=0.718, eta_po=0.778, eta_turb=0.702),
     dict(name="RL10 (LOX/LH2, expander, reaction turbine)",
          kw=dict(propellant_pair="LOX/LH2", mixture_ratio=5.5, chamber_pressure_pa=3.2e6,

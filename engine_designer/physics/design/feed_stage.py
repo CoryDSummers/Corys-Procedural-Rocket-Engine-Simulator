@@ -10,6 +10,8 @@ from .constants import (
     G0,
     PA_SEA_LEVEL,
     LINE_LOSS_PA,
+    FEED_LOSS_OVER_PC,
+    FEED_LOSS_SCALED_CYCLES,
     TANK_HEAD_PA,
     GG_PRESSURE_RATIO,
     EXPANDER_TURBINE_PR,
@@ -64,6 +66,27 @@ def injector_and_cooling_routing(self, s):
     s.chamber_flow = combustion.chamber_flow(self.contraction_ratio, s.gamma_chamber)
     s.pc_feed = (self.chamber_pressure_pa * s.chamber_flow["injector_end_pressure_ratio"]
                if self.apply_chamber_pressure_loss else self.chamber_pressure_pa)
+    # Feed-line loss per pump leg. Open cycles: valves + calibrating orifices +
+    # ducts scale with the feed pressure (FEED_LOSS_OVER_PC, F-1/H-1-anchored),
+    # floored at the old flat LINE_LOSS_PA; other cycles keep the flat value. A
+    # pump-connected plumbing run (previous pass) still REPLACES its leg's value
+    # - it is the user's explicit plumbing - but is flagged when it models far
+    # less loss than a real engine's valves/orifices budget.
+    s.line_loss_calibrated = {}
+    for _leg in ("fuel", "ox"):
+        _cal = (max(LINE_LOSS_PA, FEED_LOSS_OVER_PC[_leg] * s.pc_feed)
+                if self.cycle in FEED_LOSS_SCALED_CYCLES else LINE_LOSS_PA)
+        s.line_loss_calibrated[_leg] = _cal
+        _ovr = s._llo.get(_leg)
+        setattr(s, f"line_loss_{_leg}_pa", _ovr if _ovr is not None else _cal)
+        if _ovr is not None and self.cycle in FEED_LOSS_SCALED_CYCLES:
+            _check(s.checklist, s.warnings, "plumbing", f"Drawn {_leg} feed-line loss vs real practice",
+                   _ovr >= 0.5 * _cal,
+                   f"The drawn {_leg} pump-to-ring run models {_ovr / 1e3:.0f} kPa of loss (duct "
+                   f"friction + one main valve), under half the {_cal / 1e3:.0f} kPa a real "
+                   f"gas-generator engine spends on valves, calibrating orifices and lines at this "
+                   f"feed pressure (F-1/H-1-calibrated) - pump power may be understated.",
+                   f"OK - {_ovr / 1e3:.0f} kPa drawn vs {_cal / 1e3:.0f} kPa real-practice allowance")
     # Looked up here (not just at the thermal-margin check further down) because the
     # chamber material's cooling_method now determines how much (if any) regen-jacket
     # pressure drop applies - a design with an ablative/radiative chamber has no active
@@ -133,11 +156,28 @@ def turbomachinery_cycle(self, s):
     # Build-quality multiplier on the DERIVED pump/turbine efficiency, and the
     # effective turbine staging (physics/turbopump_efficiency.py / _sizing.py).
     s.build_quality = turbopump_tech.TURBOPUMP_TECHS[self.turbopump_tech_key].build_quality_factor
-    eff_staging = (turbopump_sizing.derive_turbine_staging(self.cycle, self.propellant_pair)
-                   if self.turbine_staging in ("", "auto") else self.turbine_staging)
+    # Open cycles resolve "auto" staging inside derive_efficiencies from the
+    # ACHIEVABLE U/C0 [SP-8110 §3.1.4] (needs the sized pumps); closed cycles
+    # keep the rule-based staging.
+    _auto_stg = self.turbine_staging in ("", "auto")
+    if _auto_stg and self.cycle in turbopump_sizing.OPEN_CYCLES_UC0_STAGED:
+        eff_staging = "auto"
+    elif _auto_stg:
+        eff_staging = turbopump_sizing.derive_turbine_staging(self.cycle, self.propellant_pair)
+    else:
+        eff_staging = self.turbine_staging
     s.eta_pf = s.eta_po = s.eta_turb = 0.0   # derived per turbopump cycle branch below
     s._suction_kw = dict(npsh_available_fuel_ft=max(0.0, float(self.npsh_available_fuel_ft or 0.0)),
                        npsh_available_ox_ft=max(0.0, float(self.npsh_available_ox_ft or 0.0)))
+    # The EFFECTIVE shaft arrangement: pumps on one shaft share its speed
+    # (turbopump_sizing.size_pump_pair) in the power balance AND the sizing.
+    s.tp_arrangement = ("electric" if self.cycle == cycles.ELECTRIC_PUMP else
+                        turbopump_sizing.effective_arrangement(
+                            self.turbopump_arrangement, s.rho_fuel, s.rho_ox,
+                            self.target_vac_thrust_n, self.cycle))
+    s.turbine_staging_info = {}
+    s._arr_kw = dict(arrangement=s.tp_arrangement, cycle=self.cycle,
+                     staging_info=s.turbine_staging_info)
 
     if self.cycle == cycles.GAS_GENERATOR:
         s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - TANK_HEAD_PA
@@ -153,7 +193,7 @@ def turbomachinery_cycle(self, s):
             s.gg_gas["gamma"], _pr, _pr, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
-            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
+            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw, **s._arr_kw)
         s.cyc = cycles.gas_generator_result(
             s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
@@ -188,7 +228,7 @@ def turbomachinery_cycle(self, s):
             tap_gas["gamma"], _pr, _pr, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
-            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
+            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw, **s._arr_kw)
         s.cyc = cycles.gas_generator_result(
             s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
@@ -222,7 +262,7 @@ def turbomachinery_cycle(self, s):
                 pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
                 eta_pump_fuel_override=self.eta_pump_fuel,
                 eta_pump_ox_override=self.eta_pump_ox,
-                enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
+                enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw, **s._arr_kw)
 
         staged_balance = staged_combustion.solve_staged_power_balance(
             self.cycle, self.propellant_pair, s.mdot, self.mixture_ratio, s.pc_feed,
@@ -341,7 +381,7 @@ def turbomachinery_cycle(self, s):
             2.0, 2.0, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
-            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
+            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw, **s._arr_kw)
         s.cyc = electric_pump.electric_pump_result(
             s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,

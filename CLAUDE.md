@@ -81,6 +81,10 @@ touching any cooling number.** What changed structurally:
   the SPOT_CHECKS anchors) x the ideal CF. `s.gamma` = the one-gamma exponent fitted to the
   table's exit pressure (nozzle-profile relations), `s.gamma_chamber` = frozen chamber
   gamma. The hand `combustion._TABLES` serves only the monopropellants.
+  `saturation_properties.json` (2026-09-26, turbopump Round 0; `--saturation-only`, CoolProp,
+  no Cantera) = vapor pressure / rho_l / rho_v / h_fg per PUMPED propellant (LOX, LH2, CH4,
+  RP-1 n-dodecane surrogate; storables absent), read by `thermo_tables.saturation()` - the
+  input for Round 1's NPSH model.
 - `engine_designer/validation_engines/`: real-engine corpus (`build_corpus.py`, cited
   reference blocks) + frozen copies of the user's designs; `run_corpus.py --check` is
   in `verify_all.sh` (bit-identical vs `golden/`), `--report [--diff]` compares against
@@ -164,8 +168,9 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.nozzle_shapes
    python3 -m engine_designer.physics.geometry3d
    python3 -m engine_designer.physics.combustion
-   python3 -m engine_designer.physics.thermo_tables  # baked equilibrium/coolant tables load +
-                                                     # sanity (mass balance, gamma trend, H2 rho)
+   python3 -m engine_designer.physics.thermo_tables  # baked equilibrium/coolant/saturation tables
+                                                     # load + sanity (mass balance, gamma trend,
+                                                     # H2 rho, NIST normal boiling points)
    python3 -m engine_designer.physics.mixture_ratio
    python3 -m engine_designer.physics.cooling
    python3 -m engine_designer.physics.combustion_stability
@@ -264,8 +269,11 @@ touching any cooling number.** What changed structurally:
    physics, lowers the STRUCTURAL shell's temperature vs. the raw gas-facing one; thickness is
    COMPUTED (holds the shell at the bell material's thin-margin point, capped at a buildable
    coat); includes an
-   honestly-reported (not gated) Quentmeyer-CR185257 flux-cut comparison, 2026-09-25)
-   (28 banners
+   honestly-reported (not gated) Quentmeyer-CR185257 flux-cut comparison, 2026-09-25) and
+   "ALL FEED/PUMP CALIBRATION CHECKS OK" (turbopump Round 0, 2026-09-26: F-1 at its real
+   injector-end Pc + H-1 200K pump discharge / ox pump power / GG share within 10 %, fuel legs
+   gated excluding the jacket dP, U/C0 staging direction; `validate/feed_calibration.py`)
+   (29 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -350,7 +358,9 @@ discharge = the downstream ring's feed bore) drawn as nozzle stubs; a run with `
 gets two AUTO legs closing it onto `plumbing.HOST_PUMP[host]`'s discharge port (re-solved per
 caller, so it always lands on the port; "Route to pump" = `plumbing.seed_route_to_port`), an
 unconnected run still gets the straight ray; a connected run's `plumbing.run_pressure_loss_pa`
-(+ `VALVE_AND_UNMODELED_K`) REPLACES the flat `design.LINE_LOSS_PA` for that pump leg via a
+(+ `VALVE_AND_UNMODELED_K`) REPLACES the default feed loss for that pump leg (open cycles: the
+Pc-scaled, F-1/H-1-calibrated `design.FEED_LOSS_OVER_PC`, floored at `LINE_LOSS_PA`, with a warn
+row when a drawn run models under half of it; other cycles: the flat `LINE_LOSS_PA`) via a
 two-pass `compute()` (`_compute_pass`; no connected run = one pass, bit-identical); per-pump
 `npsh_available_fuel_ft`/`_ox_ft` (0 = off) cap pump rpm at the suction-specific-speed limit
 (`turbopump_sizing.suction_limited_rpm`); every node carries `kind`/`role` tags for future features
@@ -477,6 +487,7 @@ fully captured in the code plus this file plus `engine_designer/README.md`/`ASSU
 work in progress, each with a per-commit checklist. Check there first when resuming a round
 that may have been cut off mid-way (unticked boxes = not landed yet).
 **Turbopump fidelity** (`plans/2026-09-25_turbopump_fidelity_roadmap.md`): a multi-round roadmap
-(Rounds 0-5 internal + E1-E5 exterior) developed on its OWN test branch
-`worktree-turbopump-fidelity` (worktree `.claude/worktrees/turbopump-fidelity/`, draft PR to
-`main`, not merged until Cory has tested it). Do this work there, not on `main`.
+(Rounds 0-5 internal + E1-E5 exterior). EACH ROUND is developed on its OWN test branch off
+`origin/main` (Round 0 = `turbopump/round-0`, plan `plans/2026-09-26_turbopump_round0.md`;
+worktree `.claude/worktrees/turbopump-fidelity/`), with a draft PR to `main` that is not merged
+until Cory has tested it. Do this work there, not on `main`.
