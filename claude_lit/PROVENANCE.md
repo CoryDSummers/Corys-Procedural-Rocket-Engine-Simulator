@@ -665,3 +665,33 @@ is report-only, consistent with `claude_lit`'s standing convention. All touched 
 were re-checked against the 40 KB cap after integration; none of the eight touched files
 (`03`, `05`, `06`, `06b`, `08`, `11`, `12b`, `14`) crossed it (`12` remains at its pre-existing
 ~43 KB, untouched this batch).
+
+## 2026-09-26 batch — five NASA turbopump design-criteria monographs (turbopump Round 0)
+
+Downloaded from NTRS by report ID and renamed to the `<Report ID> - <Title>.pdf` convention.
+The NTRS accession numbers are in each source note.
+- SP-8052 inducers (19710025474)
+- SP-8110 turbines (19740026132)
+- SP-8125 axial-flow pumps (19780023221; its cover text layer is garbled, so the SP number was
+  confirmed from a rendered page)
+- SP-8121 shaft seals (19780022641)
+- SP-8101 shafts and couplings (19740006328)
+
+Method: one `lit-integrator` agent per PDF, in parallel. Each extracted text with pymupdf and
+rendered the tables and figures that come out OCR-garbled to PNG, reading them by eye.
+SP-8110 Figs 13/53/55 were digitized by pixel scan. Values derived from the sources rather
+than printed in them are marked as such in the notes. The integration into
+`topics/09-turbopumps.md` was done by the main session: a new "Real component data & design
+criteria" section plus Round 0 implications. `topics/12-materials-and-structures.md` was not
+touched, because it is still over its 40 KB cap; the seal-material and H₂-embrittlement items
+went into topic 09.
+
+Unlike most `claude_lit` batches, this one DID change `engine_designer` numbers, in the same
+round (turbopump Round 0, commit 9d0cb17):
+- the LOX/RP-1 GG gas cp `[SP-8110 Table III]`
+- the open-cycle turbine staging rule `[SP-8110 §3.1.4]`
+- the J-2 turbine-anchor pressure ratios `[SP-8110 Table I]`
+
+Each is recorded in ASSUMPTIONS.md. Coverage: SP-8052, SP-8110 and SP-8125 were read in
+design-relevant depth. For SP-8121, about 60 % was read (secondary-element, mounting and
+hydrostatic detail was skipped). SP-8101 was read in §1–§3.

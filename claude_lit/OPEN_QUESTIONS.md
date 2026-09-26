@@ -213,14 +213,48 @@ into that and makes no claims about it.
     `[SP-8124]` App. B's liquid-film length equation needs Λ(X_e) and a(X_e, X_r) read off Fig.
     B-1, which is not digitized. Next steps: re-render SP-8124 PDF leaves ~100-111 as images and
     digitize Figs. A-1/A-2/B-1, or chase its refs. 51/76/81/103/107.
-  - **F-1 pump power is under-predicted (2026-09-25, not a literature gap — a turbopump
-    calibration item).** The corpus F-1's turbine specific work matches the real ~508 kJ/kg
-    (53,146 bhp / 172 lb/s `[F1-Man Fig 3-14]`), but its GG flow is ~62 kg/s vs the real
-    75.7 kg/s (2.36 % vs 2.91 % of total flow), so the modelled pump power is ~20 % low. Part
-    of it is the corpus Pc (6.77 MPa from RO vs the real 1,125 psia injector-end Pc); the real
-    pump discharges (ox 1,602 / fuel 1,870 psia) and pump powers (30.3k / 22.7k bhp) are in
-    `[F1-Man Fig 3-14]` to calibrate against. Checked as a x0.5-2 plausibility band only
-    (`validate` turbine-exhaust (i)).
+  - **F-1 pump power under-prediction — CLOSED 2026-09-26 (turbopump Round 0).**
+    - **Correction:** the old entry claimed the turbine specific work "matches". It didn't.
+      The pumps were ~27 % low. A mis-staged pressure-compounded turbine at η 0.76, sitting on
+      a turbine-gas cp 23 % low, cancelled part of it.
+    - **Fixed:**
+      - a per-leg Pc-scaled feed loss (F-1 + H-1 discharge pressures)
+      - shared-shaft pump speed
+      - U/C0-derived turbine staging `[SP-8110]`
+      - LOX/RP-1 turbine-gas cp `[SP-8110 Table III]`
+    - **Now gated** by `validate` "FEED/PUMP CALIBRATION" at the F-1's real injector-end Pc:
+      ox discharge −2.6 %, fuel discharge less jacket −7 %, ox pump power −5 %, GG share
+      −2.9 %. The H-1 is within +3 to +8 %.
+    - **Still open** (next bullet): the fuel-side residuals come from the regen-jacket dP.
+  - **Regen-jacket dP vs two real GG engines (2026-09-26, a cooling-solve calibration item).**
+    - The thermal solve's jacket dP is 188 psi against the F-1's real 244 psi
+      `[F1-Man Fig 3-14]`, and 232 psi against the H-1's real 135 psi `[H1-Man Fig 1-18]`.
+      That's −23 % and +72 %, in opposite directions.
+    - It drives the reported-not-gated fuel pump power errors: F-1 −12 %, H-1 +21 %.
+    - The J-2's fuel discharge/Pc is 1.98 against `[SP-8107 Table V]`'s 1.6, with a 476 psi
+      LH2 jacket.
+    - Wanted: the F-1 / H-1 jacket tube geometry (tube count, passes, hydraulic diameter) to
+      separate a friction-model error from a geometry-default error.
+  - **H-1 turbine efficiency: 62.5 % vs 70.2 % (2026-09-26).**
+    - `[SP-8110 Table I]` (explicitly total-to-static) gives 62.5 % for the H-1 Mark 3
+      turbine. `[SP-8107 Table III]` gives 70.2 % and `[H1-Man Fig 1-47]` 69.6 %.
+    - Likely a total-to-total vs total-to-static basis difference.
+    - `turbopump_efficiency._TURBINE_ANCHORS` keeps 70.2 %. The tool's turbine power uses a
+      total-inlet / static-exit PR, so T-S is the consistent basis.
+    - Resolving it would move the pressure-compounded ceiling (0.76) down to ~0.65–0.70.
+  - **Geared arrangement not derived for big RP-1 engines (2026-09-26).**
+    `turbopump_sizing.derive_arrangement` gears only below ~10,000 lbf (RP-1). The real H-1
+    (205,000 lbf) and Atlas turbopumps were geared `[SP-8101 p.3; SP-8110 Table I]`, which is
+    what let their turbines reach U/C0 ~0.4. A derived rule wants more data points, e.g. the
+    LR87 and RS-27.
+  - **Seal purge flow rates (2026-09-26).** `[SP-8121]` gives inter-propellant seal layouts
+    and says to use a GN2 or helium purge, but no purge mass flows anywhere in the sections
+    read. Needed before the tool can cost a helium purge (Round 4 seals).
+  - **Storable-propellant vapor pressure (2026-09-26).** The new
+    `saturation_properties.json` covers only the CoolProp fluids (LOX, para-LH2, CH4, and
+    RP-1 via n-dodecane). N2O4 (≈ 1 atm at room temperature, the one that matters for NPSH),
+    MMH, UDMH, N2H4 and H2O2 need a cited vapor-pressure curve before Round 1's NPSH model
+    covers them. Look first at `[Sutton]` Ch. 7 propellant tables and `[Huzel]`.
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
