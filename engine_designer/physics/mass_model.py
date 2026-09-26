@@ -336,15 +336,18 @@ def constant_thickness_shell_mass_kg(xs_m, rs_m, thickness_m, density_kg_m3):
     derived) thickness - same frustum-lateral-surface-area integration as
     shell_mass_kg above, generalized for a caller that sizes its own
     thickness independently (an ablative char-depth liner here; a zirconia
-    thermal-barrier liner elsewhere).
+    thermal-barrier liner elsewhere). `thickness_m` may be a scalar or a
+    per-station array (a tapered liner - each segment uses its end mean).
     """
+    per_station = np.ndim(thickness_m) > 0
     mass = 0.0
     for i in range(len(xs_m) - 1):
         r1, r2 = rs_m[i], rs_m[i + 1]
         x1, x2 = xs_m[i], xs_m[i + 1]
         slant = math.hypot(x2 - x1, r2 - r1)
         area = math.pi * (r1 + r2) * slant
-        mass += area * thickness_m * density_kg_m3
+        t = 0.5 * (thickness_m[i] + thickness_m[i + 1]) if per_station else thickness_m
+        mass += area * t * density_kg_m3
     return mass
 
 
@@ -434,6 +437,14 @@ if __name__ == "__main__":
     # doubling thickness doubles mass (linear in thickness)
     assert abs(constant_thickness_shell_mass_kg(xs_cyl, rs_cyl, 2.0 * flat_t, density_kg_m3)
                - 2.0 * m_flat) < 1e-9
+    # per-station array: a uniform array matches the scalar exactly; a taper
+    # lands strictly between its end thicknesses' flat masses
+    _n = len(xs_cyl)
+    assert abs(constant_thickness_shell_mass_kg(xs_cyl, rs_cyl, np.full(_n, flat_t), density_kg_m3)
+               - m_flat) < 1e-9 * m_flat
+    _m_taper = constant_thickness_shell_mass_kg(xs_cyl, rs_cyl, np.linspace(2 * flat_t, flat_t, _n),
+                                                density_kg_m3)
+    assert m_flat < _m_taper < 2.0 * m_flat
     print("constant_thickness_shell_mass_kg self-check: OK")
 
     # --- longitudinal_buckling_stress_pa: degenerate E_t==E_c collapses

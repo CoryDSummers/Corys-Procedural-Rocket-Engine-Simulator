@@ -58,6 +58,39 @@ def burn_time_and_mass(self, s):
         margin_mult = max(RATED_TIME_MARGIN_MULT_MIN, min(RATED_TIME_MARGIN_MULT_MAX, margin_mult))
         s.rated_burn_time_s = BASE_RATED_BURN_TIME_S * margin_mult
 
+    # Ablative NOZZLE EXTENSION: the same char-depth sizing, per station. The
+    # char rate is the throat-referenced material rate scaled by the local
+    # ablative-surface heat flux (h_g x (film T_aw - char T)) over the same
+    # quantity at the throat - the Tier-3 "recession ~ local wall flux"
+    # assumption the chamber's film scaling above already uses. A tapered liner,
+    # thickest at the extension entrance. The consumable extension is sized for
+    # the target burn, so it also caps the engine's rating.
+    s.ext_ablative_liner_thickness_m = np.zeros(len(s.ext_xs))
+    s.ext_ablative_liner_mass_kg = 0.0
+    if s.nozzle_cooling == "ablative" and s.has_extension and len(s.ext_xs) >= 2:
+        th = s.thermal
+        t_char = s.bell_material.max_service_temp_k
+        q_abl = th["h_g_w_m2k"] * np.maximum(th["t_aw_film_k"] - t_char, 0.0)
+        ti = s._throat_idx
+        q_ref = float(th["h_g_w_m2k"][ti]) * max(float(th["t_aw_k"][ti]) - t_char, 0.0)
+        if q_ref > 0.0:
+            base_rate = (s.bell_material.ablative_consumption_rate_m_s
+                         or materials.ABLATIVE_CONSUMPTION_RATE_M_S)
+            rate_ext = base_rate * np.interp(s.ext_xs, s.xs, q_abl) / q_ref
+            s.ext_ablative_liner_thickness_m = mass_model.ablative_liner_thickness_m(
+                rate_ext, self.ablative_target_burn_time_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
+            s.ext_ablative_liner_mass_kg = mass_model.constant_thickness_shell_mass_kg(
+                s.ext_xs, s.ext_rs, s.ext_ablative_liner_thickness_m, s.bell_material.density_kg_m3)
+            s.bell_wall_mass_kg += s.ext_ablative_liner_mass_kg
+        s.rated_burn_time_s = min(s.rated_burn_time_s, self.ablative_target_burn_time_s)
+
+    # Render the ablative liners as part of the wall (these thickness arrays are
+    # read only by the 3D preview): the hoop-sized overwrap + the sacrificial liner.
+    if s.ablative_liner_thickness_m > 0.0:
+        s.body_wall_thickness_m = s.body_wall_thickness_m + s.ablative_liner_thickness_m
+    if np.any(s.ext_ablative_liner_thickness_m > 0.0):
+        s.ext_wall_thickness_m = s.ext_wall_thickness_m + s.ext_ablative_liner_thickness_m
+
     # Electric pump-fed: size the battery + motor for the whole burn and add
     # their mass. (cyc was built provisionally in the cycle branch; rebuild it
     # now with the real burn time.)
@@ -308,6 +341,8 @@ def checks_and_result(self, s):
         "ablative_liner_thickness_m": s.ablative_liner_thickness_m,
         "ablative_liner_mass_kg": s.ablative_liner_mass_kg,
         "nozzle_liner_mass_kg": s.nozzle_liner_mass_kg,
+        "ext_ablative_liner_thickness_m": s.ext_ablative_liner_thickness_m,
+        "ext_ablative_liner_mass_kg": s.ext_ablative_liner_mass_kg,
         "nozzle_liner_thickness_m": s.nozzle_liner_thickness_m_eff,
         "nozzle_liner_required_thickness_m": s.nozzle_liner_required_thickness_m,
         "nozzle_liner_target_shell_k": s.nozzle_liner_target_shell_k,

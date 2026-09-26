@@ -3872,6 +3872,16 @@
 "eta_cstar": {
 "__f__": "0.9800058590968551"
 },
+"ext_ablative_liner_mass_kg": {
+"__f__": "0.0"
+},
+"ext_ablative_liner_thickness_m": {
+"__nd__": [
+{
+"__f__": "0.0"
+}
+]
+},
 "ext_wall_thickness_m": {
 "__nd__": []
 },

@@ -374,22 +374,6 @@ class EngineDesignerApp:
                   foreground="#666666").grid(row=cc2_row, column=0, columnspan=2, sticky="w")
         cc2_row += 1
 
-        # Ablative sections TARGET a rated burn time (a design input, since
-        # 2026-09-25) rather than deriving one - it sizes a real char-depth
-        # liner thickness independent of the structural overwrap's hoop
-        # stress (physics/mass_model.ablative_liner_thickness_m, SP-8124's
-        # 1.25 char-depth safety factor). See ASSUMPTIONS.md.
-        self.ablative_burn_time_group = ttk.Frame(ccb)
-        self.ablative_burn_time_group.grid(row=cc2_row, column=0, columnspan=2, sticky="ew")
-        cc2_row += 1
-        self.ablative_target_burn_time_var = tk.DoubleVar(
-            value=self.design.ablative_target_burn_time_s)
-        self._add_slider(self.ablative_burn_time_group, 0, "Ablative target rated burn time [s]",
-                          self.ablative_target_burn_time_var, 0.0, 600.0, decimals=0)
-        self._register_gate(
-            self.ablative_burn_time_group,
-            lambda: self._effective_chamber_cooling_method() == "ablative")
-
         cc2_row = self._add_dropdown(
             ccb, cc2_row, "Cooled-wall construction", "wall_construction_var",
             list(cooling.WALL_CONSTRUCTIONS), self.design.wall_construction, width=16)
@@ -556,6 +540,26 @@ class EngineDesignerApp:
         # (The 3D tube-drawing style - single pass / F-1 double pass / J-2 two
         # pass - now follows "Cooling jacket flow topology" automatically:
         # design.REGEN_CIRCUIT_STYLE_BY_TOPOLOGY. No separate dropdown.)
+
+        # Ablative sections (chamber and/or nozzle extension) TARGET a burn time
+        # - a design input - which sizes each one's char-depth liner (SP-8124's
+        # 1.25 char-depth factor; the extension's tapers with local heat flux).
+        # The thicknesses themselves are outputs, shown read-only below.
+        sec_ablative = CollapsibleSection(tab_cooling, "Ablative Liner")
+        sec_ablative.grid(row=cool_tab_row, column=0, columnspan=2, sticky="ew")
+        cool_tab_row += 1
+        abb = sec_ablative.body_parent()
+        self.ablative_target_burn_time_var = tk.DoubleVar(
+            value=self.design.ablative_target_burn_time_s)
+        _abl_row = self._add_slider(abb, 0, "Ablative target burn time [s]",
+                                    self.ablative_target_burn_time_var, 0.0, 600.0, decimals=0)
+        self.ablative_liner_readout_var = tk.StringVar(value="")
+        ttk.Label(abb, textvariable=self.ablative_liner_readout_var, wraplength=260,
+                  foreground="#666666").grid(row=_abl_row, column=0, columnspan=2, sticky="w")
+        self._register_gate(
+            sec_ablative,
+            lambda: "ablative" in (self._effective_chamber_cooling_method(),
+                                   self._effective_nozzle_cooling_method()))
 
         # Everything in this section is a 3D-preview-only hardware detail that
         # only applies to wall_construction == "tube_wall" (no physics/mass
@@ -1989,6 +1993,18 @@ class EngineDesignerApp:
             else:
                 var.set(f"Computed thickness: {app * 1e3:.2f} mm (holds the shell at "
                         f"{target:.0f} K)")
+        var = getattr(self, "ablative_liner_readout_var", None)
+        if var is not None:
+            parts = []
+            chamber_t = result.get("ablative_liner_thickness_m") or 0.0
+            if chamber_t > 0.0:
+                parts.append(f"chamber liner {chamber_t * 1e3:.1f} mm")
+            ext_t = result.get("ext_ablative_liner_thickness_m")
+            if ext_t is not None and len(ext_t) and float(max(ext_t)) > 0.0:
+                parts.append(f"extension liner {float(ext_t[0]) * 1e3:.1f} mm at entry -> "
+                             f"{float(ext_t[-1]) * 1e3:.1f} mm at exit")
+            var.set(("Computed: " + "; ".join(parts) + " (char depth x 1.25, plus the "
+                     "structural overwrap)") if parts else "")
 
     def _update_hatband_summary(self, result):
         """One-line readout of the sized hatbands under the hatband controls."""

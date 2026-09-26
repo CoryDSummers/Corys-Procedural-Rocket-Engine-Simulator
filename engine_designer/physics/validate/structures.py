@@ -110,8 +110,26 @@ def run_mass_model_sensitivity_check():
           f"{r_ref['rated_burn_time_s']:.2f} == {expected_rated:.2f} s  "
           f"[{'OK' if ok_rated_matches else 'FAIL'}]")
 
+    # Ablative NOZZLE EXTENSION liner (2026-09-25): per-station, char rate scaled
+    # by the local ablative-surface flux - so it must thin toward the exit, grow
+    # with the target burn, and the consumable extension caps the engine rating.
+    ext = [EngineDesign(bell_material_key="ablative_phenolic", ablative_target_burn_time_s=t,
+                        **base).compute() for t in (100.0, 200.0, 400.0)]
+    ext_t = [r["ext_ablative_liner_thickness_m"] for r in ext]
+    ok_ext_taper = all(float(t[0]) > float(t[-1]) > 0.0 for t in ext_t)
+    ok_ext_vs_time = (float(ext_t[0][0]) < float(ext_t[1][0]) < float(ext_t[2][0])
+                      and ext[0]["ext_ablative_liner_mass_kg"] < ext[1]["ext_ablative_liner_mass_kg"]
+                      < ext[2]["ext_ablative_liner_mass_kg"])
+    ok_ext_rating = all(r["rated_burn_time_s"] <= t + 1e-9 for r, t in zip(ext, (100.0, 200.0, 400.0)))
+    print(f"  Ablative nozzle-extension liner tapers entry -> exit and grows with target burn: "
+          f"{[(round(float(t[0]) * 1000, 1), round(float(t[-1]) * 1000, 1)) for t in ext_t]} mm  "
+          f"[{'OK' if ok_ext_taper and ok_ext_vs_time else 'FAIL'}]")
+    print(f"  Ablative extension caps the rating at its target burn: "
+          f"{[round(r['rated_burn_time_s']) for r in ext]} s  [{'OK' if ok_ext_rating else 'FAIL'}]")
+
     all_ok = (ok_mass_vs_pc and ok_mass_vs_stress and ok_ablative_rate and ok_rated_matches
-              and ok_liner_vs_rate and ok_liner_vs_time and ok_liner_vs_hoop)
+              and ok_liner_vs_rate and ok_liner_vs_time and ok_liner_vs_hoop
+              and ok_ext_taper and ok_ext_vs_time and ok_ext_rating)
     print("ALL MASS MODEL SENSITIVITY CHECKS OK" if all_ok else
           "*** MASS MODEL SENSITIVITY CHECK FAILED ***")
     print("=" * 78)
