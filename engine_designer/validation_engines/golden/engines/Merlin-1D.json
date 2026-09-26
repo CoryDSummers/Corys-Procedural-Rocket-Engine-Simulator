@@ -418,9 +418,9 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"detail": "OK - single shaft, 1 turbine(s), peak tip speed within Inconel 718 (nickel superalloy) limit",
 "name": "Turbopump sizing / material feasibility",
-"passed": false
+"passed": true
 },
 {
 "category": "plumbing",
@@ -5659,7 +5659,7 @@
 "eta_turbine_ox": {
 "__f__": "0.6264650861739142"
 },
-"feasible": false,
+"feasible": true,
 "fuel_bearing_dn": {
 "__f__": "832807.3973833667"
 },
@@ -6808,9 +6808,7 @@
 "w2_over_w1": {
 "__f__": "0.8039088294767601"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6971,9 +6969,7 @@
 "w2_over_w1": {
 "__f__": "0.8039088294767601"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7458,9 +7454,7 @@
 "__f__": "10.444892837767469"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "17770.002432865287"
@@ -7514,9 +7508,7 @@
 "volute_od_m": {
 "__f__": "0.23334072090615454"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "fuel_shaft_rpm": {
 "__f__": "17770.002432865287"
@@ -8209,9 +8201,7 @@
 "w2_over_w1": {
 "__f__": "0.7264105159338244"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -8691,9 +8681,7 @@
 "w2_over_w1": {
 "__f__": "0.7264105159338244"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -8854,9 +8842,7 @@
 "w2_over_w1": {
 "__f__": "0.7264105159338244"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -9181,9 +9167,7 @@
 "__f__": "10.857480511197998"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "17770.002432865287"
@@ -9237,9 +9221,7 @@
 "volute_od_m": {
 "__f__": "0.26517051503477446"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "ox_shaft_rpm": {
 "__f__": "17770.002432865287"
@@ -9283,17 +9265,13 @@
 "__f__": "1050.0"
 },
 "turbine_staging": "velocity_compounded_2row",
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "warnings": [
 "Regen-jacket coolant temperature rise (~126 K) exceeds ~120 K limit for LOX/RP-1: this chamber pressure/size drives more heat into the wall than the fuel flow can carry away. Add film-cooling assist, lower Pc, or move the cooling transition earlier.",
 "NARloy-Z Copper Alloy (Cu-Ag-Zr): only 12% thermal margin (computed wall temp 713 K vs 800 K max). Thin margin. Basis: coupled throat wall balance: gas h_g ~11.1 kW/m2K incl. carbon-deposit credit, T_aw ~3577 K, coolant ~37 m/s (coolant-side wall ~664 K), 0.50 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
 "Hottest wall station is in the convergent section (area ratio ~1.0, regen): wall ~729 K, 1.10x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Near the end of active cooling (area ratio ~21.4), estimated jacket/coolant pressure (~13.4 MPa) exceeds local hot-gas static pressure (~0.0 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~9.9 mm channel width, this reversed ~13.4 MPa differential is ~2627 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
-"Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 17,770 rpm instead of its specific-speed optimum 22,350 rpm - a larger, heavier, less efficient pump. About 0.8 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
-"[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 17,770 rpm instead of its specific-speed optimum 22,350 rpm - a larger, heavier, less efficient pump. About 0.8 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2]."
 ]
 }

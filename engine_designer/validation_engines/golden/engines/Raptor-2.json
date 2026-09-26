@@ -421,7 +421,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Cronidur 30 (15Cr-N stainless): bearing DN 1,732,680 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"detail": "[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Cronidur 30 (15Cr-N stainless): bearing DN 1,732,680 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -5970,9 +5970,7 @@
 "w2_over_w1": {
 "__f__": "0.727959937054841"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6452,9 +6450,7 @@
 "w2_over_w1": {
 "__f__": "0.5576109115778884"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6615,9 +6611,7 @@
 "w2_over_w1": {
 "__f__": "0.5576109115778884"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6777,9 +6771,7 @@
 "w2_over_w1": {
 "__f__": "0.5321265055090749"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6939,9 +6931,7 @@
 "w2_over_w1": {
 "__f__": "0.5321265055090749"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7101,9 +7091,7 @@
 "w2_over_w1": {
 "__f__": "0.5321265055090749"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7263,9 +7251,7 @@
 "w2_over_w1": {
 "__f__": "0.5321265055090749"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7425,9 +7411,7 @@
 "w2_over_w1": {
 "__f__": "0.5321265055090749"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7587,9 +7571,7 @@
 "w2_over_w1": {
 "__f__": "0.5321265055090749"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7749,9 +7731,7 @@
 "w2_over_w1": {
 "__f__": "0.727959937054841"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -8084,9 +8064,7 @@
 "__f__": "13.664881706862657"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "20971.147269118355"
@@ -8141,8 +8119,7 @@
 "__f__": "0.2821059943668283"
 },
 "warnings": [
-"required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware."
 ]
 },
 "fuel_shaft_rpm": {
@@ -10583,7 +10560,6 @@
 "turbine_staging": "reaction",
 "warnings": [
 "required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
 "Cronidur 30 (15Cr-N stainless): bearing DN 1,732,680 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material."
 ]
 },
@@ -10601,7 +10577,7 @@
 "required pump discharge dP (~93 MPa) exceeds ~55 MPa, beyond real flight-turbopump historical practice [SP-8107 Tables V-VI] - the pump is being solved to deliver this dP anyway (this tool has no independent pump-performance ceiling), but real hardware delivering this flow at this pressure is unproven; treat downstream Isp/thrust as optimistic until checked against a real high-pressure-pump analog.",
 "Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 10,344 rpm instead of its specific-speed optimum 16,455 rpm - a larger, heavier, less efficient pump. About 2.0 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
 "Fuel pump: impeller outlet 0.22 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Cronidur 30 (15Cr-N stainless): bearing DN 1,732,680 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Cronidur 30 (15Cr-N stainless): bearing DN 1,732,680 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "Coaxial swirl / shear coaxial is unusual for LOX/CH4; it's typically used for LOX/LH2. Efficiency numbers may be optimistic.",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/CH4 (typically used with LOX/RP-1)."
 ]

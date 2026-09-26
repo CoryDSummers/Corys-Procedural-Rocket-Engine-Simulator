@@ -466,7 +466,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Cronidur 30 (15Cr-N stainless): bearing DN 1,540,341 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"detail": "[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Cronidur 30 (15Cr-N stainless): bearing DN 1,540,341 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -6328,246 +6328,246 @@
 "hq": {
 "eta": [
 {
-"__f__": "0.4337452886632517"
+"__f__": "0.22043989743255504"
 },
 {
-"__f__": "0.43414022096458993"
+"__f__": "0.22924878141954572"
 },
 {
-"__f__": "0.43388369089922535"
+"__f__": "0.23867895701691424"
 },
 {
-"__f__": "0.4329042575235912"
+"__f__": "0.24879855656989527"
 },
 {
-"__f__": "0.4311196377180976"
+"__f__": "0.2596860524730427"
 },
 {
-"__f__": "0.42843456825432374"
+"__f__": "0.27143229609033453"
 },
 {
-"__f__": "0.42473814120601716"
+"__f__": "0.28414305894078257"
 },
 {
-"__f__": "0.4199004548649787"
+"__f__": "0.29794222667857484"
 },
 {
-"__f__": "0.4137683658426407"
+"__f__": "0.31297585026131824"
 },
 {
-"__f__": "0.4061600477563119"
+"__f__": "0.3294173352637404"
 },
 {
-"__f__": "0.39685794612339786"
+"__f__": "0.3474741607080299"
 },
 {
-"__f__": "0.3942104811731492"
+"__f__": "0.36739668053335"
 },
 {
-"__f__": "0.4302949147245082"
+"__f__": "0.5012833589866162"
 },
 {
-"__f__": "0.46867252755298827"
+"__f__": "0.5459923667165016"
 },
 {
-"__f__": "0.5012211692434312"
+"__f__": "0.5839107614702098"
 },
 {
-"__f__": "0.534530745226722"
+"__f__": "0.6227156266079124"
 },
 {
-"__f__": "0.5625450255079288"
+"__f__": "0.6553515979810504"
 },
 {
-"__f__": "0.5853567009971596"
+"__f__": "0.6819266582991015"
 },
 {
-"__f__": "0.6073075403092223"
+"__f__": "0.7074988649099353"
 },
 {
-"__f__": "0.6204219183180697"
+"__f__": "0.7227768039102237"
 },
 {
-"__f__": "0.6345739808119519"
+"__f__": "0.7392636206974118"
 },
 {
-"__f__": "0.632258614016167"
+"__f__": "0.7365662733550193"
 },
 {
-"__f__": "0.6256154131976221"
+"__f__": "0.7288271021336375"
 },
 {
-"__f__": "0.6118775732641344"
+"__f__": "0.712822844794254"
 },
 {
-"__f__": "0.5880688003111882"
+"__f__": "0.6850861896054664"
 },
 {
-"__f__": "0.553518041111881"
+"__f__": "0.644835375491023"
 },
 {
-"__f__": "0.5060923515235791"
+"__f__": "0.5895855731681175"
 },
 {
-"__f__": "0.4271533781494671"
+"__f__": "0.49762354346747667"
 },
 {
-"__f__": "0.2766738686023804"
+"__f__": "0.3223184877414124"
 }
 ],
 "psi_ratio": [
 {
-"__f__": "1.489921436534401"
+"__f__": "0.757214285057512"
 },
 {
-"__f__": "1.4421528344053929"
+"__f__": "0.7615322514316087"
 },
 {
-"__f__": "1.3922045048737457"
+"__f__": "0.7658502178057054"
 },
 {
-"__f__": "1.340076447939458"
+"__f__": "0.7701681841798022"
 },
 {
-"__f__": "1.285768663602531"
+"__f__": "0.7744861505538989"
 },
 {
-"__f__": "1.2292811518629645"
+"__f__": "0.7788041169279957"
 },
 {
-"__f__": "1.170613912720758"
+"__f__": "0.7831220833020924"
 },
 {
-"__f__": "1.1097669461759119"
+"__f__": "0.7874400496761892"
 },
 {
-"__f__": "1.0467402522284253"
+"__f__": "0.791758016050286"
 },
 {
-"__f__": "0.9815338308782994"
+"__f__": "0.7960759824243827"
 },
 {
-"__f__": "0.9141476821255335"
+"__f__": "0.8003939487984795"
 },
 {
-"__f__": "0.8634423991676534"
+"__f__": "0.8047119151725762"
 },
 {
-"__f__": "0.8937883410734315"
+"__f__": "1.041242195769892"
 },
 {
-"__f__": "0.9204718032436486"
+"__f__": "1.0723277956418835"
 },
 {
-"__f__": "0.9276815083105303"
+"__f__": "1.0807269308618364"
 },
 {
-"__f__": "0.9288473867259629"
+"__f__": "1.082085151533889"
 },
 {
-"__f__": "0.9138725861158166"
+"__f__": "1.0646398643758594"
 },
 {
-"__f__": "0.8846947672932601"
+"__f__": "1.0306483982284196"
 },
 {
-"__f__": "0.8491507913779343"
+"__f__": "0.9892405102221627"
 },
 {
-"__f__": "0.7972836706531051"
+"__f__": "0.928816546079912"
 },
 {
-"__f__": "0.7436647058370148"
+"__f__": "0.866351725166089"
 },
 {
-"__f__": "0.6694079840677274"
+"__f__": "0.7798444074124616"
 },
 {
-"__f__": "0.5915828474711584"
+"__f__": "0.6891799711113784"
 },
 {
-"__f__": "0.5093552294325049"
+"__f__": "0.5933867484601762"
 },
 {
-"__f__": "0.42299269282915214"
+"__f__": "0.49277644385815644"
 },
 {
-"__f__": "0.33550722183880644"
+"__f__": "0.39085794735757756"
 },
 {
-"__f__": "0.24949384888571244"
+"__f__": "0.2906544101177735"
 },
 {
-"__f__": "0.16224384177790324"
+"__f__": "0.18901022344963436"
 },
 {
-"__f__": "0.07378078069841776"
+"__f__": "0.08595285770652732"
 }
 ],
 "rising_to_shutoff": true,
 "shutoff_ratio": {
-"__f__": "1.489921436534401"
+"__f__": "0.757214285057512"
 },
 "x": [
 {
-"__f__": "0.3"
+"__f__": "0.2999999999999998"
 },
 {
-"__f__": "0.3392857142857143"
+"__f__": "0.3392857142857142"
 },
 {
-"__f__": "0.37857142857142856"
+"__f__": "0.37857142857142834"
 },
 {
-"__f__": "0.41785714285714287"
+"__f__": "0.4178571428571426"
 },
 {
-"__f__": "0.4571428571428572"
+"__f__": "0.45714285714285696"
 },
 {
-"__f__": "0.49642857142857144"
+"__f__": "0.49642857142857133"
 },
 {
-"__f__": "0.5357142857142857"
+"__f__": "0.5357142857142855"
 },
 {
-"__f__": "0.575"
+"__f__": "0.5749999999999998"
 },
 {
-"__f__": "0.6142857142857143"
+"__f__": "0.6142857142857142"
 },
 {
-"__f__": "0.6535714285714286"
+"__f__": "0.6535714285714284"
 },
 {
-"__f__": "0.6928571428571428"
+"__f__": "0.6928571428571427"
 },
 {
-"__f__": "0.7321428571428572"
+"__f__": "0.732142857142857"
 },
 {
-"__f__": "0.7714285714285715"
+"__f__": "0.7714285714285712"
 },
 {
-"__f__": "0.8107142857142857"
+"__f__": "0.8107142857142856"
 },
 {
-"__f__": "0.8500000000000001"
+"__f__": "0.8499999999999999"
 },
 {
-"__f__": "0.8892857142857142"
+"__f__": "0.8892857142857141"
 },
 {
-"__f__": "0.9285714285714286"
+"__f__": "0.9285714285714284"
 },
 {
-"__f__": "0.967857142857143"
+"__f__": "0.9678571428571427"
 },
 {
 "__f__": "1.0071428571428571"
 },
 {
-"__f__": "1.0464285714285715"
+"__f__": "1.0464285714285713"
 },
 {
 "__f__": "1.0857142857142856"
@@ -6576,29 +6576,29 @@
 "__f__": "1.125"
 },
 {
-"__f__": "1.1642857142857144"
+"__f__": "1.1642857142857141"
 },
 {
 "__f__": "1.2035714285714285"
 },
 {
-"__f__": "1.2428571428571429"
+"__f__": "1.2428571428571427"
 },
 {
-"__f__": "1.2821428571428573"
+"__f__": "1.282142857142857"
 },
 {
-"__f__": "1.3214285714285716"
+"__f__": "1.3214285714285714"
 },
 {
-"__f__": "1.3607142857142858"
+"__f__": "1.3607142857142855"
 },
 {
-"__f__": "1.4000000000000001"
+"__f__": "1.4"
 }
 ],
 "x_stall": {
-"__f__": "0.7321428571428572"
+"__f__": "0.732142857142857"
 },
 "x_zero_slope": {
 "__f__": "0.0"
@@ -7428,9 +7428,7 @@
 "w2_over_w1": {
 "__f__": "0.6826869316449221"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7910,9 +7908,7 @@
 "w2_over_w1": {
 "__f__": "0.6826869316449221"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -8073,9 +8069,7 @@
 "w2_over_w1": {
 "__f__": "0.6826869316449221"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -8400,9 +8394,7 @@
 "__f__": "10.942737400054753"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "13794.71140382162"
@@ -8456,9 +8448,7 @@
 "volute_od_m": {
 "__f__": "0.2604361806367252"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "ox_shaft_rpm": {
 "__f__": "13794.71140382162"
@@ -8537,7 +8527,6 @@
 "turbine_staging": "velocity_compounded_2row",
 "warnings": [
 "required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
 "Cronidur 30 (15Cr-N stainless): bearing DN 1,540,341 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material."
 ]
 },
@@ -8546,7 +8535,7 @@
 "First tangential mode ~2092 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.15 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.",
 "Fuel pump (axial): the blading stalls (diffusion factor 0.75) near 73% of design flow - within 15 % of the 60% throttle floor. Axial LH2 pumps suit non-throttled engines [SP-8125 \u00a73.2.1, \u00a73.2.2.6]; pick a centrifugal pump or raise the throttle floor.",
 "Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Cronidur 30 (15Cr-N stainless): bearing DN 1,540,341 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Cronidur 30 (15Cr-N stainless): bearing DN 1,540,341 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.174) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]

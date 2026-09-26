@@ -436,7 +436,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
+"detail": "[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -4782,9 +4782,7 @@
 "w2_over_w1": {
 "__f__": "0.6225002462951744"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -5264,9 +5262,7 @@
 "w2_over_w1": {
 "__f__": "0.729685571602846"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -5427,9 +5423,7 @@
 "w2_over_w1": {
 "__f__": "0.729685571602846"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -5589,9 +5583,7 @@
 "w2_over_w1": {
 "__f__": "0.5321865312264512"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -5751,9 +5743,7 @@
 "w2_over_w1": {
 "__f__": "0.5321865312264512"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -5913,9 +5903,7 @@
 "w2_over_w1": {
 "__f__": "0.5321865312264512"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6075,9 +6063,7 @@
 "w2_over_w1": {
 "__f__": "0.6225002462951744"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -6402,9 +6388,7 @@
 "__f__": "10.075123759147377"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "18882.629486197442"
@@ -6458,9 +6442,7 @@
 "volute_od_m": {
 "__f__": "0.2768483316800407"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "fuel_shaft_rpm": {
 "__f__": "18882.629486197442"
@@ -7153,9 +7135,7 @@
 "w2_over_w1": {
 "__f__": "0.756542664652508"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7635,9 +7615,7 @@
 "w2_over_w1": {
 "__f__": "0.756542664652508"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7798,9 +7776,7 @@
 "w2_over_w1": {
 "__f__": "0.756542664652508"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -8125,9 +8101,7 @@
 "__f__": "11.32591757493235"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "14514.709178879313"
@@ -8181,9 +8155,7 @@
 "volute_od_m": {
 "__f__": "0.18354885939984342"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "ox_shaft_rpm": {
 "__f__": "14514.709178879313"
@@ -8261,8 +8233,6 @@
 },
 "turbine_staging": "reaction",
 "warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
 "Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling."
 ]
 },
@@ -8275,7 +8245,7 @@
 "Hottest wall station is in the throat (area ratio ~1.0, radiative): wall ~2090 K, 0.60x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Fuel pump: impeller outlet 0.18 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
+"[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.038) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]
 }

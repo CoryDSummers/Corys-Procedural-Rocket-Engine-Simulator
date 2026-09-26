@@ -418,7 +418,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Cronidur 30 (15Cr-N stainless): bearing DN 1,505,442 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"detail": "[turbopump] required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Cronidur 30 (15Cr-N stainless): bearing DN 1,505,442 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -5859,9 +5859,7 @@
 "w2_over_w1": {
 "__f__": "0.6060565108778095"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6341,9 +6339,7 @@
 "w2_over_w1": {
 "__f__": "0.7216902973996149"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6504,9 +6500,7 @@
 "w2_over_w1": {
 "__f__": "0.7216902973996149"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6666,9 +6660,7 @@
 "w2_over_w1": {
 "__f__": "0.5143352227996854"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6828,9 +6820,7 @@
 "w2_over_w1": {
 "__f__": "0.5143352227996854"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6990,9 +6980,7 @@
 "w2_over_w1": {
 "__f__": "0.5143352227996854"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7152,9 +7140,7 @@
 "w2_over_w1": {
 "__f__": "0.5143352227996854"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7314,9 +7300,7 @@
 "w2_over_w1": {
 "__f__": "0.5143352227996854"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7476,9 +7460,7 @@
 "w2_over_w1": {
 "__f__": "0.5143352227996854"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7638,9 +7620,7 @@
 "w2_over_w1": {
 "__f__": "0.6060565108778095"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -7965,9 +7945,7 @@
 "__f__": "9.619177251996003"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "91818.33999703528"
@@ -8022,8 +8000,7 @@
 "__f__": "0.14"
 },
 "warnings": [
-"required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware."
 ]
 },
 "fuel_shaft_rpm": {
@@ -8717,9 +8694,7 @@
 "w2_over_w1": {
 "__f__": "0.8237060484177161"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -9199,9 +9174,7 @@
 "w2_over_w1": {
 "__f__": "0.8237060484177161"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -9362,9 +9335,7 @@
 "w2_over_w1": {
 "__f__": "0.8237060484177161"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -9697,9 +9668,7 @@
 "__f__": "13.71586269732681"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "36288.38461344992"
@@ -9753,9 +9722,7 @@
 "volute_od_m": {
 "__f__": "0.14"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "ox_shaft_rpm": {
 "__f__": "36288.38461344992"
@@ -9801,8 +9768,6 @@
 "turbine_staging": "reaction",
 "warnings": [
 "required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
 "Cronidur 30 (15Cr-N stainless): bearing DN 1,505,442 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material."
 ]
 },
@@ -9812,7 +9777,7 @@
 "A single cooling tube must taper 7.8:1 along its run - past SP-8087's 6:1 limit for a swaged (3:1) + expanded (2:1) tube. Add a tube bifurcation (Tube split area ratio) so the tube count doubles downstream.",
 "Fuel pump: impeller outlet 0.19 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "Ox pump: impeller outlet 0.15 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; Cronidur 30 (15Cr-N stainless): bearing DN 1,505,442 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"[turbopump] required head/tip-speed combination implies wanting ~14 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Cronidur 30 (15Cr-N stainless): bearing DN 1,505,442 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.029) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage. sl Isp/thrust are nominal placeholders, not physical."
 ]

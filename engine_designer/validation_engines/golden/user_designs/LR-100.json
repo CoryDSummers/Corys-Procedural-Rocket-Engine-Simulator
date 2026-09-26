@@ -430,7 +430,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"detail": "[turbopump] impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -6445,8 +6445,7 @@
 "__f__": "1.1156792009952958"
 },
 "warnings": [
-"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]"
 ],
 "z": 12,
 "z_inlet": 6
@@ -6928,8 +6927,7 @@
 "__f__": "1.1156792009952958"
 },
 "warnings": [
-"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]"
 ],
 "z": 12,
 "z_inlet": 6
@@ -7092,8 +7090,7 @@
 "__f__": "1.1156792009952958"
 },
 "warnings": [
-"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]"
 ],
 "z": 12,
 "z_inlet": 6
@@ -7420,8 +7417,7 @@
 }
 },
 "warnings": [
-"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]"
 ]
 },
 "n_rpm": {
@@ -7477,8 +7473,7 @@
 "__f__": "0.26300510544380834"
 },
 "warnings": [
-"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]"
 ]
 },
 "fuel_shaft_rpm": {
@@ -8172,9 +8167,7 @@
 "w2_over_w1": {
 "__f__": "0.6730626556566454"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -8654,9 +8647,7 @@
 "w2_over_w1": {
 "__f__": "0.6730626556566454"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -8817,9 +8808,7 @@
 "w2_over_w1": {
 "__f__": "0.6730626556566454"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -9144,9 +9133,7 @@
 "__f__": "10.769487265349412"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "17510.5888341267"
@@ -9200,9 +9187,7 @@
 "volute_od_m": {
 "__f__": "0.20843867784852993"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "ox_shaft_rpm": {
 "__f__": "17510.5888341267"
@@ -9247,9 +9232,7 @@
 },
 "turbine_staging": "velocity_compounded_2row",
 "warnings": [
-"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]"
 ]
 },
 "warnings": [
@@ -9257,7 +9240,7 @@
 "Stainless Steel (304/316): only 15% thermal margin (computed wall temp 959 K vs 1100 K max). Thin margin. Basis: coupled throat wall balance: gas h_g ~6.6 kW/m2K incl. carbon-deposit credit, T_aw ~3588 K, coolant ~36 m/s (coolant-side wall ~741 K), 0.20 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
 "Hottest wall station is in the convergent section (area ratio ~1.2, regen): wall ~978 K, 1.12x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"[turbopump] impeller outlet only 7.7 mm wide (D2/b2 21 > 20): too thin for a machined shrouded impeller [SP-8109 \u00a73.3.3]",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.065) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]
 }

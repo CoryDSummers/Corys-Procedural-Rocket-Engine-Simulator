@@ -424,9 +424,9 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"detail": "OK - dual shaft, 2 turbine(s), peak tip speed within Powder-Metallurgy Superalloy (HIP, e.g. MAR-M / Rene PM) limit",
 "name": "Turbopump sizing / material feasibility",
-"passed": false
+"passed": true
 },
 {
 "category": "plumbing",
@@ -5667,7 +5667,7 @@
 "eta_turbine_ox": {
 "__f__": "0.63"
 },
-"feasible": false,
+"feasible": true,
 "fuel_bearing_dn": {
 "__f__": "933157.5444721966"
 },
@@ -6336,9 +6336,7 @@
 "w2_over_w1": {
 "__f__": "0.6162234463196701"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6818,9 +6816,7 @@
 "w2_over_w1": {
 "__f__": "0.5978501306508961"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6981,9 +6977,7 @@
 "w2_over_w1": {
 "__f__": "0.5978501306508961"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7143,9 +7137,7 @@
 "w2_over_w1": {
 "__f__": "0.6162234463196701"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -7470,9 +7462,7 @@
 "__f__": "9.885712802745958"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "20560.065847667833"
@@ -7526,9 +7516,7 @@
 "volute_od_m": {
 "__f__": "0.23143992264401994"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "fuel_shaft_rpm": {
 "__f__": "20560.065847667833"
@@ -9318,9 +9306,7 @@
 "__f__": "1150.0"
 },
 "turbine_staging": "velocity_compounded_2row",
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "warnings": [
 "[nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 2207 K EXCEEDS its 1250 K max service temp (Tc 2081 K, regenerative cooling). Marginal/unsuitable as designed. (hottest extension station eps 6.2, radiation equilibrium ~2207 K)",
@@ -9328,7 +9314,6 @@
 "Hottest wall station is in the nozzle (area ratio ~6.2, radiative): wall ~2207 K, 0.57x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Near the end of active cooling (area ratio ~6.0), estimated jacket/coolant pressure (~17.4 MPa) exceeds local hot-gas static pressure (~0.4 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~6.4 mm channel width, this reversed ~17.0 MPa differential is ~390 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
 "Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 12,393 rpm instead of its specific-speed optimum 20,377 rpm - a larger, heavier, less efficient pump. About 2.2 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
-"Fuel pump: impeller outlet 0.21 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"Fuel pump: impeller outlet 0.21 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it."
 ]
 }

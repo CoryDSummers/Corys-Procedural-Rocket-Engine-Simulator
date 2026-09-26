@@ -66,7 +66,14 @@ Branch: `turbopump/round-2`, cut from `turbopump/round-1` @ 70d09f6 (stacked). D
   - At the neutral stage Ns 2,200, LH2 multistage pumps get wide outlets (b2/D2 ~0.18–0.22,
     beyond Table I's 0.14). A warn row suggests "efficient".
 - [ ] C4: pump heating → jacket inlet (`coolant_inlet_model`, second pass), anchors, corpus report + snapshot
-- [ ] C5: GUI: `gui/turbopump_detail.py` + right-notebook tab + left "Design intent" section
+- [x] C5: GUI: `gui/turbopump_detail.py` + right-notebook tab + left "Design intent" section
+  - Panels A-F plus a caption, drawn from the meanline; headless self-test renders 8 cases;
+    `app.py` is syntax/import-checked only (no display here).
+  - The impeller face shows blades + splitters, a realistic ~130° wrap, and a volute spiral
+    growing in the rotation direction up to the tongue.
+  - The machinable-blade warning now fires only when z > 28·sin β2 AND the tip speed is
+    above the ~1,400 ft/s casting limit [SP-8109 §3.3.3]; otherwise the impeller is cast.
+  - The axial H-Q sketch is normalised on its own design value and shows a stall dip.
 - [ ] C6: docs (ASSUMPTIONS, OPEN_QUESTIONS, CLAUDE.md, README, roadmap tick, memory)
 
 ## Context

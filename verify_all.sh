@@ -49,6 +49,7 @@ MODULES=(
   engine_designer.gui.shape_lab_geometry
   engine_designer.gui.injector_face
   engine_designer.gui.turbopump_diagram
+  engine_designer.gui.turbopump_detail        # Turbopump Detail tab (meanline drawing), Agg headless
   engine_designer.gui.project_io
   engine_designer.validation_engines.run_corpus   # default --check: every corpus project
                                                   # bit-identical to validation_engines/golden/

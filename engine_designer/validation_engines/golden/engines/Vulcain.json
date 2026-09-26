@@ -409,7 +409,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"detail": "[turbopump] required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -6359,9 +6359,7 @@
 "w2_over_w1": {
 "__f__": "0.6254303631809107"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6841,9 +6839,7 @@
 "w2_over_w1": {
 "__f__": "0.7351124824987194"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7004,9 +7000,7 @@
 "w2_over_w1": {
 "__f__": "0.7351124824987194"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7166,9 +7160,7 @@
 "w2_over_w1": {
 "__f__": "0.535389195753795"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7328,9 +7320,7 @@
 "w2_over_w1": {
 "__f__": "0.535389195753795"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7490,9 +7480,7 @@
 "w2_over_w1": {
 "__f__": "0.535389195753795"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7652,9 +7640,7 @@
 "w2_over_w1": {
 "__f__": "0.535389195753795"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7814,9 +7800,7 @@
 "w2_over_w1": {
 "__f__": "0.535389195753795"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7976,9 +7960,7 @@
 "w2_over_w1": {
 "__f__": "0.535389195753795"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -8138,9 +8120,7 @@
 "w2_over_w1": {
 "__f__": "0.6254303631809107"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -8465,9 +8445,7 @@
 "__f__": "10.161830074789833"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "20398.57774230243"
@@ -8522,8 +8500,7 @@
 "__f__": "0.3503675663211332"
 },
 "warnings": [
-"required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware."
 ]
 },
 "fuel_shaft_rpm": {
@@ -10315,8 +10292,7 @@
 },
 "turbine_staging": "velocity_compounded_2row",
 "warnings": [
-"required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware."
 ]
 },
 "warnings": [
@@ -10325,7 +10301,7 @@
 "Near the end of active cooling (area ratio ~45.0), estimated jacket/coolant pressure (~13.8 MPa) exceeds local hot-gas static pressure (~0.0 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~16.2 mm channel width, this reversed ~13.8 MPa differential is ~7274 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
 "Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 15,729 rpm instead of its specific-speed optimum 22,732 rpm - a larger, heavier, less efficient pump. About 1.5 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
 "Fuel pump: impeller outlet 0.18 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"[turbopump] required head/tip-speed combination implies wanting ~13 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.180) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]

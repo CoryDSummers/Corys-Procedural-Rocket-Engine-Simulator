@@ -43,6 +43,7 @@ from .collapsible import CollapsibleSection
 from .injector_face import draw_injector_face
 from .schematic import draw_schematic
 from .turbopump_diagram import draw_turbopump_diagram
+from .turbopump_detail import draw_turbopump_detail
 
 # 3D preview: prefer the GPU-rendered OpenGL widget (real-time orbit camera);
 # fall back to the older matplotlib renderer if PyOpenGL/pyopengltk aren't
@@ -978,6 +979,48 @@ class EngineDesignerApp:
                                   "any pair - F-1 [F1-Man] has both)",
                                   self.te_hx_he_var, 0.0, 1.0, decimals=2)
 
+        # --- pump design INTENT + meanline hydraulics (turbopump Round 2,
+        # physics/turbopump_intent.py + pump_meanline.py). Directional sliders:
+        # -1 .. +1, 0 = the Round 1 design exactly; the Turbopump Detail tab (right)
+        # draws the resulting impeller / blading. Syntax-checked only here.
+        sec_pi = CollapsibleSection(tab_turbopump_left, "Pump Design Intent (meanline)",
+                                    start_open=False)
+        sec_pi.grid(row=tp_row, column=0, columnspan=2, sticky="ew")
+        tp_row += 1
+        self._register_gate(sec_pi, lambda: CYCLE_FROM_DISPLAY.get(self.cycle_var.get())
+                            != cycles.PRESSURE_FED)
+        pib = sec_pi.body_parent()
+        pi_row = 0
+        pi_row = self._add_dropdown(pib, pi_row, "Pump model (meanline = blade-level, "
+                                    "correlation = Round 1 Ns-bell)", "pump_model_var",
+                                    ["meanline", "correlation"], self.design.pump_model)
+        self.pump_priority_var = tk.DoubleVar(value=self.design.pump_priority)
+        pi_row = self._add_slider(pib, pi_row, "Efficient (-1)  <->  Compact (+1)",
+                                  self.pump_priority_var, -1.0, 1.0, decimals=2)
+        self.pump_head_curve_var = tk.DoubleVar(value=self.design.pump_head_curve)
+        pi_row = self._add_slider(pib, pi_row, "Stable / throttleable (-1)  <->  Max head (+1)",
+                                  self.pump_head_curve_var, -1.0, 1.0, decimals=2)
+        self.suction_aggr_var = tk.DoubleVar(value=self.design.suction_aggressiveness)
+        pi_row = self._add_slider(pib, pi_row, "Conservative (-1)  <->  Aggressive suction (+1)",
+                                  self.suction_aggr_var, -1.0, 1.0, decimals=2)
+        self.tip_aggr_var = tk.DoubleVar(value=self.design.tip_speed_aggressiveness)
+        pi_row = self._add_slider(pib, pi_row, "Stress margin (-1)  <->  Max tip speed (+1)",
+                                  self.tip_aggr_var, -1.0, 1.0, decimals=2)
+        pi_row = self._add_dropdown(pib, pi_row, "Inducer", "inducer_mode_var",
+                                    ["auto", "on", "off"], self.design.inducer_mode)
+        pi_row = self._add_dropdown(pib, pi_row, "Diffuser (auto: vaned when psi > 0.5 or Ns < 1000)",
+                                    "diffuser_type_var", ["auto", "volute", "vaned"],
+                                    self.design.diffuser_type)
+        pi_row = self._add_dropdown(pib, pi_row, "Fuel pump type (auto = centrifugal)",
+                                    "pump_type_fuel_var", ["auto", "centrifugal", "axial"],
+                                    self.design.pump_type_fuel)
+        pi_row = self._add_dropdown(pib, pi_row, "Ox pump type (auto = centrifugal)",
+                                    "pump_type_ox_var", ["auto", "centrifugal", "axial"],
+                                    self.design.pump_type_ox)
+        pi_row = self._add_dropdown(pib, pi_row, "Regen jacket inlet temperature (computed = "
+                                    "fuel pump outlet)", "coolant_inlet_model_var",
+                                    ["computed", "table"], self.design.coolant_inlet_model)
+
         self.turbopump_display_to_key = {
             turbopump_tech.TURBOPUMP_TECHS[k].display_name: k
             for k in turbopump_tech.available_turbopump_techs()
@@ -1537,6 +1580,21 @@ class EngineDesignerApp:
         self.canvas_tp = FigureCanvasTkAgg(self.fig_tp, master=tab_turbopump)
         self.canvas_tp.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+        # Turbopump Detail (turbopump Round 2): one pump's meanline design drawn by
+        # gui/turbopump_detail.py (Tk-free, self-tested headless); pick the leg here.
+        tab_tp_detail = ttk.Frame(notebook)
+        notebook.add(tab_tp_detail, text="Turbopump Detail")
+        tpd_bar = ttk.Frame(tab_tp_detail)
+        tpd_bar.pack(side=tk.TOP, fill=tk.X)
+        ttk.Label(tpd_bar, text="Pump:").pack(side=tk.LEFT, padx=(4, 2))
+        self.tp_detail_leg_var = tk.StringVar(value="ox")
+        for _txt, _val in (("Oxidizer", "ox"), ("Fuel", "fuel")):
+            ttk.Radiobutton(tpd_bar, text=_txt, value=_val, variable=self.tp_detail_leg_var,
+                            command=self._on_tp_detail_leg).pack(side=tk.LEFT, padx=4)
+        self.fig_tpd = Figure(figsize=(12, 9))
+        self.canvas_tpd = FigureCanvasTkAgg(self.fig_tpd, master=tab_tp_detail)
+        self.canvas_tpd.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
         # Redrawing every result tab (2D schematic, 3D preview, injector face,
         # checklist, turbopump diagram) on every recompute() is most of its
         # cost beyond the physics solve itself - matplotlib/GL redraws for
@@ -1550,6 +1608,7 @@ class EngineDesignerApp:
             "injector_face": tab_injector_face,
             "checklist": tab_checklist,
             "turbopump": tab_turbopump,
+            "turbopump_detail": tab_tp_detail,
         }
         self._tab_redraw_fns = {
             "schematic": self._redraw_schematic,
@@ -1557,6 +1616,7 @@ class EngineDesignerApp:
             "injector_face": self._redraw_injector_face,
             "checklist": self._redraw_checklist,
             "turbopump": self._redraw_turbopump_diagram,
+            "turbopump_detail": self._redraw_turbopump_detail,
         }
         self._tab_dirty = {key: False for key in self._tab_frames}
         notebook.bind("<<NotebookTabChanged>>", self._on_result_tab_changed)
@@ -1830,6 +1890,16 @@ class EngineDesignerApp:
             self.design.boost_pump_rise_ox_pa = max(0.0, float(self.boost_ox_var.get())) * 1e5
             self.design.preburner_tin_k = max(0.0, float(self.pb_tin_fr_var.get()))
             self.design.ox_preburner_tin_k = max(0.0, float(self.pb_tin_or_var.get()))
+            self.design.pump_model = self.pump_model_var.get() or "meanline"
+            self.design.pump_priority = max(-1.0, min(1.0, float(self.pump_priority_var.get())))
+            self.design.pump_head_curve = max(-1.0, min(1.0, float(self.pump_head_curve_var.get())))
+            self.design.suction_aggressiveness = max(-1.0, min(1.0, float(self.suction_aggr_var.get())))
+            self.design.tip_speed_aggressiveness = max(-1.0, min(1.0, float(self.tip_aggr_var.get())))
+            self.design.inducer_mode = self.inducer_mode_var.get() or "auto"
+            self.design.diffuser_type = self.diffuser_type_var.get() or "auto"
+            self.design.pump_type_fuel = self.pump_type_fuel_var.get() or "auto"
+            self.design.pump_type_ox = self.pump_type_ox_var.get() or "auto"
+            self.design.coolant_inlet_model = self.coolant_inlet_model_var.get() or "computed"
             self.design.turbine_exhaust_mode = self.te_mode_display_to_key.get(
                 self.te_mode_var.get(), self.design.turbine_exhaust_mode)
             self.design.turbine_exhaust_nozzle_eps = max(1.0, float(self.te_nozzle_eps_var.get()))
@@ -2122,6 +2192,14 @@ class EngineDesignerApp:
     def _redraw_turbopump_diagram(self, result):
         draw_turbopump_diagram(self.ax_tp, result)
         self.canvas_tp.draw_idle()
+
+    def _redraw_turbopump_detail(self, result):
+        draw_turbopump_detail(self.fig_tpd, result, self.tp_detail_leg_var.get() or "ox")
+        self.canvas_tpd.draw_idle()
+
+    def _on_tp_detail_leg(self):
+        if getattr(self, "last_result", None) is not None:
+            self._redraw_turbopump_detail(self.last_result)
 
     def _redraw_checklist(self, result):
         self._populate_checklist(result["checklist"])
@@ -2537,6 +2615,30 @@ class EngineDesignerApp:
                         + (" (override)" if _su['npsh_override'] else "")
                         + f" vs required {_pp.get('npsh_required_ft', 0.0):.0f} ft "
                         f"(TSH {_su['tsh_ft']:.0f} ft, inducer Ss {_su['ss_water']:,.0f})")
+                for _nm, _leg, _pp in (("Fuel", "fuel", fp), ("Ox", "ox", op)):
+                    _ml = _pp.get("meanline")
+                    if not _ml:
+                        continue
+                    if _ml["type"] == "axial":
+                        _geo = (f"axial {_ml['n_stages']} st, tip {_ml['d_tip_m'] * 1000:.0f} mm, "
+                                f"{_ml['z_rotor']}/{_ml['z_stator']} blades, DF "
+                                f"{max(_ml['df_rotor'], _ml['df_stator']):.2f}")
+                    else:
+                        _st = _ml["stage"]
+                        _geo = (f"centrifugal {_ml['n_stages']} st, D2 {_st['d2_m'] * 1000:.0f} mm, "
+                                f"{_st['z']} blades @ {_st['beta2_deg']:.0f} deg, b2 "
+                                f"{_st['b2_m'] * 1000:.1f} mm, {_ml['diffuser']}")
+                    tp_lines.append(f"{_nm} hydraulics: {_geo}; eta {_pp['eta']:.3f} meanline "
+                                    f"(Ns-bell {_pp.get('eta_correlation', 0.0):.3f})")
+                    _ph = (result.get("pump_heating") or {}).get(_leg)
+                    if _ph:
+                        tp_lines.append(f"{_nm} pump heating: {_ph['t_tank_k']:.1f} -> "
+                                        f"{_ph['t_out_k']:.1f} K")
+                if result.get("coolant_inlet_source"):
+                    tp_lines.append(f"Regen jacket inlet: {result.get('coolant_inlet_t_k', 0.0):.1f} K "
+                                    f"({result['coolant_inlet_source']})")
+                for _line in (result.get("pump_intent") or {}).get("readout") or []:
+                    tp_lines.append(f"  intent: {_line}")
                 for _nm, _pp in (("Fuel", fp), ("Ox", op)):
                     if _pp.get("suction_limited"):
                         tp_lines.append(
@@ -2718,6 +2820,16 @@ class EngineDesignerApp:
         self.boost_ox_var.set(d.boost_pump_rise_ox_pa / 1e5)
         self.pb_tin_fr_var.set(d.preburner_tin_k)
         self.pb_tin_or_var.set(d.ox_preburner_tin_k)
+        self.pump_model_var.set(d.pump_model)
+        self.pump_priority_var.set(d.pump_priority)
+        self.pump_head_curve_var.set(d.pump_head_curve)
+        self.suction_aggr_var.set(d.suction_aggressiveness)
+        self.tip_aggr_var.set(d.tip_speed_aggressiveness)
+        self.inducer_mode_var.set(d.inducer_mode)
+        self.diffuser_type_var.set(d.diffuser_type)
+        self.pump_type_fuel_var.set(d.pump_type_fuel)
+        self.pump_type_ox_var.set(d.pump_type_ox)
+        self.coolant_inlet_model_var.set(d.coolant_inlet_model)
         self.te_mode_var.set(turbine_exhaust.MODE_LABELS[
             turbine_exhaust.effective_mode(d.turbine_exhaust_mode)])
         self.te_nozzle_eps_var.set(d.turbine_exhaust_nozzle_eps)

@@ -62,6 +62,7 @@ PHI2_MIN, PHI2_MAX = 0.05, 0.30        # [SP-8109 §2.3.1.2 p.28]
 INCIDENCE_DEG = 3.0        # blade inlet angle above the flow angle (reporting/drawing)
 DT2_OVER_B2_MACHINED = 20.0            # [SP-8109 §3.3.3]
 MACHINABLE_Z_PER_SIN_B2 = 28.0         # Z2 <= 28 sin beta2 [SP-8109 §3.3.3]
+CAST_TIP_SPEED_MAX_M_S = 1400.0 * 0.3048   # casting preferred below 1,400 ft/s [SP-8109 §3.3.3]
 
 # --- centrifugal: losses -------------------------------------------------------
 WALL_ROUGHNESS_M = 63e-6 * _IN          # 63 uin rms finish [SP-8109 §2.4.4, §3.4.1.1]
@@ -116,6 +117,7 @@ AX_INDUCER_ETA = 0.70
 AX_ASPECT = 0.6            # blade height / chord (J-2 0.45, M-1 1.0, A-2 0.37) - Tier 3
 AX_DF_DESIGN_MAX = 0.55    # 0.45-0.55 design; stall 0.75 [SP-8125 §3.2.2.1, §3.2.2.6]
 AX_DF_STALL = 0.75
+AX_STALL_HEAD_DIP = 0.80   # H-Q sketch only: stalled-row head fraction (Tier 3)
 # [SP-8125 Fig. 8] profile-loss parameter omega*cos(beta_exit)/(2 sigma) vs DF (30-90 % span)
 AX_PROFILE_LOSS = ((0.0, 0.004), (0.1, 0.006), (0.2, 0.008), (0.3, 0.0095), (0.4, 0.012),
                    (0.5, 0.018), (0.6, 0.027), (0.7, 0.040), (0.8, 0.056))
@@ -416,9 +418,11 @@ def centrifugal_stage(q_m3s, h_stage_m, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, *
     if b2 > 0 and d2 / b2 > DT2_OVER_B2_MACHINED:
         warnings.append(f"impeller outlet only {b2 * 1000:.1f} mm wide (D2/b2 {d2 / b2:.0f} > 20): "
                         f"too thin for a machined shrouded impeller [SP-8109 §3.3.3]")
-    if z > MACHINABLE_Z_PER_SIN_B2 * math.sin(math.radians(beta2_deg)) + 1e-9:
+    if (z > MACHINABLE_Z_PER_SIN_B2 * math.sin(math.radians(beta2_deg)) + 1e-9
+            and u2_m_s > CAST_TIP_SPEED_MAX_M_S):
         warnings.append(f"{z} blades exceeds the ~{MACHINABLE_Z_PER_SIN_B2 * math.sin(math.radians(beta2_deg)):.0f}"
-                        f" machinable at beta2 {beta2_deg:.0f} deg (cast or open-face) [SP-8109 §3.3.3]")
+                        f" machinable at beta2 {beta2_deg:.0f} deg, at a tip speed ({u2_m_s:.0f} m/s) above "
+                        f"the ~1,400 ft/s casting limit - open-face or diffusion-bonded [SP-8109 §3.3.3]")
     cm_ratio = cm2 / cm1 if cm1 > 0 else 0.0
     loss_power = {
         "useful": p_useful,
@@ -676,24 +680,38 @@ def design_axial(q_m3s, h_total_m, n_rpm, n_stages, rho, nu_kin, *, psi_t=AX_PSI
             "diffuser": p_vol, "leakage": rho * G * (q_imp - q_m3s) * h_total_m,
             "mechanical": (p_main + p_ind + p_vol) * (1.0 / eta_m - 1.0),
             "disk_friction": 0.0, "suction_ss": 0.0, "friction": 0.0, "diffusion": 0.0}
-    # H-Q sketch: ideal psi_i(x) = 1 - x (1 - psi_i_d) at fixed blade angles; stall at DF 0.75
-    xs, psis, etas = [], [], []
-    x_stall = 0.0
-    for i in range(HQ_POINTS):
-        x = 0.3 + 1.1 * i / (HQ_POINTS - 1)
+    # H-Q sketch: ideal psi_i(x) = 1 - x (1 - psi_i_d) at fixed blade angles; profile loss
+    # from the DF at each flow; stall at DF 0.75 - below it the head dips and flattens.
+    # Normalised by the curve's OWN design-flow value so it passes through (1, 1).
+    k = K_AX if k_ax is None else k_ax
+
+    def _pt(x):
         psi_ix = 1.0 - x * (1.0 - psi_i)
         v1u = x * (1.0 - psi_i) / 2.0
         w1x = math.hypot(x * phi, 1.0 - v1u)
         w2x = math.hypot(x * phi, x * (1.0 - psi_i) / 2.0)
         df_x = 1.0 - w2x / w1x + psi_ix / (2.0 * AX_SIGMA_ROTOR * w1x)
-        if df_x >= AX_DF_STALL and x > x_stall:
-            x_stall = x
-        loss_x = (K_AX if k_ax is None else k_ax) * 2.0 * _interp(AX_PROFILE_LOSS, df_x) * \
-            (AX_SIGMA_ROTOR + AX_SIGMA_STATOR) * w1x * w1x / 2.0 + K_SHOCK * psi_i * (1.0 - x) ** 2
-        psi_x = psi_ix - loss_x
+        loss_x = (k * 2.0 * _interp(AX_PROFILE_LOSS, df_x) * (AX_SIGMA_ROTOR + AX_SIGMA_STATOR)
+                  * w1x * w1x / 2.0 + K_SHOCK * psi_i * (1.0 - x) ** 2)
+        return psi_ix - loss_x, psi_ix, df_x
+
+    psi_1, psi_i1, _ = _pt(1.0)
+    xs, psis, etas = [], [], []
+    x_stall = 0.0
+    psi_stall = None
+    grid = [1.4 - 1.1 * i / (HQ_POINTS - 1) for i in range(HQ_POINTS)]   # high -> low flow
+    for x in grid:
+        psi_x, psi_ix, df_x = _pt(x)
+        if df_x >= AX_DF_STALL:
+            if psi_stall is None:
+                x_stall, psi_stall = x, psi_x
+            psi_x = psi_stall * AX_STALL_HEAD_DIP * (0.9 + 0.1 * x / max(x_stall, 1e-9))
         xs.append(x)
-        psis.append(psi_x / psi_m)
-        etas.append(max(0.0, eta * (psi_x / max(psi_ix, 1e-9)) / (psi_m / psi_i)))
+        psis.append(psi_x / psi_1)
+        etas.append(max(0.0, eta * (psi_x / max(psi_ix, 1e-9)) / (psi_1 / psi_i1)))
+    xs.reverse()
+    psis.reverse()
+    etas.reverse()
     return {
         "type": "axial", "n_stages": n_stages, "eta": eta, "eta_raw": p_use / p_sh,
         "eta_stage": eta_st, "eta_v": q_m3s / q_imp, "eta_m": eta_m, "build_quality": build_quality,

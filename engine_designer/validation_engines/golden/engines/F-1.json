@@ -490,9 +490,9 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"detail": "OK - single shaft, 1 turbine(s), peak tip speed within Inconel 718 (nickel superalloy) limit",
 "name": "Turbopump sizing / material feasibility",
-"passed": false
+"passed": true
 },
 {
 "category": "plumbing",
@@ -6212,7 +6212,7 @@
 "eta_turbine_ox": {
 "__f__": "0.63"
 },
-"feasible": false,
+"feasible": true,
 "fuel_bearing_dn": {
 "__f__": "691569.3350942492"
 },
@@ -6881,9 +6881,7 @@
 "w2_over_w1": {
 "__f__": "1.0524410520853886"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7363,9 +7361,7 @@
 "w2_over_w1": {
 "__f__": "1.0524410520853886"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -7526,9 +7522,7 @@
 "w2_over_w1": {
 "__f__": "1.0524410520853886"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -7853,9 +7847,7 @@
 "__f__": "11.282878469941952"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "5166.605754400306"
@@ -7909,9 +7901,7 @@
 "volute_od_m": {
 "__f__": "0.9407829480349825"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "fuel_shaft_rpm": {
 "__f__": "5166.605754400306"
@@ -8604,9 +8594,7 @@
 "w2_over_w1": {
 "__f__": "0.6594946419628297"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -9086,9 +9074,7 @@
 "w2_over_w1": {
 "__f__": "0.6594946419628297"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -9249,9 +9235,7 @@
 "w2_over_w1": {
 "__f__": "0.6594946419628297"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -9576,9 +9560,7 @@
 "__f__": "10.782960788102056"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "5166.605754400306"
@@ -9632,9 +9614,7 @@
 "volute_od_m": {
 "__f__": "0.7505893001151035"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "ox_shaft_rpm": {
 "__f__": "5166.605754400306"
@@ -9678,16 +9658,12 @@
 "__f__": "1050.0"
 },
 "turbine_staging": "velocity_compounded_2row",
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "warnings": [
 "[nozzle extension] Inconel 718 Nickel Superalloy: only 10% thermal margin (computed wall temp 1133 K vs 1250 K max). Thin margin. (hottest extension station eps 16.0, radiation equilibrium ~1133 K)",
 "Hottest wall station is in the nozzle (area ratio ~16.0, radiative): wall ~1133 K, 1.10x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "First tangential mode ~643 Hz is in the band damaging instability lives in (<4000 Hz) and the injector is soft (dP/Pc 0.17 < 0.18). Historically this regime needed an odd-compartment injector-face baffle or corner-mounted Helmholtz cavities. Stiffen the injector, or plan on damping devices.",
-"Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]; 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
+"Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it."
 ]
 }

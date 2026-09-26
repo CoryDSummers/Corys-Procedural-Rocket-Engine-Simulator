@@ -439,9 +439,9 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
+"detail": "OK - geared, 0 turbine(s), peak tip speed within Inconel 718 (nickel superalloy) limit",
 "name": "Turbopump sizing / material feasibility",
-"passed": false
+"passed": true
 },
 {
 "category": "turbopump",
@@ -5107,7 +5107,7 @@
 "eta_turbine_ox": {
 "__f__": "0.44239798151160015"
 },
-"feasible": false,
+"feasible": true,
 "fuel_bearing_dn": {
 "__f__": "1106756.9523146213"
 },
@@ -5776,9 +5776,7 @@
 "w2_over_w1": {
 "__f__": "0.5802316574685275"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6258,9 +6256,7 @@
 "w2_over_w1": {
 "__f__": "0.54770366840199"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6421,9 +6417,7 @@
 "w2_over_w1": {
 "__f__": "0.54770366840199"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 },
@@ -6583,9 +6577,7 @@
 "w2_over_w1": {
 "__f__": "0.5802316574685275"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-],
+"warnings": [],
 "z": 12,
 "z_inlet": 6
 }
@@ -6910,9 +6902,7 @@
 "__f__": "8.968935350894004"
 }
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "n_rpm": {
 "__f__": "162919.03107336667"
@@ -6966,9 +6956,7 @@
 "volute_od_m": {
 "__f__": "0.14"
 },
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "fuel_shaft_rpm": {
 "__f__": "162919.03107336667"
@@ -8700,9 +8688,7 @@
 "__f__": "0.0"
 },
 "turbine_staging": "pressure_compounded_2stage",
-"warnings": [
-"12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]"
-]
+"warnings": []
 },
 "warnings": [
 "Chamber cylindrical L/D 11.96 is long/narrow (non-isentropic pressure loss, injector-hole crowding) [claude_lit topic 04].",
@@ -8712,7 +8698,6 @@
 "Near the end of active cooling (area ratio ~10.5), estimated jacket/coolant pressure (~20.2 MPa) exceeds local hot-gas static pressure (~0.2 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~2.5 mm channel width, this reversed ~20.1 MPa differential is ~256 MPa against a ~133 MPa allowable (Inconel 718 Nickel Superalloy, SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
 "Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 93,038 rpm instead of its specific-speed optimum 121,737 rpm - a larger, heavier, less efficient pump. About 1.0 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
 "Fuel pump: impeller outlet 0.26 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] 12 blades exceeds the ~12 machinable at beta2 25 deg (cast or open-face) [SP-8109 \u00a73.3.3]",
 "Battery + motor (82 kg) is a large fraction of the engine dry mass - electric pump-fed only pays off at small scale / short burn (battery mass scales with burn time). Real electric pump-fed engines (Rutherford) are small and stage their batteries."
 ]
 }
