@@ -247,6 +247,9 @@ def ring_mesh_for(ring, inner_edge_r_m, rgb):
 # inlet (a real volute's tongue sits there). Cosmetic - the physics mass still
 # integrates the full 360 deg.
 SCROLL_TAIL_GAP_INLET_DIA_MULT = 1.0
+# Drawn flame-shield thickness floor, x the scroll's inlet tube radius (the
+# real 1 mm sheet would be invisible at engine scale). Cosmetic.
+EXHAUST_SHIELD_DRAW_T_TUBE_R_MULT = 0.04
 
 
 def scroll_ring_pieces(ring, inner_edge_r_m, rgb, n_theta_main=_N_THETA):
@@ -1101,7 +1104,9 @@ def exhaust_render_edge(hardware, body_shell, ext_shell, has_extension, chamber_
     if hk.get("point_hook"):
         return None
     if hardware["mode"] == "nozzle_injection":
-        return _ring_inner_edge_r(body_shell, ext_shell, has_extension, hk, chamber_shell)
+        # + the scroll's own stand-off from the wall (the flame shield's space)
+        return (_ring_inner_edge_r(body_shell, ext_shell, has_extension, hk, chamber_shell)
+                + float(hk.get("wall_gap_m", 0.0)))
     return hk["major_radius_m"] - hk["outer_radius_m"]
 
 
@@ -1131,7 +1136,21 @@ def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXH
         ring = hardware["exhaust"]
         if angle_deg is not None:
             ring = manifold.scroll_rotated_to(ring, angle_deg)
-        return ring_pieces_for(ring, edge, rgb)
+        pieces = ring_pieces_for(ring, edge, rgb)
+        nk = hardware.get("neck")
+        if nk:
+            # the outlet neck into the wall + the flame shield on the wall
+            # (a drawn thickness floor so the 1 mm sheet reads at all)
+            pieces.append(preview3d_gl_core.revolve_closed_section(
+                nk["section_xs"], nk["section_rs"], n_theta, rgb, **kw))
+            t_draw = max(nk["shield_thickness_m"], EXHAUST_SHIELD_DRAW_T_TUBE_R_MULT
+                         * float(ring["outer_radius_m"]))
+            sx = np.asarray(nk["shield_xs"], dtype=float)
+            sr = np.asarray(nk["shield_rs"], dtype=float) + preview3d_gl_core.MANIFOLD_RING_WALL_CLEARANCE_M
+            pieces.append(preview3d_gl_core.revolve_closed_section(
+                np.concatenate([sx, sx[::-1]]), np.concatenate([sr, (sr + t_draw)[::-1]]),
+                n_theta, rgb, **kw))
+        return pieces
     if mode == "aspirator":
         a = hardware["aspirator"]
         sec_x = np.concatenate([a["xs"], a["xs"][::-1]])
@@ -2206,7 +2225,16 @@ def self_test():
             # a tangential scroll: open arc + tail cap, inlet at the run's angle
             # (fattest there), the duct leaving along the tangent from its inlet
             _ring = _hw["exhaust"]
-            assert manifold.ring_is_scroll(_ring) and len(_term) == 2
+            # scroll body + tail cap + outlet neck + flame shield
+            assert manifold.ring_is_scroll(_ring) and len(_term) == 4
+            _nk = _hw["neck"]
+            assert _nk["mass_kg"] > 0 and _nk["neck_mass_kg"] > 0 and _nk["shield_mass_kg"] > 0
+            # the neck ends on the wall at the injection station, the scroll
+            # sits forward of it and off the wall by its gap
+            assert abs(0.5 * (_nk["section_xs"][1] + _nk["section_xs"][2])
+                       - _nk["inject_station_m"]) < 1e-9
+            assert _ring["attach_axial_station_m"] < _nk["inject_station_m"]
+            assert _ring["wall_gap_m"] > 0
             assert abs(_ring["attach_angular_position_deg"] - _run["attach_angle_deg"]) < 1e-9
             assert _res_run["root_tangential"] and not _res_run["reducers"]
             _t0 = _res_run["segment_dirs"][0]

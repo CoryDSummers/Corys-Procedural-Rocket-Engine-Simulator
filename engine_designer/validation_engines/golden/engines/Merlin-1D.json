@@ -5032,6 +5032,7 @@
 },
 "material": "haynes_230",
 "mode": "overboard_duct",
+"neck": null,
 "outlet": {
 "cant_deg": {
 "__f__": "0.0"

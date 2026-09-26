@@ -1,0 +1,137 @@
+Turbine-exhaust scroll manifold, commit 2: outlet neck + flame shield (2026-09-25)
+================================================================================
+Changes (physics/turbine_exhaust.py size_hardware, nozzle_injection only):
+- The scroll now sits FORWARD of the injection station and OFF the nozzle wall, feeding aft-
+  inboard through an annular NECK into the wall at the injection station, with a FLAME SHIELD on
+  the wall beneath it - the F-1 manifold cutaway ([SP-8120 §2.2.5.3] text; figure reproduced on
+  enginehistory.org RPE 8.12) and [F1-Man §1-18] ("welded to a flame shield ... welded to the
+  thrust chamber outer wall"). Drawing-read constants (Tier 3), x the scroll's inlet tube radius
+  r: torus centre NECK_AXIAL_OFFSET_TUBE_R_MULT 1.1 r forward, inner edge NECK_RADIAL_GAP_
+  TUBE_R_MULT 0.35 r off the wall, neck NECK_WIDTH_TUBE_DIA_FRAC 0.25 x the tube dia high. The
+  same construction stands in for the J-2's flat base ring.
+- Mass: neck = two sheet walls (hoop-sized on the turbine outlet pressure over the half-height,
+  floored at the 1 mm gauge), shield = one 1 mm sheet from the torus's forward tangent to the
+  injection station; Haynes 230 as the rest of the exhaust hardware. Added to the hardware mass.
+- Drawn as two revolved closed sections (the shield at a visible thickness floor, cosmetic).
+- Injection station, gas-film slot and all performance unchanged (engine vac Isp identical).
+A/B = the golden (commit 12447a0) vs the working tree, same environment. F-1 and J-2 move; every
+other open-cycle design only gains turbine_exhaust_hardware.neck = None (schema-only).
+
+Key numbers, before -> after:
+F-1
+  ring inlet bore [in]                    24.31 ->      24.31
+  ring tail bore [in]                      9.42 ->       9.42
+  ring major radius [m]                    1.80 ->       1.81
+  ring mass [kg]                         109.03 ->     109.90
+  exhaust hardware mass [kg]             347.68 ->     451.86
+  default duct length [m]                  9.64 ->       9.28
+  default duct mass [kg]                 434.86 ->     428.93
+  duct loss (reported only) [kPa]         14.79 ->      14.73
+    of which ring entry [kPa]              0.00 ->       0.00
+    of which root reducer [kPa]            0.00 ->       0.00
+  dry mass [kg]                        24938.13 ->   25036.38
+  engine vac Isp [s]                     301.67 ->     301.67
+J-2
+  ring inlet bore [in]                    10.65 ->      10.65
+  ring tail bore [in]                      4.12 ->       4.12
+  ring major radius [m]                    0.75 ->       0.74
+  ring mass [kg]                          18.39 ->      18.24
+  exhaust hardware mass [kg]              18.39 ->      36.67
+  default duct length [m]                  2.45 ->       2.31
+  default duct mass [kg]                  39.66 ->      38.68
+  duct loss (reported only) [kPa]          9.53 ->      12.64
+    of which ring entry [kPa]              0.00 ->       0.00
+    of which root reducer [kPa]            0.00 ->       0.00
+  dry mass [kg]                         5243.85 ->    5261.14
+  engine vac Isp [s]                     431.16 ->     431.16
+F-1 neck 50.0 kg (height 155 mm, length 291 mm, wall 1.0 mm), flame shield 53.3 kg; torus 341 mm forward of the injection station, 108 mm off the wall
+J-2 neck 8.8 kg (height 68 mm, length 125 mm, wall 1.0 mm), flame shield 9.7 kg; torus 150 mm forward of the injection station, 48 mm off the wall
+
+Reading it: the neck + shield add ~103 kg to the F-1 (~0.4 % of dry mass) and ~18 kg to the
+J-2; the duct shortens slightly (the scroll moved forward, toward the turbine). No real F-1 /
+J-2 manifold-assembly weight is in hand to check these against (OPEN_QUESTIONS).
+
+Full --check diff (golden vs working tree):
+IDENTICAL engines/AJ10-137
+IDENTICAL engines/Aestus
+CHANGED   engines/F-1
+    /checklist[47]/detail: 'OK - 9.64 m, 434.9 kg, -> turbine, line loss 15 kPa' -> 'OK - 9.28 m, 428.9 kg, -> turbine, line loss 15 kPa'
+    /checklist[51]/detail: 'OK - 434.9 kg over 9.64 m' -> 'OK - 428.9 kg over 9.28 m'
+    /computed_dry_mass_kg/__f__: '24938.128994685223' -> '25036.383490964025'
+    /plumbing_mass_kg/__f__: '434.8623191598829' -> '428.93150296311774'
+    /plumbing_results[0]/mass_kg/__f__: '434.8623191598829' -> '428.93150296311774'
+    /plumbing_results[0]/pipe_mass_kg/__f__: '160.13097714963615' -> '154.20016095287102'
+    /plumbing_results[0]/pressure_loss_pa/__f__: '14794.510992604894' -> '14727.895345333825'
+    /plumbing_results[0]/pressure_loss_parts_pa/friction_pa/__f__: '1798.610568439137' -> '1731.994921168068'
+    /plumbing_results[0]/total_length_m/__f__: '9.637478071937057' -> '9.280532076462356'
+    /plumbing_total_length_m/__f__: '9.637478071937057' -> '9.280532076462356'
+    /turbine_exhaust_hardware/exhaust/attach_angular_position_deg/__f__: '86.98556701673328' -> '86.47442138448984'
+    /turbine_exhaust_hardware/exhaust/attach_axial_station_m/__f__: '3.2939442739457765' -> '2.953112401759438'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[1]/__f__: '0.9986163194821002' -> '0.9981074449941568'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[2]/__f__: '-0.052587512434264655' -> '-0.061494131811386285'
+    /turbine_exhaust_hardware/exhaust/attach_radial_offset_m/__f__: '1.799083427940019' -> '1.813449178563776'
+    /turbine_exhaust_hardware/exhaust/major_radius_m/__f__: '1.799083427940019' -> '1.813449178563776'
+    /turbine_exhaust_hardware/exhaust/mass_kg/__f__: '109.02811857606663' -> '109.8987123118083'
+    /turbine_exhaust_hardware/exhaust/wall_gap_m: added
+    /turbine_exhaust_hardware/implicit_run/attach_angle_deg/__f__: '86.98556701673328' -> '86.47442138448984'
+    /turbine_exhaust_hardware/implicit_run/pipes[0]/length_dia_mult/__f__: '2.6206741465576187' -> '2.594579662509477'
+    /turbine_exhaust_hardware/implicit_run/pipes[1]/length_dia_mult/__f__: '7.485822918915611' -> '6.933895166303176'
+    /turbine_exhaust_hardware/manifold/attach_angular_position_deg/__f__: '86.98556701673328' -> '86.47442138448984'
+    /turbine_exhaust_hardware/manifold/attach_axial_station_m/__f__: '3.2939442739457765' -> '2.953112401759438'
+    /turbine_exhaust_hardware/manifold/attach_direction_xyz[1]/__f__: '0.9986163194821002' -> '0.9981074449941568'
+    /turbine_exhaust_hardware/manifold/attach_direction_xyz[2]/__f__: '-0.052587512434264655' -> '-0.061494131811386285'
+    /turbine_exhaust_hardware/manifold/wall_gap_m: added
+    /turbine_exhaust_hardware/neck: added
+CHANGED   engines/J-2
+    /checklist[49]/detail: 'OK - 2.45 m, 39.7 kg, -> turbine, line loss 10 kPa' -> 'OK - 2.31 m, 38.7 kg, -> turbine, line loss 13 kPa'
+    /checklist[53]/detail: 'OK - 39.7 kg over 2.45 m' -> 'OK - 38.7 kg over 2.31 m'
+    /computed_dry_mass_kg/__f__: '5243.845136228888' -> '5261.135159372679'
+    /plumbing_mass_kg/__f__: '39.662726311570694' -> '38.68093490674707'
+    /plumbing_results[0]/advisories[0]: 'Pipe 3: its 1.00-dia elbow needs more straight run than pipe 2 / pipe 3 have - rendered at 0.87 dia instead.' -> 'Pipe 3: its 1.00-dia elbow needs more straight run than pipe 2 / pipe 3 have - rendered at 0.60 dia instead.'
+    /plumbing_results[0]/mass_kg/__f__: '39.662726311570694' -> '38.68093490674707'
+    /plumbing_results[0]/pipe_mass_kg/__f__: '16.528788644453794' -> '15.546997239630166'
+    /plumbing_results[0]/pressure_loss_pa/__f__: '9527.061098735678' -> '12638.736140637742'
+    /plumbing_results[0]/pressure_loss_parts_pa/elbows_pa/__f__: '8292.979537336912' -> '11477.957632227024'
+    /plumbing_results[0]/pressure_loss_parts_pa/friction_pa/__f__: '1234.0815613987647' -> '1160.778508410718'
+    /plumbing_results[0]/total_length_m/__f__: '2.453980893875' -> '2.308217196302625'
+    /plumbing_total_length_m/__f__: '2.453980893875' -> '2.308217196302625'
+    /turbine_exhaust_hardware/exhaust/attach_angular_position_deg/__f__: '75.15814801799996' -> '75.46941507945064'
+    /turbine_exhaust_hardware/exhaust/attach_axial_station_m/__f__: '1.5319835501920727' -> '1.3821693786824751'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[1]/__f__: '0.9666365390882433' -> '0.9680138477070727'
+    /turbine_exhaust_hardware/exhaust/attach_direction_xyz[2]/__f__: '-0.2561519105911626' -> '-0.25089677289145906'
+    /turbine_exhaust_hardware/exhaust/attach_radial_offset_m/__f__: '0.748742389984102' -> '0.7424175790103467'
+    /turbine_exhaust_hardware/exhaust/major_radius_m/__f__: '0.748742389984102' -> '0.7424175790103467'
+    /turbine_exhaust_hardware/exhaust/mass_kg/__f__: '18.394057274077216' -> '18.238678151891502'
+    /turbine_exhaust_hardware/exhaust/wall_gap_m: added
+    /turbine_exhaust_hardware/implicit_run/attach_angle_deg/__f__: '75.15814801799996' -> '75.46941507945064'
+    /turbine_exhaust_hardware/implicit_run/pipes[0]/length_dia_mult/__f__: '4.298234864811455' -> '4.3132150152763264'
+    /turbine_exhaust_hardware/implicit_run/port_standoff_dia_mult/__f__: '1.7774939506104488' -> '1.2234257438359457'
+    /turbine_exhaust_hardware/manifold/attach_angular_position_deg/__f__: '75.15814801799996' -> '75.46941507945064'
+    /turbine_exhaust_hardware/manifold/attach_axial_station_m/__f__: '1.5319835501920727' -> '1.3821693786824751'
+    /turbine_exhaust_hardware/manifold/wall_gap_m: added
+    /turbine_exhaust_hardware/neck: added
+IDENTICAL engines/LMAE
+CHANGED   engines/Merlin-1D
+    /turbine_exhaust_hardware/neck: added
+IDENTICAL engines/RD-180
+IDENTICAL engines/RL10A-3-3
+IDENTICAL engines/RS-25
+IDENTICAL engines/Raptor-2
+IDENTICAL engines/Rutherford
+CHANGED   engines/Vulcain
+    /turbine_exhaust_hardware/neck: added
+IDENTICAL user_designs/AJ-90k
+CHANGED   user_designs/LR-100
+    /turbine_exhaust_hardware/neck: added
+CHANGED   user_designs/RS-29
+    /turbine_exhaust_hardware/neck: added
+CHANGED   user_designs/RS-29A
+    /turbine_exhaust_hardware/neck: added
+CHANGED   user_designs/RS-29C
+    /turbine_exhaust_hardware/neck: added
+CHANGED   user_designs/RS-30
+    /turbine_exhaust_hardware/neck: added
+IDENTICAL user_designs/TRW-270
+CHANGED   user_designs/j-2_test_bed
+    /turbine_exhaust_hardware/neck: added
+CORPUS CHECK FAILED
