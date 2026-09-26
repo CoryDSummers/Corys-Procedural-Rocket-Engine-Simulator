@@ -602,3 +602,66 @@ forward-outboard placement on a neck, flame shield, visible omega joints) were f
 `topics/12b` ("Real F-1 / J-2 exhaust-manifold SHAPE") and a caveat in
 `sources/f1-engine-manual-r3896-1.md`, and applied in `engine_designer` (`ASSUMPTIONS.md`
 "Injection SCROLL manifold"). Photos give shape and proportion only, not dimensions.
+
+## 2026-09-25 — five new PDFs: Apollo primary propulsion, Shuttle OME (×2), Shuttle OMS
+## design history, copper-diamond liner materials
+
+Five new NTRS-numeric-named PDFs were found sitting undistilled in `literature/` (per the
+project's standing "diff new PDFs against `sources/*.md` coverage first" convention). Cory
+confirmed the token-cost estimate (two of the five are 213pp/322pp) and approved distilling
+all five now. Renamed to the `<Report ID> - <Title>.pdf` convention (NTRS number kept in each
+source note): `Apollo Working Paper 1195 - Apollo Spacecraft Liquid Primary Propulsion
+Systems.pdf`, `ASR72-238 - Space Shuttle OME Reusable Thrust Chamber Final Data Dump.pdf`,
+`13133-F-1 - Space Shuttle OME Platelet Injector Program Final Report.pdf`, `AIAA 85-1694 -
+Orbital Maneuvering System Design Evolution.pdf`, `NSMMS 2018 - Rocket Engine Liner Materials
+Copper-Diamond Alloys.pdf`. Read/drafted by 5 parallel `lit-integrator` subagents (one per
+source, per the project's standing parallel-subagent convention for independent sources);
+the topic-file/README/PROVENANCE integration pass below was done by the main session
+afterward, with all five tags in hand at once for cross-referencing, per the same convention.
+
+- **`[ApolloPP-1195]`** (1966 NASA MSC survey): the first real pressure-fed hypergolic engine
+  data in `claude_lit` — a Table I spec comparison across the SPS/LM-descent/LM-ascent
+  engines (N2O4/Aerozine-50, all pressure-fed/ablative), a real fuel-rich barrier-cooling MR
+  (1.05 vs. bulk 1.6, LM ascent), real confirmation of the LM descent engine's pintle-type
+  variable-area injector, and a real 1960s multi-material ablative-liner ply schedule. Folded
+  into `topics/11-propellants.md` (new N2O4/Aerozine-50 subsection), `topics/05-injectors.md`
+  (barrier-cooling MR), and `topics/06b-cooling-methods-and-chemistry.md` (ablative ply
+  schedule).
+- **`[ASR72-238]`** (1972 Rocketdyne, 213pp, ~2/3 deep-read — data tables required rendering
+  to page images, OCR-garbled as raster/rotated text): a real comparative trade study, 7
+  propellant combinations × regen vs. dump/film cooling, same 6000-lbf-class OME. Folded
+  into `topics/06-cooling-and-heat-transfer.md` (real regen-vs-dump/film Δweight comparison,
+  real material creep/fatigue-life data, Cb→Ti transition criterion), `topics/05-injectors.md`
+  (real 15%-of-Pc injector-ΔP corroboration across all 7 pairs; injector type varying by
+  cooling method for LOX/C3H8), and `topics/03-combustion-and-cstar.md` (a real 1970s
+  RP-1-specific combustion-modeling limitation).
+- **`[OME-Platelet]`** (c.1975 Aerojet, 322pp, ~2/3 deep-read — executive-summary sections
+  and the full-scale-program technical core read in full, raw per-firing data tables
+  skimmed/skipped): the first real platelet-injector (photoetched/diffusion-bonded plate
+  stack) construction detail in `claude_lit`. Folded into `topics/05-injectors.md` (a fourth
+  real injector-construction technique, cant angles, a real 24-28%-of-Pc pressure-drop
+  anchor), `topics/03-combustion-and-cstar.md` (real JANNAF ERE performance-extraction
+  method/data), and `topics/14-combustion-stability.md` (a new instability mode, "resurging,"
+  its real fix, a real dual-tuned acoustic-cavity design, and a real chamber acoustic-mode
+  frequency table).
+- **`[OMS-DesignEvo]`** (1985 NASA JSC, 17pp, read in full): a real engineering-history
+  narrative for why the Shuttle OMS switched from a pumped LOX/LH2 baseline to pressure-fed
+  storable NTO/MMH (a real volume-constrained, not mass-constrained, tradeoff) and why
+  Apollo-heritage ablative engines were rejected for a longer reusable duty cycle. Folded
+  into `topics/08-engine-cycles.md` (the design-history narrative + redundancy-architecture
+  rationale), `topics/11-propellants.md` (the volume-constrained tradeoff), and
+  `topics/14-combustion-stability.md` (the cavity-vs-baffle reusability rationale).
+- **`[CuDiamond-Liner]`** (2018 NASA MSFC/GTE, 24pp, read in full): an early-TRL
+  "next-generation" copper-diamond composite chamber-liner material candidate — real
+  measured thermal conductivity up to ~560 W/m·K (vs. GRCop-84's 300) at a real, large
+  strength/ductility cost (UTS roughly halved, elongation collapsing to generally <1%).
+  Filed into `topics/12b-structures-manifolds-and-hardware.md` rather than
+  `topics/12-materials-and-structures.md` — the latter is already slightly over its 40 KB
+  cap (see the 2026-09-24 split entry above), so this materials-by-subject entry was parked
+  in the sibling file for space, flagged explicitly in both the topic file and README.
+
+No `ASSUMPTIONS.md` numbers were changed and no `validate.py` behavior changed — this batch
+is report-only, consistent with `claude_lit`'s standing convention. All touched topic files
+were re-checked against the 40 KB cap after integration; none of the eight touched files
+(`03`, `05`, `06`, `06b`, `08`, `11`, `12b`, `14`) crossed it (`12` remains at its pre-existing
+~43 KB, untouched this batch).

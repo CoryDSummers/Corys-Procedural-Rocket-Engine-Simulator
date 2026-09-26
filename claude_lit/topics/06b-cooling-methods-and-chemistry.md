@@ -333,6 +333,23 @@ near-injection effectiveness. Relevant context (not a portable number) for the s
 heat-transfer.md`) shows LH2 coolant going from ~57–85 °R inlet to 1575–1900 °R outlet with a
 refractory-metal wall — a ΔT of ~800–1000 K is achievable for hydrogen.
 
+**A second real hydrocarbon/hypergolic film-cooling Isp-tax data point**
+`[OME-Platelet §III.C.2.c, leaf 12]`: fuel film cooling at **~8% of fuel flow costs ~1 sec
+Isp** on a like-doublet hypergolic OME injector, alongside `[TP2862-LOXRP1]`'s LOX/RP-1
+zoned-injector number already cited above (`topics/06`) — a second real propellant-family
+data point for `film_effectiveness_profile`/`dump_coolant_fraction`'s Isp-cost framing.
+
+**Real 1960s ablative-chamber ply schedule** `[ApolloPP-1195 Fig. 18]` (label transcription,
+illustrative material names not a verified BOM): the Apollo LEM ascent engine's fully-
+ablative chamber (no radiation-cooled extension at all — unlike SPS/LM-descent, which
+transition to radiation-cooled columbium/titanium skirts) builds up zone-by-zone from
+distinct material systems: asbestos/phenolic-silica felt at the throat (HT-427 bond),
+Irish Refrasil/EC-201 phenolic further aft ("302" bond), transitioning to filament-wound
+glass-roving/epoxy-novolac at the nozzle-extension boundary. A real, if terse, example of a
+multi-material ablative ply layup rather than one uniform material — no ply thickness/
+erosion-rate numbers given, so not a sizing method, but real corroboration that "ablative"
+covers a zoned material system in practice, not a single compound.
+
 ## Caveats
 
 - `[Marquardt-5981]`'s numbers are small-spacecraft-engine scale (20–10,000 lbf, mostly

@@ -102,6 +102,35 @@ other lower-confidence curve fits in the same source, flagged in its own note as
 and not to be used without re-verification). Not yet checked against `combustion.py`'s baked
 equilibrium-table c* at matching LOX/LH2 conditions — a candidate spot-check, not yet done.
 
+**Real JANNAF energy-release-efficiency (ERE) data, hypergolic pressure-fed OME**
+`[OME-Platelet §X.B-D, leaf 196-227]`: a real applied performance-extraction method —
+perfect-injector Isp (one-dimensional-kinetics, ODK) minus boundary-layer loss minus
+divergence loss (via a real nozzle-divergence-efficiency table, 0.939-0.991 across four real
+test nozzles including a 55:1 flight-nozzle value of 0.9906); the gap between perfect-
+injector and measured Isp is the energy-release loss, ERE = [Isp(ODE) − ΔIsp(ERL)]/Isp(ODE).
+Real measured trends at the nominal OME point (Pc 125 psia, MR 1.65, 55:1 vacuum area
+ratio): eight of eleven injector configurations delivered **313-315 s** vacuum Isp; extending
+axial chamber length from 12 to 16 in gave **~+4 sec Isp across all injector types** — a
+second real finite-combustion-length data point (chamber length still measurably improving
+delivered Isp well past the injector face), consistent with `[TN-Dump]`'s finding above.
+Removing a 4-in L* section cost 2-3 sec Isp for either injector type tested; warming
+propellant from 40 to 110°F improved Isp by 0.2-1.2 sec. **Extrapolation across nozzle area
+ratios via a two-zone stream-tube model**: the energy-release loss for any test condition is
+reproduced by an equivalent mixture-ratio-maldistributed two-zone stream tube (a single
+mixing-efficiency-like factor Em), then Em is held fixed while re-evaluating ODK Isp at a
+different (flight) area ratio — a real method for extrapolating small sea-level test-nozzle
+performance to a very different flight-nozzle area ratio.
+
+**A real 1970s combustion-modeling limitation specific to RP-1** `[ASR72-238, leaf 24-26]`:
+a 1972 Rocketdyne comparative trade study applied a flat **core-mixing efficiency of 0.986**
+uniformly across 7 propellant combinations (an assumed constant, not measured/derived, "through
+appropriate sizing and spacing of injector elements") — but for **LOX/RP-1 specifically, the
+vaporization efficiency could not be computed at all** ("computer program inability to model
+the RP-1 combustion process"), forcing the study to instead assume a fixed 20-in combustor
+length to hit an assumed η_vap ≈ 97.5%, empirically rather than derived — a real, concrete
+example of kerosene-class-fuel combustion modeling being harder than the cleaner-modeling
+amine/hydrazine/hydrogen fuels in the same 1970s-era study.
+
 ## Worked numbers
 
 `[Sutton Table 5-4]` LOX/LH2, Pc 773.3 psia, MR 5.551, chamber/throat area ratio 1.580,

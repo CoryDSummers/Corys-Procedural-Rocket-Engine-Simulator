@@ -216,6 +216,49 @@ heating**, not just combustion efficiency. A real-hardware caution that hydrocar
 geometry is unusually sensitive for wall heat flux — worth flagging alongside any future
 injector-geometry design-choice warning.
 
+**A fourth real injector-construction technique: platelet (photoetched/diffusion-bonded
+plate stack)** `[OME-Platelet §IX.E.3, leaf 158]` — a real Space Shuttle OME (hypergolic
+pressure-fed, Pc 125 psia) development/test program on exactly this construction: "the
+injector face consisted of a stack of six plates, varying in thickness from .006 to .008 in
+... individually photoetched and then bonded together." Both the injection orifices *and*
+the propellant manifold (concentric face-ring manifolds fed via radial "pie" manifolds and
+downcomers — a real topology distinct from this project's tapered-torus manifolds) are
+photoetched into the plates before bonding — a fourth construction technique alongside the
+drilled-plate/impinging, pintle, and coax-swirl types the table above already lists (the
+existing table's own "platelet" row already flags it as "Aerojet-patented construction, not
+a spray pattern" — this is the real hardware backing that entry). Real demonstrated benefits:
+**1500 thermal cycles** survived twice without damage; a full pattern rework (new orifice
+pattern from existing photoetch artwork) done in **under three days**; successfully applied
+to an integral 3-bladed baffle injector (platelet stack sectioned into three pie slices for
+separate bonding). Real element cant angles (rotated off-radial to maximize inter-element
+spray overlap while keeping the wall-adjacent zone fuel-rich): **25° splash plate, 30°
+X-doublet, 45° unlike-doublet** `[§VIII.B.2, leaf 87]`. Real injector Δp target: **30-35 psid
+at Pc 125 psia (≈24-28% of Pc)** `[§VIII.B.1, leaf 87]` — a real hypergolic-pressure-fed data
+point at the high end of, or slightly above, this file's existing 15-20%-of-Pc rule.
+Platelet vs. conventional-drilled injectors were found performance-equivalent for this
+propellant/thrust class (314.7 s vs. 313-315 s vacuum Isp, same test program).
+
+**Injector type varies by cooling method, not just propellant — a real example**
+`[ASR72-238 Table 12, leaf 58]`: a 1972 Rocketdyne OME trade study's injector-pattern table
+pins the **stability minimum injector Δp at exactly 15% of Pc across every one of 7
+propellant combinations studied** (NTO/50-50, NTO/MMH, LOX/50-50, LOX/MMH, LOX/RP-1,
+LOX/N2H4, LOX/C3H8) — a real, propellant-pair-resolved corroboration of this file's
+15-20%-of-Pc rule, pinned at the lower bound for every pair studied. The same table shows
+LOX/C3H8 (liquid propane) using a **concentric-tube (coaxial) element for the regen-cooled
+design but switching to like-doublet for the film-cooled design at the same propellant
+pair** — a real design-choice interaction (injector type driven by cooling-method choice,
+not propellant alone) this file doesn't otherwise document.
+
+**Real fuel-rich barrier-cooling mixture ratio, a hypergolic pressure-fed engine**
+`[ApolloPP-1195 Fig. 20, p.3-4]`: the Apollo LEM ascent engine's injector (N2O4/Aerozine-50,
+Pc 150 psia) runs a low-mixture-ratio unlike-doublet ring at the chamber wall specifically
+labeled on its own orifice plate **"BARRIER O/F = 1.05"** against a bulk/core MR of 1.6 —
+carrying **29% of total flow** (vs. 7% for the SPS engine's showerhead barrier, same
+document) — a real, dimensioned example of how fuel-rich a wall-adjacent barrier zone runs
+on a real hypergolic engine, and how much of total flow it can take when film cooling is
+achieved through injector-pattern zoning alone rather than a separately metered film-coolant
+fraction.
+
 ## Worked numbers
 
 `[Huzel Sample 4-4-region p.131]` A-1 GG-style injector: V_ox = 1076 in/s (89.6 ft/s),
@@ -292,6 +335,14 @@ Note the fuel is injected ~9× faster than the oxidizer here (heavily fuel-rich 
   the first real data connecting *both* variables at once (prior sources gave each
   separately). Report-only — no code changed, but a real spot-check candidate if
   `min_stable_dp_ratio` is ever tuned against a named engine.
+- **Platelet construction not modeled**: `injectors.py`'s existing `platelet` type
+  (`dp_over_pc_nominal = 0.25`) is a spray-pattern-agnostic Δp/Pc entry only — the real
+  construction technique (photoetched/diffusion-bonded plate stack, real manifold built into
+  the stack, 1500-cycle life, <3-day rework) isn't modeled as a distinct construction choice
+  the way `WALL_CONSTRUCTIONS` models chamber-wall construction. `[OME-Platelet]`'s 0.24-0.28
+  real Δp/Pc anchor directly supports the tool's existing 0.25 constant (ASSUMPTIONS.md
+  item #10 can be upgraded from estimate to "matches a real hypergolic-pressure-fed OME
+  platelet-injector program"). Report-only — no code changed.
 - `practical_min_throttle` for pintle-type injectors: `[Casiano-Throttling]`'s TR202 finding
   (stiffness rises from 20% to 106% across the throttle range) means a constant-Δp/Pc
   assumption for `dp_over_pc_nominal` breaks down badly near an injector's minimum-thrust
