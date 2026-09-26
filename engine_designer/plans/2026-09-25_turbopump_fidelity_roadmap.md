@@ -5,10 +5,12 @@ not one round:** each round below gets its own plan through plan mode (conventio
 own `plans/*.md` doc if it spans several commits. **Tick each box when its round lands** (with
 the commit hash).
 
-Branch: `worktree-turbopump-fidelity`, cut from `origin/main` @ 83bcd41. The worktree is
-`.claude/worktrees/turbopump-fidelity/`. It's a **separate test branch**: a draft PR to `main`
-that stays unmerged until Cory has tested it. Keep it current by merging `origin/main` into it.
-No rebase, no force-push.
+Branches: this roadmap landed on `main` via `worktree-turbopump-fidelity` (PR #16). **Each round
+then gets its own branch** off `origin/main`: Round 0 = `turbopump/round-0` (plan doc
+`plans/2026-09-26_turbopump_round0.md`). The worktree is `.claude/worktrees/turbopump-fidelity/`.
+A round's branch is a **separate test branch** with a draft PR to `main` that stays unmerged
+until Cory has tested it. Keep it current by merging `origin/main` into it. No rebase, no
+force-push.
 
 How to test the branch:
 ```

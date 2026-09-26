@@ -477,6 +477,7 @@ fully captured in the code plus this file plus `engine_designer/README.md`/`ASSU
 work in progress, each with a per-commit checklist. Check there first when resuming a round
 that may have been cut off mid-way (unticked boxes = not landed yet).
 **Turbopump fidelity** (`plans/2026-09-25_turbopump_fidelity_roadmap.md`): a multi-round roadmap
-(Rounds 0-5 internal + E1-E5 exterior) developed on its OWN test branch
-`worktree-turbopump-fidelity` (worktree `.claude/worktrees/turbopump-fidelity/`, draft PR to
-`main`, not merged until Cory has tested it). Do this work there, not on `main`.
+(Rounds 0-5 internal + E1-E5 exterior). EACH ROUND is developed on its OWN test branch off
+`origin/main` (Round 0 = `turbopump/round-0`, plan `plans/2026-09-26_turbopump_round0.md`;
+worktree `.claude/worktrees/turbopump-fidelity/`), with a draft PR to `main` that is not merged
+until Cory has tested it. Do this work there, not on `main`.
