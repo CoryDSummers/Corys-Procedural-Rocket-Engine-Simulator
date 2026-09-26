@@ -101,6 +101,7 @@ from .cooling_wall_film import (  # noqa: F401
 )
 from .turbine_exhaust_checks import run_turbine_exhaust_check  # noqa: F401
 from .feed_calibration import run_feed_pump_calibration_check  # noqa: F401
+from .suction import run_pump_suction_check  # noqa: F401
 
 # Every check, in the order `python3 -m engine_designer.physics.validate` runs them.
 ALL_CHECKS = (
@@ -133,4 +134,5 @@ ALL_CHECKS = (
     run_turbine_exhaust_check,
     run_zirconia_liner_check,
     run_feed_pump_calibration_check,
+    run_pump_suction_check,
 )

@@ -168,7 +168,7 @@ def _available_dh(gas, eta_turb, pr):
 def solve_staged_power_balance(cycle, pair, mdot, mr, pc_feed, dp_injector_fuel, dp_injector_ox,
                                jacket_dp_pa, line_loss_fuel_pa, line_loss_ox_pa, tank_head_pa,
                                rho_fuel, rho_ox, preburner_inj_dp_frac, efficiency_fn,
-                               tin_fuel_rich_k=0.0, tin_ox_rich_k=0.0):
+                               tin_fuel_rich_k=0.0, tin_ox_rich_k=0.0, boost_drive_dp_pa=(0.0, 0.0)):
     """
     Close the staged-combustion pressure chain + power balance (see module
     docstring). `efficiency_fn(dp_fuel, dp_ox, gas, pr) -> (eta_pf, eta_po, eta_turb)`
@@ -178,8 +178,17 @@ def solve_staged_power_balance(cycle, pair, mdot, mr, pc_feed, dp_injector_fuel,
     `tin_fuel_rich_k` / `tin_ox_rich_k` > 0 override the pair-default temperature
     of the fuel-rich / oxidiser-rich preburner (EngineDesign.preburner_tin_k /
     ox_preburner_tin_k) - separate, since FFSC runs one of each.
+
+    `tank_head_pa`: the main-pump INLET pressure - one value for both legs, or a
+    (fuel, ox) pair (turbopump Round 1: computed per leg by design/suction_stage).
+    `boost_drive_dp_pa` (fuel, ox): extra head each main pump delivers to drive a
+    low-pressure boost pump's hydraulic turbine - charged in the pump POWER and
+    efficiency, never in the discharge pressure. (0, 0) = no boost pump.
     Returns a flat dict (see the end of this function).
     """
+    th_f, th_o = (tank_head_pa if isinstance(tank_head_pa, (tuple, list))
+                  else (tank_head_pa, tank_head_pa))
+    bd_f, bd_o = boost_drive_dp_pa
     gas_fr = preburner_gas(cycle, pair, False, tin_fuel_rich_k)
     gas_or = preburner_gas(cycle, pair, True, tin_ox_rich_k)
     sides = _preburner_sides(cycle, mr, gas_fr, gas_or)
@@ -209,13 +218,14 @@ def solve_staged_power_balance(cycle, pair, mdot, mr, pc_feed, dp_injector_fuel,
 
     def evaluate(prs):
         p_sides, disch = pressures(prs)
-        dp_f = disch["fuel"] - tank_head_pa
-        dp_o = disch["ox"] - tank_head_pa
+        dp_f = disch["fuel"] - th_f
+        dp_o = disch["ox"] - th_o
         # pump efficiencies from the main legs; turbine efficiency per side
-        etas = [efficiency_fn(dp_f, dp_o, s["gas"], pr) for s, pr in zip(sides, prs)]
+        etas = [efficiency_fn(dp_f + bd_f, dp_o + bd_o, s["gas"], pr)
+                for s, pr in zip(sides, prs)]
         eta_pf, eta_po = etas[0][0], etas[0][1]
-        p_fuel = mdot_fuel * dp_f / (rho_fuel * eta_pf)
-        p_ox = mdot_ox * dp_o / (rho_ox * eta_po)
+        p_fuel = mdot_fuel * (dp_f + bd_f) / (rho_fuel * eta_pf)
+        p_ox = mdot_ox * (dp_o + bd_o) / (rho_ox * eta_po)
         # Trickle/slug flow into a preburner that is NOT its propellant's main leg
         # must reach that preburner's injector - charged as a boost-stage head on
         # top of that propellant's main discharge (the SSME HPOTP preburner-boost

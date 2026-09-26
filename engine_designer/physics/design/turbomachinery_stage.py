@@ -9,6 +9,7 @@ from .constants import (
     EXPANDER_TURBINE_PR,
 )
 from .checklist import _check
+from . import suction_stage
 
 
 def turbopump_and_plumbing(self, s):
@@ -63,6 +64,7 @@ def turbopump_and_plumbing(self, s):
             if self.turbine_staging in ("", "auto") else None,
             u_pitch_cap_m_s=s.turbine_staging_info.get("u_pitch_cap_m_s"))
         s.turbopump_mass_kg = s.tp_sizing["mass_kg"] * s.tp_sizing["mass_modifier"]
+        suction_stage.suction_checks(self, s)
         tp_detail = "; ".join(s.tp_sizing["warnings"])
         _check(s.checklist, s.warnings, "turbopump", "Turbopump sizing / material feasibility",
                not s.tp_sizing["warnings"],

@@ -388,6 +388,18 @@
 },
 {
 "category": "turbopump",
+"detail": "OK - 124 ft available vs 35 ft required at 17,510 rpm (TSH credit 0 ft)",
+"name": "Fuel pump suction (NPSH)",
+"passed": true
+},
+{
+"category": "turbopump",
+"detail": "OK - 58 ft available vs 45 ft required at 17,510 rpm (TSH credit 11 ft)",
+"name": "Ox pump suction (NPSH)",
+"passed": true
+},
+{
+"category": "turbopump",
 "detail": "OK - single shaft, 1 turbine(s), peak tip speed within Inconel 718 (nickel superalloy) limit",
 "name": "Turbopump sizing / material feasibility",
 "passed": true
@@ -3870,6 +3882,12 @@
 "bell_percent_length": {
 "__f__": "60.0"
 },
+"boost_pump_rise_fuel_pa": {
+"__f__": "0.0"
+},
+"boost_pump_rise_ox_pa": {
+"__f__": "0.0"
+},
 "chamber_cooling_method": "regenerative",
 "chamber_film_inject_area_ratio": {
 "__f__": "0.0"
@@ -4010,6 +4028,12 @@
 "__f__": "0.0"
 },
 "propellant_pair": "LOX/RP-1",
+"propellant_temp_fuel_k": {
+"__f__": "0.0"
+},
+"propellant_temp_ox_k": {
+"__f__": "0.0"
+},
 "pump_specific_power_w_kg": {
 "__f__": "36000.0"
 },
@@ -4028,6 +4052,25 @@
 "__f__": "0.0"
 },
 "regen_nozzle_end_eps": {
+"__f__": "0.0"
+},
+"suction_accel_g": {
+"__f__": "1.0"
+},
+"suction_head_fuel_m": {
+"__f__": "0.0"
+},
+"suction_head_ox_m": {
+"__f__": "0.0"
+},
+"suction_line_length_m": {
+"__f__": "0.0"
+},
+"suction_model": "computed",
+"tank_pressure_fuel_pa": {
+"__f__": "0.0"
+},
+"tank_pressure_ox_pa": {
 "__f__": "0.0"
 },
 "target_vac_thrust_n": {
@@ -4780,6 +4823,14 @@
 "pump_discharge_ox_pa": {
 "__f__": "8439000.0"
 },
+"pump_inlet_pa": {
+"fuel": {
+"__f__": "300000.0"
+},
+"ox": {
+"__f__": "300000.0"
+}
+},
 "rated_burn_time_s": {
 "__f__": "195.6589368220224"
 },
@@ -4827,6 +4878,113 @@
 "stay_time_s": {
 "__f__": "0.0025"
 },
+"suction": {
+"fuel": {
+"boost": null,
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "300000.0"
+},
+"npsh_available_ft": {
+"__f__": "123.90353193312677"
+},
+"npsh_inlet_ft": {
+"__f__": "123.90353193312677"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "123.90353193312677"
+},
+"p_inlet_pa": {
+"__f__": "300000.0"
+},
+"p_tank_pa": {
+"__f__": "300000.0"
+},
+"p_vapor_pa": {
+"__f__": "11.68211227922749"
+},
+"propellant": "RP-1",
+"ss_water": {
+"__f__": "38279.65462514671"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "293.15"
+},
+"tsh_ft": {
+"__f__": "0.0"
+},
+"z_min": {
+"__f__": "3.0"
+}
+},
+"ox": {
+"boost": null,
+"has_vapor_pressure": true,
+"head_pa": {
+"__f__": "0.0"
+},
+"line_bore_m": {
+"__f__": "0.0"
+},
+"line_loss_pa": {
+"__f__": "0.0"
+},
+"line_velocity_ms": {
+"__f__": "0.0"
+},
+"main_pump_inlet_pa": {
+"__f__": "300000.0"
+},
+"npsh_available_ft": {
+"__f__": "58.253488709232464"
+},
+"npsh_inlet_ft": {
+"__f__": "58.253488709232464"
+},
+"npsh_override": false,
+"npsh_tank_ft": {
+"__f__": "58.253488709232464"
+},
+"p_inlet_pa": {
+"__f__": "300000.0"
+},
+"p_tank_pa": {
+"__f__": "300000.0"
+},
+"p_vapor_pa": {
+"__f__": "101324.99999999999"
+},
+"propellant": "LOX",
+"ss_water": {
+"__f__": "36657.29291078755"
+},
+"t_clamped": false,
+"t_k": {
+"__f__": "90.18795408190961"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
+},
+"z_min": {
+"__f__": "2.3"
+}
+}
+},
+"suction_model": "computed",
 "t_local_at_transition_k": {
 "__f__": "2002.9254447969784"
 },
@@ -5248,7 +5406,7 @@
 ]
 },
 "dia_m": {
-"__f__": "0.09884797144447377"
+"__f__": "0.10455131410926027"
 },
 "dir": {
 "__nd__": [
@@ -5266,7 +5424,7 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "0.010152113926422832"
+"__f__": "0.005874606927832954"
 },
 {
 "__f__": "1.4069120939137945"
@@ -5338,7 +5496,7 @@
 ]
 },
 "dia_m": {
-"__f__": "0.12100576679886493"
+"__f__": "0.1279875727214766"
 },
 "dir": {
 "__nd__": [
@@ -5356,7 +5514,7 @@
 "pos": {
 "__nd__": [
 {
-"__f__": "1.0364564967424843"
+"__f__": "1.0416928511844432"
 },
 {
 "__f__": "1.4069120939137945"
@@ -5505,17 +5663,17 @@
 "__f__": "1156.8629259931763"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.09884797144447377"
+"__f__": "0.10455131410926027"
 },
 "n_rpm": {
 "__f__": "17510.340774937427"
 },
 "n_stages": 1,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "123.90353193312677"
 },
 "npsh_required_ft": {
-"__f__": "32.85770784244608"
+"__f__": "35.31935083913058"
 },
 "ns_pump_us": {
 "__f__": "1146.9047178107862"
@@ -5525,7 +5683,7 @@
 },
 "nss_class": "lox_class",
 "nss_target_us": {
-"__f__": "40411.0"
+"__f__": "38279.65462514671"
 },
 "q_m3s": {
 "__f__": "0.0632889335422281"
@@ -5535,8 +5693,12 @@
 },
 "shaft_limited": true,
 "suction_limited": false,
+"suction_model": "computed",
 "tip_speed_margin": {
 "__f__": "4.116000341760996"
+},
+"tsh_ft": {
+"__f__": "0.0"
 },
 "u_tip_m_s": {
 "__f__": "150.63166873663042"
@@ -5584,17 +5746,17 @@
 "__f__": "727.3856492048518"
 },
 "inlet_eye_dia_m": {
-"__f__": "0.12100576679886493"
+"__f__": "0.1279875727214766"
 },
 "n_rpm": {
 "__f__": "17510.340774937427"
 },
 "n_stages": 1,
 "npsh_available_ft": {
-"__f__": "0.0"
+"__f__": "58.253488709232464"
 },
 "npsh_required_ft": {
-"__f__": "49.239527584569174"
+"__f__": "45.48742155563387"
 },
 "ns_pump_us": {
 "__f__": "2200.0"
@@ -5604,7 +5766,7 @@
 },
 "nss_class": "lox_class",
 "nss_target_us": {
-"__f__": "40411.0"
+"__f__": "36657.29291078755"
 },
 "q_m3s": {
 "__f__": "0.11610280128460339"
@@ -5614,8 +5776,12 @@
 },
 "shaft_limited": false,
 "suction_limited": false,
+"suction_model": "computed",
 "tip_speed_margin": {
 "__f__": "5.190796338694776"
+},
+"tsh_ft": {
+"__f__": "10.587174602957957"
 },
 "u_tip_m_s": {
 "__f__": "119.44217409922477"

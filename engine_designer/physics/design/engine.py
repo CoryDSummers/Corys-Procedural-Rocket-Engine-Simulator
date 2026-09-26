@@ -7,7 +7,7 @@ import numpy as np
 
 from .. import (cooling, cycles, manifold, materials)
 
-from . import (combustion_stage, feed_stage, cooling_stage, geometry_stage, manifold_stage, margins_stage, structure_stage, turbomachinery_stage, rollup_stage)
+from . import (combustion_stage, feed_stage, cooling_stage, geometry_stage, manifold_stage, margins_stage, structure_stage, suction_stage, turbomachinery_stage, rollup_stage)
 from .constants import BASE_RATED_BURN_TIME_S
 from .state import PassState
 
@@ -396,6 +396,34 @@ class EngineDesign:
     # (turbopump_sizing.suction_limited_rpm): bigger impeller, lower efficiency.
     npsh_available_fuel_ft: float = 0.0
     npsh_available_ox_ft: float = 0.0
+    # --- pump suction (turbopump Round 1, design/suction_stage.py, physics/inducer.py) ---
+    # "computed" (default): NPSH available from the tank side below, NPSH required
+    # from the Brumfield inducer + thermodynamic suppression head, each pump's rpm
+    # capped at its suction limit. "legacy": the pre-Round-1 model, bit-identical
+    # (flat TANK_HEAD_PA inlet; the npsh_available_*_ft / enforce_suction_limit
+    # inputs above are its only suction limit). In "computed" a non-zero
+    # npsh_available_*_ft still OVERRIDES that leg's computed NPSH available.
+    suction_model: str = "computed"
+    # Tank ullage pressure per leg (Pa); 0 = auto = TANK_HEAD_PA, the old net
+    # pump-inlet pressure (so pump dP is unchanged by default).
+    tank_pressure_fuel_pa: float = 0.0
+    tank_pressure_ox_pa: float = 0.0
+    # Propellant temperature at the pump inlet (K); 0 = auto: saturated at 1 atm
+    # (the normal boiling point) for a cryogen, 293.15 K for anything boiling
+    # above 250 K. Sets the vapor pressure (thermo_tables.saturation) and TSH.
+    propellant_temp_fuel_k: float = 0.0
+    propellant_temp_ox_k: float = 0.0
+    # Liquid column above each pump inlet (m) x the vehicle acceleration (g0).
+    suction_head_fuel_m: float = 0.0
+    suction_head_ox_m: float = 0.0
+    suction_accel_g: float = 1.0
+    # Tank-to-pump line length (m), both legs; 0 = none (plumbing.suction_line_loss_pa).
+    suction_line_length_m: float = 0.0
+    # SSME-style low-pressure boost pump pressure rise per leg (Pa); 0 = none.
+    # Raises the main pump's inlet; its drive (a hydraulic turbine off the main
+    # discharge) is charged to the main pump (design/suction_stage.py).
+    boost_pump_rise_fuel_pa: float = 0.0
+    boost_pump_rise_ox_pa: float = 0.0
     # Staged-combustion preburner temperatures (K) - DESIGN INPUTS; the turbine
     # PR is solved from them (physics/staged_combustion.solve_staged_power_balance).
     # 0 = the pair default (staged_combustion.PREBURNER_GAS_PROPERTIES /
@@ -436,7 +464,13 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 15  # 15 (2026-09-25): plumbing runs gained root_mode ("auto" |
+    SCHEMA_VERSION = 16  # 16 (2026-09-26): pump-suction inputs added (suction_model,
+                         # tank_pressure_*, propellant_temp_*, suction_head_*, suction_accel_g,
+                         # suction_line_length_m, boost_pump_rise_*) - no key migration; an
+                         # older file takes the defaults, i.e. the COMPUTED suction model
+                         # (a deliberate physics change, like Round 0's calibration); set
+                         # suction_model "legacy" for the old behavior.
+                         # 15 (2026-09-25): plumbing runs gained root_mode ("auto" |
                          # "surface" | "tangential"); the nozzle-injection exhaust manifold
                          # is a tangentially-fed scroll. A pre-15 turbine_exhaust run (no
                          # root_mode key) is migrated to "surface" in from_dict - its radial
@@ -623,6 +657,7 @@ class EngineDesign:
         geometry_stage.contour(self, s)
         feed_stage.injector_and_cooling_routing(self, s)
         cooling_stage.thermal(self, s)             # unified thermal solve, before the pumps
+        suction_stage.pump_suction(self, s)        # tank -> line -> boost -> NPSH available
         feed_stage.turbomachinery_cycle(self, s)
         geometry_stage.chamber_detail(self, s)
         cooling_stage.thermal_reporting(self, s)

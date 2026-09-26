@@ -2510,6 +2510,12 @@
 "bell_percent_length": {
 "__f__": "80.0"
 },
+"boost_pump_rise_fuel_pa": {
+"__f__": "0.0"
+},
+"boost_pump_rise_ox_pa": {
+"__f__": "0.0"
+},
 "chamber_cooling_method": "ablative",
 "chamber_film_inject_area_ratio": {
 "__f__": "0.0"
@@ -2650,6 +2656,12 @@
 "__f__": "0.0"
 },
 "propellant_pair": "Aerozine-50/NTO",
+"propellant_temp_fuel_k": {
+"__f__": "0.0"
+},
+"propellant_temp_ox_k": {
+"__f__": "0.0"
+},
 "pump_specific_power_w_kg": {
 "__f__": "36000.0"
 },
@@ -2668,6 +2680,25 @@
 "__f__": "0.0"
 },
 "regen_nozzle_end_eps": {
+"__f__": "0.0"
+},
+"suction_accel_g": {
+"__f__": "1.0"
+},
+"suction_head_fuel_m": {
+"__f__": "0.0"
+},
+"suction_head_ox_m": {
+"__f__": "0.0"
+},
+"suction_line_length_m": {
+"__f__": "0.0"
+},
+"suction_model": "computed",
+"tank_pressure_fuel_pa": {
+"__f__": "0.0"
+},
+"tank_pressure_ox_pa": {
 "__f__": "0.0"
 },
 "target_vac_thrust_n": {
@@ -3335,6 +3366,14 @@
 },
 "pump_discharge_fuel_pa": null,
 "pump_discharge_ox_pa": null,
+"pump_inlet_pa": {
+"fuel": {
+"__f__": "300000.0"
+},
+"ox": {
+"__f__": "300000.0"
+}
+},
 "rated_burn_time_s": {
 "__f__": "200.0"
 },
@@ -3382,6 +3421,8 @@
 "stay_time_s": {
 "__f__": "0.0013689916345592528"
 },
+"suction": {},
+"suction_model": "computed",
 "t_local_at_transition_k": {
 "__f__": "1520.8908725950764"
 },

@@ -7,15 +7,11 @@ default.
 This is the by-hand method of [SP-8107 2.1.1] / [Huzel Ch. VI], nothing more:
 specific speed Ns fixes rotor speed, a head coefficient fixes tip speed, and a
 representative per-stage head (anchored so the J-2 LH2 pump comes out
-multistage) fixes stage count. Suction performance is modelled only as far as
-the user supplies it: `npsh_available_*_ft` > 0 caps each pump's rpm at its
-suction-specific-speed limit (suction_limited_rpm), and the opt-in
-`enforce_suction_limit` adds stages against a historical NPSH-required anchor.
-With neither set (the default) there is no cavitation limit, so rotor speed is
-over-predicted for an extreme high-head pump a real designer would slow down -
-the spot check in physics/validate.py uses wide (factor ~2-3) bands for this.
-There is no tank/suction-line model and no boost pump yet (the planned
-turbopump/lines round).
+multistage) fixes stage count. Suction performance (turbopump Round 1): each
+pump's rpm is capped at its inducer suction limit (size_pump's `suction` spec,
+physics/inducer.py) against the NPSH available design/suction_stage.py builds
+from the tank side. The pre-Round-1 LEGACY path (suction_model "legacy") keeps
+`npsh_available_*_ft` / `enforce_suction_limit` as its only suction limit.
 
 Neutral-default contract (same idea as turbopump_tech's `mature` tier and
 `contraction_ratio=1.6`): the AUTO-derived architecture always yields
@@ -25,7 +21,7 @@ stages, an exotic turbine staging) moves the mass.
 """
 import math
 
-from . import turbopump_efficiency, turbopump_materials
+from . import inducer, turbopump_efficiency, turbopump_materials
 
 G = 9.80665
 _M3S_TO_GPM = 15850.323
@@ -58,17 +54,20 @@ TIP_SPEED_DESIGN_FRACTION = 0.85  # design a stage to this fraction of the rotor
 # 33.3/36.6 MPa - comfortably inside this band, not at its edge.
 FEED_DP_PLAUSIBLE_CEILING_PA = 55.2e6   # 8000 psia [SP-8107 Tables V-VI]
 
-# --- suction specific speed / NPSH-required (opt-in, default OFF) -----------
+# --- LEGACY suction model (EngineDesign.suction_model == "legacy") ----------
+# Since turbopump Round 1 (2026-09-26) the DEFAULT suction model is the computed
+# one - physics/inducer.py (Brumfield inducer + thermodynamic suppression head)
+# fed a vehicle-side NPSH available by design/suction_stage.py (tank pressure,
+# vapor pressure, liquid head, suction line, boost pump); size_pump's `suction`
+# spec. Everything in this block serves only the legacy path, kept bit-identical.
 # Nss = N*Q^0.5/NPSH^0.75 (US units, same convention as the Ns relation above).
-# This tool has NO propellant tank pressure or vapor-pressure model at all
-# (README: tank/vehicle modeling is RealFuels' job), so it can NEVER compute a
-# real NPSH-AVAILABLE-vs-required verdict - only what NPSH a candidate rotor
-# speed/flow combination REQUIRES to hit a propellant class's achievable
-# suction specific speed. Never claims to know actual cavitation risk on a
-# real vehicle. NSS_TARGET_US is computed directly from two real [SP-8107
-# Table II] / [Ch12-Materials] data points, not invented:
+# NSS_TARGET_US was computed from two [SP-8107 Table II] / [Ch12-Materials] data
+# points:
 #   F-1 O2 pump:  N=5488 rpm, Q=25,200 gpm, NPSH_crit=60 ft -> Nss ~= 40,400
 #   J-2 LH2 pump: N=27,000 rpm, Q=3,000 gpm, NPSH_crit=75 ft -> Nss ~= 58,000
+# KNOWN ERROR (found in Round 1): SP-8107 Table II gives the J-2 LH2 pump 8,530
+# gpm at 27,130 rpm, which puts its NPSH_crit Ss at ~98,000, not 58,000 - the
+# lh2_class value is kept unchanged only so the legacy path stays bit-identical.
 # Trust the DIRECTION (LH2 achieves much higher real suction specific speed
 # than a dense propellant, matching [SP-8107]'s qualitative claim that LH2 has
 # "excellent cavitation characteristics") far more than these exact magnitudes
@@ -280,25 +279,27 @@ def effective_arrangement(arrangement, rho_fuel, rho_ox, thrust_n, cycle=""):
 def size_pump_pair(mdot_fuel, mdot_ox, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, material,
                    arrangement, *, pump_stages_fuel=0, pump_stages_ox=0, build_quality=1.0,
                    enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                   npsh_available_ox_ft=0.0):
+                   npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None):
     """Both pumps; on a SINGLE shaft the faster-optimum pump is re-sized at the
     slower one's speed (they share the shaft - the real F-1 turns both pumps at
     5,490 rpm [SP-8110 Table I], which puts its RP-1 pump at Ns ~1,120, below the
     efficiency peak). Dual-shaft / geared / electric keep independent speeds."""
     kw = dict(build_quality=build_quality, enforce_suction_limit=enforce_suction_limit)
     fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, material, forced_stages=pump_stages_fuel,
-                   npsh_available_ft=npsh_available_fuel_ft, **kw)
+                   npsh_available_ft=npsh_available_fuel_ft, suction=suction_fuel, **kw)
     op = size_pump(mdot_ox, dp_ox_pa, rho_ox, material, forced_stages=pump_stages_ox,
-                   npsh_available_ft=npsh_available_ox_ft, **kw)
+                   npsh_available_ft=npsh_available_ox_ft, suction=suction_ox, **kw)
     if arrangement == "single_shaft" and fp["n_rpm"] > 0 and op["n_rpm"] > 0:
         shared = min(fp["n_rpm"], op["n_rpm"])
         if fp["n_rpm"] > shared:
             fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, material,
                            forced_stages=pump_stages_fuel,
-                           npsh_available_ft=npsh_available_fuel_ft, shaft_rpm_cap=shared, **kw)
+                           npsh_available_ft=npsh_available_fuel_ft, shaft_rpm_cap=shared,
+                           suction=suction_fuel, **kw)
         elif op["n_rpm"] > shared:
             op = size_pump(mdot_ox, dp_ox_pa, rho_ox, material, forced_stages=pump_stages_ox,
-                           npsh_available_ft=npsh_available_ox_ft, shaft_rpm_cap=shared, **kw)
+                           npsh_available_ft=npsh_available_ox_ft, shaft_rpm_cap=shared,
+                           suction=suction_ox, **kw)
     return fp, op
 
 
@@ -441,7 +442,7 @@ def derive_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, materi
                         pump_stages_fuel=0, pump_stages_ox=0,
                         eta_pump_fuel_override=0.0, eta_pump_ox_override=0.0,
                         enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                        npsh_available_ox_ft=0.0, arrangement=None, cycle="",
+                        npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None, arrangement=None, cycle="",
                         staging_info=None):
     """
     Pump & turbine efficiency for the power balance, DERIVED from the machinery
@@ -472,16 +473,17 @@ def derive_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, materi
                                 pump_stages_ox=pump_stages_ox, build_quality=build_quality,
                                 enforce_suction_limit=enforce_suction_limit,
                                 npsh_available_fuel_ft=npsh_available_fuel_ft,
-                                npsh_available_ox_ft=npsh_available_ox_ft)
+                                npsh_available_ox_ft=npsh_available_ox_ft,
+                                suction_fuel=suction_fuel, suction_ox=suction_ox)
     else:
         fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, mat,
                        forced_stages=pump_stages_fuel, build_quality=build_quality,
                        enforce_suction_limit=enforce_suction_limit,
-                       npsh_available_ft=npsh_available_fuel_ft)
+                       npsh_available_ft=npsh_available_fuel_ft, suction=suction_fuel)
         op = size_pump(mdot_ox, dp_ox_pa, rho_ox, mat,
                        forced_stages=pump_stages_ox, build_quality=build_quality,
                        enforce_suction_limit=enforce_suction_limit,
-                       npsh_available_ft=npsh_available_ox_ft)
+                       npsh_available_ft=npsh_available_ox_ft, suction=suction_ox)
     eta_pf = eta_pump_fuel_override if (eta_pump_fuel_override or 0.0) > 0.0 else fp["eta"]
     eta_po = eta_pump_ox_override if (eta_pump_ox_override or 0.0) > 0.0 else op["eta"]
     eta_pf = eta_pf or GG_ETA_TURBINE_SEED   # degenerate guard
@@ -521,7 +523,7 @@ def derive_expander_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_o
                                  pump_stages_fuel=0, pump_stages_ox=0,
                                  eta_pump_fuel_override=0.0, eta_pump_ox_override=0.0,
                                  enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                                 npsh_available_ox_ft=0.0):
+                                 npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None):
     """Same as derive_efficiencies but for the expander cycle, whose turbine is
     driven by heated fuel (not a fuel-rich GG mix): a low-PR reaction turbine.
     The turbine specific work = shaft power / fuel flow (all fuel goes through
@@ -534,11 +536,11 @@ def derive_expander_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_o
     fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, mat,
                    forced_stages=pump_stages_fuel, build_quality=build_quality,
                    enforce_suction_limit=enforce_suction_limit,
-                   npsh_available_ft=npsh_available_fuel_ft)
+                   npsh_available_ft=npsh_available_fuel_ft, suction=suction_fuel)
     op = size_pump(mdot_ox, dp_ox_pa, rho_ox, mat,
                    forced_stages=pump_stages_ox, build_quality=build_quality,
                    enforce_suction_limit=enforce_suction_limit,
-                   npsh_available_ft=npsh_available_ox_ft)
+                   npsh_available_ft=npsh_available_ox_ft, suction=suction_ox)
     eta_pf = eta_pump_fuel_override if (eta_pump_fuel_override or 0.0) > 0.0 else fp["eta"]
     eta_po = eta_pump_ox_override if (eta_pump_ox_override or 0.0) > 0.0 else op["eta"]
     eta_pf = eta_pf or GG_ETA_TURBINE_SEED
@@ -557,7 +559,8 @@ def derive_expander_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_o
 
 
 def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_quality=1.0,
-              enforce_suction_limit=False, npsh_available_ft=0.0, shaft_rpm_cap=0.0):
+              enforce_suction_limit=False, npsh_available_ft=0.0, shaft_rpm_cap=0.0,
+              suction=None):
     """
     One propellant pump. `material` is a turbopump_materials.TurbopumpMaterial.
 
@@ -585,6 +588,14 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     slower pump's speed, as the real F-1 does at 5,490 rpm). Same mechanics as
     the suction cap: head-fixed tip speed, bigger impeller, efficiency at the
     actual (lower) whole-pump Ns.
+
+    `suction` (an inducer.SuctionSpec, turbopump Round 1): the COMPUTED suction
+    model - NPSH required from the Brumfield inducer + TSH (physics/inducer.py)
+    and the vehicle-side NPSH available the spec carries. When given it
+    REPLACES the legacy class-Nss path above (`npsh_available_ft` and
+    `enforce_suction_limit` are ignored): the rotor speed is capped at
+    inducer.suction_limited_rpm, and the inlet eye is the inducer tip diameter
+    [SP-8052 eq. 8]. None = the legacy path, bit-identical.
     """
     q_m3s = mdot_kgs / rho_kg_m3 if rho_kg_m3 > 0 else 0.0
     q_gpm = q_m3s * _M3S_TO_GPM
@@ -635,7 +646,10 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     anchor_ft = NPSH_REAL_ANCHOR_FT[nss_class]
     npsh_required_ft = required_npsh_ft(n_rpm, q_gpm, nss_target) if n_rpm > 0 else 0.0
     unforced = not forced_stages or forced_stages <= 0
-    if enforce_suction_limit and unforced and n_rpm > 0:
+    if suction is not None:
+        nss_target = suction.ss_water
+        npsh_required_ft = inducer.npsh_required_ft(n_rpm, q_gpm, suction) if n_rpm > 0 else 0.0
+    if enforce_suction_limit and unforced and n_rpm > 0 and suction is None:
         while (npsh_required_ft > NPSH_MARGIN_FACTOR * anchor_ft
                and n_stages < MAX_PUMP_STAGES):
             n_stages += 1
@@ -654,7 +668,14 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     # Vehicle-NPSH speed cap (opt-in; see docstring).
     rpm_ns_optimum = n_rpm
     suction_limited = False
-    if npsh_available_ft and npsh_available_ft > 0 and n_rpm > 0:
+    if suction is not None:
+        npsh_available_ft = suction.npsh_available_ft
+        n_cap = inducer.suction_limited_rpm(q_gpm, suction) if n_rpm > 0 else 0.0
+        if 0 < n_cap < n_rpm:
+            n_rpm = n_cap
+            suction_limited = True
+            npsh_required_ft = float(npsh_available_ft)
+    elif npsh_available_ft and npsh_available_ft > 0 and n_rpm > 0:
         n_cap = suction_limited_rpm(q_gpm, npsh_available_ft, nss_target)
         if 0 < n_cap < n_rpm:
             n_rpm = n_cap
@@ -665,7 +686,9 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
         n_rpm = float(shaft_rpm_cap)
         shaft_limited = True
         if not suction_limited:
-            npsh_required_ft = required_npsh_ft(n_rpm, q_gpm, nss_target)
+            npsh_required_ft = (inducer.npsh_required_ft(n_rpm, q_gpm, suction)
+                                if suction is not None else
+                                required_npsh_ft(n_rpm, q_gpm, nss_target))
 
     d_impeller_m = 60.0 * u_tip / (math.pi * n_rpm) if n_rpm > 0 else 0.0
     ns_us = (n_rpm * q_gpm ** 0.5 / head_stage_ft ** 0.75) if head_stage_ft > 0 else 0.0
@@ -681,7 +704,7 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
         eta_opt = eta
         ns_pump_us = ns_us / n_stages ** 0.75
         eta = turbopump_efficiency.pump_efficiency(ns_pump_us, q_m3s, build_quality)
-    if suction_limited:
+    if suction_limited and suction is None:   # computed model: suction_stage's own row
         warnings.append(
             f"pump suction-limited to {n_rpm:.0f} rpm by the {npsh_available_ft:.0f} ft NPSH "
             f"available (Ns-optimum {rpm_ns_optimum:.0f} rpm) - larger impeller, efficiency "
@@ -707,7 +730,10 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
         "rpm_ns_optimum": rpm_ns_optimum, "suction_limited": suction_limited,
         "shaft_limited": shaft_limited,
         "npsh_available_ft": float(npsh_available_ft or 0.0),
-        "inlet_eye_dia_m": inlet_eye_dia_m(q_m3s, n_rpm),
+        "inlet_eye_dia_m": (inducer.tip_diameter_m(q_m3s, n_rpm, suction.phi, suction.nu)
+                            if suction is not None else inlet_eye_dia_m(q_m3s, n_rpm)),
+        "suction_model": "computed" if suction is not None else "legacy",
+        "tsh_ft": suction.tsh_ft if suction is not None else 0.0,
     }
 
 
@@ -778,7 +804,8 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
                    eta_pump_fuel_final=0.0, eta_pump_ox_final=0.0, eta_turbine_final=0.0,
                    motor_mass_kg=0.0, bearing_material_key="cronidur_30",
                    enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                   npsh_available_ox_ft=0.0, auto_staging_resolved=None,
+                   npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None,
+                   auto_staging_resolved=None,
                    u_pitch_cap_m_s=None):
     """
     Full turbopump preliminary sizing for a pump-fed `cyc` (the dict from
@@ -807,7 +834,8 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
         "electric" if is_electric else eff_arr, pump_stages_fuel=pump_stages_fuel,
         pump_stages_ox=pump_stages_ox, build_quality=build_quality,
         enforce_suction_limit=enforce_suction_limit,
-        npsh_available_fuel_ft=npsh_available_fuel_ft, npsh_available_ox_ft=npsh_available_ox_ft)
+        npsh_available_fuel_ft=npsh_available_fuel_ft, npsh_available_ox_ft=npsh_available_ox_ft,
+        suction_fuel=suction_fuel, suction_ox=suction_ox)
 
     if is_electric:
         # Battery + brushless DC motors drive the pumps directly - no turbine.
