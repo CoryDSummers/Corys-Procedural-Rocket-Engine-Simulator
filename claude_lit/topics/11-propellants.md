@@ -94,6 +94,35 @@ coaxial gaseous-fuel injection, improves injector-face cooling, lower environmen
 impact (volatile, non-toxic, disperses readily). Directly citable for any `engine_designer`
 propellant-selection guidance text if a LOX/CH4-vs-LOX/RP-1 tradeoff advisory is ever added.
 
+### N2O4 / Aerozine-50 — real Apollo-era pressure-fed hypergolic engines
+
+`[ApolloPP-1195 Table I, p.9]`: a 1966 NASA MSC survey gives real side-by-side specs for all
+three Apollo primary-propulsion engines — the first real pressure-fed hypergolic engine data
+in this reference set (prior N2O4/MMH-family coverage above is all pump-fed real-engine
+Δp/Isp data, not pressure-fed):
+
+| Parameter | SPS (Aerojet) | LEM Descent (TRW) | LEM Ascent (Bell) |
+|---|---|---|---|
+| Thrust, lbf | 21,500 | 10,500→1050 (throttleable 10:1) | 3500 |
+| Mixture ratio | 2.0 | 1.6 | 1.6 |
+| Chamber pressure, psia | 100 | 100 | 150 |
+| Chamber/nozzle material | Ablative | Ablative | Ablative (fully — no radiation extension) |
+| Nozzle extension | Radiation-cooled columbium, ε 6→62.5 | Radiation-cooled Cb ε 6→40 / Ti ε 40→62.5 | none |
+| Injector | Aluminum, baffled unlike-doublet | Inconel, coaxial/variable-area (pintle-like) | Aluminum, flat/baffled triplet |
+| Film-cooling fraction | 7% (showerhead) | n/a (inherent to variable geometry) | 29% (unlike-doublet barrier, MR 1.05) |
+| Ae/At | 62.5 | 47.5 | 45.4 |
+| Dry weight, lb | 650 | 350 | 210 |
+
+All three are pressure-fed, ablatively-cooled, N2O4/Aerozine-50 (50% UDMH/50% hydrazine), a
+deliberate reliability-driven package: storable propellants (no cryogenic zero-g venting
+problem), ablative chambers ("rugged... high resistance to sudden failure" — graceful
+degradation vs. burn-through), pressure-fed (no turbopump complexity), and redundant
+series-parallel valve topology on every moving part. See `topics/05-injectors.md` and
+`topics/06b-cooling-methods-and-chemistry.md` for the barrier-cooling-MR and ablative-liner
+detail this table doesn't capture, and `topics/08-engine-cycles.md` for a real later (Shuttle
+OMS) design-history case of why a *newer* program moved away from this exact propellant/
+cycle combination for a larger reusable vehicle.
+
 ### Hydrazine (monopropellant)
 
 - Catalytic decomposition over a bed (Shell 405 / Aerojet S-405 iridium catalyst
@@ -119,6 +148,13 @@ propellant-selection guidance text if a LOX/CH4-vs-LOX/RP-1 tradeoff advisory is
   `[Huzel §4.5, Sutton §7]`.
 - `[Sutton Ch. 7]` has quantitative property tables (vapor pressure, viscosity, freezing/
   boiling points, Cp) — leaves 257–280, not transcribed here.
+- **A real volume-constrained (not mass-constrained) propellant tradeoff** `[OMS-DesignEvo
+  p.646]`: LOX/LH2's low bulk density (dominated by LH2, the same 22:1 density range cited
+  above) can cost more *tankage volume* per unit delta-v than a small/volume-limited vehicle
+  can spare, even when it costs less *mass* — the real reason the Space Shuttle OMS switched
+  from a pumped LOX/LH2 baseline to pressure-fed storable NTO/MMH once the Orbiter itself
+  shrank (external, expendable main tanks). See `topics/08-engine-cycles.md` for the full
+  design-history narrative.
 
 ## Caveats
 

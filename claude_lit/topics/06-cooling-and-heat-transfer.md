@@ -259,6 +259,44 @@ real independent instance of exactly the regen+film architectural pattern
 `film_effectiveness_profile`/`dump_coolant_fraction` already implements (see
 `topics/06b-cooling-methods-and-chemistry.md` for the film-cooling-model detail).
 
+**Real regen-vs-dump/film system-level weight comparison, same engine class**
+`[ASR72-238 Table 3, leaf 49]`: a 1972 Rocketdyne 6000-lbf-class OME trade study, three
+propellant pairs at fixed MR, holding thrust/Pc/expansion ratio fixed and varying only the
+cooling method — the first apples-to-apples same-engine regen-vs-dump/film comparison in
+this reference set. Dump/film costs delivered Isp (e.g. NTO/MMH 313.0→304.8 s) and *reduces*
+thrust-chamber weight (185→150 lb) but *increases* total propulsion-system weight once
+propellant/tankage effects are folded in (**net +540 lb for NTO/MMH, +1136 lb for NTO/50-50,
++712 lb for O2/MMH**) — regen wins at the system level despite its heavier chamber, the
+opposite of what a chamber-weight-only comparison would suggest. Real cooling-method
+hardware detail at the same design point: NTO/MMH goes from **180 channels / 0.062 in. min.
+height** (regen+film) to **514 channels / 0.025 in.** (dump/film) — nearly 3× the channel
+count at under half the minimum height for the lower-heat-flux-tolerant dump/film design.
+**LOX/RP-1, LOX/N2H4, and LOX/C3H8 all use zero supplemental film cooling** even in the
+"regen+film" family (high propellant decomposition temperature for the first two RP-1/N2H4
+cases, per the narrative) — LOX/RP-1's jacket ΔP is only **3-8 psi** across its whole tested
+Pc range, dramatically lower than every amine-fuel combination (10-36 psi) at the same
+thrust class. Real Cb→Ti radiation-nozzle-extension transition criterion, more specific than
+this file's existing "area ratio ~6-10" rule: **coated columbium for 1600°F < T ≤ 2400°F,
+coated titanium for T ≤ 1600°F** `[Tables 4-6, leaf 50-52]`.
+
+**Real material creep/fatigue-life data for regen-chamber liner candidates**
+`[ASR72-238 Figs. 6-7, leaf 109-110]`: at the maximum hot-gas-wall stress level (15-hour/
+1000-cycle life requirement, safety factor 4), real creep-rupture data for three candidate
+materials — **Haynes 188 at 47 ksi, Inconel 625 at 50 ksi, CRES at 34 ksi** — none approaches
+its rupture-damage limit even near 1300°F, concluding "no significant creep damage on regen.
+chamber" for any of the three. Real fatigue-cycle-count-by-station data: predicted fatigue
+life is **lowest at the throat (~1.3×10⁴ cycles)**, rising to **~4-5×10⁴ cycles** a few
+inches downstream and **~10⁵ cycles** at the injector end — the throat confirmed
+fatigue-critical (consistent with `[Miller-CuFatigue]` elsewhere in this reference set), with
+roughly **13× margin** over the 1000-cycle requirement before the analysis's own SF of 4 is
+even applied — a real, quantified example of how much margin a regen-chamber life analysis
+can carry. **A real creep-vs-fatigue failure-mode split by cooling method**: the same
+study's structural/life analysis found the **dump/film-cooled chamber's dominant failure
+mode is creep** (driven by the high axial thermal gradient where the film coolant
+decomposes), the opposite of the **regen-cooled chamber, where fatigue dominates** — a real,
+if qualitative, design-method finding not previously captured from any other source in this
+reference set (Appendix A, leaf 200-202).
+
 ## Worked numbers
 
 `[Huzel Sample 4-7 p.121]` radiation-cooled A-4 nozzle extension at ε = 8: `h_gc = 7.1×10⁻⁵

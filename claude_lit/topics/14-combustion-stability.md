@@ -177,8 +177,62 @@ over-pressures induced by suitably sized bombs located in the most sensitive pos
 damping criterion from an actual flight-engine development program — cite as one real
 program's acceptance spec, not a universal stability-margin standard.
 
+**A real, distinct hybrid instability mode: "resurging"** `[OME-Platelet §XII.E-H, leaf
+287-315]` — a real Space Shuttle OME (hypergolic, X-doublet injector) development program's
+dominant stability problem, distinct from the chugging/buzzing/screeching taxonomy above:
+periodic (~400 Hz) bursts of high-frequency (2000-7000 Hz) instability, each burst a
+three-phase cycle (a rapidly-growing spinning first-tangential "burnoff" detonation wave
+makes exactly one circuit of the chamber and consumes accumulated unburned propellant → a
+"blowdown" pressure decay → a slow "accumulation" pressure recovery before the next burst).
+Root cause: the X-doublet is "a good atomizing, poor mixing element" — its concentric-ring
+spray leaves a persistent unmixed/unburned propellant cloud downstream of the face (matching
+a real measured low-heat-flux near-injector zone, `topics/06b`), which periodically ignites
+via the spinning wave and burns off in one detonation-wave circuit. **The fix that worked**:
+welding three dams into each injector face-ring manifold at the acoustic-null points under
+the opposing propellant's "pie" manifold, breaking circumferential acoustic communication
+between injector sectors via the ring manifolds — a real, mechanistically distinct fix from
+baffles or corner cavities (it targets the *manifold's* acoustic path, not the chamber gas).
+**Acoustic cavities alone did NOT damp resurging and may even promote it**, by damping the
+very high-frequency modes that would otherwise keep unburned propellant mixed and burning
+continuously — a real, counter-intuitive case where the standard high-frequency-instability
+fix (cavities) makes a *different* instability mode worse. Real, quantified geometric levers:
+**injector overlap** (injector-ring radius in excess of chamber radius), tested −0.007 to
++0.25 in, consistently *improved* stability for both tested injectors — a real, load-bearing
+parameter not previously represented here. Explicitly flagged as **X-doublet-specific, not
+platelet-construction-generic**: the splash-plate and unlike-doublet elements (also built as
+platelets in the same program) showed different, classical acoustic-mode-coupling stability
+behavior instead — don't conflate "platelet injector" with "X-doublet element pattern."
+
+**Real chamber acoustic-mode frequency table, undistorted vs. cavity-damped**
+`[OME-Platelet §XII.A, leaf 272]`: 1-L 1400 Hz, 1-T 3100 Hz, 2-T 5200 Hz, 1-R 6500 Hz, 3-T
+7100 Hz, 4-T 9000 Hz, 1-T+1-R 9100 Hz — the flight-baseline dual-tuned acoustic cavity
+distorts/suppresses the 1-T mode to a measured **~2600 Hz**. **Real dual-tuned cavity
+design, the flight-adopted baseline**: eight 1-T cavities (1.5 in deep, 18% of injector face
+area) + four 3-T cavities (0.4 in deep, 9% of face area) — **stability margin 80%** (cavity
+area 80% greater than the minimum required for stable operation), a real quantified
+acoustic-cavity design-margin figure. A dedicated follow-on program (at closer-to-flight
+regen-fuel temperature, hotter than the ambient-temperature propellant used in the extensive
+prior test base) confirmed cavities still worked and found **doubly tuned cavity
+configurations that suppress the first and third tangential modes plus the first radial mode
+simultaneously** `[OMS-DesignEvo p.645]`.
+
+**A real cavity-vs-baffle selection rationale tied to reusability, not suppression power**
+`[OMS-DesignEvo p.645]`: acoustic cavities (Helmholtz-type), not baffles, were selected for
+this reusable/long-duration application specifically because cavities are "easier to cool
+and, therefore, less subject to failure from either burnout or thermal cycling" than
+baffles — a direct real precedent tying stability-hardware choice to a reusability/duty-cycle
+requirement rather than pure suppression effectiveness. A real, stated uncertainty: even with
+demonstrated stability across "a relatively wide range of cavity configurations," "the
+stability of an engine with or without acoustic cavities could not be predicted analytically
+with confidence" — stability testing, not calculation, closed the loop.
+
 ## Caveats
 
+- **Resurging** (`[OME-Platelet]`) is real but specific to the X-doublet element's poor
+  near-face mixing on a low-Pc (125 psia) hypergolic OME — its exact numeric fixes (dam
+  placement, cavity dimensions) are that engine's own resolution, not universal
+  requirements; 294 of the program's 362 full-scale firings were stability troubleshooting,
+  so treat this as a troubleshooting-heavy development report, not a clean reference dataset.
 - Frequency formulas are estimates from chamber geometry and sound speed; real behaviour
   depends on the coupled feed-system + structure + combustion dynamics.
 - Stability is fundamentally empirical — new injectors must reuse proven stable geometry and
@@ -221,6 +275,13 @@ program's acceptance spec, not a universal stability-margin standard.
   `combustion_stability.py`'s cavity sizing is ever spot-checked against an applied real-
   engine design point rather than only `[NASA-TN-Acoustic]`'s parametric test data —
   report-only, no code changed.
+- **A real, distinct instability mode ("resurging") and injector-overlap parameter now
+  exist** (`[OME-Platelet]`, above) — neither is modeled by `combustion_stability.py` today
+  (which covers acoustic modes and baffle/cavity stability aids, not manifold-acoustic-path
+  coupling or injector-ring/chamber-radius overlap). Not actionable without a manifold-
+  acoustic model the tool doesn't have; noted for awareness only, and as a real example that
+  a single element type (X-doublet) can have an instability mode unrelated to the classical
+  chugging/buzzing/screeching taxonomy above. Report-only.
 - **A real bomb-test acceptance-criterion number** (`[Agena-CR120362]`'s 40ms-to-±5psi) could
   anchor a future stability-rating-method discussion if the tool ever models bomb-test-style
   qualification criteria, alongside `[Sutton]`'s existing rating-technique survey above —

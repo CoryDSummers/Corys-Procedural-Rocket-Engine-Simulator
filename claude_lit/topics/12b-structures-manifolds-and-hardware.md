@@ -246,6 +246,26 @@ extension-joint numbers: flanges up to **120 in. diameter**, real-hardware
 bolt holes), bolt spacing = bolt-head diameter + 2× flange thickness, seals tolerating up to
 **50% crush/compression** from flange waviness.
 
+**A next-generation chamber-liner material candidate — copper-diamond composites**
+`[CuDiamond-Liner §4, Table 4-5, p.9-13]` (filed here rather than in
+`topics/12-materials-and-structures.md`, which is already slightly over its lookup-budget
+cap — this is a materials entry by subject, just parked in the sibling file for space):
+an early-TRL (research-stage) NASA MSFC/GTE material family, copper (or NARloy-Z/GRCop-84)
+powder blended with refractory-carbide-coated diamond particles, hot-pressed or spark-
+plasma-sintered. Real measured thermal conductivity up to **~540-563 W/m·K** — roughly **1.5×
+pure copper's 360 W/m·K** and nearly **double GRCop-84's 300 W/m·K** — at a density **~30%
+lower** than NARloy-Z-class alloys. **The real cost that matters for a "just swap the liner
+material" framing**: adding diamond costs roughly **half the UTS** (NARloy-Z baseline 45 ksi
+→ 18-24 ksi with 30-40 vol% diamond) and **collapses ductility from 33% elongation to
+generally <1%** (copper-coated diamond partially recovers to 2-3% at ~23 ksi UTS) — a real
+strength/ductility-vs-conductivity tradeoff, not a strict upgrade. Manufacturing is powder
+metallurgy only (diamond's hardness rules out conventional machining — EDM/waterjet only);
+the most advanced hardware built is a sub-scale (2.5-2.75in dia) diffusion-bonded ring-stack
+liner — **no full-scale chamber has been built or hot-fire tested**, and no low-cycle-fatigue
+data exists for any Cu-D variant (contrast `[Miller-CuFatigue]`'s real OFHC-copper LCF method
+already cited in `topics/12`). Treat any Cu-D property number as a coupon-level research
+result, one tier below even GRCop-84's own citations, which back a flying/tested alloy.
+
 ## Caveats
 
 - `[SP-8120]` is a **criteria/practices monograph, not a sizing-equation source** — it gives

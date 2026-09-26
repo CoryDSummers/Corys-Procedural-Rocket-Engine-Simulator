@@ -244,8 +244,46 @@ avoid H2-embrittlement of turbopump structure) — relevant to `staged_combustio
 `expander.py`'s cycle-selection guidance if that's ever extended with a cooling-method
 cross-check. Report-only — no code changed.
 
+**A real system-level propellant/cycle-selection tradeoff history — pressure-fed hypergolic
+chosen over pumped cryogenic** `[OMS-DesignEvo p.646-648]`: the Space Shuttle Orbital
+Maneuvering System (OMS) was originally baselined (1969-70) as a **pumped LOX/LH2 system**
+(2× gimbaled RL10A-3-3), then switched to a new **pressure-fed, Earth-storable NTO/MMH**
+engine — real, dated engineering rationale in two separate steps, not one blanket call.
+Step 1 (1970): system *complexity* from running a cryogenic OMS alongside a storable RCS on
+one vehicle. Step 2 (1971, decisive): once external/expendable main-tank Orbiters let the
+vehicle itself shrink, "sufficient internal volume for an oxygen/hydrogen OMS was a
+significant penalty" even though LOX/LH2 cost less *mass* — a real, quantified **volume-
+constrained, not mass-constrained** tradeoff (LOX/LH2's low bulk density, dominated by LH2,
+costs disproportionately more volume per unit delta-v than a smaller vehicle can spare).
+Existing Apollo hypergolic engines (LM ascent/descent) were then rejected in favor of an
+all-new engine for a *third*, distinct reason: their ablative-chamber accumulated-burn-time
+ratings (LMAE 500-900 s single-firing; LMDE 995 s) didn't cover the OMS's much longer
+reusable-vehicle duty cycle (10-year/100-mission requirement) — a real **reusability-driven
+ablative-vs-regen cooling-method decision**, distinct in kind from the propellant-chemistry
+decision above, directly relevant to any future reusability framing for
+`TR341_Config.cfg`-class pressure-fed hypergolic designs.
+
+**Real redundancy-architecture rationale, tying engine count to component-level redundancy**
+`[OMS-DesignEvo p.647, p.654-655]`: the OMS's **two-engine** ground rule (not one, not more)
+is what actually set per-engine thrust/impulse sizing — after any single engine failure, the
+*other* engine alone must complete the mission. This system-level redundancy is explicitly
+why the flight bipropellant valve could move from Apollo-SPS's **quad-redundant** to
+**series-redundant** (cutting weight/complexity): Apollo SPS was a single non-redundant
+engine and needed full valve-level redundancy, while OMS has engine-level redundancy already,
+so only series (not quad) component-level redundancy is needed to close the loop — a real
+illustration of redundancy trading off against system architecture (engine count) rather
+than being a fixed per-component rule. Combustion-stability hardware choice was also tied to
+the reusability requirement rather than raw suppression performance: acoustic cavities (not
+baffles) were selected specifically because they're "easier to cool and, therefore, less
+subject to failure from either burnout or thermal cycling" (see `topics/14`).
+
 ## Caveats
 
+- `[OMS-DesignEvo]` is a real engineering-history narrative (design-point numbers and
+  decision rationale from an actual flown vehicle program), not a derivation source — no
+  sizing equations. Its Fig. 10 baseline-performance summary box is heavily OCR-garbled;
+  treat its thrust/Isp/Pc/MR figures as "very likely correct" reconstructions, not verbatim
+  transcriptions (see `sources/aiaa-85-1694-oms-design-evolution.md`).
 - The "k × Pc" pump-discharge multipliers are order-of-magnitude design guides from
   `[SP-8107]` for LOX/LH2 at MR 6 (Fig 11); the real value depends on jacket ΔP, injector
   ΔP, line losses and MR. J-2's 1.6 and RL10's 2.5 are the concrete anchors.
