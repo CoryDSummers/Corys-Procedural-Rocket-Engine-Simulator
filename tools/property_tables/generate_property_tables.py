@@ -31,6 +31,14 @@ What it computes
    n-dodecane (LOX/RP-1 - a SURROGATE: RP-1 is a kerosene blend; n-dodecane is
    the standard single-component stand-in, flagged as such in the output).
    MMH / UDMH / hydrazine are not in CoolProp - left to the tool's constants.
+3. ``saturation_properties.json`` - the saturation (two-phase dome) curve per
+   PUMPED PROPELLANT, not per pair (so LOX is tabulated once): vapor pressure,
+   saturated liquid / vapor density and latent heat h_fg vs temperature, triple
+   point .. 0.98 Tc, with CoolProp (Q = 0 / 1). This is what a pump's NPSH /
+   cavitation model needs (NPSH available = inlet total head - vapor-pressure
+   head; the thermodynamic-suppression effect needs rho_v and h_fg). Same
+   n-dodecane RP-1 surrogate flag. N2O4 / MMH / UDMH / N2H4 / H2O2 are not in
+   CoolProp and are absent (thermo_tables.has_saturation -> False).
 
 Self-check: the script re-derives Sutton Table 5-5 (Pc = 1000 psia, optimum
 sea-level expansion, shifting equilibrium) and fails loudly if Tc / M / c*
@@ -53,7 +61,10 @@ them into engine_designer/physics/property_data/)::
     !python generate_property_tables.py --out .
 
 Options: ``--out DIR`` (default: the repo's property_data dir), ``--quick``
-(coarse grid, for a smoke test), ``--check-only`` (just the Sutton self-check).
+(coarse grid, for a smoke test), ``--check-only`` (just the Sutton self-check),
+``--gas-only`` (combustion tables only), ``--saturation-only`` (write ONLY
+saturation_properties.json - needs CoolProp but not Cantera, and leaves the other
+two tables byte-for-byte untouched).
 """
 from __future__ import annotations
 
@@ -142,6 +153,17 @@ COOLANTS = {
     "LOX/RP-1": ("n-Dodecane", True, np.arange(280.0, 801.0, 5.0),
                  [0.5, 1.0, 2.0, 4.0, 7.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0]),
 }
+
+# Saturation curves: pumped propellant -> (CoolProp fluid, surrogate?). Keyed by
+# PROPELLANT so an oxidizer shared by several pairs (LOX) appears once.
+SATURATION = {
+    "LOX": ("Oxygen", False),
+    "LH2": ("ParaHydrogen", False),
+    "CH4": ("Methane", False),
+    "RP-1": ("n-Dodecane", True),
+}
+SATURATION_N_POINTS = 80          # per fluid, uniform in T from the triple point
+SATURATION_T_MAX_OVER_TC = 0.98   # stop short of the critical point (h_fg -> 0 there)
 
 
 # ---------------------------------------------------------------------------
@@ -421,6 +443,55 @@ def build_coolant_tables(quick=False):
     return out, CoolProp.__version__
 
 
+def build_saturation_tables(quick=False):
+    """Per propellant: saturated-liquid (Q=0) / vapor (Q=1) states along the
+    dome, triple point .. SATURATION_T_MAX_OVER_TC x Tc."""
+    import CoolProp
+    from CoolProp.CoolProp import PropsSI
+    out = {}
+    for prop, (fluid, surrogate) in SATURATION.items():
+        t_tr, t_c = PropsSI("Ttriple", fluid), PropsSI("Tcrit", fluid)
+        n = SATURATION_N_POINTS // 5 if quick else SATURATION_N_POINTS
+        ts = np.linspace(t_tr, SATURATION_T_MAX_OVER_TC * t_c, n)
+        cols = {k: [] for k in ("p_sat_pa", "rho_l_kg_m3", "rho_v_kg_m3", "h_fg_j_kg")}
+        for t in ts:
+            t = float(t)
+            h_l = PropsSI("H", "T", t, "Q", 0, fluid)
+            h_v = PropsSI("H", "T", t, "Q", 1, fluid)
+            for k, v in (("p_sat_pa", PropsSI("P", "T", t, "Q", 0, fluid)),
+                         ("rho_l_kg_m3", PropsSI("D", "T", t, "Q", 0, fluid)),
+                         ("rho_v_kg_m3", PropsSI("D", "T", t, "Q", 1, fluid)),
+                         ("h_fg_j_kg", h_v - h_l)):
+                if not math.isfinite(v):
+                    raise ValueError(f"{fluid}: non-finite {k} at T={t}")
+                cols[k].append(float(f"{v:.7g}"))
+        out[prop] = dict(fluid=fluid, surrogate=surrogate,
+                         t_k=[float(f"{t:.7g}") for t in ts],
+                         triple_t_k=t_tr, critical_t_k=t_c,
+                         critical_p_pa=PropsSI("pcrit", fluid),
+                         normal_boiling_t_k=PropsSI("T", "P", 101325.0, "Q", 0, fluid),
+                         **cols)
+        print(f"  {prop:5s} {fluid:12s} {len(ts)} T, {t_tr:.2f}..{ts[-1]:.2f} K, "
+              f"NBP {out[prop]['normal_boiling_t_k']:.2f} K")
+    return out, CoolProp.__version__
+
+
+def write_saturation_tables(out_dir, quick=False):
+    sat, cpv = build_saturation_tables(quick=quick)
+    smeta = dict(generator="tools/property_tables/generate_property_tables.py",
+                 date=datetime.date.today().isoformat(), coolprop_version=cpv,
+                 layout="per propellant: t_k[] and p_sat_pa / rho_l_kg_m3 / rho_v_kg_m3 / "
+                        "h_fg_j_kg aligned with it (Q=0 liquid, Q=1 vapor)",
+                 note="RP-1 uses n-dodecane as a single-component SURROGATE (real RP-1 is a "
+                      "kerosene blend with a boiling RANGE, not a single vapor-pressure curve); "
+                      "N2O4 / MMH / UDMH / N2H4 / H2O2 are not in CoolProp and are absent",
+                 quick=quick)
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "saturation_properties.json"), "w") as f:
+        json.dump(dict(meta=smeta, propellants=sat), f, indent=1)
+    print(f"wrote {out_dir}/saturation_properties.json")
+
+
 def main(argv=None):
     here = os.path.dirname(os.path.abspath(__file__))
     default_out = os.path.normpath(os.path.join(here, "..", "..", "engine_designer", "physics",
@@ -431,7 +502,14 @@ def main(argv=None):
     ap.add_argument("--check-only", action="store_true")
     ap.add_argument("--gas-only", action="store_true",
                     help="write combustion_equilibrium.json only (leave the coolant tables)")
+    ap.add_argument("--saturation-only", action="store_true",
+                    help="write saturation_properties.json only (CoolProp; no Cantera needed)")
     a = ap.parse_args(argv)
+
+    if a.saturation_only:
+        print("saturation tables:")
+        write_saturation_tables(a.out, quick=a.quick)
+        return 0
 
     import warnings
 
@@ -484,6 +562,8 @@ def main(argv=None):
     with open(os.path.join(a.out, "coolant_properties.json"), "w") as f:
         json.dump(dict(meta=cmeta, coolants=cool), f, indent=1)
     print(f"wrote {a.out}/combustion_equilibrium.json and coolant_properties.json")
+    print("saturation tables:")
+    write_saturation_tables(a.out, quick=a.quick)
     return 0
 
 
