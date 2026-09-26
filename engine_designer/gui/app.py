@@ -532,6 +532,25 @@ class EngineDesignerApp:
             self.nozzle_liner_group,
             lambda: self.nozzle_cooling_method_var.get() in ("radiative", "uncooled"))
 
+        # Nozzle-extension stiffening detail (2026-09-25): "rings" is today's
+        # mandatory axisymmetric ring-bump behavior on a radiative extension;
+        # "orthogrid" is the real Bell 8247 XLR81/Agena waffle-pattern
+        # alternative (also applies a mass reduction, mass_model.
+        # ORTHOGRID_MASS_FRACTION); "smooth" is a newly-possible bare option.
+        # 3D-preview + mass detail only, unrelated to Cooled-wall construction
+        # (a regen-jacket cooling concept).
+        self.nozzle_stiffening_group = ttk.Frame(ncb)
+        self.nozzle_stiffening_group.grid(row=nc_row, column=0, columnspan=2, sticky="ew")
+        nc_row += 1
+        self._add_dropdown(
+            self.nozzle_stiffening_group, 0, "Nozzle extension stiffening",
+            "nozzle_extension_stiffening_style_var",
+            ["rings", "orthogrid", "smooth"], self.design.nozzle_extension_stiffening_style,
+            width=16)
+        self._register_gate(
+            self.nozzle_stiffening_group,
+            lambda: self.nozzle_cooling_method_var.get() in ("radiative", "uncooled"))
+
         # (The 3D tube-drawing style - single pass / F-1 double pass / J-2 two
         # pass - now follows "Cooling jacket flow topology" automatically:
         # design.REGEN_CIRCUIT_STYLE_BY_TOPOLOGY. No separate dropdown.)
@@ -1773,6 +1792,7 @@ class EngineDesignerApp:
             self.design.nozzle_liner_material_key = self.liner_display_to_key.get(
                 self.nozzle_liner_material_var.get(), self.design.nozzle_liner_material_key)
             self.design.nozzle_liner_thickness_m = self.nozzle_liner_thickness_var.get() / 1000.0
+            self.design.nozzle_extension_stiffening_style = self.nozzle_extension_stiffening_style_var.get()
             self.design.dump_coolant_fraction = self.dump_coolant_fraction_var.get() / 100.0
             self.design.wall_construction = self.wall_construction_var.get()
             self.design.cooling_flow_topology = self.cooling_flow_topology_var.get()
@@ -2586,6 +2606,7 @@ class EngineDesignerApp:
             (disp for disp, k in self.liner_display_to_key.items()
              if k == d.nozzle_liner_material_key), "(none)"))
         self.nozzle_liner_thickness_var.set(d.nozzle_liner_thickness_m * 1000.0)
+        self.nozzle_extension_stiffening_style_var.set(d.nozzle_extension_stiffening_style)
         self.dump_coolant_fraction_var.set(d.dump_coolant_fraction * 100.0)
         self.wall_construction_var.set(d.wall_construction)
         self.cooling_flow_topology_var.set(d.cooling_flow_topology)

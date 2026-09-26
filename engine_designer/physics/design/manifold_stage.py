@@ -292,6 +292,12 @@ def jacket_manifolds_and_stability(self, s):
     s.cooling_result = {
         "chamber_cooling_method": s.chamber_cooling,
         "nozzle_cooling_method": s.nozzle_cooling,
+        # Really a mass/mesh concept, not a cooling one - placed here anyway,
+        # a pragmatic reuse of the one existing physics-result -> mesh-builder
+        # gating path gui/mesh_builder.py already reads nozzle_cooling_method
+        # from (see build_chamber_and_bell_shell_pieces's stiffening-ring/
+        # orthogrid branch).
+        "nozzle_extension_stiffening_style": self.nozzle_extension_stiffening_style,
         # the explicit method that was HARD-BLOCKED for that section's
         # material (None = honoured) - cooling.resolve_cooling_method_checked
         "chamber_cooling_rejected": s.chamber_cooling_rejected,

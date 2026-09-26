@@ -31,6 +31,18 @@ FLANGE_HEIGHT_THROAT_DIA_MULT = 0.04       # flange collar height, x throat diam
 RING_SPACING_THROAT_DIA_MULT = 2.5   # nozzle stiffening-ring spacing, x throat diameter
 RING_HALF_WIDTH_FACTOR = 1.5     # stiffening-ring half-width, x local wall thickness
 RING_HEIGHT_FACTOR = 0.3         # stiffening-ring height, x local wall thickness
+ORTHOGRID_RIB_SPACING_THROAT_DIA_MULT = 1.2   # orthogrid rib pitch (both circumferential
+                                  # and axial), x throat diameter - cosmetic/rendering only,
+                                  # same tier as RING_SPACING_THROAT_DIA_MULT above. The
+                                  # MASS implication of an orthogrid pattern lives solely in
+                                  # mass_model.ORTHOGRID_MASS_FRACTION, kept deliberately
+                                  # separate from this purely-visual rib density.
+ORTHOGRID_POCKET_DEPTH_FRACTION = 0.5   # orthogrid pocket recess depth, x local wall
+                                  # thickness (clamped to 0.6x by tube_bundle.
+                                  # orthogrid_modulated_grid regardless) - cosmetic/
+                                  # rendering only, no mass/physics implication.
+ORTHOGRID_RIB_FRACTION = 0.2     # orthogrid rib width as a fraction of the pitch, in
+                                  # EACH direction (theta and axial) - cosmetic only.
 TUBE_BRAZE_SEAM_FRAC = 0.03   # tube_wall: each drawn tube's circumferential width is
                                # (1 - this) x the local centre-to-centre chord, so
                                # neighbouring tubes always touch across a thin braze seam

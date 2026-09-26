@@ -32,6 +32,16 @@ SAFETY_FACTOR = 1.5  # typical aerospace pressure-vessel margin on allowable
                       # human-rating; a reasonable single choice, not derived
                       # (Tier 3 - see ASSUMPTIONS.md)
 
+ORTHOGRID_MASS_FRACTION = 0.6  # applied to a radiative nozzle extension's shell mass
+                      # only when EngineDesign.nozzle_extension_stiffening_style ==
+                      # "orthogrid": a machined-waffle shell pockets out material
+                      # between ribs vs. a plain hoop-stress-thickness shell.
+                      # ARBITRARY-BUT-REASONABLE, UNCITED (same tier as
+                      # JACKET_DP_FRACTION_BY_COOLING_METHOD's "dump" value) - a
+                      # plausible, real-direction-correct mass fraction, not derived
+                      # or measured off any specific real orthogrid design. See
+                      # ASSUMPTIONS.md.
+
 MIN_WALL_THICKNESS_M = 0.5e-3  # a practical minimum-gauge/buckling floor for
                       # wall_thickness_profile_m's RENDERED thickness (only -
                       # never fed into shell_mass_kg or any other physics

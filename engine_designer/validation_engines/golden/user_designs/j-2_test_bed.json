@@ -1875,6 +1875,7 @@
 "nozzle_cooling_method": "regenerative",
 "nozzle_cooling_rejected": null,
 "nozzle_cooling_source": "material-default",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.0"
 },
@@ -3408,6 +3409,7 @@
 "new_part_name": "",
 "new_part_title": "",
 "nozzle_cooling_method": "auto",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.0"
 },

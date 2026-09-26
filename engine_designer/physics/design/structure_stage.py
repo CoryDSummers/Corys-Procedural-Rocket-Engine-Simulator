@@ -41,6 +41,12 @@ def wall_structure(self, s):
         s.bell_wall_mass_kg = mass_model.shell_mass_kg(
             s.ext_xs, ext_rs, self.chamber_pressure_pa,
             s.bell_material.allowable_stress_pa, s.bell_material.density_kg_m3)
+        # Orthogrid nozzle-extension stiffening (2026-09-25): a machined-waffle
+        # shell pockets out material vs. a plain hoop-stress-thickness shell -
+        # see mass_model.ORTHOGRID_MASS_FRACTION's own uncited-estimate flag.
+        if (self.nozzle_extension_stiffening_style == "orthogrid"
+                and s.nozzle_cooling in ("radiative", "uncooled")):
+            s.bell_wall_mass_kg *= mass_model.ORTHOGRID_MASS_FRACTION
     # Per-station wall thickness (pointwise, not the segment-average
     # shell_mass_kg integrates for mass) - for the 3D preview's solid-shell
     # offset. Purely additive: doesn't feed any mass/thermal number above

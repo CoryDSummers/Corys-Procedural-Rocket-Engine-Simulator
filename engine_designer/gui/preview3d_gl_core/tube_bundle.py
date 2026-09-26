@@ -83,6 +83,57 @@ def channel_modulated_grid(outer_xs_m, outer_rs_m, n_theta, n_channels_physical,
     Z = R * np.sin(Theta)
     return X, Y, Z
 
+def orthogrid_modulated_grid(outer_xs_m, outer_rs_m, n_theta, n_ribs_theta, n_ribs_axial,
+                             amplitude_m, rib_fraction, thickness_m):
+    """
+    2-D waffle/orthogrid stiffening pattern (real precedent: the Bell Model
+    8247 XLR81/Agena titanium nozzle extension - see materials.py's
+    titanium_6al4v) - a grid of raised ribs running BOTH circumferentially
+    (n_ribs_theta) and axially (n_ribs_axial, evenly spaced along this
+    piece's own x-extent), unlike channel_modulated_grid's 1-D
+    (circumferential-only) rib pattern that extrudes the full axial length.
+    A station/theta cell counts as a rib (held at the nominal, unrecessed
+    radius) if it falls within `rib_fraction` of EITHER a circumferential OR
+    an axial rib line, so the ribs form one continuous structural grid rather
+    than isolated islands; every other cell is a machined-out POCKET,
+    recessed by `amplitude_m`. Purely cosmetic/rendering (this function has
+    no mass effect of its own - see mass_model.ORTHOGRID_MASS_FRACTION for
+    the separate, explicitly-flagged mass estimate).
+
+    Amplitude is clamped to 60% of the local wall thickness, same discipline
+    as channel_modulated_grid, so a pocket can never eat through the wall.
+    """
+    outer_xs_m = np.asarray(outer_xs_m, dtype=float)
+    outer_rs_m = np.asarray(outer_rs_m, dtype=float)
+    n_stations = outer_xs_m.size
+    theta = np.linspace(0.0, 2.0 * np.pi, n_theta)
+
+    if n_ribs_theta <= 0 or n_ribs_axial <= 0 or n_stations < 2:
+        return geometry3d.revolve_profile(outer_xs_m, outer_rs_m, n_theta)
+
+    thickness_m = np.broadcast_to(np.asarray(thickness_m, dtype=float), (n_stations,))
+    amp_m = np.clip(amplitude_m, 0.0, 0.6 * thickness_m)  # (n_stations,)
+    rib_frac = np.clip(rib_fraction, 0.0, 0.5)
+
+    theta_phase = (n_ribs_theta * theta / (2.0 * np.pi)) % 1.0            # (n_theta,)
+    is_rib_theta = (theta_phase < rib_frac) | (theta_phase > 1.0 - rib_frac)
+
+    x0, x1 = outer_xs_m[0], outer_xs_m[-1]
+    span = x1 - x0 if x1 > x0 else 1.0
+    x_phase = (n_ribs_axial * (outer_xs_m - x0) / span) % 1.0             # (n_stations,)
+    is_rib_x = (x_phase < rib_frac) | (x_phase > 1.0 - rib_frac)
+
+    is_rib = is_rib_theta[:, None] | is_rib_x[None, :]                    # (n_theta, n_stations)
+    waveform = np.where(is_rib, 0.0, -1.0)
+    delta_r = waveform * amp_m[None, :]
+    R = outer_rs_m[None, :] + delta_r
+    X = np.broadcast_to(outer_xs_m[None, :], (n_theta, n_stations))
+    Theta = np.broadcast_to(theta[:, None], (n_theta, n_stations))
+    Y = R * np.cos(Theta)
+    Z = R * np.sin(Theta)
+    return X, Y, Z
+
+
 def _tube_geometry_profile(outer_rs_m, inner_rs_m, channel_height_profile_m, thickness_m, n_visual,
                            n_local=None):
     """
@@ -470,6 +521,42 @@ def self_test():
             assert np.all(Rc >= rs_shell[None, :] - 0.6 * thick[None, :] - 1e-12)
             assert np.max(np.abs(Rc - rs_shell[None, :])) > 0.0   # actually modulates something
     print("channel_modulated_grid self-check: OK")
+
+    # --- orthogrid_modulated_grid: 2-D waffle pattern (theta x axial ribs) ---
+    n_rt, n_ra, rib_frac = 6, 4, 0.2
+    Xo, Yo, Zo = orthogrid_modulated_grid(xs_shell, rs_shell, n_theta, n_rt, n_ra,
+                                          0.01, rib_frac, thick)
+    Ro = np.sqrt(Yo ** 2 + Zo ** 2)
+    assert not np.any(np.isnan(Ro))
+    # amplitude never eats more than 60% of the local wall thickness
+    assert np.all(Ro >= rs_shell[None, :] - 0.6 * thick[None, :] - 1e-12)
+    assert np.max(np.abs(Ro - rs_shell[None, :])) > 0.0   # actually modulates something
+    theta_grid = np.linspace(0.0, 2.0 * np.pi, n_theta)
+    theta_phase = (n_rt * theta_grid / (2.0 * np.pi)) % 1.0
+    is_rib_theta = (theta_phase < rib_frac) | (theta_phase > 1.0 - rib_frac)
+    x0, x1 = xs_shell[0], xs_shell[-1]
+    x_phase = (n_ra * (xs_shell - x0) / (x1 - x0)) % 1.0
+    is_rib_x = (x_phase < rib_frac) | (x_phase > 1.0 - rib_frac)
+    # a rib THETA row (true for every station) stays at the nominal radius
+    # regardless of axial phase
+    rib_theta_rows = np.flatnonzero(is_rib_theta)
+    assert rib_theta_rows.size > 0
+    assert np.allclose(Ro[rib_theta_rows, :], rs_shell[None, :], atol=1e-12)
+    # a pocket cell (neither a theta nor an axial rib) is recessed by exactly
+    # the clamped amplitude at that station
+    pocket_theta_rows = np.flatnonzero(~is_rib_theta)
+    pocket_x_cols = np.flatnonzero(~is_rib_x)
+    assert pocket_theta_rows.size > 0 and pocket_x_cols.size > 0
+    expected_amp = np.clip(0.01, 0.0, 0.6 * thick[pocket_x_cols])
+    assert np.allclose(rs_shell[pocket_x_cols] - Ro[np.ix_(pocket_theta_rows, pocket_x_cols)],
+                       expected_amp[None, :], atol=1e-12)
+    # grid shape matches the (n_theta, n_stations) convention
+    assert Xo.shape == Yo.shape == Zo.shape == (n_theta, xs_shell.size)
+    # degenerate n_ribs -> falls back to a plain smooth revolve (no NaNs, no modulation)
+    Xd, Yd, Zd = orthogrid_modulated_grid(xs_shell, rs_shell, n_theta, 0, n_ra, 0.01, rib_frac, thick)
+    Rd = np.sqrt(Yd ** 2 + Zd ** 2)
+    assert np.allclose(Rd, np.broadcast_to(rs_shell[None, :], Rd.shape))
+    print("orthogrid_modulated_grid self-check: OK")
 
     # --- tube_bundle_pieces: discrete round-tube geometry for tube_wall ---
     outer_xs_tw, outer_rs_tw = offset_profile(xs_shell, rs_shell, thick)

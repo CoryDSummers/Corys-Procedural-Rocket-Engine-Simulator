@@ -1848,6 +1848,7 @@
 "nozzle_cooling_method": "uncooled",
 "nozzle_cooling_rejected": null,
 "nozzle_cooling_source": "explicit",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.03"
 },
@@ -3413,6 +3414,7 @@
 "new_part_name": "RS-30",
 "new_part_title": "Rocketdyne",
 "nozzle_cooling_method": "uncooled",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.03"
 },

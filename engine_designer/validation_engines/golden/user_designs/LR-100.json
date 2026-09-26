@@ -2342,6 +2342,7 @@
 "nozzle_cooling_method": "ablative",
 "nozzle_cooling_rejected": "regenerative",
 "nozzle_cooling_source": "material-default - explicit regenerative BLOCKED",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.0"
 },
@@ -3902,6 +3903,7 @@
 "new_part_name": "LR-100",
 "new_part_title": "Aerojet",
 "nozzle_cooling_method": "regenerative",
+"nozzle_extension_stiffening_style": "rings",
 "nozzle_film_fraction": {
 "__f__": "0.0"
 },

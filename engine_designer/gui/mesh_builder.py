@@ -293,6 +293,7 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
     # summed into the outer wall before any tube/channel modulation - see
     # gui/preview3d_gl_core.build_shell_mesh's `structural_bumps`.
     body_bumps, ext_bumps = [], []
+    ext_orthogrid_spec = None
     if has_extension and throat_dia_m > 0:
         joint_thickness = max(float(body_thickness_eff[-1]) if len(body_thickness_eff) else 0.0,
                                float(ext_thickness_eff[0]) if len(ext_thickness_eff) else 0.0,
@@ -325,7 +326,9 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             flange_height_m = (width_override_m if width_override_m > 0
                                 else preview3d_gl_core.FLANGE_HEIGHT_THROAT_DIA_MULT * throat_dia_m)
 
-        if cooling_result.get("nozzle_cooling_method") == "radiative" and len(ext_xs) >= 2:
+        stiffening_style = cooling_result.get("nozzle_extension_stiffening_style", "rings")
+        if (cooling_result.get("nozzle_cooling_method") == "radiative"
+                and len(ext_xs) >= 2 and stiffening_style == "rings"):
             skirt_length = float(ext_xs[-1] - ext_xs[0])
             spacing = preview3d_gl_core.RING_SPACING_THROAT_DIA_MULT * throat_dia_m
             n_rings = max(2, round(skirt_length / spacing)) if spacing > 0 else 0
@@ -339,6 +342,27 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
                                       2.0 * ext_local_dx),
                     height_m=preview3d_gl_core.RING_HEIGHT_FACTOR * t_local,
                     shape="smooth"))
+        elif (cooling_result.get("nozzle_cooling_method") in ("radiative", "uncooled")
+                and len(ext_xs) >= 2 and stiffening_style == "orthogrid"):
+            # 2-D waffle stiffening (real precedent: the Bell Model 8247
+            # XLR81/Agena titanium nozzle extension) - REPLACES rather than
+            # stacks with the ring bumps above (ext_bumps stays empty); its
+            # mass effect (mass_model.ORTHOGRID_MASS_FRACTION) is applied
+            # separately in structure_stage.py.
+            skirt_length = float(ext_xs[-1] - ext_xs[0])
+            mean_r = float(np.mean(ext_rs))
+            rib_spacing = preview3d_gl_core.ORTHOGRID_RIB_SPACING_THROAT_DIA_MULT * throat_dia_m
+            n_ribs_axial = max(2, round(skirt_length / rib_spacing)) if rib_spacing > 0 else 2
+            n_ribs_theta = (max(4, round(2.0 * np.pi * mean_r / rib_spacing))
+                            if rib_spacing > 0 else 8)
+            t_rep = (float(np.median(ext_thickness_eff)) if len(ext_thickness_eff)
+                     else joint_thickness)
+            ext_orthogrid_spec = dict(
+                n_ribs_theta=n_ribs_theta, n_ribs_axial=n_ribs_axial,
+                amplitude_m=preview3d_gl_core.ORTHOGRID_POCKET_DEPTH_FRACTION * t_rep,
+                rib_fraction=preview3d_gl_core.ORTHOGRID_RIB_FRACTION)
+        # stiffening_style == "smooth": both ext_bumps and ext_orthogrid_spec
+        # stay empty/None - a newly-possible bare radiative extension.
 
 
     if chamber_tube_jacket and construction == "tube_wall" and len(body_rs) >= 3:
@@ -404,7 +428,7 @@ def build_chamber_and_bell_shell_pieces(body_xs, body_rs, ext_xs, ext_rs, has_ex
             structural_bumps=ext_bumps, cap_start=False, cap_end=True,
             tube_split_x_m=tube_split_x_for_piece(ext_xs, ext_rs),
             regen_circuit_style=regen_circuit_style, tube_cutoff_x_m=x_tube_end,
-            down_tube_start_x_m=down_tube_start_x_m,
+            down_tube_start_x_m=down_tube_start_x_m, orthogrid_spec=ext_orthogrid_spec,
             specular_strength=ext_spec, shininess=ext_shin)
         pieces.extend(_stamp_material(ext_shell.pieces, bell_mat, ext_colors))
 

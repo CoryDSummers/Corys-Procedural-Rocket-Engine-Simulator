@@ -58,6 +58,25 @@ class EngineDesign:
                                                    # thickness_m > 0 (both required).
     nozzle_liner_thickness_m: float = 0.0         # liner thickness (m); 0.0 = no liner
                                                    # regardless of nozzle_liner_material_key.
+    nozzle_extension_stiffening_style: str = "rings"
+                                                   # "rings" (default, today's mandatory
+                                                   # behaviour on a radiative nozzle extension -
+                                                   # axisymmetric ring bumps, bit-identical) |
+                                                   # "orthogrid" (real precedent: the Bell
+                                                   # 8247 XLR81/Agena's waffle-pattern titanium
+                                                   # shell - a 2-D theta x axial rib pattern,
+                                                   # gui/preview3d_gl_core/tube_bundle.
+                                                   # orthogrid_modulated_grid, REPLACES rather
+                                                   # than stacks with "rings"; also applies
+                                                   # mass_model.ORTHOGRID_MASS_FRACTION to the
+                                                   # extension shell mass) | "smooth" (no
+                                                   # stiffening detail - a newly-possible bare
+                                                   # radiative extension). Only meaningful when
+                                                   # the resolved nozzle cooling is radiative/
+                                                   # uncooled AND there's a separate extension
+                                                   # piece; no-op otherwise. Purely a mass/mesh
+                                                   # concept, unrelated to wall_construction
+                                                   # (a regen-jacket cooling concept).
     regen_nozzle_end_eps: float = 0.0             # >0 (and nozzle_cooling in ("regenerative",
                                                    # "dump")): push active cooling (flux
                                                    # integration, coolant march, expander cooled-
@@ -421,7 +440,11 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 12  # 12 (2026-09-25): nozzle_liner_material_key/nozzle_liner_thickness_m
+    SCHEMA_VERSION = 13  # 13 (2026-09-25): nozzle_extension_stiffening_style added ("rings" |
+                         # "orthogrid" | "smooth") - no key migration, a v12 file's new field
+                         # takes its default ("rings" - today's mandatory ring-bump behavior on
+                         # a radiative nozzle extension, bit-identical).
+                         # 12 (2026-09-25): nozzle_liner_material_key/nozzle_liner_thickness_m
                          # added (a real radiative-nozzle-extension thermal-barrier liner,
                          # cooling/radiation.py) - no key migration, a v11 file's new fields
                          # take their default ("", 0.0 - no liner, bit-identical behavior).
