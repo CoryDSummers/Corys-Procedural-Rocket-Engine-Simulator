@@ -695,3 +695,15 @@ round (turbopump Round 0, commit 9d0cb17):
 Each is recorded in ASSUMPTIONS.md. Coverage: SP-8052, SP-8110 and SP-8125 were read in
 design-relevant depth. For SP-8121, about 60 % was read (secondary-element, mounting and
 hydrostatic detail was skipped). SP-8101 was read in §1–§3.
+
+## 2026-09-26 — SP-8107 Table II suction columns (turbopump Round 1, no new PDF)
+
+- Re-read `[SP-8107]` Table II "Chief Features of Operational Turbopumps" (PDF leaf 17,
+  printed p.4) from a 200-dpi pymupdf page render (throwaway venv in the job tmp dir): the
+  rated inlet pressure, gpm, rpm, NPSH_min and NPSH_crit columns for all 13 engines, which the
+  earlier distillation had summarised only as ranges. Transcribed into
+  `sources/nasa-sp8107-turbopump-systems.md` and `engine_designer/physics/inducer.py`
+  (`REAL_PUMP_SUCTION_DATA`). Found: the J-2 LH2 pump flows 8,530 gpm, not the 3,000 gpm the
+  old `NSS_TARGET_US["lh2_class"]` derivation used.
+- Also read `[H1-Man Fig 1-44]` (leaf render from Round 0): H-1 inlet 65/57 psia total, NPSH
+  required 35 ft (starting requirement), 6,717 rpm, 3,382/2,102 gpm.

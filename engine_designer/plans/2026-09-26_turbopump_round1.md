@@ -10,12 +10,26 @@ Round 1 only. It is not merged until Cory has tested it, and not before PR #18.
 Plan mode was switched off before a plan was presented, so this doc is the plan of record. Cory
 reviews it in the draft PR.
 
+**Where the implementation deviated from the plan below, and why:**
+- **(g) became two checks.** At the real 100 psia LPOTP inlet, the model's RS-25 ox pump isn't
+  suction-limited even without boost pumps. Its Ns-optimum speed (14k rpm) is far below the real
+  HPOTP's 22,220. So (g) checks the REAL HPOTP flow and speed: the cap is exceeded at 100 psia and
+  satisfied at the boosted 380 psia, which is why the SSME needs its LPOTP. The pipeline check
+  runs on the default inlet.
+- **RD-180 got no boost-pump inputs.** No cited RD-180 inlet or boost pressures are in claude_lit
+  (OPEN_QUESTIONS). Its staged balance already did not close in Round 0; the cap lowers the margin
+  0.91 → 0.86.
+- **Boost drive.** Both legs are modelled as a hydraulic drive off the main discharge. The real
+  LPFTP runs on jacket GH2. The drive head is carried in the pump power and efficiency calls only.
+- **Suction-limited warnings.** On the computed path they are the new per-leg "suction (NPSH)"
+  rows, not `size_pump`'s generic warning (which stays on the legacy path).
+
 ## Status
-- [ ] C0: this document + draft PR
-- [ ] C1: `physics/inducer.py` (Brumfield / NPSHr / TSH / tip clearance / tip diameter), pure + self-test
-- [ ] C2: suction wiring (tank → line → boost → NPSHa; cap on by default; legacy switch), GUI,
+- [x] C0: this document + draft PR (23f9862, PR #19)
+- [x] C1 (38472a0): `physics/inducer.py` (Brumfield / NPSHr / TSH / tip clearance / tip diameter), pure + self-test
+- [x] C2 (1068e6a): suction wiring (tank → line → boost → NPSHa; cap on by default; legacy switch), GUI,
       schema 16, SUCTION validate banner, corpus report + snapshot
-- [ ] C3: docs + literature (SP-8107 Table II transcription, topics/09, ASSUMPTIONS,
+- [x] C3: docs + literature (SP-8107 Table II transcription, topics/09, ASSUMPTIONS,
       OPEN_QUESTIONS, CLAUDE.md, README, roadmap tick, memory)
 
 ## Context
