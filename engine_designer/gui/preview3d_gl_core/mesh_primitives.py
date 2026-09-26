@@ -282,7 +282,8 @@ def manifold_ring_mesh(x0_m, center_r_m, tube_r_m, n_theta_main, n_theta_tube, b
                            specular_strength=specular_strength, shininess=shininess)
 
 def scroll_manifold_mesh(x0_m, center_r_m, tube_r_m, u_start_rad, u_span_rad, n_theta_tube,
-                         base_color_rgb, cap_tail=True, specular_strength=0.0, shininess=32.0):
+                         base_color_rgb, cap_tail=True, specular_strength=0.0, shininess=32.0,
+                         cap_inlet=False):
     """
     An OPEN arc of a torus swept round the main engine axis - a tangentially-
     fed scroll manifold (physics/manifold.py RING_KIND_SCROLL): the tube runs
@@ -293,7 +294,8 @@ def scroll_manifold_mesh(x0_m, center_r_m, tube_r_m, u_start_rad, u_span_rad, n_
     left OPEN (the duct run's own swept body starts there); the tail gets a
     flat disk (cap_tail). Normals from the exact surface tangents, with
     one-sided differences at the two ends (no periodic seam). Returns a list
-    of MeshBuffers: [body] or [body, tail_cap].
+    of MeshBuffers: [body] or [body, tail_cap] (+ an inlet cap last with
+    cap_inlet - a closed short arc, e.g. a raised expansion-joint band).
     """
     ctr = np.asarray(center_r_m, dtype=float)
     tube = np.asarray(tube_r_m, dtype=float)
@@ -332,6 +334,15 @@ def scroll_manifold_mesh(x0_m, center_r_m, tube_r_m, u_start_rad, u_span_rad, n_
         # (normal, binormal) = (radial, +x) matches the body's v parameterisation
         pieces.append(_tube_end_disk(centre, radial, np.array([1.0, 0.0, 0.0]), onward,
                                      float(tube[-1]), n_theta_tube, base_color_rgb,
+                                     facing_sign=1.0, specular_strength=specular_strength,
+                                     shininess=shininess))
+    if cap_inlet:
+        us = u[0]
+        radial = np.array([0.0, np.cos(us), np.sin(us)])
+        back = -np.sign(u_span_rad or 1.0) * np.array([0.0, -np.sin(us), np.cos(us)])
+        centre = np.array([x0_m, 0.0, 0.0]) + ctr[0] * radial
+        pieces.append(_tube_end_disk(centre, radial, np.array([1.0, 0.0, 0.0]), back,
+                                     float(tube[0]), n_theta_tube, base_color_rgb,
                                      facing_sign=1.0, specular_strength=specular_strength,
                                      shininess=shininess))
     return pieces
@@ -955,6 +966,22 @@ def self_test():
         assert all(a in inlet_ids and b in inlet_ids for a, b in open_edges)
         onward = np.sign(span) * np.array([0.0, -np.sin(us[-1]), np.cos(us[-1])])
         assert np.all(cap_s.normals @ onward > 0.99)
+    # cap_inlet closes the inlet too: a short band arc is fully watertight
+    band = scroll_manifold_mesh(x0_ring, np.full(6, 1.1), np.full(6, 0.1), 0.3, 0.05, n_tube,
+                                (0.5, 0.5, 0.5), cap_inlet=True)
+    assert len(band) == 3 and np.all(band[2].normals @ np.array([0.0, np.sin(0.3), -np.cos(0.3)])
+                                     > 0.99)
+    bv = np.vstack([b.vertices for b in band]).astype(np.float64)
+    offs = np.cumsum([0] + [b.vertices.shape[0] for b in band[:-1]])
+    bt = np.vstack([b.indices + o for b, o in zip(band, offs)])
+    _, inv_b = np.unique(np.round(bv, 6), axis=0, return_inverse=True)
+    ec_b = {}
+    for a, b, c in inv_b.ravel()[bt]:
+        if a == b or b == c or c == a:
+            continue
+        for e in ((a, b), (b, c), (c, a)):
+            ec_b[(min(e), max(e))] = ec_b.get((min(e), max(e)), 0) + 1
+    assert ec_b and all(v == 2 for v in ec_b.values())
     print("scroll_manifold_mesh self-check: OK")
 
     # --- manifold_ring_mesh, called twice at the two AXIAL stations and

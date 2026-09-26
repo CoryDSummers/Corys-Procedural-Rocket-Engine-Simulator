@@ -252,11 +252,19 @@ SCROLL_TAIL_GAP_INLET_DIA_MULT = 1.0
 EXHAUST_SHIELD_DRAW_T_TUBE_R_MULT = 0.04
 
 
-def scroll_ring_pieces(ring, inner_edge_r_m, rgb, n_theta_main=_N_THETA):
+# Omega expansion-joint bands (turbine_exhaust.OMEGA_JOINT_SPACING_M count):
+# raised this much over the local tube radius, this wide x the local tube
+# diameter. Cosmetic (the F-1 photo's visible bands).
+OMEGA_BAND_RADIUS_MULT = 1.06
+OMEGA_BAND_WIDTH_TUBE_DIA_MULT = 0.12
+
+
+def scroll_ring_pieces(ring, inner_edge_r_m, rgb, n_theta_main=_N_THETA, omega_joints=0):
     """The drawn tangentially-fed scroll (physics/manifold.py RING_KIND_SCROLL):
     an open arc from its inlet (attach_angular_position_deg) round the flow
     direction to a capped tail, inner edge flush on the wall like every ring,
-    each station at the physics taper (manifold.ring_outer_radius_at)."""
+    each station at the physics taper (manifold.ring_outer_radius_at), plus
+    `omega_joints` raised expansion-joint bands spread evenly along it."""
     a0 = float(ring.get("attach_angular_position_deg", 0.0))
     sd = 1.0 if ring.get("scroll_dir", 1) >= 0 else -1.0
     r_in = float(ring["outer_radius_m"])
@@ -264,17 +272,29 @@ def scroll_ring_pieces(ring, inner_edge_r_m, rgb, n_theta_main=_N_THETA):
     span = sd * (360.0 - min(gap, 90.0))
     angles = a0 + np.linspace(0.0, span, n_theta_main)
     tube = np.array([manifold.ring_outer_radius_at(ring, a) for a in angles])
-    return preview3d_gl_core.scroll_manifold_mesh(
-        ring["attach_axial_station_m"], inner_edge_r_m + tube, tube, np.radians(a0),
-        np.radians(span), 12, rgb,
-        specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
-        shininess=preview3d_gl_core.HARDWARE_SHININESS)
+    kw = dict(specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
+              shininess=preview3d_gl_core.HARDWARE_SHININESS)
+    x0 = ring["attach_axial_station_m"]
+    pieces = preview3d_gl_core.scroll_manifold_mesh(
+        x0, inner_edge_r_m + tube, tube, np.radians(a0), np.radians(span), 12, rgb, **kw)
+    n_j = int(omega_joints or 0)
+    for k in range(n_j):
+        a_c = a0 + span * (k + 0.5) / n_j
+        r_t = manifold.ring_outer_radius_at(ring, a_c)
+        r_band = OMEGA_BAND_RADIUS_MULT * r_t
+        half = np.degrees(0.5 * OMEGA_BAND_WIDTH_TUBE_DIA_MULT * 2.0 * r_t
+                          / max(inner_edge_r_m + r_t, 1e-9))
+        # the band shares the tube's centreline (inner edge + local tube radius)
+        pieces.extend(preview3d_gl_core.scroll_manifold_mesh(
+            x0, np.full(4, inner_edge_r_m + r_t), np.full(4, r_band), np.radians(a_c - half),
+            np.radians(2.0 * half), 12, rgb, cap_inlet=True, **kw))
+    return pieces
 
 
-def ring_pieces_for(ring, inner_edge_r_m, rgb):
+def ring_pieces_for(ring, inner_edge_r_m, rgb, omega_joints=0):
     """ring_mesh_for as a list, dispatching a scroll ring to scroll_ring_pieces."""
     if manifold.ring_is_scroll(ring):
-        return scroll_ring_pieces(ring, inner_edge_r_m, rgb)
+        return scroll_ring_pieces(ring, inner_edge_r_m, rgb, omega_joints=omega_joints)
     return [ring_mesh_for(ring, inner_edge_r_m, rgb)]
 
 
@@ -1136,7 +1156,8 @@ def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXH
         ring = hardware["exhaust"]
         if angle_deg is not None:
             ring = manifold.scroll_rotated_to(ring, angle_deg)
-        pieces = ring_pieces_for(ring, edge, rgb)
+        pieces = ring_pieces_for(ring, edge, rgb,
+                                 omega_joints=hardware.get("omega_joint_count", 0))
         nk = hardware.get("neck")
         if nk:
             # the outlet neck into the wall + the flame shield on the wall
@@ -2225,8 +2246,10 @@ def self_test():
             # a tangential scroll: open arc + tail cap, inlet at the run's angle
             # (fattest there), the duct leaving along the tangent from its inlet
             _ring = _hw["exhaust"]
-            # scroll body + tail cap + outlet neck + flame shield
-            assert manifold.ring_is_scroll(_ring) and len(_term) == 4
+            # scroll body + tail cap + one closed band (body + 2 caps) per
+            # omega joint + outlet neck + flame shield
+            _nj = _hw["omega_joint_count"]
+            assert manifold.ring_is_scroll(_ring) and _nj >= 4 and len(_term) == 4 + 3 * _nj
             _nk = _hw["neck"]
             assert _nk["mass_kg"] > 0 and _nk["neck_mass_kg"] > 0 and _nk["shield_mass_kg"] > 0
             # the neck ends on the wall at the injection station, the scroll

@@ -435,6 +435,13 @@ EXHAUST_SCROLL_DIR = 1
 NECK_AXIAL_OFFSET_TUBE_R_MULT = 1.1
 NECK_RADIAL_GAP_TUBE_R_MULT = 0.35
 NECK_WIDTH_TUBE_DIA_FRAC = 0.25
+# Omega expansion joints round the scroll (thermal growth, ~0.5 in radial on
+# the F-1 [SP-8120 §2.2.5.3]): the F-1 has 15 [F1-Man §1-18]. Spacing
+# reverse-solved so the corpus F-1 scroll (centreline circumference 11.39 m)
+# gets exactly 15 - Tier 2 for the F-1 anchor, Tier 3 for scaling the count by
+# circumference on other engines. Drawn only (raised bands); no mass/physics.
+OMEGA_JOINT_SPACING_M = 0.76
+OMEGA_JOINT_MIN_COUNT = 4
 # Aspirator annulus at its forward (inlet) end is sized for the duct velocity;
 # it narrows linearly to the choked exit slot.
 
@@ -484,6 +491,8 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
       manifold    injection scroll ring dict, or None
       neck        its outlet neck + flame shield (closed meridian sections +
                   mass - _neck_and_shield), or None
+      omega_joint_count  (nozzle_injection only) raised expansion-joint bands
+                  drawn round the scroll (OMEGA_JOINT_SPACING_M)
       aspirator   {"xs", "r_inner", "r_outer", "thickness_m", "gap_exit_m",
                    "collar"} or None
       outlet      overboard exhaust nozzle {"pos", "dir", "throat_dia_m",
@@ -538,6 +547,8 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
         ring["wall_gap_m"] = gap
         out["manifold"] = out["exhaust"] = ring
         out["neck"] = _neck_and_shield(ring, x_i, r_i, xs, rs, p_out, mat)
+        out["omega_joint_count"] = max(OMEGA_JOINT_MIN_COUNT, int(round(
+            2.0 * math.pi * ring["major_radius_m"] / OMEGA_JOINT_SPACING_M)))
         out["mass_kg"] += ring["mass_kg"] + out["neck"]["mass_kg"]
     elif mode == "aspirator":
         l_noz = x_e - x_t

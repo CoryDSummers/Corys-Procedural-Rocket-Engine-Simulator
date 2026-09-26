@@ -83,7 +83,9 @@ def run_turbine_exhaust_check():
         injection manifold is a tangentially-fed one-way scroll whose inlet
         bore (sized on the FULL exhaust flow) is within +-15 % of the real
         24 in heat-exchanger manifold end, tapering toward its tail, and the
-        default duct enters it tangentially (no radial T, no root reducer).
+        default duct enters it tangentially (no radial T, no root reducer);
+        its omega expansion-joint count is the F-1's real 15 (the spacing is
+        reverse-solved on it - a pin, not a prediction).
     """
     print()
     print("=" * 78)
@@ -221,9 +223,12 @@ def run_turbine_exhaust_check():
     te_run = [x for x in f_inj["plumbing_results"] if x["host"] == "turbine_exhaust"][0]
     k_ok = (_mf.ring_is_scroll(mk) and abs(inlet_in - 24.0) / 24.0 < 0.15
             and mk["min_flow_radius_m"] < mk["inlet_flow_radius_m"]
-            and te_run["root_tangential"] and not te_run["root_reducer"])
+            and te_run["root_tangential"] and not te_run["root_reducer"]
+            and f_inj["turbine_exhaust_hardware"]["omega_joint_count"] == 15)
     rows.append((f"(k) scroll manifold: F-1 inlet bore {inlet_in:.1f} in (real 24), tail "
-                 f"{2.0 * mk['min_flow_radius_m'] / 0.0254:.1f} in, tangential duct entry", k_ok))
+                 f"{2.0 * mk['min_flow_radius_m'] / 0.0254:.1f} in, tangential duct entry, "
+                 f"{f_inj['turbine_exhaust_hardware']['omega_joint_count']} omega joints "
+                 f"(real 15)", k_ok))
 
     all_ok = True
     for label, ok in rows:

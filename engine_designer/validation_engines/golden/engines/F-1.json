@@ -5628,6 +5628,7 @@
 "__f__": "0.001"
 }
 },
+"omega_joint_count": 15,
 "outlet": null
 },
 "turbine_exhaust_hardware_mass_kg": {
