@@ -79,6 +79,11 @@ def run_turbine_exhaust_check():
         x0.5-2 of its real 115 in^2 of eyelets [RPE-J2Blog], and the F-1 film
         is laid (the profile's monotone decay / flow dependence is in the
         module self-test).
+    (k) Scroll manifold [F1-Man §1-18/§1-72; F-1 photo]: the corpus F-1's
+        injection manifold is a tangentially-fed one-way scroll whose inlet
+        bore (sized on the FULL exhaust flow) is within +-15 % of the real
+        24 in heat-exchanger manifold end, tapering toward its tail, and the
+        default duct enters it tangentially (no radial T, no root reducer).
     """
     print()
     print("=" * 78)
@@ -208,6 +213,17 @@ def run_turbine_exhaust_check():
                  f"{gf['slot_h_m']*1e3:.0f} mm slot, eta at exit {gf['eta_exit']:.2f} "
                  f"(x/S {gf['x_over_s_exit']:.0f}, valid to ~100), Vc/Vg "
                  f"{gf['velocity_ratio_c_over_g']:.2f}", j_ok))
+
+    # (k) scroll manifold
+    from .. import manifold as _mf
+    mk = f_inj["turbine_exhaust_hardware"]["manifold"]
+    inlet_in = 2.0 * mk["inlet_flow_radius_m"] / 0.0254
+    te_run = [x for x in f_inj["plumbing_results"] if x["host"] == "turbine_exhaust"][0]
+    k_ok = (_mf.ring_is_scroll(mk) and abs(inlet_in - 24.0) / 24.0 < 0.15
+            and mk["min_flow_radius_m"] < mk["inlet_flow_radius_m"]
+            and te_run["root_tangential"] and not te_run["root_reducer"])
+    rows.append((f"(k) scroll manifold: F-1 inlet bore {inlet_in:.1f} in (real 24), tail "
+                 f"{2.0 * mk['min_flow_radius_m'] / 0.0254:.1f} in, tangential duct entry", k_ok))
 
     all_ok = True
     for label, ok in rows:

@@ -115,6 +115,16 @@ MANIFOLD_TAPER_BLEND_DEFAULT = 0.5
 # round (and a b=1 constant-velocity ring would otherwise pinch to zero).
 MANIFOLD_TAPER_MIN_AREA_FRACTION = 0.15
 _TAPER_MASS_SAMPLES = 72
+# --- Scroll ring (2026-09-25) -------------------------------------------------
+# A ring fed TANGENTIALLY at one inlet with the flow going one way round (a
+# volute) - the real F-1 and J-2 turbine-exhaust manifolds: the duct runs
+# tangentially into a torus "of decreasing (from inlet to exit) cross-sectional
+# area" [F1-Man §1-18] (photos: F-1 thrust chamber, enginehistory.org RPE 8.12;
+# J-2, Science Museum 1977-0402). Sized on the FULL flow at the inlet; the
+# remaining flow at phi along the flow is (1 - phi/360), so the same blend b
+# gives A(phi) = A_in * max(1 - b*phi/360, MANIFOLD_TAPER_MIN_AREA_FRACTION).
+RING_KIND_SPLIT = "split"
+RING_KIND_SCROLL = "scroll"
 
 # This module's own fallback for a caller that passes no explicit
 # feed_velocity_target_ms (the self-test only - design.py always passes one):
@@ -308,11 +318,56 @@ def taper_area_fraction(phi_from_inlet_deg, taper_blend):
     return max(1.0 - b * phi / 180.0, MANIFOLD_TAPER_MIN_AREA_FRACTION)
 
 
+def scroll_area_fraction(phi_along_flow_deg, taper_blend):
+    """Local flow-area fraction (vs. the inlet) of a SCROLL ring at
+    `phi_along_flow_deg` (0 at the inlet .. 360 at the tail, measured along the
+    flow) - see RING_KIND_SCROLL."""
+    phi = min(max(phi_along_flow_deg, 0.0), 360.0)
+    b = min(max(taper_blend, 0.0), 1.0)
+    return max(1.0 - b * phi / 360.0, MANIFOLD_TAPER_MIN_AREA_FRACTION)
+
+
+def scroll_phi_along_flow_deg(ring, angle_deg):
+    """Angle travelled along a scroll ring's flow from its inlet to absolute
+    angle `angle_deg`, in [0, 360)."""
+    d = angle_deg - ring.get("attach_angular_position_deg", 0.0)
+    return (d * (1.0 if ring.get("scroll_dir", 1) >= 0 else -1.0)) % 360.0
+
+
+def ring_area_fraction_at(ring, angle_deg):
+    """Local flow-area fraction of any ring dict at absolute angle `angle_deg`
+    (split header: symmetric two-branch taper; scroll: one-way taper)."""
+    if ring.get("ring_kind") == RING_KIND_SCROLL:
+        return scroll_area_fraction(scroll_phi_along_flow_deg(ring, angle_deg),
+                                    ring.get("taper_blend", 0.0))
+    return taper_area_fraction(angle_deg - ring.get("attach_angular_position_deg", 0.0),
+                               ring.get("taper_blend", 0.0))
+
+
+def ring_is_scroll(ring):
+    return bool(ring) and ring.get("ring_kind") == RING_KIND_SCROLL
+
+
+def scroll_rotated_to(ring, angle_deg):
+    """A copy of a scroll ring dict with its INLET turned to `angle_deg` (the
+    duct run's attach angle - a scroll's inlet is wherever its duct lands; the
+    ring is otherwise axisymmetric, so mass/sizing are unchanged). A non-scroll
+    ring comes back unchanged (same object)."""
+    if not ring_is_scroll(ring):
+        return ring
+    a = float(angle_deg) % 360.0
+    sd = 1 if ring.get("scroll_dir", 1) >= 0 else -1
+    th = math.radians(a)
+    out = dict(ring)
+    out["attach_angular_position_deg"] = a
+    out["attach_direction_xyz"] = (0.0, sd * math.sin(th), -sd * math.cos(th))
+    return out
+
+
 def ring_flow_radius_at(ring, angle_deg):
     """Flow-bore radius of a manifold ring dict at absolute angle `angle_deg`
     (same convention as attach_angular_position_deg: 0 = +y)."""
-    frac = taper_area_fraction(angle_deg - ring.get("attach_angular_position_deg", 0.0),
-                               ring.get("taper_blend", 0.0))
+    frac = ring_area_fraction_at(ring, angle_deg)
     return ring.get("inlet_flow_radius_m", ring["flow_radius_m"]) * math.sqrt(frac)
 
 
@@ -323,18 +378,20 @@ def ring_outer_radius_at(ring, angle_deg):
 
 
 def tapered_ring_mass_kg(major_radius_m, inlet_flow_radius_m, thin_wall_ratio, taper_blend,
-                         density_kg_m3=MANIFOLD_DENSITY_KG_M3):
+                         density_kg_m3=MANIFOLD_DENSITY_KG_M3, kind=RING_KIND_SPLIT):
     """Thin toroidal shell mass with a bore varying around the ring (see
-    taper_area_fraction), wall t = thin_wall_ratio * local bore: numeric
-    integral of 2*pi*r_mid(phi)*t(phi) * R dphi. taper_blend = 0 reproduces
-    manifold_ring_mass_kg's closed form exactly."""
+    taper_area_fraction / scroll_area_fraction by `kind`), wall t =
+    thin_wall_ratio * local bore: numeric integral of 2*pi*r_mid(phi)*t(phi)
+    * R dphi. taper_blend = 0 reproduces manifold_ring_mass_kg's closed form
+    exactly (either kind)."""
+    frac_fn = scroll_area_fraction if kind == RING_KIND_SCROLL else taper_area_fraction
     if major_radius_m <= 0 or inlet_flow_radius_m <= 0 or thin_wall_ratio <= 0:
         return 0.0
     n = _TAPER_MASS_SAMPLES
     total = 0.0
     for i in range(n):
         phi = (i + 0.5) * 360.0 / n
-        r = inlet_flow_radius_m * math.sqrt(taper_area_fraction(phi, taper_blend))
+        r = inlet_flow_radius_m * math.sqrt(frac_fn(phi, taper_blend))
         t = thin_wall_ratio * r
         total += 2.0 * math.pi * (r + t / 2.0) * t
     return total / n * 2.0 * math.pi * major_radius_m * density_kg_m3
@@ -357,28 +414,49 @@ def _bore_and_wall(mdot_kgs, rho_kg_m3, dp_injector_leg_pa, pc_feed_pa, target_v
 
 
 def _assemble(mdot_kgs, target_velocity_ms, angle_deg, major_radius_m, axial_station_m,
-              r_flow, wall_t, feed_pressure_pa, taper_blend=0.0, split=True):
+              r_flow, wall_t, feed_pressure_pa, taper_blend=0.0, split=True,
+              kind=RING_KIND_SPLIT, scroll_dir=1):
     """One ring result dict. `r_flow`/`wall_t` are the INLET (largest) bore and
     wall; with `split` the ring was sized on half the flow (a header ring) and
     tapers by `taper_blend` away from its inlet at `angle_deg`, and the hook's
     `inner_diameter_m` is the FULL-flow feed bore (sqrt(2) x the inlet bore) -
     what a connecting pipe carries. `split=False` (a turnaround collar - no net
-    flow around it) keeps a constant section and inner_diameter_m = its bore."""
+    flow around it) keeps a constant section and inner_diameter_m = its bore.
+    `kind=RING_KIND_SCROLL` (split ignored): a tangentially-fed one-way scroll
+    sized on the FULL flow - inner_diameter_m = the inlet bore, tapering along
+    the flow (direction `scroll_dir`, +1 = increasing angle) to its tail; the
+    hook direction is the ring tangent AGAINST the flow (where the duct leaves)."""
+    scroll = kind == RING_KIND_SCROLL
     k = (wall_t / r_flow) if r_flow > 0 else 0.0
-    blend = taper_blend if split else 0.0
+    blend = taper_blend if (split or scroll) else 0.0
     r_outer = r_flow + wall_t
-    mass_kg = tapered_ring_mass_kg(major_radius_m, r_flow, k, blend)
-    r_min = r_flow * math.sqrt(taper_area_fraction(180.0, blend))
-    r_feed = r_flow * math.sqrt(2.0) if split else r_flow
+    mass_kg = tapered_ring_mass_kg(major_radius_m, r_flow, k, blend,
+                                   kind=RING_KIND_SCROLL if scroll else RING_KIND_SPLIT)
+    if scroll:
+        r_min = r_flow * math.sqrt(scroll_area_fraction(360.0, blend))
+        r_feed = r_flow
+    else:
+        r_min = r_flow * math.sqrt(taper_area_fraction(180.0, blend))
+        r_feed = r_flow * math.sqrt(2.0) if split else r_flow
     angle_rad = math.radians(angle_deg)
+    sd = 1 if scroll_dir >= 0 else -1
+    if scroll:
+        # tangent of increasing angle is (0, -sin, cos); the duct leaves
+        # against the flow
+        attach_dir = (0.0, sd * math.sin(angle_rad), -sd * math.cos(angle_rad))
+    else:
+        attach_dir = (0.0, math.cos(angle_rad), math.sin(angle_rad))
+    extra = {"ring_kind": RING_KIND_SCROLL, "scroll_dir": sd} if scroll else {}
     return {
+        **extra,
         # --- hook point (see HOOK_POINT_FIELDS) ---
         "attach_axial_station_m": axial_station_m,
         "attach_radial_offset_m": major_radius_m,
         "attach_angular_position_deg": angle_deg,
         # Outward unit normal of the manifold wall at the attachment point -
         # a future pipe run approaches along the NEGATIVE of this vector.
-        "attach_direction_xyz": (0.0, math.cos(angle_rad), math.sin(angle_rad)),
+        # (Scroll: the tangent against the flow - the duct's own direction.)
+        "attach_direction_xyz": attach_dir,
         "inner_diameter_m": 2.0 * r_feed,
         "mdot_kgs": mdot_kgs,
         "design_feed_velocity_ms": target_velocity_ms,
@@ -660,6 +738,23 @@ if __name__ == "__main__":
     assert _rot["fuel"]["attach_angular_position_deg"] == 90.0
     assert _rot["ox"]["attach_angular_position_deg"] == 180.0
     assert abs(_rot["total_mass_kg"] - result["total_mass_kg"]) < 1e-9
+
+    # Scroll ring (tangential one-way volute): full-flow inlet = feed bore,
+    # monotone taper along the flow (either handedness), tail on the floor,
+    # blend 0 = the closed-form constant ring, hook direction = the tangent.
+    for _sd in (1, -1):
+        _sc = _assemble(10.0, 20.0, 30.0, 1.0, 0.5, 0.1, 0.002, 1e6, taper_blend=1.0,
+                        kind=RING_KIND_SCROLL, scroll_dir=_sd)
+        assert _sc["ring_kind"] == RING_KIND_SCROLL and _sc["inner_diameter_m"] == 0.2
+        _along = [ring_flow_radius_at(_sc, 30.0 + _sd * a) for a in range(0, 360, 10)]
+        assert all(a >= b for a, b in zip(_along, _along[1:])) and _along[0] == 0.1
+        assert abs(ring_flow_radius_at(_sc, 30.0 - _sd * 1e-6) ** 2 / 0.01
+                   - MANIFOLD_TAPER_MIN_AREA_FRACTION) < 1e-9
+        _t = (0.0, -math.sin(math.radians(30.0)), math.cos(math.radians(30.0)))
+        assert abs(sum(a * b for a, b in zip(_sc["attach_direction_xyz"], _t)) + _sd) < 1e-12
+    assert abs(scroll_area_fraction(180.0, 1.0) - 0.5) < 1e-12
+    assert abs(tapered_ring_mass_kg(0.5, _r, _k, 0.0, kind=RING_KIND_SCROLL)
+               - manifold_ring_mass_kg(0.5, _r, _k * _r)) < 1e-9
 
     # Regression anchor (pinned reference value on this fixed scenario).
     assert abs(result["total_mass_kg"] - 92.57425407529384) / 92.57425407529384 < 1e-9, \

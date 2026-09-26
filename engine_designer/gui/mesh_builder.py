@@ -242,6 +242,39 @@ def ring_mesh_for(ring, inner_edge_r_m, rgb):
         shininess=preview3d_gl_core.HARDWARE_SHININESS)
 
 
+# A scroll's drawn tail stops this many inlet tube diameters short of its own
+# inlet, so the small tail doesn't run into the tangential duct leaving the
+# inlet (a real volute's tongue sits there). Cosmetic - the physics mass still
+# integrates the full 360 deg.
+SCROLL_TAIL_GAP_INLET_DIA_MULT = 1.0
+
+
+def scroll_ring_pieces(ring, inner_edge_r_m, rgb, n_theta_main=_N_THETA):
+    """The drawn tangentially-fed scroll (physics/manifold.py RING_KIND_SCROLL):
+    an open arc from its inlet (attach_angular_position_deg) round the flow
+    direction to a capped tail, inner edge flush on the wall like every ring,
+    each station at the physics taper (manifold.ring_outer_radius_at)."""
+    a0 = float(ring.get("attach_angular_position_deg", 0.0))
+    sd = 1.0 if ring.get("scroll_dir", 1) >= 0 else -1.0
+    r_in = float(ring["outer_radius_m"])
+    gap = np.degrees(2.0 * SCROLL_TAIL_GAP_INLET_DIA_MULT * r_in / max(inner_edge_r_m + r_in, 1e-9))
+    span = sd * (360.0 - min(gap, 90.0))
+    angles = a0 + np.linspace(0.0, span, n_theta_main)
+    tube = np.array([manifold.ring_outer_radius_at(ring, a) for a in angles])
+    return preview3d_gl_core.scroll_manifold_mesh(
+        ring["attach_axial_station_m"], inner_edge_r_m + tube, tube, np.radians(a0),
+        np.radians(span), 12, rgb,
+        specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
+        shininess=preview3d_gl_core.HARDWARE_SHININESS)
+
+
+def ring_pieces_for(ring, inner_edge_r_m, rgb):
+    """ring_mesh_for as a list, dispatching a scroll ring to scroll_ring_pieces."""
+    if manifold.ring_is_scroll(ring):
+        return scroll_ring_pieces(ring, inner_edge_r_m, rgb)
+    return [ring_mesh_for(ring, inner_edge_r_m, rgb)]
+
+
 def ring_render_inner_edge_r(result, ring):
     """_ring_inner_edge_r from a bare compute() result (see
     ring_render_center_r for the cost note)."""
@@ -1078,7 +1111,8 @@ def exhaust_run_root(hardware, edge, angle_deg):
     hk = hardware["exhaust"]
     if edge is None:
         return float(hk["major_radius_m"]), float(hk["outer_radius_m"])
-    return ring_local_render(hk, edge, angle_deg)
+    # a scroll turns so its inlet is wherever the run lands
+    return ring_local_render(manifold.scroll_rotated_to(hk, angle_deg), edge, angle_deg)
 
 
 def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXHAUST_RGB,
@@ -1088,12 +1122,16 @@ def turbine_exhaust_termination_pieces(hardware, edge, n_theta=_N_THETA, rgb=EXH
     outer line back) + its inlet collar, or the overboard exhaust nozzle
     (duct_meshes.exhaust_nozzle_mesh, canted as designed). `angle_deg` (the
     duct run's attach angle) swings the overboard nozzle round the engine axis
-    with its duct root; the rings are axisymmetric and ignore it."""
+    with its duct root, and turns a nozzle-injection scroll's inlet to it (the
+    aspirator collar is axisymmetric and ignores it)."""
     kw = dict(specular_strength=preview3d_gl_core.HARDWARE_SPECULAR_STRENGTH,
               shininess=preview3d_gl_core.HARDWARE_SHININESS)
     mode = hardware["mode"]
     if mode == "nozzle_injection":
-        return [ring_mesh_for(hardware["exhaust"], edge, rgb)]
+        ring = hardware["exhaust"]
+        if angle_deg is not None:
+            ring = manifold.scroll_rotated_to(ring, angle_deg)
+        return ring_pieces_for(ring, edge, rgb)
     if mode == "aspirator":
         a = hardware["aspirator"]
         sec_x = np.concatenate([a["xs"], a["xs"][::-1]])
@@ -1425,11 +1463,15 @@ def build_flow_pieces(result, flow_anchors, body_shell, ext_shell, has_extension
         elif seg.kind == "manifold_ring" and host in rings:
             ring, edge = rings[host]
             ang0 = float(ring.get("attach_angular_position_deg", 0.0))
-            angles = ang0 + np.linspace(0.0, 360.0, 97)
+            # a scroll flows one way round from its inlet
+            sd = -1.0 if manifold.ring_is_scroll(ring) and ring.get("scroll_dir", 1) < 0 else 1.0
+            angles = ang0 + sd * np.linspace(0.0, 360.0, 97)
             rr = np.array([ring_local_render(ring, edge, a)[0] for a in angles])
             tube_r = FLOW_TUBE_BORE_FRACTION * float(ring["outer_radius_m"])
-            loop = preview3d_gl_core.ring_loop_points(ring["attach_axial_station_m"], rr, ang0,
-                                                      n=angles.size)
+            loop = preview3d_gl_core.ring_loop_points(
+                ring["attach_axial_station_m"], rr if sd > 0 else rr[::-1], ang0, n=angles.size)
+            if sd < 0:
+                loop = loop[::-1]
             _advance(seg.propellant, _add(preview3d_gl_core.flow_tube_mesh(
                 loop, seg.t_k[0], tube_r, s_offset_m=s_run[seg.propellant])))
         elif seg.kind == "jacket_pass" and not jacket_drawn:
@@ -2160,6 +2202,24 @@ def self_test():
         _port = _r["turbopump_ports"]["turbine"]["exhaust"]
         assert np.linalg.norm(_res_run["waypoints_xyz"][-1] - _port["pos"]) < 1e-9
         assert (_edge is None) == (_mode == "overboard_duct")
+        if _mode == "nozzle_injection":
+            # a tangential scroll: open arc + tail cap, inlet at the run's angle
+            # (fattest there), the duct leaving along the tangent from its inlet
+            _ring = _hw["exhaust"]
+            assert manifold.ring_is_scroll(_ring) and len(_term) == 2
+            assert abs(_ring["attach_angular_position_deg"] - _run["attach_angle_deg"]) < 1e-9
+            assert _res_run["root_tangential"] and not _res_run["reducers"]
+            _t0 = _res_run["segment_dirs"][0]
+            assert abs(float(np.dot(_t0, _ring["attach_direction_xyz"])) - 1.0) < 1e-9
+            _rr, _rt = exhaust_run_root(_hw, _edge, _run["attach_angle_deg"])
+            assert abs(_rt - _ring["outer_radius_m"]) < 1e-12
+            # the Lab draws the scroll turned to wherever the run is dragged
+            _rot = turbine_exhaust_termination_pieces(_hw, _edge, angle_deg=123.0)
+            _c = _rot[1].vertices.mean(axis=0)   # tail cap: just short of the inlet
+            _tail_ang = np.degrees(np.arctan2(_c[2], _c[1])) % 360.0
+            _gap = np.degrees(2.0 * SCROLL_TAIL_GAP_INLET_DIA_MULT * _ring["outer_radius_m"]
+                              / (_edge + _ring["outer_radius_m"]))
+            assert abs((123.0 - _tail_ang) % 360.0 - _gap) < 0.5, (_tail_ang, _gap)
         if _mode == "overboard_duct":
             # nothing of the nozzle upstream of the hook plane, where the duct's
             # first leg lives (the old inlet collar z-fought with it)

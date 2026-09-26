@@ -133,10 +133,16 @@ def turbopump_and_plumbing(self, s):
         _implicit_te = plumbing.run_to_dict(_seed)
         s.te_hardware["implicit_run"] = _implicit_te
         _run_dicts.append(_implicit_te)
+    _scroll_turned = False
     for _run_dict in _run_dicts:
         _run = plumbing.run_from_dict(_run_dict)
         _te_run = _run.host == "turbine_exhaust"
         _hook = plumbing.hook_for_host(_plumbing_hooks, _run.host)
+        if _te_run and manifold.ring_is_scroll(_hook) and not _scroll_turned:
+            # a scroll's inlet is wherever its (first) duct run lands
+            _hook = manifold.scroll_rotated_to(_hook, _run.attach_angle_deg)
+            s.te_hardware["exhaust"] = s.te_hardware["manifold"] = _hook
+            _scroll_turned = True
         if _hook is None:
             _check(s.checklist, s.warnings, "plumbing", f"Plumbing run on '{_run.host}'", False,
                    f"Plumbing run rooted on '{_run.host}' has no such manifold ring in this "
@@ -185,6 +191,9 @@ def turbopump_and_plumbing(self, s):
                                  "pipe_dias_m": [2.0 * r for r in _res["pipe_radii_m"]],
                                  "pipe_velocities_ms": list(_res["pipe_velocities_ms"]),
                                  "total_length_m": _res["total_length_m"],
+                                 "root_tangential": _res["root_tangential"],
+                                 "root_reducer": any(rd["pipe_index"] == 0
+                                                     for rd in _res["reducers"]),
                                  "mass_kg": _m_total, "pipe_mass_kg": _m_pipe,
                                  "flange_mass_kg": _m_flange,
                                  "n_flanges": sum(1 for j in _res["joint_frames"] if j["flange"]),

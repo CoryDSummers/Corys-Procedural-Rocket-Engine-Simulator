@@ -281,6 +281,61 @@ def manifold_ring_mesh(x0_m, center_r_m, tube_r_m, n_theta_main, n_theta_tube, b
     return mesh_from_grid(X, Y, Z, base_color_rgb, normals=normals_flat,
                            specular_strength=specular_strength, shininess=shininess)
 
+def scroll_manifold_mesh(x0_m, center_r_m, tube_r_m, u_start_rad, u_span_rad, n_theta_tube,
+                         base_color_rgb, cap_tail=True, specular_strength=0.0, shininess=32.0):
+    """
+    An OPEN arc of a torus swept round the main engine axis - a tangentially-
+    fed scroll manifold (physics/manifold.py RING_KIND_SCROLL): the tube runs
+    from its inlet at u_start_rad through u_span_rad (negative = the other
+    way round) to its tail. `center_r_m` / `tube_r_m` are arrays, one value per
+    station u = u_start + linspace(0, u_span, n) (n = their length), same
+    geometry convention as manifold_ring_mesh (u = 0 is +y). The inlet face is
+    left OPEN (the duct run's own swept body starts there); the tail gets a
+    flat disk (cap_tail). Normals from the exact surface tangents, with
+    one-sided differences at the two ends (no periodic seam). Returns a list
+    of MeshBuffers: [body] or [body, tail_cap].
+    """
+    ctr = np.asarray(center_r_m, dtype=float)
+    tube = np.asarray(tube_r_m, dtype=float)
+    n_main = ctr.shape[0]
+    u = float(u_start_rad) + np.linspace(0.0, float(u_span_rad), n_main)
+    v = np.linspace(0.0, 2.0 * np.pi, n_theta_tube)
+    U, V = np.meshgrid(u, v, indexing="ij")
+    Rt = tube[:, None]
+    Rc = ctr[:, None]
+    R = Rc + Rt * np.cos(V)
+    X = x0_m + Rt * np.sin(V)
+    Y = R * np.cos(U)
+    Z = R * np.sin(U)
+    d_rt = np.gradient(tube, u)[:, None]
+    d_rc = np.gradient(ctr, u)[:, None]
+    dR_du = d_rc + d_rt * np.cos(V)
+    Pu = np.stack([d_rt * np.sin(V),
+                   dR_du * np.cos(U) - R * np.sin(U),
+                   dR_du * np.sin(U) + R * np.cos(U)], axis=-1)
+    Pv = np.stack([Rt * np.cos(V), -Rt * np.sin(V) * np.cos(U), -Rt * np.sin(V) * np.sin(U)],
+                  axis=-1)
+    nrm = np.cross(Pu, Pv)
+    nrm /= np.maximum(np.linalg.norm(nrm, axis=-1, keepdims=True), 1e-15)
+    n0 = np.stack([np.sin(V), np.cos(V) * np.cos(U), np.cos(V) * np.sin(U)], axis=-1)
+    nrm = np.where(np.sum(nrm * n0, axis=-1, keepdims=True) < 0.0, -nrm, nrm)
+    body = mesh_from_grid(X, Y, Z, base_color_rgb, normals=nrm.reshape(-1, 3).astype(np.float32),
+                          specular_strength=specular_strength, shininess=shininess)
+    if u_span_rad < 0.0:
+        body.indices = body.indices[:, [0, 2, 1]]   # reversed sweep flips the grid's winding
+    pieces = [body]
+    if cap_tail:
+        ue = u[-1]
+        radial = np.array([0.0, np.cos(ue), np.sin(ue)])
+        onward = np.sign(u_span_rad or 1.0) * np.array([0.0, -np.sin(ue), np.cos(ue)])
+        centre = np.array([x0_m, 0.0, 0.0]) + ctr[-1] * radial
+        # (normal, binormal) = (radial, +x) matches the body's v parameterisation
+        pieces.append(_tube_end_disk(centre, radial, np.array([1.0, 0.0, 0.0]), onward,
+                                     float(tube[-1]), n_theta_tube, base_color_rgb,
+                                     facing_sign=1.0, specular_strength=specular_strength,
+                                     shininess=shininess))
+    return pieces
+
 def tilted_flange_mesh(base_xs_m, base_rs_m, normal, height_m,
                         n_theta, base_color_rgb, specular_strength=0.0, shininess=32.0):
     """
@@ -860,6 +915,47 @@ def self_test():
             ec_t[(min(e), max(e))] = ec_t.get((min(e), max(e)), 0) + 1
     assert ec_t and all(v == 2 for v in ec_t.values())
     print("manifold_ring_mesh tapered self-check: OK")
+
+    # --- scroll_manifold_mesh (a tangentially-fed one-way scroll, either
+    # handedness): every body vertex sits its station's tube radius from its
+    # station's centre, normals unit + outward, winding outward, the tail cap
+    # closes the tail exactly (shared rim) so the ONLY open edges are the inlet
+    # rim, and that rim sits at u_start.
+    for span in (2 * np.pi * 0.97, -2 * np.pi * 0.97):
+        u0 = 0.4
+        us = u0 + np.linspace(0.0, span, n_main)
+        tube_s = 0.12 * np.sqrt(np.maximum(1.0 - np.linspace(0.0, 1.0, n_main), 0.15))
+        ctr_s = 1.0 + tube_s
+        body_s, cap_s = scroll_manifold_mesh(x0_ring, ctr_s, tube_s, u0, span, n_tube,
+                                             (0.55, 0.55, 0.55))
+        cen_s = np.stack([np.full(n_main * n_tube, x0_ring),
+                          np.repeat(ctr_s, n_tube) * np.cos(np.repeat(us, n_tube)),
+                          np.repeat(ctr_s, n_tube) * np.sin(np.repeat(us, n_tube))], axis=1)
+        d_s = body_s.vertices - cen_s
+        assert np.allclose(np.linalg.norm(d_s, axis=1), np.repeat(tube_s, n_tube), atol=1e-6)
+        assert np.allclose(np.linalg.norm(body_s.normals, axis=1), 1.0, atol=1e-6)
+        assert np.all(np.sum(d_s / np.repeat(tube_s, n_tube)[:, None] * body_s.normals, axis=1)
+                      > 0.9)
+        tr = body_s.indices
+        p0, p1, p2 = (body_s.vertices[tr[:, i]] for i in range(3))
+        assert np.all(np.sum(np.cross(p1 - p0, p2 - p0) * ((p0 + p1 + p2) / 3.0 - cen_s[tr[:, 0]]),
+                             axis=1) > 0.0)
+        verts = np.vstack([body_s.vertices, cap_s.vertices]).astype(np.float64)
+        tris = np.vstack([body_s.indices, cap_s.indices + body_s.vertices.shape[0]])
+        _, inv_s = np.unique(np.round(verts, 6), axis=0, return_inverse=True)
+        ec_s = {}
+        for a, b, c in inv_s.ravel()[tris]:
+            if a == b or b == c or c == a:
+                continue                                  # the cap fan's degenerate centre
+            for e in ((a, b), (b, c), (c, a)):
+                ec_s[(min(e), max(e))] = ec_s.get((min(e), max(e)), 0) + 1
+        open_edges = [e for e, k in ec_s.items() if k == 1]
+        assert all(k in (1, 2) for k in ec_s.values()) and len(open_edges) == n_tube - 1
+        inlet_ids = set(inv_s.ravel()[:n_tube])            # station 0 = the inlet rim
+        assert all(a in inlet_ids and b in inlet_ids for a, b in open_edges)
+        onward = np.sign(span) * np.array([0.0, -np.sin(us[-1]), np.cos(us[-1])])
+        assert np.all(cap_s.normals @ onward > 0.99)
+    print("scroll_manifold_mesh self-check: OK")
 
     # --- manifold_ring_mesh, called twice at the two AXIAL stations and
     # independent radii physics/manifold.py's placement formula produces

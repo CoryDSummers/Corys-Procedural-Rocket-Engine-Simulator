@@ -436,7 +436,12 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 14  # 14 (2026-09-25): nozzle_liner_thickness_m REMOVED - the liner's
+    SCHEMA_VERSION = 15  # 15 (2026-09-25): plumbing runs gained root_mode ("auto" |
+                         # "surface" | "tangential"); the nozzle-injection exhaust manifold
+                         # is a tangentially-fed scroll. A pre-15 turbine_exhaust run (no
+                         # root_mode key) is migrated to "surface" in from_dict - its radial
+                         # T is kept (with a warn-only advisory).
+                         # 14 (2026-09-25): nozzle_liner_thickness_m REMOVED - the liner's
                          # thickness is now computed, not an input. A v12/v13 file's stored
                          # value is dropped by from_dict (unknown key); a file that named a
                          # liner material now gets it at the computed thickness.
@@ -518,6 +523,16 @@ class EngineDesign:
                     float(payload.get("nozzle_film_fraction", 0.0) or 0.0), _ref)
                 payload.setdefault("nozzle_film_inject_eps",
                                    float(payload.get("cooling_transition_eps", 6.0)))
+        # Schema 14 -> 15: the nozzle-injection exhaust manifold became a
+        # tangentially-fed scroll, and runs gained root_mode ("auto" roots a
+        # turbine_exhaust run tangentially on it). A run saved before that (no
+        # root_mode key) keeps the radial T it was drawn and routed with.
+        if payload.get("plumbing_runs"):
+            payload["plumbing_runs"] = [
+                (dict(r, root_mode="surface")
+                 if isinstance(r, dict) and r.get("host") == "turbine_exhaust"
+                 and "root_mode" not in r else r)
+                for r in payload["plumbing_runs"]]
         known = {f.name for f in dataclasses.fields(cls)}
         return cls(**{k: v for k, v in payload.items() if k in known})
 

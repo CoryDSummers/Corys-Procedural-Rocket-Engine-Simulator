@@ -403,7 +403,19 @@ HX_MASS_SHELL_MULT = 2.0
 # as the overall envelope above).
 HX_CAN_INLET_DUCT_MULT = 1.5
 HX_CAN_OUTLET_DUCT_MULT = 0.9
-INJECTION_MANIFOLD_TAPER_BLEND = 0.5
+# Nozzle-injection manifold = a SCROLL (manifold.RING_KIND_SCROLL): the real
+# F-1 / J-2 exhaust ducts run TANGENTIALLY into a one-way torus "of decreasing
+# (from inlet to exit) cross-sectional area" [F1-Man §1-18; F-1 thrust-chamber
+# photo, enginehistory.org RPE 8.12; J-2 photo, Science Museum 1977-0402],
+# sized on the FULL exhaust flow at its inlet (the F-1's inlet = the 24 in
+# heat-exchanger manifold end [F1-Man §1-72]). Constant-velocity taper
+# (blend 1: area follows the flow still in the torus - the classic volute law,
+# Cory's call 2026-09-25; the photos read close to it), floored at
+# manifold.MANIFOLD_TAPER_MIN_AREA_FRACTION. Handedness fixed (+1 = flow
+# toward increasing angle) - Tier 3, no physics depends on it. Replaces the
+# retired T-split header at INJECTION_MANIFOLD_TAPER_BLEND 0.5.
+EXHAUST_SCROLL_TAPER_BLEND = 1.0
+EXHAUST_SCROLL_DIR = 1
 # Aspirator annulus at its forward (inlet) end is sized for the duct velocity;
 # it narrows linearly to the choked exit slot.
 
@@ -476,21 +488,25 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
     out = dict(mode=mode, duct=duct, material=EXHAUST_HARDWARE_MATERIAL, manifold=None,
                aspirator=None, outlet=None, hx=None, mass_kg=0.0)
 
-    def _ring(x, r_wall, v, taper_blend=0.0):
-        r_flow = manifold.required_flow_radius_m(0.5 * mdot, duct["rho_kg_m3"], v)
+    def _ring(x, r_wall, v, taper_blend=0.0, scroll=False):
+        # a scroll carries the FULL flow at its inlet; a split header half
+        r_flow = manifold.required_flow_radius_m((1.0 if scroll else 0.5) * mdot,
+                                                 duct["rho_kg_m3"], v)
         wall = max(manifold.manifold_wall_thickness_m(p_out, r_flow, mat.allowable_stress_pa),
                    EXHAUST_SHEET_MIN_GAUGE_M)
-        ring = manifold._assemble(mdot, v, attach_angle_deg, r_wall + r_flow + wall, x,
-                                  r_flow, wall, p_out, taper_blend=taper_blend, split=True)
+        ring = manifold._assemble(
+            mdot, v, attach_angle_deg, r_wall + r_flow + wall, x, r_flow, wall, p_out,
+            taper_blend=taper_blend, split=True,
+            kind=manifold.RING_KIND_SCROLL if scroll else manifold.RING_KIND_SPLIT,
+            scroll_dir=EXHAUST_SCROLL_DIR)
         ring["mass_kg"] *= rho_scale
         return ring
 
     if mode == "nozzle_injection":
         i = _station_at_eps(xs, rs, rt, inject_eps)
-        # the F-1 torus narrows from its inlet round the engine [F1-Man
-        # §1-18]; half-way between constant area and constant velocity, the
-        # SP-8087 "between the two" convention the fuel/ox rings use
-        ring = _ring(xs[i], rs[i], duct["velocity_ms"], taper_blend=INJECTION_MANIFOLD_TAPER_BLEND)
+        # tangentially-fed one-way scroll (see EXHAUST_SCROLL_TAPER_BLEND)
+        ring = _ring(xs[i], rs[i], duct["velocity_ms"], taper_blend=EXHAUST_SCROLL_TAPER_BLEND,
+                     scroll=True)
         out["manifold"] = out["exhaust"] = ring
         out["mass_kg"] += ring["mass_kg"]
     elif mode == "aspirator":
@@ -715,13 +731,19 @@ def _self_test():
     inj_r = hw["nozzle_injection"]["manifold"]
     asp = hw["aspirator"]["aspirator"]
     outl = hw["overboard_duct"]["outlet"]
+    from . import manifold as _mf
     c6 = (inj_r is not None and inj_r["major_radius_m"] > inj_r["flow_radius_m"]
+          # a full-flow tangential scroll: inlet bore = the duct bore, tapering
+          and _mf.ring_is_scroll(inj_r)
+          and abs(inj_r["inner_diameter_m"] - hw["nozzle_injection"]["duct"]["dia_m"]) < 1e-9
+          and abs(2.0 * inj_r["inlet_flow_radius_m"] - inj_r["inner_diameter_m"]) < 1e-12
+          and inj_r["min_flow_radius_m"] < inj_r["inlet_flow_radius_m"]
           and abs(asp["r_inner"][-1] - re_ - asp["gap_exit_m"]) < 1e-9
           and asp["annulus_inlet_m"] >= asp["gap_exit_m"]
           and outl["exit_dia_m"] > outl["throat_dia_m"]
           and hw["overboard_duct"]["exhaust"]["point_hook"]
           and all(h["mass_kg"] > 0 and h["duct"]["dia_m"] > 0 for h in hw.values()))
-    print(f"  (6) hardware: duct {hw['aspirator']['duct']['dia_m']*1e3:.0f} mm; injection ring "
+    print(f"  (6) hardware: duct {hw['aspirator']['duct']['dia_m']*1e3:.0f} mm; injection scroll "
           f"{inj_r['flow_radius_m']*1e3:.0f} mm bore; aspirator {asp['annulus_inlet_m']*1e3:.0f} -> "
           f"{asp['gap_exit_m']*1e3:.1f} mm annulus; outlet {outl['throat_dia_m']*1e3:.0f} -> "
           f"{outl['exit_dia_m']*1e3:.0f} mm  [{'OK' if c6 else 'FAIL'}]")

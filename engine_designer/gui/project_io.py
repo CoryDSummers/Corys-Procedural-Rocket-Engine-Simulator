@@ -140,6 +140,17 @@ if __name__ == "__main__":
     assert old_v13.nozzle_liner_material_key == "zirconia"
     assert not hasattr(old_v13, "nozzle_liner_thickness_m")
     assert EngineDesign().to_dict()["schema_version"] >= 14
+    # A schema-14 file's turbine_exhaust run (no root_mode - saved before the
+    # injection manifold became a tangential scroll) keeps its radial T
+    # (schema 15); other hosts' runs are untouched (their "auto" = surface).
+    old_v14 = EngineDesign.from_dict({"schema_version": 14, "design": {
+        "plumbing_runs": [{"host": "turbine_exhaust", "role": "turbine_exhaust_manifold",
+                           "pipes": []},
+                          {"host": "jacket_inlet", "pipes": []}]}})
+    assert old_v14.plumbing_runs[0]["root_mode"] == "surface"
+    assert "root_mode" not in old_v14.plumbing_runs[1]
+    assert plumbing.run_from_dict(old_v14.plumbing_runs[1]).root_mode == "auto"
+    assert EngineDesign().to_dict()["schema_version"] >= 15
     loaded = json.loads(json.dumps(d.to_dict()))
     rebuilt = EngineDesign.from_dict(loaded)
     assert rebuilt.plumbing_runs == d.plumbing_runs

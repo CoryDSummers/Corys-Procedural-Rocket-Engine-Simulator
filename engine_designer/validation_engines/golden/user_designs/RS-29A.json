@@ -4524,6 +4524,8 @@
 }
 },
 "role": "turbine_exhaust_manifold",
+"root_reducer": false,
+"root_tangential": false,
 "total_length_m": {
 "__f__": "2.342179523630866"
 }
@@ -5505,7 +5507,8 @@
 "port_standoff_dia_mult": {
 "__f__": "2.5"
 },
-"role": "turbine_exhaust_manifold"
+"role": "turbine_exhaust_manifold",
+"root_mode": "auto"
 },
 "manifold": null,
 "mass_kg": {
