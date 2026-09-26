@@ -8,8 +8,8 @@ Branch: `turbopump/round-2`, cut from `turbopump/round-1` @ 70d09f6 (stacked). D
 `turbopump/round-1`. It is not merged until Cory has tested it, and not before PRs #18 and #19.
 
 ## Status
-- [ ] C0: this document + draft PR
-- [ ] C1: literature (SP-8109 §2.3.1/§2.4/§3.3-3.4 + Table I, Huzel §6.3-6.4, SP-8125 blade design, pump discharge-T anchors)
+- [x] C0: this document + draft PR (513e7e1, PR #20)
+- [x] C1: literature (SP-8109 §2.3.1/§2.4/§3.3-3.4 + Table I, Huzel §6.3-6.4, SP-8125 blade design, pump discharge-T anchors)
 - [ ] C2: `physics/turbopump_intent.py` + `physics/pump_meanline.py` (pure, self-tests; corpus bit-identical)
 - [ ] C3: meanline + intent wired into sizing, schema 17, PUMP MEANLINE validate banner, corpus report + snapshot
 - [ ] C4: pump heating → jacket inlet (`coolant_inlet_model`, second pass), anchors, corpus report + snapshot

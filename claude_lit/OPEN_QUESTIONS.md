@@ -345,9 +345,9 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   (3.0× water/RP-1, 2.3× LOX/LF2, 1.3× LH2, all ×`cm1²/2g`) with no counterpart in
   `turbopump_sizing.py` yet. `lh2_class: 58_000.0` still rests on the older F-1/J-2
   two-anchor-point derivation, not this source — only the `lox_class` seed is directly
-  confirmed. Real fleet Ss data (8,600-23,400 across F-1/J-2/Atlas/X-8) sits well below the
-  40,000 ceiling — don't calibrate a future validate.py check against 40,000 as if it were a
-  typical value; it's an upper design bound.
+  confirmed. (The "real fleet Ss 8,600-23,400" once quoted here was a misreading of SP-8109
+  Fig. 5's tip diameters, corrected 2026-09-26. Real suction anchors are `[SP-8107 Table II]`,
+  used by Round 1's `physics/inducer.py`.)
 - **`turbopump_materials.py` `BEARING_MATERIALS.max_dn_mm_rpm`** (~1.2M-2.4M, previously
   flagged Tier-3 with no citation at all): now has a real blanket citation, `[SP-8048
   §3.1.2]` — one-piece cages required above 1.0×10⁶ DN, angular-contact ball bearings

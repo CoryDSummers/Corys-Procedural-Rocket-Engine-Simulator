@@ -265,6 +265,27 @@ architecture.
   control mechanism (an inverted standpipe with six small exit holes) not previously in this
   reference set.
 
+**Pump station temperatures: the pump-heating anchors** (turbopump Round 2, 2026-09-26).
+- Source: the Block IIA flow schematic `[p.19]` (PDF leaf 25, 1-based), 104.5 % RPL. The pump
+  KPP tables are at `[p.59, p.67]`.
+- Station labels were cross-checked against the rendered drawing.
+
+| Pump | Fluid | Inlet | Discharge | ΔT | ΔP |
+|---|---|---|---|---|---|
+| LPFTP | LH2 | −423 °F (20.4 K), 30 psia | −417 °F (23.7 K), 298 psia | +3.3 K | 268 psi |
+| HPFTP | LH2 | −417 °F (23.7 K), 298 psia | **−367 °F (51.5 K), 5,956 psia** | **+27.8 K** | 5,658 psi |
+| LPOTP | LOX | −297 °F (90.4 K), 100 psia | ≈ −295 °F (derived; the duct after the turbine-drive LOX mixes in reads −291 °F / 93.7 K at 421 psia) | ≈ +1.5 K | ≈ 320 psi |
+| HPOTP main | LOX | −291 °F (93.7 K), 421 psia | −272 °F (104.3 K), 4,025 psia | +10.6 K | ≈ 3,600 psi |
+| HPOTP preburner boost | LOX | −272 °F | −258 °F (112.0 K), 6,939 psia | +7.7 K | ≈ 2,900 psi |
+
+- The MCC coolant inlet (HPFTP discharge after the MFV) is **−366 °F (52.0 K)** at 5,647 psia
+  `[p.45]`.
+- HPFTP pump η is 0.750 `[p.67]`.
+- The HPFTP's 28 K rise is LH2 isentropic compression heating plus (1−η)·Δh loss heating. This
+  is the one hard high-pressure LH2 pump-heating anchor in the reference set.
+- `[SP-8107 p.14]` notes that the heating effect is small for 1,000-1,250 psia H2 pumps (RL10,
+  J-2) and "very significant" for 6,000 psi pumps.
+
 ## Design method
 
 Not a sizing/correlation source — no closed-form equations, only real as-flown-hardware
