@@ -34,6 +34,8 @@ MODULES=(
   engine_designer.physics.turbopump_materials
   engine_designer.physics.turbopump_efficiency
   engine_designer.physics.inducer             # suction: Brumfield / NPSHr / TSH vs SP-8107 Table II
+  engine_designer.physics.turbopump_intent    # directional pump design intent -> parameters (0 = Round 1)
+  engine_designer.physics.pump_meanline       # centrifugal/axial meanline vs SP-8109 / SP-8125 / real pumps
   engine_designer.physics.turbopump_sizing
   engine_designer.physics.validate
   engine_designer.physics.flow_network

@@ -201,11 +201,14 @@ class SuctionSpec:
     has_inducer: bool = True
 
 
-def make_spec(propellant, leg, t_k, npsh_available_ft, *, has_inducer=True):
+def make_spec(propellant, leg, t_k, npsh_available_ft, *, has_inducer=True,
+              k=DESIGN_CAVITATION_NUMBER):
     """The computed-model spec for one pump leg ("fuel"/"ox") pumping
-    `propellant` at inlet temperature t_k with the given NPSH available (ft)."""
-    phi = brumfield_phi_opt(DESIGN_CAVITATION_NUMBER)
-    ss = design_suction_specific_speed(leg) if has_inducer else SS_NO_INDUCER
+    `propellant` at inlet temperature t_k with the given NPSH available (ft).
+    `k` = the inducer blade cavitation number (turbopump Round 2's suction-
+    aggressiveness intent; the default is the calibrated design value)."""
+    phi = brumfield_phi_opt(k)
+    ss = design_suction_specific_speed(leg, k=k) if has_inducer else SS_NO_INDUCER
     return SuctionSpec(npsh_available_ft=float(npsh_available_ft), ss_water=ss,
                        tsh_ft=thermodynamic_suppression_head_ft(propellant, t_k),
                        z_min=z_min(propellant), phi=phi, nu=HUB_TIP_RATIO,
