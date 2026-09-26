@@ -5,7 +5,7 @@ between stages lives on the PassState `s` (see design/state.py)."""
 import numpy as np
 
 from .. import (combustion, cycles, electric_pump, gimbal, ignition, injectors,
-                manifold, mass_model, materials)
+                manifold, mass_model, materials, turbopump_intent)
 from .constants import (
     PA_SEA_LEVEL,
     LINE_LOSS_PA,
@@ -327,6 +327,11 @@ def checks_and_result(self, s):
         "suction_model": self.suction_model,
         "suction": s.suction,
         "pump_inlet_pa": dict(s.pump_inlet_pa),
+        # pump hydraulics + design intent (turbopump Round 2); the per-pump meanline
+        # lives in turbopump_sizing.{fuel,ox}_pump["meanline"]
+        "pump_model": getattr(self, "pump_model", "meanline"),
+        "pump_intent": (dict(vars(s.pump_intent), readout=turbopump_intent.readout_lines(s.pump_intent))
+                        if getattr(s, "pump_intent", None) is not None else {}),
         "line_loss_computed": s.line_loss_computed,
         "line_loss_residual_pa": 0.0,
         "plumbing_mass_kg": s.plumbing_mass_kg,

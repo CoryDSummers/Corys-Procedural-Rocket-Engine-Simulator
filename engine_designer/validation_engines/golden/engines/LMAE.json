@@ -2547,6 +2547,7 @@
 "__f__": "20.0"
 },
 "cycle": "pressure_fed",
+"diffuser_type": "auto",
 "dump_coolant_fraction": {
 "__f__": "0.0"
 },
@@ -2595,6 +2596,7 @@
 "impingement_angle_deg": {
 "__f__": "30.0"
 },
+"inducer_mode": "auto",
 "injector_baffles": false,
 "injector_stiffness": "nominal",
 "injector_type": "impinging",
@@ -2662,11 +2664,20 @@
 "propellant_temp_ox_k": {
 "__f__": "0.0"
 },
+"pump_head_curve": {
+"__f__": "0.0"
+},
+"pump_model": "meanline",
+"pump_priority": {
+"__f__": "0.0"
+},
 "pump_specific_power_w_kg": {
 "__f__": "36000.0"
 },
 "pump_stages_fuel": 0,
 "pump_stages_ox": 0,
+"pump_type_fuel": "auto",
+"pump_type_ox": "auto",
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -2684,6 +2695,9 @@
 },
 "suction_accel_g": {
 "__f__": "1.0"
+},
+"suction_aggressiveness": {
+"__f__": "0.0"
 },
 "suction_head_fuel_m": {
 "__f__": "0.0"
@@ -2707,6 +2721,9 @@
 "tech_node": "",
 "throttle_floor": {
 "__f__": "0.6"
+},
+"tip_speed_aggressiveness": {
+"__f__": "0.0"
 },
 "tube_hatband_count": 0,
 "tube_hatband_material": "inconel_718",
@@ -3374,6 +3391,47 @@
 "__f__": "300000.0"
 }
 },
+"pump_intent": {
+"beta2_deg": {
+"__f__": "25.0"
+},
+"cavitation_number": {
+"__f__": "0.0145"
+},
+"diffuser": "auto",
+"head_curve": {
+"__f__": "0.0"
+},
+"inducer": true,
+"ns_target_us": {
+"__f__": "2200.0"
+},
+"priority": {
+"__f__": "0.0"
+},
+"psi": {
+"__f__": "0.5"
+},
+"pump_type_fuel": "centrifugal",
+"pump_type_ox": "centrifugal",
+"readout": [
+"Efficient<->Compact: neutral -> stage Ns 2,200, psi 0.50",
+"Stable<->Max head: neutral -> beta2 25.0 deg",
+"Suction: neutral -> inducer K 0.0145",
+"Tip speed: neutral -> 85% of material limit",
+"Diffuser: auto; pump type fuel centrifugal / ox centrifugal"
+],
+"suction": {
+"__f__": "0.0"
+},
+"tip_speed": {
+"__f__": "0.0"
+},
+"tip_speed_fraction": {
+"__f__": "0.85"
+}
+},
+"pump_model": "meanline",
 "rated_burn_time_s": {
 "__f__": "200.0"
 },

@@ -424,6 +424,21 @@ class EngineDesign:
     # discharge) is charged to the main pump (design/suction_stage.py).
     boost_pump_rise_fuel_pa: float = 0.0
     boost_pump_rise_ox_pa: float = 0.0
+    # --- pump hydraulics + directional design intent (turbopump Round 2,
+    # physics/pump_meanline.py, physics/turbopump_intent.py) ---
+    # "meanline" (default): each pump's efficiency from velocity triangles + a loss
+    # build-up, geometry steered by the intent sliders below. "correlation": the
+    # Round 1 Ns-bell efficiency, intent ignored - bit-identical to before.
+    pump_model: str = "meanline"
+    # Intent sliders, -1 .. +1, 0 = the Round 1 constants exactly:
+    pump_priority: float = 0.0            # efficient (-1) <-> compact (+1): Ns target + psi
+    pump_head_curve: float = 0.0          # stable/throttleable (-1) <-> max head (+1): beta2
+    suction_aggressiveness: float = 0.0   # conservative (-1) <-> aggressive (+1): inducer K
+    tip_speed_aggressiveness: float = 0.0  # stress margin (-1) <-> max tip speed (+1)
+    inducer_mode: str = "auto"            # auto | on | off (off = no-inducer Ss 12,000)
+    diffuser_type: str = "auto"           # auto | volute | vaned
+    pump_type_fuel: str = "auto"          # auto (= centrifugal) | centrifugal | axial
+    pump_type_ox: str = "auto"
     # Staged-combustion preburner temperatures (K) - DESIGN INPUTS; the turbine
     # PR is solved from them (physics/staged_combustion.solve_staged_power_balance).
     # 0 = the pair default (staged_combustion.PREBURNER_GAS_PROPERTIES /
@@ -464,7 +479,13 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 16  # 16 (2026-09-26): pump-suction inputs added (suction_model,
+    SCHEMA_VERSION = 17  # 17 (2026-09-26): pump hydraulics + design intent (pump_model,
+                         # pump_priority, pump_head_curve, suction_aggressiveness,
+                         # tip_speed_aggressiveness, inducer_mode, diffuser_type,
+                         # pump_type_fuel/ox) - no key migration; an older file takes the
+                         # defaults, i.e. the MEANLINE efficiency at neutral intent (same
+                         # rotor speeds/diameters); pump_model "correlation" = Round 1.
+                         # 16 (2026-09-26): pump-suction inputs added (suction_model,
                          # tank_pressure_*, propellant_temp_*, suction_head_*, suction_accel_g,
                          # suction_line_length_m, boost_pump_rise_*) - no key migration; an
                          # older file takes the defaults, i.e. the COMPUTED suction model
@@ -658,6 +679,7 @@ class EngineDesign:
         feed_stage.injector_and_cooling_routing(self, s)
         cooling_stage.thermal(self, s)             # unified thermal solve, before the pumps
         suction_stage.pump_suction(self, s)        # tank -> line -> boost -> NPSH available
+        suction_stage.pump_hydraulics(self, s)     # design intent -> meanline specs
         feed_stage.turbomachinery_cycle(self, s)
         geometry_stage.chamber_detail(self, s)
         cooling_stage.thermal_reporting(self, s)

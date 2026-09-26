@@ -29,7 +29,9 @@ Also returns an approximate H-Q curve (a sketch, labelled so - maps are Round 5)
 and the geometry the Turbopump Detail tab draws. Pure module (math only); run
 `python3 -m engine_designer.physics.pump_meanline` for the self-test + fit.
 """
+import functools
 import math
+from dataclasses import dataclass
 
 G = 9.80665
 _FT = 0.3048
@@ -40,6 +42,15 @@ _GPM_TO_M3S = 6.30902e-5
 X_L = 0.25                 # eq. 17 axial-length ratio; with ETA_H 0.82 reproduces Fig. 16
                            # (Round 2 fit of SP-8109's own carpet; Tier 2)
 DELTA_DEFAULT = 0.65       # Dt1/Dt2 when no inducer diameter is given (Fig. 16 basis)
+DELTA_MAX = 0.80           # impeller eye range: fleet Dt1/Dt2 0.44-0.81 [SP-8109 Figs. 5, 13]; a
+DELTA_MIN = 0.40           # larger inducer tapers down to it (Huzel SC 6-7's tapered inducer)
+DELTA_FLEET_AT_1570 = 0.69  # fleet_delta(): J-2 LOX at Ns 1570 [SP-8109 Fig. 5]
+DELTA_FLEET_EXP = 0.45      # fitted on the Fig. 5 fleet points (Tier 2)
+SS_FLEET_REF = 38_000.0     # the fleet's design Ss (F-1 LOX ~38k, J-2 LOX ~42k at NPSH_min
+                            # [SP-8107 Table II])
+DELTA_SS_EXP = 0.32         # delta ~ Ss^0.32 from SP-8109 Fig. 8 (0.45 @ 10k, 0.70 @ 40k)
+CM2_OVER_CM1_MIN = 1.0     # discharge meridional velocity 1-1.5 x the inlet [SP-8109 §3.3.1.2]
+Z_CAP_MIN = 12             # auto blade count may rise to max(12, 28 sin beta2)
 INLET_HUB_RATIO = 0.30     # impeller eye hub/tip (= inducer.HUB_TIP_RATIO)
 EPS1 = 0.85                # inlet contraction factor [Huzel eq. 6-42: 0.75-0.9]
 EPS2 = 0.90                # discharge contraction factor [Huzel eq. 6-43: 0.85-0.95]
@@ -60,19 +71,21 @@ ZETA_DIFFUSER = {"volute": 0.30,       # fraction of c2^2/2g NOT recovered: Huze
                  "vaned": 0.20,        # the flow KE converted" [p.220]; vaned better [SP-8109
                  "crossover": 0.35}    # p.20, +3 % at Ns 1200]; interstage crossover worst (Tier 2)
 SEAL_C_OVER_D2 = 0.0005    # wear-ring clearance [SP-8109 §2.3.1.4 p.34]
-SEAL_C_MIN_M = 0.003 * _IN  # Tier 3 floor: 0.0005 D2 is unbuildable on a 1-in impeller
+SEAL_C_MIN_M = 0.006 * _IN  # Tier 3 floor: 0.0005 D2 is unbuildable on a small impeller; fitted
+                           # so the size effect follows SP-8109 Fig. 6 (small pumps leak more)
 SEAL_K = 0.5               # leak coefficient, middle of Fig. 22's 0.25-0.7 [SP-8109 p.36]
 SEAL_HEAD_FRACTION = 0.75  # wear-ring dP ~ 0.75 x stage head [Huzel eq. 6-76]
 DISK_CM_COEFF = 0.0622     # C_M = 0.0622 Re^-0.2 (both faces), Daily-Nece-type turbulent
                            # enclosed disk - Tier 3, no coefficient in the reference set
-MECH_LOSS_AT_1IN = 0.20    # seal+bearing power: up to 20 % at 1 in, negligible at >= 10 in
+MECH_LOSS_AT_1IN = 0.15    # seal+bearing power: "may be as high as 20 %" at 1 in (an upper
+                           # bound; 15 % nominal), negligible at >= 10 in
 MECH_LOSS_EXPONENT = 1.3   #   [SP-8109 §2.2 p.8] -> 1 % at 10 in (Tier 2)
 # SP-8109 Fig. 9 efficiency penalty (points) vs design Ss (water), per stage Ns:
 # (Ns, points at Ss 10,000, points per decade of Ss) - read from Fig. 9 (straight in log Ss)
 SS_PENALTY_TABLE = ((500.0, 0.05, 1.6), (1000.0, 0.2, 3.1), (2000.0, 0.4, 6.0),
                     (3000.0, 1.0, 8.5), (4000.0, 1.3, 11.2))
-K_HYD = 1.79               # calibrated hydraulic-loss multiplier: least squares on
-                           # CENTRIFUGAL_ANCHORS (rms 0.033, Round 2 fit) - Tier 2
+K_HYD = 1.76               # calibrated hydraulic-loss multiplier: least squares on
+                           # CENTRIFUGAL_ANCHORS (rms 0.031, Round 2 fit) - Tier 2
 
 # --- centrifugal: volute / diffuser geometry (drawing + checks) ----------------
 TONGUE_RADIUS_RATIO = 1.05             # tongue 5-10 % beyond r2 [Huzel p.220]; >1.05 r4 [SP-8109]
@@ -95,6 +108,8 @@ AX_SIGMA_STATOR = 1.6
 AX_HUB_TIP = 0.83          # 0.76-0.86 rocket H2 [Huzel p.230]; J-2 0.829, M-1 0.85
 AX_PSI_T = 0.25            # stage tip head coefficient, J-2 0.226, M-1 0.258 [SP-8125 Table II]
 AX_H_PER_STAGE_FT = 6000.0 # 5,000-9,000 ft per axial stage [Huzel p.225]
+AX_NS_TARGET_US = 4450.0   # axial stage Ns: Mark 9/15-F 4,450, M-1 4,470 [SP-8125 Table II]
+                           # (fleet 3,200-4,800); scaled with the intent's Ns factor
 AX_LEAK_FRACTION = 0.06    # impeller + balance leakage [Huzel eq. 6-87, SC 6-10]
 AX_INDUCER_HEAD_FRACTION = 0.12  # inducer 5-20 % of head [Huzel p.210]
 AX_INDUCER_ETA = 0.70
@@ -104,8 +119,8 @@ AX_DF_STALL = 0.75
 # [SP-8125 Fig. 8] profile-loss parameter omega*cos(beta_exit)/(2 sigma) vs DF (30-90 % span)
 AX_PROFILE_LOSS = ((0.0, 0.004), (0.1, 0.006), (0.2, 0.008), (0.3, 0.0095), (0.4, 0.012),
                    (0.5, 0.018), (0.6, 0.027), (0.7, 0.040), (0.8, 0.056))
-K_AX = 1.95                # calibrated axial profile x secondary/end-wall/tip multiplier:
-                           # least squares on AXIAL_ANCHORS (rms 0.029) - Tier 2
+K_AX = 2.49                # calibrated end-wall/secondary/tip multiplier on the Fig. 8 profile loss:
+                           # least squares on AXIAL_ANCHORS (rms 0.025) - Tier 2
 
 # --- real anchors -------------------------------------------------------------
 # (name, fluid, rho kg/m3, gpm, head ft (None = from psi_d & D2), rpm, stages, D2 in,
@@ -132,6 +147,21 @@ AXIAL_ANCHORS = (
     ("M-1 LH2",           70.8, 62_300.0, 56_500.0, 13_225.0, 8, 0.70),  # [SP-8125 Table I, Fig. 1]
 )
 ANCHOR_TOLERANCE = 0.08
+
+
+@dataclass(frozen=True)
+class HydraulicsSpec:
+    """What turbopump_sizing.size_pump needs for one leg's meanline (built by
+    design/suction_stage.pump_hydraulics from turbopump_intent.PumpIntent)."""
+    ns_target_us: float
+    psi: float
+    beta2_deg: float
+    tip_speed_fraction: float
+    diffuser: str = "auto"
+    pump_type: str = "centrifugal"
+    nu_kin: float = 2.0e-7
+    leg: str = ""
+    neutral: bool = True     # every intent slider at 0 (size_turbopump's mass ratio = 1)
 
 
 def _interp(table, x):
@@ -168,15 +198,41 @@ def solve_phi2(psi_th, beta2_deg, z, delta=DELTA_DEFAULT):
     f = lambda p: psi_theoretical(p, beta2_deg, z, delta) - psi_th
     if f(lo) < 0:
         return None
-    if f(hi) > 0:
+    f_lo, f_hi = f(lo), f(hi)
+    if f_hi > 0:
         return hi
-    for _ in range(60):
-        mid = 0.5 * (lo + hi)
-        if f(mid) > 0:
-            lo = mid
+    side = 0
+    for _ in range(60):                       # Illinois regula falsi (f decreasing in phi)
+        mid = (lo * f_hi - hi * f_lo) / (f_hi - f_lo)
+        fm = f(mid)
+        if abs(fm) < 1e-12 or hi - lo < 1e-12:
+            return mid
+        if fm > 0:
+            lo, f_lo = mid, fm
+            if side == 1:
+                f_hi *= 0.5
+            side = 1
         else:
-            hi = mid
-    return 0.5 * (lo + hi)
+            hi, f_hi = mid, fm
+            if side == -1:
+                f_lo *= 0.5
+            side = -1
+    return mid
+
+
+def fleet_delta(ns_stage_us, ss_design=0.0):
+    """Impeller eye/tip diameter ratio Dt1/Dt2 from the SP-8109 Fig. 5 fleet
+    (Ns, delta): F-1 LOX 2110/0.78, J-2 LOX 1570/0.69, Atlas booster LOX
+    1190/0.58, H-1-class RP-1 750/0.45, X-8 620/0.48 -> 0.69 (Ns/1570)^0.45
+    (Tier 2 fit, fleet Ss ~SS_FLEET_REF), scaled by (Ss/SS_FLEET_REF)^0.32 for
+    the design Ss [SP-8109 Fig. 8: Ns 1500, Ss 10,000 -> 0.45, 40,000 -> 0.70],
+    clamped to the fleet's 0.40-0.80."""
+    if ns_stage_us <= 0:
+        return DELTA_DEFAULT
+    d = DELTA_FLEET_AT_1570 * (ns_stage_us / 1570.0) ** DELTA_FLEET_EXP
+    if ss_design > 0:
+        d *= (max(ss_design, 10_000.0) / SS_FLEET_REF) ** DELTA_SS_EXP
+    return max(DELTA_MIN, min(DELTA_MAX, d))
 
 
 def ss_penalty_points(ns_stage_us, ss_design):
@@ -248,7 +304,10 @@ def centrifugal_stage(q_m3s, h_stage_m, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, *
     r2 = 0.5 * d2
     psi = G * h_stage_m / (u2_m_s * u2_m_s)
     if delta is None:
-        delta = min(0.85, max(0.35, d_eye_m / d2)) if d_eye_m > 0 else DELTA_DEFAULT
+        # impeller eye from the fleet trend [SP-8109 Fig. 5; §3.3.1.1: delta "shall maximize
+        # efficiency consistent with the required suction performance"]; a larger inducer
+        # tapers down to it (Huzel SC 6-7) - d_eye_m is the inducer tip, drawn separately
+        delta = fleet_delta(_ns_us(n_rpm, q_m3s, h_stage_m), ss_design)
     d1 = delta * d2
     d_hub = INLET_HUB_RATIO * d1
     r1m = 0.5 * d1 * math.sqrt((1.0 + INLET_HUB_RATIO ** 2) / 2.0)
@@ -256,24 +315,39 @@ def centrifugal_stage(q_m3s, h_stage_m, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, *
     ns_stage = _ns_us(n_rpm, q_m3s, h_stage_m)
     # blade count: Huzel z = beta2/3, adjusted into SP-8109's phi2 band
     z_auto = z is None
-    if z_auto:
-        z = max(Z_MIN_BLADES, int(round(beta2_deg * Z_PER_DEG)))
+    z_base = max(Z_MIN_BLADES, int(round(beta2_deg * Z_PER_DEG))) if z_auto else z
+    z_cap = min(Z_MAX_BLADES, max(Z_CAP_MIN, int(MACHINABLE_Z_PER_SIN_B2 * math.sin(math.radians(beta2_deg)))))
     seal_c = max(SEAL_C_OVER_D2 * d2, SEAL_C_MIN_M)
     q_leak = SEAL_K * math.pi * 1.05 * d1 * seal_c * math.sqrt(2.0 * G * SEAL_HEAD_FRACTION * h_stage_m)
     q_imp = q_m3s + q_leak
+    a1 = 0.25 * math.pi * d1 * d1 * (1.0 - INLET_HUB_RATIO ** 2) * EPS1
+    cm1 = q_imp / a1
+    def _select_z(psi_th):
+        # Huzel's z = beta2/3, then more blades (less slip -> larger phi2 at this psi)
+        # until c_m2 >= c_m1 [SP-8109 §3.3.1.2: 1-1.5 x], up to the machinable count
+        zz = z_base
+        ph = solve_phi2(psi_th, beta2_deg, zz, delta)
+        while zz < z_cap and (ph is None or ph < PHI2_MIN or ph * u2_m_s < CM2_OVER_CM1_MIN * cm1):
+            zz += 1
+            ph = solve_phi2(psi_th, beta2_deg, zz, delta)
+        while (ph is None or ph < PHI2_MIN) and zz < Z_MAX_BLADES:
+            zz += 1
+            ph = solve_phi2(psi_th, beta2_deg, zz, delta)
+        while ph is not None and ph > PHI2_MAX and zz > 3:
+            zz -= 1
+            ph = solve_phi2(psi_th, beta2_deg, zz, delta)
+        return zz
+
     eta_h = 0.85
     res = None
     unreachable = False
-    for _ in range(60):
+    if z_auto:
+        z = _select_z(psi / eta_h)
+    reselected = not z_auto
+    hist = [eta_h]
+    for _ in range(80):
         psi_th = psi / eta_h
         phi2 = solve_phi2(psi_th, beta2_deg, z, delta)
-        if z_auto:
-            while (phi2 is None or phi2 < PHI2_MIN) and z < Z_MAX_BLADES:
-                z += 1
-                phi2 = solve_phi2(psi_th, beta2_deg, z, delta)
-            while phi2 is not None and phi2 > PHI2_MAX and z > 3:
-                z -= 1
-                phi2 = solve_phi2(psi_th, beta2_deg, z, delta)
         unreachable = phi2 is None
         if unreachable:
             phi2 = PHI2_MIN
@@ -283,8 +357,6 @@ def centrifugal_stage(q_m3s, h_stage_m, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, *
         cu2_inf = cu2 * m_slip
         w2 = math.hypot(cm2, u2_m_s - cu2)
         c2 = math.hypot(cm2, cu2)
-        a1 = 0.25 * math.pi * d1 * d1 * (1.0 - INLET_HUB_RATIO ** 2) * EPS1
-        cm1 = q_imp / a1
         w1 = math.hypot(cm1, u1)
         beta1 = math.degrees(math.atan2(cm1, u1))
         b2 = q_imp / (math.pi * d2 * cm2 * EPS2) if cm2 > 0 else 0.0
@@ -302,12 +374,29 @@ def centrifugal_stage(q_m3s, h_stage_m, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, *
         h_vol = ZETA_DIFFUSER.get(diffuser, ZETA_DIFFUSER["volute"]) * c2 * c2 / (2.0 * G)
         losses = k_hyd * (h_fric + h_diff + h_vol)
         eta_h_new = h_stage_m / (h_stage_m + losses)
-        converged = abs(eta_h_new - eta_h) < 1e-7
+        converged = abs(eta_h_new - eta_h) < 1e-9
+        # Aitken delta^2 acceleration of the (linearly converging) fixed point
+        hist.append(eta_h_new)
+        if not converged and len(hist) >= 3:
+            x0, x1, x2 = hist[-3:]
+            den = x2 - 2.0 * x1 + x0
+            if abs(den) > 1e-15:
+                acc = x2 - (x2 - x1) ** 2 / den
+                if 0.3 < acc < 1.0:
+                    eta_h_new = acc
+                    hist.clear()
         eta_h = eta_h_new
         res = dict(phi2=phi2, m_slip=m_slip, cm2=cm2, cu2=cu2, cu2_inf=cu2_inf, w2=w2, c2=c2,
                    cm1=cm1, w1=w1, beta1=beta1, b2=b2, h_fric=h_fric, h_diff=h_diff,
                    h_vol=h_vol)
         if converged:
+            if not reselected:
+                reselected = True
+                z_new = _select_z(psi / eta_h)
+                if z_new != z:
+                    z = z_new
+                    hist = [eta_h]
+                    continue
             break
     if unreachable:
         warnings.append(f"head coefficient {psi:.2f} unreachable at beta2 {beta2_deg:.0f} deg "
@@ -439,6 +528,22 @@ def meridional_outline(stage, n=16):
     return {"shroud": shroud, "hub": hub, "axial_length_m": lz + b2}
 
 
+def _exact_cache(fn):
+    """Memoize on the EXACT arguments (the staged-combustion solvers re-size the
+    same pumps many times per compute - Raptor: 2,270 calls, 183 distinct). A
+    shallow copy is returned: the nested stage/geometry/curve data is SHARED and
+    must be treated as read-only (nothing downstream mutates it; a deep copy cost
+    more than the meanline itself)."""
+    cached = functools.lru_cache(maxsize=512)(fn)
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kw):
+        return dict(cached(*args, **kw))
+    wrapper.cache_clear = cached.cache_clear
+    return wrapper
+
+
+@_exact_cache
 def design_centrifugal(q_m3s, h_total_m, n_rpm, u2_m_s, n_stages, rho, nu_kin, *,
                        beta2_deg=25.0, diffuser="auto", psi_for_diffuser=None,
                        ss_design=0.0, d_eye_m=0.0, z=None, build_quality=1.0, k_hyd=None,
@@ -451,13 +556,19 @@ def design_centrifugal(q_m3s, h_total_m, n_rpm, u2_m_s, n_stages, rho, nu_kin, *
     ns_st = _ns_us(n_rpm, q_m3s, h_st)
     if diffuser not in ("volute", "vaned"):
         diffuser = "vaned" if (psi > vaned_psi_above or 0 < ns_st < vaned_ns_below) else "volute"
+    # identical stages: only the first (inducer Ss penalty), a middle one and the last
+    # (its own diffuser) differ - evaluate each kind once
+    kinds = {}
     stages = []
     for i in range(n_stages):
         last = i == n_stages - 1
-        stages.append(centrifugal_stage(
-            q_m3s, h_st, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, z=z,
-            diffuser=diffuser if last else "crossover",
-            ss_design=ss_design if i == 0 else 0.0, d_eye_m=d_eye_m, k_hyd=k_hyd))
+        key = (i == 0, last)
+        if key not in kinds:
+            kinds[key] = centrifugal_stage(
+                q_m3s, h_st, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, z=z,
+                diffuser=diffuser if last else "crossover",
+                ss_design=ss_design if i == 0 else 0.0, d_eye_m=d_eye_m, k_hyd=k_hyd)
+        stages.append(kinds[key])
     p_use = sum(s["p_useful_w"] for s in stages)
     p_sh = sum(s["p_shaft_w"] for s in stages)
     eta = max(0.2, min(0.92, p_use / p_sh * build_quality)) if p_sh > 0 else 0.0
@@ -494,27 +605,32 @@ def _axial_triangles(phi, psi_i, sigma):
 
 
 def axial_stage_eta(phi, psi_actual, k_ax=None):
-    """Stage hydraulic efficiency from the Fig. 8 profile loss of rotor + stator
-    (symmetric), times K_AX for end-wall/secondary/tip loss. Returns (eta_st,
-    psi_i, rotor DF, stator DF, triangles)."""
+    """Stage hydraulic efficiency of a symmetric (R 0.5) stage. The blade
+    loading (diffusion factors, ideal head) comes from the Fig. 8 PROFILE loss
+    alone - SP-8125's DF is an aerodynamic loading measure, and its Table II
+    stage eta excludes tip/secondary loss; K_AX then scales the loss for the
+    end-wall/secondary/tip losses in the returned efficiency only. Returns
+    (eta_st, psi_i, rotor DF, stator DF, triangles)."""
     k_ax = K_AX if k_ax is None else k_ax
-    eta = 0.88
-    for _ in range(60):
-        psi_i = psi_actual / eta
+    eta_p = 0.9
+    for _ in range(80):
+        psi_i = psi_actual / eta_p
         w1, w2, df_r, b_in, b_ex = _axial_triangles(phi, psi_i, AX_SIGMA_ROTOR)
         _, _, df_s, _, _ = _axial_triangles(phi, psi_i, AX_SIGMA_STATOR)
         cosb = math.cos(math.radians(b_ex))
         om_r = _interp(AX_PROFILE_LOSS, df_r) * 2.0 * AX_SIGMA_ROTOR / cosb
         om_s = _interp(AX_PROFILE_LOSS, df_s) * 2.0 * AX_SIGMA_STATOR / cosb
-        loss = k_ax * (om_r + om_s) * w1 * w1 / 2.0       # in U^2 units (V2 = w1, symmetric)
-        eta_new = psi_actual / (psi_actual + loss)
-        if abs(eta_new - eta) < 1e-8:
-            eta = eta_new
+        profile = (om_r + om_s) * w1 * w1 / 2.0            # in U^2 units (V2 = w1, symmetric)
+        eta_new = psi_actual / (psi_actual + profile)
+        converged = abs(eta_new - eta_p) < 1e-9
+        eta_p = eta_new
+        if converged:
             break
-        eta = eta_new
-    return eta, psi_actual / eta, df_r, df_s, (w1, w2, b_in, b_ex)
+    eta = psi_actual / (psi_actual + k_ax * profile)
+    return eta, psi_i, df_r, df_s, (w1, w2, b_in, b_ex)
 
 
+@_exact_cache
 def design_axial(q_m3s, h_total_m, n_rpm, n_stages, rho, nu_kin, *, psi_t=AX_PSI_T,
                  hub_tip=AX_HUB_TIP, build_quality=1.0, k_ax=None):
     """Multistage axial pump (inducer + n rotor/stator stages + volute)."""

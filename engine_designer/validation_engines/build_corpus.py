@@ -89,8 +89,12 @@ ENGINES = {
                     wall_construction="tube_wall", cooling_flow_topology="j2_mid_nozzle_inlet",
                     jacket_inlet_eps=8.0, injector_type="coax_post", config_name="J-2",
                     regen_channel_count=360, turbine_exhaust_mode="nozzle_injection",
-                    turbine_exhaust_inject_eps=10.9, **_BELL),
-        notes=["347-stainless tube wall, full-length regen, two-pass with a mid-nozzle inlet "
+                    turbine_exhaust_inject_eps=10.9,
+                    # Mark 15-F LH2 pump: inducer + 7 axial stages [SP-8125 Table I p.4]
+                    pump_type_fuel="axial", **_BELL),
+        notes=["Fuel pump axial (Mark 15-F: inducer + 7 stages, 28,266 rpm) [SP-8125 Table I] "
+               "(turbopump Round 2).",
+               "347-stainless tube wall, full-length regen, two-pass with a mid-nozzle inlet "
                "(validate.run_two_pass_cooling_check's J-2 layout).",
                "Tubes: 180 down then 360 up [AEDC-J2S s2.1.1 p.1-2] (J-2S; same circuit as the "
                "J-2's 1-1/2-pass layout [SP-8087 Table I p.5]) -> regen_channel_count=360 (the "

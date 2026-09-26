@@ -10,8 +10,45 @@ Branch: `turbopump/round-2`, cut from `turbopump/round-1` @ 70d09f6 (stacked). D
 ## Status
 - [x] C0: this document + draft PR (513e7e1, PR #20)
 - [x] C1: literature (SP-8109 §2.3.1/§2.4/§3.3-3.4 + Table I, Huzel §6.3-6.4, SP-8125 blade design, pump discharge-T anchors)
-- [ ] C2: `physics/turbopump_intent.py` + `physics/pump_meanline.py` (pure, self-tests; corpus bit-identical)
-- [ ] C3: meanline + intent wired into sizing, schema 17, PUMP MEANLINE validate banner, corpus report + snapshot
+- [x] C2 (d7a003d): `physics/turbopump_intent.py` + `physics/pump_meanline.py` (pure, self-tests; corpus bit-identical)
+- [x] C3: meanline + intent wired into sizing, schema 17, PUMP MEANLINE validate banner, corpus report + snapshot
+
+**Where the implementation departed from the plan, and why:**
+- **Pump type "auto" = centrifugal**, not an LH2 rule. Every LH2 pump designed after the J-2S
+  (SSME, RL10, Vulcain, LE-7) is centrifugal, and SP-8125 §3.2.1 rules out axial where
+  throttling is needed. The corpus J-2 sets `pump_type_fuel="axial"` explicitly (Mark 15-F,
+  [SP-8125 Table I]).
+- **Impeller eye.** Taken from the SP-8109 Fig. 5 fleet trend, δ = 0.69·(Ns/1570)^0.45 ×
+  (Ss_design/38k)^0.32, not from Round 1's inducer tip (which at φ_opt is oversized). The design
+  Ss is the Ss the pump actually needs at its NPSH available [SP-8109 §3.3.1.1], so ample NPSH
+  gives a smaller eye and less Fig. 9 penalty. That fixed the pipeline H-1 and J-2 LOX
+  efficiencies.
+- **Blade count.** Huzel's β2/3, then more blades until c_m2 ≥ c_m1 [SP-8109 §3.3.1.2], up to
+  max(12, 28·sin β2).
+- **Mass.** A non-neutral intent scales turbopump mass by its geometry-mass ratio to the same
+  machine at neutral intent, clamped 0.6–1.6 (Tier 3 until Round 4). The full slider ends hit
+  the clamp.
+- **Performance.** The staged-combustion solvers re-size the pumps thousands of times per
+  compute. The meanline has an exact-argument cache, a secant φ2 solve and an Aitken-accelerated
+  η_h iteration. Raptor-2 went from 67 s to under 0.4 s.
+- **Calibration.**
+  - K_HYD 1.76 on 7 real centrifugal pumps (rms 0.031); K_AX 2.49 on J-2 Mark 15-F / M-1
+    (rms 0.025).
+  - Axial DF comes from the profile loss only; K_AX scales the returned efficiency, not the
+    loading.
+  - Axial stage Ns 4,450 [SP-8125 Table II].
+  - Wear-ring clearance floor 0.006 in and mechanical loss 15 % at 1 in, both fitted so the size
+    effect follows SP-8109 Fig. 6 within ±10 pts.
+- **Validation adjustments, each justified in its file:**
+  - RL10 LOX pump gated ±0.13, like the RL10 fuel pump. The tool designs a 2-in 33k-rpm
+    direct-drive impeller where the real one is geared at 12,100 rpm.
+  - The suction check's discharge-equality row compares on the correlation pump model.
+  - The baffle row tests the stability-aid mass, not total dry mass, which also moves with
+    turbopump/plumbing re-sizing.
+- **Known limitations** (OPEN_QUESTIONS):
+  - Small (2–6 in) impellers run ~5–8 pts optimistic against Fig. 6.
+  - At the neutral stage Ns 2,200, LH2 multistage pumps get wide outlets (b2/D2 ~0.18–0.22,
+    beyond Table I's 0.14). A warn row suggests "efficient".
 - [ ] C4: pump heating → jacket inlet (`coolant_inlet_model`, second pass), anchors, corpus report + snapshot
 - [ ] C5: GUI: `gui/turbopump_detail.py` + right-notebook tab + left "Design intent" section
 - [ ] C6: docs (ASSUMPTIONS, OPEN_QUESTIONS, CLAUDE.md, README, roadmap tick, memory)

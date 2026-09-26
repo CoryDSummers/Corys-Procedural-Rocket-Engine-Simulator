@@ -114,10 +114,15 @@ def run_pump_suction_check():
                  f"{F1_RPM:,.0f}), NPSH available {su['npsh_available_ft']:.0f} ft vs required "
                  f"{op['npsh_required_ft']:.0f} ft (TSH {su['tsh_ft']:.0f} ft), not suction-limited",
                  abs(e_rpm) <= 0.10 and not op["suction_limited"], True))
+    # isolate the suction model from the Round 2 meanline (whose Ss penalty depends on
+    # each suction model's design Ss): compare on the correlation pump model
+    fc = _f1_corpus(pump_model="correlation").compute()
+    flc = _f1_corpus(suction_model="legacy", pump_model="correlation").compute()
     same = (f["pump_inlet_pa"]["ox"] == TANK_HEAD_PA
-            and f["pump_discharge_ox_pa"] == fl["pump_discharge_ox_pa"]
-            and f["pump_discharge_fuel_pa"] == fl["pump_discharge_fuel_pa"])
-    rows.append(("    default inputs: pump inlet stays TANK_HEAD_PA, discharge == legacy", same, True))
+            and fc["pump_discharge_ox_pa"] == flc["pump_discharge_ox_pa"]
+            and fc["pump_discharge_fuel_pa"] == flc["pump_discharge_fuel_pa"])
+    rows.append(("    default inputs: pump inlet stays TANK_HEAD_PA, discharge == legacy "
+                 "(correlation pump model)", same, True))
 
     # (f) H-1 at its real rated inlet pressures
     h = _h1_design(tank_pressure_ox_pa=65.0 * PSI, tank_pressure_fuel_pa=57.0 * PSI).compute()
