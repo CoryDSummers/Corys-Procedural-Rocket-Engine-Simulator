@@ -232,6 +232,12 @@ touching any cooling number.** What changed structurally:
                                                      # via mesh_builder.build_plumbing_pieces) and
                                                      # the synthetic fallback ring (pure numpy, no
                                                      # Tk/OpenGL) - same testable split as above
+   python3 -m engine_designer.gui.async_compute      # GUI background compute (worker thread,
+                                                     # latest-wins) + process-pool Isp-vs-MR sweep,
+                                                     # bit-identical to mixture_ratio's serial one.
+                                                     # app.recompute() is ASYNC since 2026-09-26 -
+                                                     # use app.ensure_current_result() when a
+                                                     # caller needs last_result immediately
    python3 -m engine_designer.gui.injector_face
    python3 -m engine_designer.gui.turbopump_diagram
    python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (Agg, headless)

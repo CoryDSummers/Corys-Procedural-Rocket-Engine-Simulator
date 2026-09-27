@@ -20,7 +20,9 @@ is the part most worth double-checking).
 
 Run via:  python3 -m engine_designer.gui.app   (from /home/cory/ksp_config)
 """
+import copy
 import json
+import time
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
@@ -34,11 +36,12 @@ from ..catalog import load_roengines_models
 from ..export.cfg_writer import write_cfg
 from ..physics import (combustion, controller_tech, cooling, cost_model, cycles, flow_network,
                         ignition,
-                        hatbands, injectors, materials, mixture_ratio, plumbing, reliability,
+                        hatbands, injectors, materials, plumbing, reliability,
                         tech_tree,
                         turbine_exhaust, turbopump_materials, turbopump_sizing, turbopump_tech)
 from ..physics.design import EngineDesign
 from . import project_io
+from .async_compute import ComputeWorker, MrSweepRunner
 from .collapsible import CollapsibleSection
 from .injector_face import draw_injector_face
 from .schematic import draw_schematic
@@ -124,7 +127,24 @@ class EngineDesignerApp:
         self._shape_lab_panel = None    # active ShapeLabPanel, if any - see _enter/_exit_shape_lab
         self._recompute_after_id = None   # pending debounced recompute() - see _schedule_recompute
         self._mr_peak_stale = False       # Combustion Chamber tab's MR label needs a refresh
+        # Background physics (gui/async_compute.py) - see recompute()/_poll_workers.
+        # Every recompute() bumps _compute_gen; a result is applied only if it is
+        # newer than _applied_gen, so a late stale solve can never overwrite a
+        # fresh one. _applied_design = the snapshot last_result was solved from.
+        self._worker = ComputeWorker()
+        self._mr_sweep = MrSweepRunner(n=25)
+        self._compute_gen = 0
+        self._applied_gen = 0
+        self._applied_design = None
+        self._last_solve_s = None
+        self._poll_after_id = None
+        self._mr_curve = None             # latest finished Isp-vs-MR curve ...
+        self._mr_curve_gen = None         # ... and the _applied_gen it belongs to
+        self._mr_sweep_progress = (0, 0)
+        self._apply_peak_when_swept = False   # "Optimize MR" pressed mid-sweep
+        root.protocol("WM_DELETE_WINDOW", self._on_quit)
         self._build_menu()
+        self._build_status_bar()          # before _build_layout: packed first so it spans the bottom
         self._build_layout()
         self._set_title()
         self.recompute()
@@ -140,12 +160,53 @@ class EngineDesignerApp:
         filemenu.add_separator()
         filemenu.add_command(label="Export .cfg…", accelerator="Ctrl+E", command=self._on_export)
         filemenu.add_separator()
-        filemenu.add_command(label="Quit", accelerator="Ctrl+Q", command=self.root.destroy)
+        filemenu.add_command(label="Quit", accelerator="Ctrl+Q", command=self._on_quit)
         menubar.add_cascade(label="File", menu=filemenu)
         for seq, fn in (("<Control-n>", self._on_new), ("<Control-o>", self._on_load),
                         ("<Control-s>", self._on_save_current), ("<Control-S>", self._on_save),
-                        ("<Control-e>", self._on_export), ("<Control-q>", self.root.destroy)):
+                        ("<Control-e>", self._on_export), ("<Control-q>", self._on_quit)):
             self.root.bind(seq, lambda _e, f=fn: f())
+
+    def _build_status_bar(self):
+        """Bottom strip: what the background workers are doing + a progress
+        bar (indeterminate for a solve / mesh build, n/25 for the MR sweep)."""
+        bar = ttk.Frame(self.root, padding=(8, 2))
+        bar.pack(side=tk.BOTTOM, fill=tk.X)
+        ttk.Separator(bar, orient="horizontal").pack(side=tk.TOP, fill=tk.X, pady=(0, 2))
+        self.status_var = tk.StringVar(value="")
+        ttk.Label(bar, textvariable=self.status_var).pack(side=tk.LEFT)
+        self.status_progress = ttk.Progressbar(bar, mode="determinate", length=240)
+        self.status_progress.pack(side=tk.RIGHT)
+        self._progress_spinning = False
+
+    def _set_progress(self, text, mode, done=0, total=1):
+        """mode: "busy" (indeterminate spin), "count" (done/total) or "idle"."""
+        self.status_var.set(text)
+        bar = self.status_progress
+        if mode == "busy":
+            if not self._progress_spinning:
+                bar.config(mode="indeterminate")
+                bar.start(15)
+                self._progress_spinning = True
+            return
+        if self._progress_spinning:
+            bar.stop()
+            self._progress_spinning = False
+        bar.config(mode="determinate", maximum=max(total, 1),
+                   value=done if mode == "count" else 0)
+
+    def _on_quit(self):
+        """Stop the background workers (no orphaned sweep processes), then close."""
+        for after_id in (self._poll_after_id, self._recompute_after_id):
+            if after_id is not None:
+                try:
+                    self.root.after_cancel(after_id)
+                except tk.TclError:
+                    pass
+        self._poll_after_id = self._recompute_after_id = None
+        self._worker.close()
+        self._mr_sweep.shutdown()
+        self.root.destroy()
 
     def _set_title(self):
         name = Path(self._current_project_path).name if self._current_project_path else None
@@ -1775,11 +1836,20 @@ class EngineDesignerApp:
     def _on_optimize_mr(self):
         """Jump the mixture-ratio slider to the vacuum-Isp-maximising MR for the
         current design (within the propellant pair's table range). No-op for a
-        monopropellant. The slider's trace fires the recompute."""
+        monopropellant. The slider's trace fires the recompute. Uses the
+        background sweep's curve when it's for the current design; otherwise
+        waits for that sweep (_on_sweep_status applies the peak when it lands)."""
         if combustion.is_monopropellant(self.design.propellant_pair):
             return
-        curve = mixture_ratio.isp_vs_mr_curve(self.design, n=25)
-        self.mr_var.set(round(curve["peak_mr"], 3))
+        if (self._mr_curve is not None and self._mr_curve_gen == self._applied_gen
+                and self._is_result_current()):
+            self.mr_var.set(round(self._mr_curve["peak_mr"], 3))
+            return
+        self._apply_peak_when_swept = True
+        self.mr_peak_var.set("Optimize MR: waiting for the Isp-vs-MR sweep...")
+        if self._is_result_current() and self.last_result is not None:
+            self._update_mr_peak_label(self.last_result)   # starts the sweep if needed
+        # else: the pending solve's _apply_result starts it (this tab is visible)
 
     def _filter_cooling_dropdowns(self):
         """HARD block, GUI side: each section's cooling-method dropdown lists only
@@ -2176,9 +2246,9 @@ class EngineDesignerApp:
         draw_schematic(self.ax, result)
         self.canvas.draw_idle()
 
-    def _redraw_preview3d(self, result):
+    def _redraw_preview3d(self, result, prebuilt=None):
         if self._use_gl_preview:
-            self.gl_preview.update_result(result)
+            self.gl_preview.update_result(result, prebuilt=prebuilt)
             self._last_result = result
             self._apply_flow_scale()
         else:
@@ -2211,8 +2281,16 @@ class EngineDesignerApp:
         time, per _visible_result_tab."""
         key = self._visible_result_tab()
         if key is not None and self._tab_dirty.get(key) and self.last_result is not None:
-            self._tab_redraw_fns[key](self.last_result)
             self._tab_dirty[key] = False
+            if key == "preview3d" and self._use_gl_preview:
+                # The GL mesh build (up to ~1 s) goes to the background worker;
+                # _poll_workers uploads it if no newer result landed meanwhile.
+                gen, result = self._applied_gen, self.last_result
+                mesh_key, build = self.gl_preview.mesh_build_job()
+                self._worker.submit("mesh", gen, lambda: (result, (mesh_key, build(result))))
+                self._ensure_polling()
+                return
+            self._tab_redraw_fns[key](self.last_result)
 
     def _is_combustion_tab_visible(self):
         try:
@@ -2225,31 +2303,181 @@ class EngineDesignerApp:
         points across the whole MR range (mixture_ratio.isp_vs_mr_curve),
         each a full compute() - by far recompute()'s single costliest step
         beyond the main solve, so it's skipped unless that tab is actually
-        showing (see recompute()) and caught up on switching back to it."""
-        if combustion.is_monopropellant(self.design.propellant_pair):
+        showing (see _apply_result) and caught up on switching back to it.
+        The sweep itself runs on gui/async_compute.MrSweepRunner's process
+        pool (never on the Tk thread); this starts it and shows progress, and
+        _on_sweep_status fills the label when the curve lands."""
+        design = self._applied_design or self.design
+        if combustion.is_monopropellant(design.propellant_pair):
+            self._mr_sweep.cancel()
+            self._apply_peak_when_swept = False
             self.mr_peak_var.set("Mixture ratio: n/a (monopropellant)")
             self.optimize_mr_btn.state(["disabled"])
+            return
+        self.optimize_mr_btn.state(["!disabled"])
+        if self._mr_curve is not None and self._mr_curve_gen == self._applied_gen:
+            self._show_mr_curve(result)
+        elif not self._is_result_current():
+            # A newer solve is on its way; sweep for THAT design once it lands.
+            self.mr_peak_var.set("Peak vac Isp: waiting for the latest solve...")
         else:
-            curve = mixture_ratio.isp_vs_mr_curve(self.design, n=25)
-            delta = result["isp_vac_engine_s"] - curve["peak_isp_s"]
-            self.mr_peak_var.set(
-                f"Peak vac Isp {curve['peak_isp_s']:.1f} s at MR {curve['peak_mr']:.2f}"
-                f"  (current MR {self.design.mixture_ratio:.2f}: {delta:+.1f} s)")
-            self.optimize_mr_btn.state(["!disabled"])
+            if self._mr_sweep.gen != self._applied_gen:
+                self._mr_sweep.start(self._applied_gen, design)
+                self._mr_sweep_progress = (0, self._mr_sweep.n)
+            done, total = self._mr_sweep_progress
+            self.mr_peak_var.set(f"Peak vac Isp: sweeping MR range... {done}/{total}")
+            self._ensure_polling()
+
+    def _show_mr_curve(self, result):
+        curve = self._mr_curve
+        design = self._applied_design or self.design
+        delta = result["isp_vac_engine_s"] - curve["peak_isp_s"]
+        self.mr_peak_var.set(
+            f"Peak vac Isp {curve['peak_isp_s']:.1f} s at MR {curve['peak_mr']:.2f}"
+            f"  (current MR {design.mixture_ratio:.2f}: {delta:+.1f} s)")
+
+    def _on_sweep_status(self, st):
+        """One MrSweepRunner.poll() snapshot -> MR label / Optimize MR."""
+        if st.gen != self._applied_gen:
+            return                       # superseded by a newer result
+        self._mr_sweep_progress = (st.done, st.total)
+        if st.error is not None:
+            self._apply_peak_when_swept = False
+            self.mr_peak_var.set(f"Isp-vs-MR sweep failed: {st.error}")
+        elif st.curve is None:
+            self.mr_peak_var.set(f"Peak vac Isp: sweeping MR range... {st.done}/{st.total}")
+        else:
+            self._mr_curve, self._mr_curve_gen = st.curve, st.gen
+            if self.last_result is not None:
+                self._show_mr_curve(self.last_result)
+            if self._apply_peak_when_swept and self._is_result_current():
+                self._apply_peak_when_swept = False
+                self.mr_var.set(round(st.curve["peak_mr"], 3))   # trace -> recompute
 
     def _on_input_tab_changed(self, _event=None):
         if self._mr_peak_stale and self._is_combustion_tab_visible() and self.last_result is not None:
             self._mr_peak_stale = False
             self._update_mr_peak_label(self.last_result)
 
+    # ------------------------------------------------ background compute
+    def _is_result_current(self):
+        """last_result was solved from the design as it stands now: no newer
+        solve submitted and no debounced one still waiting to be."""
+        return self._applied_gen == self._compute_gen and self._recompute_after_id is None
+
     def recompute(self):
+        """Solve the current design in the BACKGROUND (gui/async_compute.py)
+        and apply the result on the Tk thread when it lands (_poll_workers ->
+        _apply_result). The solve runs on a deep-copied snapshot, so the user
+        can keep editing self.design meanwhile; a burst of recompute()s while a
+        solve runs collapses to one follow-up solve of the newest snapshot.
+        Callers that need the result immediately use ensure_current_result()."""
         if self._loading:      # New / Load calls recompute() itself once, at the end
             return
-        try:
-            result = self.design.compute()
-        except Exception as exc:
-            self._set_text(self.readout, f"ERROR computing design:\n{exc}")
+        self._compute_gen += 1
+        gen = self._compute_gen
+        snapshot = copy.deepcopy(self.design)
+        mesh_job = (self.gl_preview.mesh_build_job()
+                    if self._use_gl_preview and self._visible_result_tab() == "preview3d" else None)
+
+        def job():
+            result = snapshot.compute()
+            mesh = (mesh_job[0], mesh_job[1](result)) if mesh_job else None
+            return snapshot, result, mesh
+
+        self._mr_sweep.cancel()          # its design is stale now; frees the cores
+        self._worker.submit("compute", gen, job)
+        self._ensure_polling()
+        self._update_status()
+
+    def recompute_now(self):
+        """Synchronous solve on the Tk thread (the UI blocks for its duration,
+        status bar showing) - only for callers that must read last_result
+        right away. Supersedes any in-flight background solve."""
+        if self._loading:
             return
+        if self._recompute_after_id is not None:
+            self.root.after_cancel(self._recompute_after_id)
+            self._recompute_after_id = None
+        self._compute_gen += 1
+        gen = self._compute_gen
+        self._worker.discard("compute")
+        self._mr_sweep.cancel()
+        self._set_progress("Computing design...", "busy")
+        self.root.update_idletasks()
+        snapshot = copy.deepcopy(self.design)
+        t0 = time.perf_counter()
+        try:
+            result = snapshot.compute()
+        except Exception as exc:
+            self._apply_error(gen, exc)
+        else:
+            self._apply_result(gen, snapshot, result, None, time.perf_counter() - t0)
+        self._update_status()
+
+    def ensure_current_result(self):
+        """Make last_result match the design as it stands now (Export, the
+        Shape Lab): a no-op when it already does, else one synchronous solve."""
+        if self.last_result is None or not self._is_result_current():
+            self.recompute_now()
+
+    def _ensure_polling(self):
+        if self._poll_after_id is None:
+            self._poll_after_id = self.root.after(40, self._poll_workers)
+
+    def _poll_workers(self):
+        """Tk-thread side of the background workers: apply finished solves /
+        mesh builds, advance the MR sweep, keep polling while anything runs."""
+        self._poll_after_id = None
+        busy = self._worker.busy         # read BEFORE draining (see ComputeWorker.poll)
+        for job in self._worker.poll():
+            if job.gen <= self._applied_gen and job.kind == "compute":
+                continue                 # superseded (e.g. by recompute_now)
+            if job.kind == "compute":
+                if job.ok:
+                    snapshot, result, mesh = job.value
+                    self._apply_result(job.gen, snapshot, result, mesh, job.elapsed_s)
+                else:
+                    self._apply_error(job.gen, job.value)
+            elif job.kind == "mesh" and job.ok and job.gen == self._applied_gen:
+                result, prebuilt = job.value
+                if self._visible_result_tab() == "preview3d":
+                    self._redraw_preview3d(result, prebuilt=prebuilt)
+                else:
+                    self._tab_dirty["preview3d"] = True
+        status = self._mr_sweep.poll()
+        if status is not None:
+            self._on_sweep_status(status)
+        self._update_status()
+        if busy or self._worker.busy or self._mr_sweep.active:
+            self._ensure_polling()
+
+    def _update_status(self):
+        running = self._worker.running()
+        if running is not None and running[0] == "compute" or not self._is_result_current():
+            self._set_progress("Computing design...", "busy")
+        elif self._worker.busy:
+            self._set_progress("Building 3D mesh...", "busy")
+        elif self._mr_sweep.active:
+            done, total = self._mr_sweep_progress
+            self._set_progress(f"Sweeping Isp vs mixture ratio {done}/{total}", "count",
+                               done, total)
+        elif self._last_solve_s is not None:
+            self._set_progress(f"Ready - last solve {self._last_solve_s:.2f} s", "idle")
+        else:
+            self._set_progress("Ready", "idle")
+
+    def _apply_error(self, gen, exc):
+        self._applied_gen = gen
+        self._set_text(self.readout, f"ERROR computing design:\n{exc}")
+
+    def _apply_result(self, gen, snapshot, result, prebuilt_mesh, elapsed_s):
+        """Everything recompute() used to do after the solve - runs on the Tk
+        thread with a finished result (the old recompute() body, unchanged
+        apart from the prebuilt 3D mesh and the async MR label)."""
+        self._applied_gen = gen
+        self._applied_design = snapshot
+        self._last_solve_s = elapsed_s
         self.last_result = result
         self._update_hatband_summary(result)
         self._update_liner_readouts(result)
@@ -2262,7 +2490,10 @@ class EngineDesignerApp:
         visible_tab = self._visible_result_tab()
         for key, fn in self._tab_redraw_fns.items():
             if key == visible_tab:
-                fn(result)
+                if key == "preview3d":
+                    self._redraw_preview3d(result, prebuilt=prebuilt_mesh)
+                else:
+                    fn(result)
                 self._tab_dirty[key] = False
             else:
                 self._tab_dirty[key] = True
@@ -2992,6 +3223,7 @@ class EngineDesignerApp:
             messagebox.showerror("Load failed", str(exc))
 
     def _on_export(self):
+        self.ensure_current_result()   # never export a result a background solve hasn't caught up to
         if self.last_result is None:
             return
         self._on_export_field_change()

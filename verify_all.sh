@@ -47,6 +47,7 @@ MODULES=(
   engine_designer.gui.preview3d_gl_core
   engine_designer.gui.mesh_builder
   engine_designer.gui.shape_lab_geometry
+  engine_designer.gui.async_compute          # background compute worker + process-pool MR sweep
   engine_designer.gui.injector_face
   engine_designer.gui.turbopump_diagram
   engine_designer.gui.turbopump_detail        # Turbopump Detail tab (meanline drawing), Agg headless

@@ -692,8 +692,7 @@ def open_plumbing_shape_lab(parent_app, host="jacket_inlet"):
     replaces that host's run in design.plumbing_runs and recomputes. If the
     current design has no such ring (no regen jacket), explains why and
     opens the synthetic fallback lab instead."""
-    if parent_app.last_result is None:
-        parent_app.recompute()
+    parent_app.ensure_current_result()   # compute runs in the background; the Lab needs it now
     result = parent_app.last_result
     ring = shape_lab_geometry.host_ring_from_result(result, host) if result else None
     label = plumbing.HOST_LABELS.get(host, host)

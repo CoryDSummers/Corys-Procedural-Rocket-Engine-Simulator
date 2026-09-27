@@ -55,6 +55,22 @@ installed) — only its pure-math mesh/camera/colormap layer
 layer (`gui/preview3d_gl.py`) was only syntax-checked. Please exercise the
 orbit drag, scroll zoom, and heat-flux toggle yourself and report back.
 
+**Responsiveness (2026-09-26).** Physics never runs on the Tk thread:
+`recompute()` snapshots the design (`copy.deepcopy`) and hands `compute()` -
+plus the GL 3D mesh build when that tab is showing - to a background thread
+(`gui/async_compute.py` `ComputeWorker`, latest-wins: edits made mid-solve
+collapse into one follow-up solve of the newest design); `_poll_workers`
+applies the result on the Tk thread (`_apply_result` = the old post-solve
+body). The Combustion Chamber tab's Isp-vs-MR peak label (25 full solves,
+10-57 s serially on real designs) runs on a spawn-context process pool
+(`MrSweepRunner`, bit-identical to `mixture_ratio.isp_vs_mr_curve`, cancelled
+on every change; ~3.7x faster on a 4-core/8-thread CPU). A status bar at the
+bottom shows "Computing design..." / "Building 3D mesh..." / "Sweeping Isp vs
+mixture ratio n/25" with a progress bar. Callers that need the result *now*
+(Export, opening the Shape Lab) use `ensure_current_result()`, a synchronous
+solve only if the shown result is stale. Render-only toggles (heat-flux
+overlay, duct-bend debug slider) still rebuild the GL mesh synchronously.
+
 The GL preview draws in layers (`gui/preview3d_gl_core/render_layers.py`):
 an opaque pass, then a translucent pass. The **X-ray** checkbox above the 3D
 view (and in the Shape Lab toolbar) moves the structural parts into the
