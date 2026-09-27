@@ -2032,7 +2032,11 @@ def self_test():
     # milled channels -> one stream per drawn channel, 1:2 down:up.
     _j2 = dict(result["inputs"], propellant_pair="LOX/LH2", mixture_ratio=5.5, expansion_ratio=27.5,
                regen_channel_model="channels", cooling_flow_topology="j2_mid_nozzle_inlet",
-               regen_nozzle_end_eps=20.0, jacket_inlet_eps=10.0, plumbing_runs=[])
+               regen_nozzle_end_eps=20.0, jacket_inlet_eps=10.0, plumbing_runs=[],
+               # the color-scale test below needs a NARROW-range jacket: pin the Round 1
+               # table inlet (45 K) - the computed pump-outlet inlet (~31 K, turbopump
+               # Round 2) widens the range until the absolute scale is already spread
+               coolant_inlet_model="table")
     _rj = EngineDesign(**_j2).compute()
     _pj = build_mesh_data(_rj, False)
     _tb = [p for p in _pj if (p.meta or {}).get("tube_body") and "coolant_pass" in p.meta]

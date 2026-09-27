@@ -8,7 +8,8 @@ import numpy as np
 from .. import (cooling, cycles, manifold, materials)
 
 from . import (combustion_stage, feed_stage, cooling_stage, geometry_stage, manifold_stage, margins_stage, structure_stage, suction_stage, turbomachinery_stage, rollup_stage)
-from .constants import BASE_RATED_BURN_TIME_S
+from .constants import (BASE_RATED_BURN_TIME_S, COOLANT_INLET_MAX_EXTRA_PASSES,
+                        COOLANT_INLET_TOLERANCE_K)
 from .state import PassState
 
 
@@ -424,6 +425,26 @@ class EngineDesign:
     # discharge) is charged to the main pump (design/suction_stage.py).
     boost_pump_rise_fuel_pa: float = 0.0
     boost_pump_rise_ox_pa: float = 0.0
+    # --- pump hydraulics + directional design intent (turbopump Round 2,
+    # physics/pump_meanline.py, physics/turbopump_intent.py) ---
+    # "meanline" (default): each pump's efficiency from velocity triangles + a loss
+    # build-up, geometry steered by the intent sliders below. "correlation": the
+    # Round 1 Ns-bell efficiency, intent ignored - bit-identical to before.
+    pump_model: str = "meanline"
+    # Intent sliders, -1 .. +1, 0 = the Round 1 constants exactly:
+    pump_priority: float = 0.0            # efficient (-1) <-> compact (+1): Ns target + psi
+    pump_head_curve: float = 0.0          # stable/throttleable (-1) <-> max head (+1): beta2
+    suction_aggressiveness: float = 0.0   # conservative (-1) <-> aggressive (+1): inducer K
+    tip_speed_aggressiveness: float = 0.0  # stress margin (-1) <-> max tip speed (+1)
+    inducer_mode: str = "auto"            # auto | on | off (off = no-inducer Ss 12,000)
+    diffuser_type: str = "auto"           # auto | volute | vaned
+    pump_type_fuel: str = "auto"          # auto (= centrifugal) | centrifugal | axial
+    pump_type_ox: str = "auto"
+    # Regen coolant (fuel) jacket-inlet temperature: "computed" (default) = the fuel
+    # pump's outlet (tank temperature + boost + main-pump heating, suction_stage.
+    # pump_heating; applied on a second compute pass) - needs pump_model "meanline";
+    # "table" = the fixed design/constants.COOLANT_INLET_TEMP_K (Round 1).
+    coolant_inlet_model: str = "computed"
     # Staged-combustion preburner temperatures (K) - DESIGN INPUTS; the turbine
     # PR is solved from them (physics/staged_combustion.solve_staged_power_balance).
     # 0 = the pair default (staged_combustion.PREBURNER_GAS_PROPERTIES /
@@ -464,7 +485,14 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 16  # 16 (2026-09-26): pump-suction inputs added (suction_model,
+    SCHEMA_VERSION = 17  # 17 (2026-09-26): pump hydraulics + design intent (pump_model,
+                         # pump_priority, pump_head_curve, suction_aggressiveness,
+                         # tip_speed_aggressiveness, inducer_mode, diffuser_type,
+                         # pump_type_fuel/ox, coolant_inlet_model) - no key migration; an
+                         # older file takes the
+                         # defaults, i.e. the MEANLINE efficiency at neutral intent (same
+                         # rotor speeds/diameters); pump_model "correlation" = Round 1.
+                         # 16 (2026-09-26): pump-suction inputs added (suction_model,
                          # tank_pressure_*, propellant_temp_*, suction_head_*, suction_accel_g,
                          # suction_line_length_m, boost_pump_rise_*) - no key migration; an
                          # older file takes the defaults, i.e. the COMPUTED suction model
@@ -624,6 +652,16 @@ class EngineDesign:
             result["thrust_closure_scale"] = scale
         return result
 
+    def _computed_coolant_inlet_k(self, result):
+        """The regen jacket's coolant inlet from the fuel pump's outlet temperature
+        (suction_stage.pump_heating) - None when the table value stands: pump_model
+        "correlation", coolant_inlet_model "table", or no computed pump heating."""
+        if (getattr(self, "coolant_inlet_model", "computed") != "computed"
+                or getattr(self, "pump_model", "meanline") != "meanline"):
+            return None
+        fuel = (result.get("pump_heating") or {}).get("fuel")
+        return fuel["t_out_k"] if fuel else None
+
     def _compute_passes(self, mdot_scale):
         """One (or two - see compute()) full pipeline passes at a chamber-flow scale."""
         result = self._compute_pass(None, mdot_scale=mdot_scale)
@@ -631,9 +669,32 @@ class EngineDesign:
         need_ll = any(v is not None for v in computed.values())
         te = result.get("turbine_exhaust") or {}
         te_carry = te.get("film_carry")
-        if need_ll or te_carry:
+        t_cool = self._computed_coolant_inlet_k(result)
+        need_cool = (t_cool is not None
+                     and abs(t_cool - result["coolant_inlet_t_k"]) > COOLANT_INLET_TOLERANCE_K)
+        if need_ll or te_carry or need_cool:
             result = self._compute_pass(computed if need_ll else None, te_film=te_carry,
-                                        mdot_scale=mdot_scale)
+                                        mdot_scale=mdot_scale,
+                                        coolant_inlet_k=t_cool if need_cool else None)
+            if need_cool:
+                # the jacket inlet feeds back (expander: turbine power -> pump rise ->
+                # outlet T), and it moves the GG flow a nozzle-injected film carries: up
+                # to COOLANT_INLET_MAX_EXTRA_PASSES more, refreshing both, while either moves
+                again = self._computed_coolant_inlet_k(result)
+                for _ in range(COOLANT_INLET_MAX_EXTRA_PASSES + 1):
+                    te_new = (result.get("turbine_exhaust") or {}).get("film_carry") if te_carry else None
+                    cool_ok = again is None or abs(again - t_cool) <= COOLANT_INLET_TOLERANCE_K
+                    film_ok = (te_new is None or abs(te_new["mdot_kgs"] - te_carry["mdot_kgs"])
+                               <= 1e-9 * max(te_carry["mdot_kgs"], 1e-9))
+                    if cool_ok and film_ok:
+                        break
+                    if not cool_ok:
+                        t_cool = 0.5 * (t_cool + again)   # under-relaxed: the expander loop oscillates
+                    te_carry = te_new or te_carry
+                    result = self._compute_pass(computed if need_ll else None, te_film=te_carry,
+                                                mdot_scale=mdot_scale, coolant_inlet_k=t_cool)
+                    again = self._computed_coolant_inlet_k(result)
+                result["coolant_inlet_residual_k"] = abs(again - t_cool) if again is not None else 0.0
             if need_ll:
                 again = result.get("line_loss_computed") or {}
                 result["line_loss_residual_pa"] = max(
@@ -642,15 +703,21 @@ class EngineDesign:
             if te_carry and result.get("turbine_exhaust"):
                 result["turbine_exhaust"]["film_residual_kgs"] = abs(
                     result["turbine_exhaust"]["mdot_kgs"] - te_carry["mdot_kgs"])
+        if t_cool is not None and not need_cool:
+            result["coolant_inlet_source"] = (f"table ({result['coolant_inlet_t_k']:.1f} K; pump "
+                                              f"outlet {t_cool:.1f} K is within "
+                                              f"{COOLANT_INLET_TOLERANCE_K} K)")
         return result
 
-    def _compute_pass(self, line_loss_override, te_film=None, mdot_scale=1.0):
+    def _compute_pass(self, line_loss_override, te_film=None, mdot_scale=1.0,
+                      coolant_inlet_k=None):
         """One full compute pass, as an ordered pipeline of stage functions
         (physics/design/*_stage.py). Values handed from one stage to a later
         one live on the PassState `s`; see design/state.py."""
         s = PassState()
         s.line_loss_override = line_loss_override
         s.te_film_carry = te_film
+        s.coolant_inlet_override = coolant_inlet_k
         s.mdot_scale = mdot_scale
         combustion_stage.combustion_setup(self, s)
         combustion_stage.nozzle_performance(self, s)
@@ -658,6 +725,7 @@ class EngineDesign:
         feed_stage.injector_and_cooling_routing(self, s)
         cooling_stage.thermal(self, s)             # unified thermal solve, before the pumps
         suction_stage.pump_suction(self, s)        # tank -> line -> boost -> NPSH available
+        suction_stage.pump_hydraulics(self, s)     # design intent -> meanline specs
         feed_stage.turbomachinery_cycle(self, s)
         geometry_stage.chamber_detail(self, s)
         cooling_stage.thermal_reporting(self, s)
@@ -668,6 +736,7 @@ class EngineDesign:
         manifold_stage.jacket_manifolds_and_stability(self, s)
         structure_stage.wall_structure(self, s)
         structure_stage.tubes_and_hatbands(self, s)
+        suction_stage.pump_heating(self, s)        # tank -> boost -> pump outlet temperatures
         turbomachinery_stage.turbopump_and_plumbing(self, s)
         rollup_stage.burn_time_and_mass(self, s)
         return rollup_stage.checks_and_result(self, s)

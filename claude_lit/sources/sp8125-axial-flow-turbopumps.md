@@ -316,6 +316,80 @@ high-speed stall.
 The monograph notes that the RL10 (centrifugal) had similar start problems, so these are a
 system issue, not an axial-only one.
 
+## Round 2 additions (turbopump meanline, 2026-09-26)
+
+Re-extracted for `physics/pump_meanline.py`'s axial option. Page cites are printed pages.
+
+**Whole-pump efficiency** `[Fig. 1 p.5]` (read ±1 pt): overall efficiency from inducer inlet to
+volute discharge peaks at:
+- M-1 ≈ 70 %
+- Mark 15-F (J-2) ≈ 72.5 %
+- Mark 9 ≈ 73 %
+- Mark 26 ≈ 75 %
+- Mark 25 ≈ 79 %
+
+Compare Table II's stage hydraulic η of 0.84-0.92. The 10-20 point gap is inducer, volute,
+leakage, balance-piston recirculation and secondary loss. **No breakdown of that gap is printed.**
+
+**Blockage** `[p.25]`: M-1 used 4 % of the annulus (end-wall only). Mark 9/15-F/25/26 used about
+10 % (end-wall plus blade surface).
+
+**Blade and vane counts** (derived from Table III σ, chord and radius, and consistent with the
+printed totals):
+
+| Pump | Rotor row | Stator row | Printed total |
+|---|---|---|---|
+| Mark 9/15-F | ≈ 17 | ≈ 41 | 102 blades over 6 rotors |
+| M-1 mainstage | ≈ 47 | ≈ 57 | 376 over 8 rotors `[p.43-45]` |
+
+**Tip speeds** (derived, U_T = 2π·r_T·N/60):
+- Mark 15-F ≈ 890 ft/s
+- M-1 ≈ 923 ft/s
+- Mark 9 ≈ 1,033 ft/s
+- Mark 25 ≈ 1,080 ft/s
+- Mark 26 ≈ 760 ft/s
+
+**Running clearances** `[p.34]`:
+
+| Pump | Rotor / blade | Stator / vane | Rotor clearance as % of blade height |
+|---|---|---|---|
+| Mark 15-F | 0.005 in | 0.015 in | ≈ 0.8 % |
+| M-1 | 0.020 in | 0.049 in | ≈ 1.7 % |
+
+The criterion is ≤ 2 % of blade height `[p.72]`. **No η-vs-clearance number exists**: the Mark 9
+air test could not measure it.
+
+**Pitchline relation at reaction R = 0.5** (standard; reproduces Figs. 7 and 9):
+- w1/U = √(φ² + ((1+ψ_i)/2)²) and w2/U = √(φ² + ((1−ψ_i)/2)²)
+- DF = 1 − w2/w1 + ψ_i/(2σ·w1/U)
+
+At σ 1.5, DF 0.5, ψ_i follows from φ:
+
+| φ | 0.3 | 0.4 | 0.5 | 0.6 |
+|---|---|---|---|---|
+| ψ_i | 0.30 | 0.36 | 0.43 | 0.50 |
+
+Fig. 9 at φ 0.5, DF 0.5:
+
+| σ | ψ_i | η |
+|---|---|---|
+| 1.0 | 0.33 | 0.92 |
+| 1.5 | 0.40 | 0.89 |
+| 2.0 | 0.46 | 0.86 |
+
+**Design DF** `[p.69-70]`:
+- 0.45-0.55 for best efficiency; 0.55-0.60 for minimum stage count.
+- Stall at DF 0.75 or RF 0.50.
+- Minimum-flow operating point: DF 0.70 or RF 0.55 `[p.72]`.
+
+**Fig. 8 profile-loss parameter** ω̄·cosβ/(2σ) (30-90 % streamlines):
+
+| DF | 0.2 | 0.4 | 0.5 | 0.6 |
+|---|---|---|---|---|
+| Loss parameter | ≈ 0.008 | ≈ 0.012 | ≈ 0.018 | ≈ 0.027 |
+
+The tip streamline runs about 3× these values `[p.23]`.
+
 ## Design method
 
 This is a design-criteria monograph, not a closed-form sizing method. It gives the governing
