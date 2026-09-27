@@ -452,6 +452,12 @@ class EngineDesign:
     # fuel side); ox_preburner_tin_k = the oxidiser-rich one (ORSC, FFSC ox side).
     preburner_tin_k: float = 0.0
     ox_preburner_tin_k: float = 0.0
+    # Tap-off turbine drive gas (physics/tap_off.py): "auto" (default) = the STBE hot-gas
+    # MIXER model for the hydrocarbons (LOX/CH4, LOX/RP-1), legacy for everything else;
+    # "mixer" / "legacy" force one. tap_off_tin_k = the turbine-inlet (mixer) temperature,
+    # 0 = default (mixer: 1,000 K [STBE-PW p.317]; legacy: min(Tc x 0.55, 1150 K)).
+    tap_off_model: str = "auto"
+    tap_off_tin_k: float = 0.0
     pump_stages_fuel: int = 0             # 0 = auto (derived); >0 overrides
     pump_stages_ox: int = 0
     controller_tech_key: str = "baseline"  # physics/controller_tech.py catalog key - export-time only
@@ -485,7 +491,13 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 17  # 17 (2026-09-26): pump hydraulics + design intent (pump_model,
+    SCHEMA_VERSION = 18  # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
+                         # tap_off_tin_k - no key migration; an older file takes the
+                         # defaults, i.e. the hot-gas MIXER tap-off for a hydrocarbon
+                         # tap-off engine (a deliberate physics change - set
+                         # tap_off_model "legacy" for the old behavior); other cycles and
+                         # LOX/LH2 tap-off are unchanged.
+                         # 17 (2026-09-26): pump hydraulics + design intent (pump_model,
                          # pump_priority, pump_head_curve, suction_aggressiveness,
                          # tip_speed_aggressiveness, inducer_mode, diffuser_type,
                          # pump_type_fuel/ox, coolant_inlet_model) - no key migration; an

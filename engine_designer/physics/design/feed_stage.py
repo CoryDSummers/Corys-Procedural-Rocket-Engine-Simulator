@@ -3,7 +3,7 @@
 Split verbatim out of the former single-file design.py; a value shared
 between stages lives on the PassState `s` (see design/state.py)."""
 from .. import (combustion, combustion_stability, cooling, cycles, electric_pump,
-                turbine_exhaust,
+                tap_off, thermo_tables, turbine_exhaust,
                 geometry, injectors, materials, staged_combustion, turbopump_materials,
                 turbopump_sizing, turbopump_tech, isentropic as iso, turbopump as tp)
 from .constants import (
@@ -21,12 +21,14 @@ from .constants import (
     TAP_OFF_TEMP_FRACTION,
     TAP_OFF_TURBINE_LIMIT_K,
     TAP_OFF_PRESSURE_RATIO,
+    TAP_OFF_HYDROCARBON_TIN_PRACTICE_MAX_K,
     SEPARATION_K,
     GG_FLOW_FRACTION_TYPICAL_MAX,
     PRESSURE_FED_PC_TYPICAL_MAX_PA,
     BASE_RATED_BURN_TIME_S,
 )
 from .checklist import _check
+from .suction_stage import AMBIENT_STORAGE_K, CRYOGEN_NBP_MAX_K, PUMPED_PROPELLANTS
 
 
 def injector_and_cooling_routing(self, s):
@@ -216,13 +218,8 @@ def turbomachinery_cycle(self, s):
     elif self.cycle == cycles.TAP_OFF:
         s.dp_fuel = s.pc_feed + s.dp_injector_fuel + s.jacket_dp_pa + s.line_loss_fuel_pa - _in_f
         s.dp_ox = s.pc_feed + s.dp_injector_ox + s.line_loss_ox_pa - _in_o
-        # Tapped gas = main-chamber combustion products, film-cooled to a
-        # turbine-tolerable temperature (NOT the fuel-rich GG mix).
-        tap_tin_k = min(s.tc * TAP_OFF_TEMP_FRACTION, TAP_OFF_TURBINE_LIMIT_K)
-        tap_gas = dict(tin_k=tap_tin_k, cp=combustion.mixture_cp_j_kgk(s.gamma_chamber, s.m_molar),
-                       gamma=s.gamma_chamber)
-        _pr = _exhaust_back_pressure(self, s, tap_gas["gamma"],
-                                     turbine_exhaust.TAP_OFF_TURBINE_INLET_PC_FRACTION,
+        tap_gas, tap_info, tap_mr_pumped, tap_inlet_frac = _tap_off_drive_gas(self, s)
+        _pr = _exhaust_back_pressure(self, s, tap_gas["gamma"], tap_inlet_frac,
                                      TAP_OFF_PRESSURE_RATIO)
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_efficiencies(
             s.mdot, self.mixture_ratio, s.dp_fuel + _bd_f, s.dp_ox + _bd_o, s.rho_fuel, s.rho_ox,
@@ -236,8 +233,10 @@ def turbomachinery_cycle(self, s):
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg,
             tap_gas["tin_k"], tap_gas["cp"], s.eta_turb, _pr, tap_gas["gamma"],
             TAP_OFF_DUMP_ISP_FRACTION, cycle_name=cycles.TAP_OFF,
+            gg_mixture_ratio=tap_mr_pumped,
         )
         s.cyc["drive_gas"] = tap_gas
+        _finish_tap_off(self, s, tap_info)
         _apply_exhaust(self, s, tap_gas, _pr)
         _check(s.checklist, s.warnings, "turbopump", "Gas-generator flow-fraction plausibility",
                s.cyc["gg_flow_fraction"] <= GG_FLOW_FRACTION_TYPICAL_MAX,
@@ -416,6 +415,107 @@ def turbomachinery_cycle(self, s):
     s.thrust_vac_floor = s.thrust_vac * self.throttle_floor
 
     s.separated_100pct = iso.is_separated(s.pe_pa, PA_SEA_LEVEL, SEPARATION_K)
+
+
+def _tap_fuel_inlet_k(self, s):
+    """Fuel temperature entering the tap-off hot-gas mixer. Uses the suction stage's tank
+    temperature; with no suction result (legacy suction model), the same auto rule (user
+    value, else NBP for a cryogen, else ambient). Pump heating (a few K for CH4, ~1-2 % of
+    the fuel's enthalpy rise to ~1,000 K) is neglected - it is solved only after the power
+    balance."""
+    su = (getattr(s, "suction", None) or {}).get("fuel") or {}
+    if su.get("t_k"):
+        return float(su["t_k"])
+    t_user = float(self.propellant_temp_fuel_k or 0.0)
+    if t_user > 0:
+        return t_user
+    prop = PUMPED_PROPELLANTS.get(self.propellant_pair, ("", ""))[0]
+    if prop and thermo_tables.has_saturation(prop):
+        nbp = thermo_tables.saturation_temperature(prop, 101_325.0)
+        return nbp if nbp < CRYOGEN_NBP_MAX_K else AMBIENT_STORAGE_K
+    return AMBIENT_STORAGE_K
+
+
+def _tap_off_drive_gas(self, s):
+    """Tap-off turbine drive gas -> (gas dict, info dict, pumped-extra MR or None,
+    turbine-inlet/Pc fraction).
+
+    - "mixer" (physics/tap_off.py, default for hydrocarbons): an effective hot tap of
+      chamber products diluted with cold PUMPED fuel to the turbine-inlet temperature
+      (STBE 1,800 R, or tap_off_tin_k). Fuel-rich GG-gas cp/gamma at that temperature;
+      the turbine flow is pumped at the mixed MR; inlet 0.955 x Pc [STBE-PW p.317].
+    - "legacy" (bit-identical when tap_off_tin_k is 0): chamber products at chamber MR,
+      min(Tc x 0.55, 1150 K), not pumped, 0.855 x Pc. Both constants are unsourced
+      (Tier 3). tap_off_tin_k > 0 replaces the temperature there too."""
+    model = tap_off.resolve_model(self.tap_off_model, self.propellant_pair)
+    t_user = max(0.0, float(self.tap_off_tin_k or 0.0))
+    cp_chamber = combustion.mixture_cp_j_kgk(s.gamma_chamber, s.m_molar)
+    info = dict(model=model, tin_source="user" if t_user > 0 else "default")
+    if model == "mixer":
+        p_mix = tap_off.TAP_OFF_MIXER_TURBINE_INLET_PC_FRACTION * self.chamber_pressure_pa
+        t_fuel = _tap_fuel_inlet_k(self, s)
+        sp = tap_off.mixer_split(self.propellant_pair, self.mixture_ratio, s.tc, cp_chamber,
+                                 t_user or tap_off.TAP_OFF_MIXER_TIN_K, t_fuel, p_mix)
+        if sp is not None:
+            gg = s.gg_gas
+            info.update(sp, t_fuel_in_k=t_fuel, p_mix_pa=p_mix)
+            return (dict(tin_k=sp["t_mix_k"], cp=gg["cp"], gamma=gg["gamma"]), info,
+                    sp["mr_mix"], tap_off.TAP_OFF_MIXER_TURBINE_INLET_PC_FRACTION)
+        info.update(model="legacy", fallback="no coolant table for this fuel")
+    t_cap = s.tc * TAP_OFF_TEMP_FRACTION
+    tin = (min(max(t_user, tap_off.TAP_OFF_TIN_MIN_K), t_cap) if t_user > 0
+           else min(t_cap, TAP_OFF_TURBINE_LIMIT_K))
+    info.update(t_mix_k=tin)
+    return (dict(tin_k=tin, cp=cp_chamber, gamma=s.gamma_chamber), info, None,
+            turbine_exhaust.TAP_OFF_TURBINE_INLET_PC_FRACTION)
+
+
+def _finish_tap_off(self, s, info):
+    """Store the tap-off split on the cycle result and add its checklist rows."""
+    gg_mdot = s.cyc["gg_mdot_kgs"]
+    tin = s.cyc["drive_gas"]["tin_k"]
+    if info["model"] == "mixer":
+        mr = self.mixture_ratio
+        hot = gg_mdot * info["hot_share"]
+        dil = gg_mdot * info["dilution_share"]
+        fuel_pumped = s.mdot / (1.0 + mr) + gg_mdot / (1.0 + info["mr_mix"])
+        info.update(hot_mdot_kgs=hot, dilution_mdot_kgs=dil,
+                    hot_fraction_of_chamber=hot / max(s.mdot + hot, 1e-9),
+                    dilution_fraction_of_fuel=dil / max(fuel_pumped, 1e-9))
+        a = tap_off.STBE_ANCHOR
+        kero = (" No LOX/RP-1 tap-off has flown: kerosene diluent in a ~2,000 K+ mixer risks "
+                "coking/soot like a fuel-rich GG (the STBE precedent is methane)."
+                if self.propellant_pair == "LOX/RP-1" else "")
+        _check(s.checklist, s.warnings, "turbopump", "Tap-off drive gas (hot-gas mixer)",
+               not info["clamped"],
+               f"Requested tap-off turbine temperature {info['t_mix_requested_k']:.0f} K is "
+               f"outside {tap_off.TAP_OFF_TIN_MIN_K:.0f} K .. the ~{info['t_hot_k']:.0f} K hot tap "
+               f"- using {tin:.0f} K.",
+               f"OK - {info['hot_fraction_of_chamber'] * 100:.1f} % of chamber gas tapped "
+               f"(~{info['t_hot_k']:.0f} K effective) + {info['dilution_fraction_of_fuel'] * 100:.1f} % "
+               f"of the fuel as cold diluent -> {tin:.0f} K fuel-rich turbine gas (MR "
+               f"{info['mr_mix']:.2f}) at {tap_off.TAP_OFF_MIXER_TURBINE_INLET_PC_FRACTION:.3f} x Pc. "
+               f"P&W STBE (LOX/CH4): {a['hot_fraction_of_chamber'] * 100:.1f} % hot + "
+               f"{a['bypass_share_of_fuel'] * 100:.1f} % of fuel -> {a['t_mix_k']:.0f} K "
+               f"[STBE-PW p.317].{kero}")
+        if self.propellant_pair in tap_off.MIXER_PAIRS:
+            _check(s.checklist, s.warnings, "turbopump", "Tap-off turbine temperature vs practice",
+                   tin <= TAP_OFF_HYDROCARBON_TIN_PRACTICE_MAX_K,
+                   f"Tap-off turbine gas {tin:.0f} K is above hydrocarbon turbine practice (GG "
+                   f"fleet 922-1061 K [SP-8107 Table III]; STBE tap-off 1,000 K) - hotter gas cuts "
+                   f"tap flow but needs hotter-capable turbine blades/disks.",
+                   f"OK - {tin:.0f} K ({info['tin_source']})")
+    else:
+        why = info.get("fallback") or (
+            "Legacy model selected; the default for this pair is the STBE hot-gas mixer"
+            if self.propellant_pair in tap_off.MIXER_PAIRS else
+            "LOX/LH2 / storable tap-off: no mixer anchor yet (a J-2S tap-off gas source is wanted)")
+        _check(s.checklist, s.warnings, "turbopump", "Tap-off drive gas (legacy model)", True, "",
+               f"Legacy tap-off: chamber-MR gas at {tin:.0f} K ({info['tin_source']}; default "
+               f"min(Tc x {TAP_OFF_TEMP_FRACTION}, {TAP_OFF_TURBINE_LIMIT_K:.0f} K) - both "
+               f"unsourced), tap flow not pumped, inlet "
+               f"{turbine_exhaust.TAP_OFF_TURBINE_INLET_PC_FRACTION:.3f} x Pc. {why}.")
+    s.cyc["tap_off"] = info
 
 
 def _exhaust_back_pressure(self, s, gamma, inlet_pc_fraction, pr_cap):

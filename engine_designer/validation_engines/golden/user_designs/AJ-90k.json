@@ -2885,6 +2885,10 @@
 "tank_pressure_ox_pa": {
 "__f__": "0.0"
 },
+"tap_off_model": "auto",
+"tap_off_tin_k": {
+"__f__": "0.0"
+},
 "target_vac_thrust_n": {
 "__f__": "400000.0"
 },

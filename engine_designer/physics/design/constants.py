@@ -124,6 +124,10 @@ TAP_OFF_TEMP_FRACTION = 0.55
 TAP_OFF_TURBINE_LIMIT_K = 1150.0
 TAP_OFF_PRESSURE_RATIO = 18.0      # "slightly < GG" ([SP-8107 Table VI]); GG is 22. A CAP since
                                    # 2026-09-24, like GG_PRESSURE_RATIO (turbine_exhaust.py)
+# Hydrocarbon tap-off turbine-inlet temperature above which the checklist warns: the top of
+# the real GG-turbine fleet, 1200-1450 F = 922-1061 K [SP-8107 Table III] (the STBE tap-off
+# mixer runs 1,800 R = 1,000 K [STBE-PW p.317]). Warn-only.
+TAP_OFF_HYDROCARBON_TIN_PRACTICE_MAX_K = 1061.0
 SEPARATION_K = 0.4
 CONVERGENT_HALF_ANGLE_DEG = 30.0
 ETA_CSTAR_CEILING = 0.99
