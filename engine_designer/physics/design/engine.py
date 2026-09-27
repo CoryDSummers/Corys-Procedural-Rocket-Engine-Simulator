@@ -387,6 +387,11 @@ class EngineDesign:
     turbine_staging: str = "auto"         # auto | single_impulse | velocity_compounded_2row
                                            #      | pressure_compounded_2stage | reaction
     turbopump_material_key: str = "inconel_718"  # physics/turbopump_materials.py catalog key
+    # Turbine BLADE alloy (turbopump_materials.BLADE_MATERIALS key). "" = the turbopump
+    # material above for the whole rotor (the original single-material temperature check);
+    # a key splits it: blades on their SP-8110 Fig. 30 limit, the disk (turbopump material)
+    # on an estimated disk metal temperature. Warn-only - never changes the choice.
+    turbine_blade_material_key: str = ""
     bearing_material_key: str = "cronidur_30"  # physics/turbopump_materials.py BEARING_MATERIALS key
     enforce_suction_limit: bool = False   # opt-in NPSH-required/suction-specific-speed check
                                            # (physics/turbopump_sizing.py) - REQUIRED-only, never
@@ -492,7 +497,7 @@ class EngineDesign:
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
     SCHEMA_VERSION = 18  # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
-                         # tap_off_tin_k - no key migration; an older file takes the
+                         # tap_off_tin_k, turbine_blade_material_key - no key migration; an older file takes the
                          # defaults, i.e. the hot-gas MIXER tap-off for a hydrocarbon
                          # tap-off engine (a deliberate physics change - set
                          # tap_off_model "legacy" for the old behavior); other cycles and

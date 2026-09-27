@@ -879,7 +879,7 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
                    npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None,
                    hydraulics_fuel=None, hydraulics_ox=None,
                    auto_staging_resolved=None,
-                   u_pitch_cap_m_s=None):
+                   u_pitch_cap_m_s=None, blade_material_key=""):
     """
     Full turbopump preliminary sizing for a pump-fed `cyc` (the dict from
     cycles.gas_generator_result / expander.expander_result). Returns a dict for
@@ -1033,7 +1033,7 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
         warnings += ox_turbine["warnings"]
     warnings += turbopump_materials.turbopump_material_suitability(
         material_key, turbine_inlet_k=turbine_inlet_k, tip_speed_m_s=peak_tip,
-        cycle=cycle, touches_oxidizer=True)
+        cycle=cycle, touches_oxidizer=True, blade_key=blade_material_key)
 
     # --- shaft / bearing sizing (a rough segment-power estimate: for a shared
     # single/geared shaft, fuel_turb_power already carries the FULL delivered

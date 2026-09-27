@@ -17,10 +17,15 @@ design/feed_stage.py, plus the turbine blade/disk material split.
     is identical to it.
 (e) A LOX/RP-1 tap-off (RS-29-class) on the mixer: 1,000 K fuel-rich turbine gas
     (MR 0.2-1.0) and a turbine flow within the GG-fleet's few percent.
+(f) Turbine blade / disk split: the real F-1 turbine (1,550 F inlet, Inconel 718 disks,
+    cast 713C blades [SP-8110 p.3, Table II]) passes; 718 blades warn; the single-material
+    718 rule would flag the real F-1. A 1,150 K kerolox tap-off with an IN718 disk warns
+    with 713C blades (hotter than the F-1 point) but passes with IN100. The chosen
+    material is never changed.
 
 Part of the physics/validate/ package - run the whole suite with
 `python3 -m engine_designer.physics.validate`."""
-from .. import tap_off
+from .. import tap_off, turbopump_materials as tpm
 from ..design import EngineDesign
 from ..design.constants import TAP_OFF_TEMP_FRACTION, TAP_OFF_TURBINE_LIMIT_K
 
@@ -122,6 +127,41 @@ def run_tap_off_check():
     row("(e) LOX/RP-1 turbine flow a few % of chamber flow (2-8 %)",
         0.02 <= turb_k / rk["mdot_chamber_kgs"] <= 0.08,
         f"{turb_k / rk['mdot_chamber_kgs'] * 100:.2f} %")
+
+    # (f) turbine blade / disk material split (never changes the user's choice)
+    kw = dict(turbine_inlet_k=tpm.F1_TURBINE_INLET_K, tip_speed_m_s=300.0,
+              cycle="gas_generator", touches_oxidizer=True)
+    w_f1 = tpm.turbopump_material_suitability("inconel_718", blade_key="alloy_713c", **kw)
+    w_718 = tpm.turbopump_material_suitability("inconel_718", blade_key="inconel_718", **kw)
+    w_one = tpm.turbopump_material_suitability("inconel_718", **kw)
+    row("(f) F-1 hardware 1,116 K: IN718 disk + cast 713C blades -> no warning [SP-8110]",
+        not w_f1, f"{len(w_f1)} warnings")
+    row("(f) same with IN718 blades -> warns (Fig. 30: 718 collapses by 1,500 F)",
+        any("blades" in w for w in w_718), f"{len(w_718)} warning(s)")
+    row("(f) single-material IN718 rule flags the real F-1 (why the split exists)",
+        any("disk AND blades" in w for w in w_one), "flagged")
+    legacy_hot = dict(KEROLOX_DESIGN, tap_off_model="legacy")
+    res = {}
+    for rotor, blade in (("inconel_718", ""), ("inconel_718", "alloy_713c"),
+                         ("inconel_718", "in100"), ("rene_41", "in100")):
+        rr = EngineDesign(turbopump_material_key=rotor, turbine_blade_material_key=blade,
+                          **legacy_hot).compute()
+        ws = rr["turbopump_sizing"]["warnings"]
+        res[(rotor, blade)] = dict(
+            kept=rr["inputs"]["turbopump_material_key"] == rotor,
+            blade=any("blades'" in w or "disk AND blades" in w for w in ws),
+            disk=any("(disk/rotor)" in w or "disk AND blades" in w for w in ws))
+    one, c713, in100, rene = (res[("inconel_718", "")], res[("inconel_718", "alloy_713c")],
+                              res[("inconel_718", "in100")], res[("rene_41", "in100")])
+    row("(f) kerolox tap-off at 1,150 K (legacy): IN718 single-material warns",
+        one["blade"] and one["disk"], "disk AND blades")
+    row("(f) ... 713C blades warn (hotter than the F-1 point); IN100 blades pass",
+        c713["blade"] and not in100["blade"], f"713C {c713['blade']}, IN100 {in100['blade']}")
+    row("(f) ... IN718 disk still warns at 1,150 K; a Rene 41 disk + IN100 blades pass",
+        in100["disk"] and not rene["disk"] and not rene["blade"],
+        f"718 disk {in100['disk']}, Rene 41 disk {rene['disk']}")
+    row("(f) the chosen turbopump material is never changed",
+        all(v["kept"] for v in res.values()), "kept")
 
     print("ALL TAP-OFF CHECKS OK" if ok else "TAP-OFF CHECKS FAILED")
     return ok

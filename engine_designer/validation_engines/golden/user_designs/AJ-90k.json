@@ -436,7 +436,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
+"detail": "[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -2910,6 +2910,7 @@
 "tube_split_eps": {
 "__f__": "0.0"
 },
+"turbine_blade_material_key": "",
 "turbine_exhaust_cant_deg": {
 "__f__": "0.0"
 },
@@ -8237,7 +8238,7 @@
 },
 "turbine_staging": "reaction",
 "warnings": [
-"Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling."
+"Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110])."
 ]
 },
 "warnings": [
@@ -8249,7 +8250,7 @@
 "Hottest wall station is in the throat (area ratio ~1.0, radiative): wall ~2090 K, 0.60x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Fuel pump: impeller outlet 0.18 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
+"[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.038) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]
 }

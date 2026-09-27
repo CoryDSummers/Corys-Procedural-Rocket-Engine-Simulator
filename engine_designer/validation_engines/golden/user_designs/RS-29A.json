@@ -502,7 +502,7 @@
 },
 {
 "category": "turbopump",
-"detail": "OK - dual shaft, 2 turbine(s), peak tip speed within Powder-Metallurgy Superalloy (HIP, e.g. MAR-M / Rene PM) limit",
+"detail": "OK - dual shaft, 2 turbine(s), peak tip speed within Powder-Metallurgy / HIP Superalloy (high-strength disks & housings) limit",
 "name": "Turbopump sizing / material feasibility",
 "passed": true
 },
@@ -4263,6 +4263,7 @@
 "tube_split_eps": {
 "__f__": "3.5"
 },
+"turbine_blade_material_key": "",
 "turbine_exhaust_cant_deg": {
 "__f__": "0.0"
 },
@@ -8122,7 +8123,7 @@
 "mass_specific_power_kg": {
 "__f__": "332.06142552081405"
 },
-"material_display": "Powder-Metallurgy Superalloy (HIP, e.g. MAR-M / Rene PM)",
+"material_display": "Powder-Metallurgy / HIP Superalloy (high-strength disks & housings)",
 "material_key": "powder_met_superalloy",
 "n_bodies": 2,
 "n_turbines": 2,

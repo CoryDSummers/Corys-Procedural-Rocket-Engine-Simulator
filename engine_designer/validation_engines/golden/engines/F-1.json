@@ -3850,6 +3850,7 @@
 "tube_split_eps": {
 "__f__": "0.0"
 },
+"turbine_blade_material_key": "",
 "turbine_exhaust_cant_deg": {
 "__f__": "0.0"
 },

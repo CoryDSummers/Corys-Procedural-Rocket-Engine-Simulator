@@ -310,12 +310,24 @@ def turbomachinery_cycle(self, s):
                f"OK - PR {_pr_hi:.2f}, discharge {staged_balance['drive_discharge_over_pc']:.2f} x Pc")
         _tp_mat = turbopump_materials.MATERIALS[self.turbopump_material_key]
         _tin_hi = max(s["gas"]["tin_k"] for s in staged_balance["sides"])
-        _check(s.checklist, s.warnings, "turbopump", "Preburner temperature vs turbine material",
-               _tin_hi <= _tp_mat.max_use_temp_k,
-               f"Preburner/turbine-inlet temperature {_tin_hi:.0f} K exceeds "
-               f"{_tp_mat.display_name}'s {_tp_mat.max_use_temp_k:.0f} K service limit - "
-               f"choose a hotter-capable turbopump material or a cooler preburner.",
-               f"OK - {_tin_hi:.0f} K vs {_tp_mat.max_use_temp_k:.0f} K limit")
+        _blade = turbopump_materials.BLADE_MATERIALS.get(self.turbine_blade_material_key or "")
+        if _blade is None:
+            _check(s.checklist, s.warnings, "turbopump", "Preburner temperature vs turbine material",
+                   _tin_hi <= _tp_mat.max_use_temp_k,
+                   f"Preburner/turbine-inlet temperature {_tin_hi:.0f} K exceeds "
+                   f"{_tp_mat.display_name}'s {_tp_mat.max_use_temp_k:.0f} K service limit - "
+                   f"choose a hotter-capable turbopump material or a cooler preburner.",
+                   f"OK - {_tin_hi:.0f} K vs {_tp_mat.max_use_temp_k:.0f} K limit")
+        else:
+            _lim = turbopump_materials.turbine_gas_temperature_limit_k(
+                self.turbopump_material_key, self.turbine_blade_material_key)
+            _check(s.checklist, s.warnings, "turbopump", "Preburner temperature vs turbine material",
+                   _tin_hi <= _lim,
+                   f"Preburner/turbine-inlet temperature {_tin_hi:.0f} K exceeds the ~{_lim:.0f} K "
+                   f"that {_blade.display_name} on a {_tp_mat.display_name} disk tolerate - "
+                   f"choose hotter-capable alloys or a cooler preburner.",
+                   f"OK - {_tin_hi:.0f} K vs ~{_lim:.0f} K ({_blade.display_name} / "
+                   f"{_tp_mat.display_name} disk)")
         # Closed cycle: ALL preburner exhaust rejoins the main flow at the main
         # injector - no dump loss, so engine Isp is the chamber Isp directly. The
         # eta_cstar mixing penalty was already applied above per cycle.

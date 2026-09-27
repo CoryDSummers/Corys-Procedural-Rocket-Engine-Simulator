@@ -427,7 +427,7 @@
 },
 {
 "category": "turbopump",
-"detail": "[turbopump] required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.; Cronidur 30 (15Cr-N stainless): bearing DN 2,834,983 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"detail": "[turbopump] required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).; Cronidur 30 (15Cr-N stainless): bearing DN 2,834,983 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
 },
@@ -3642,6 +3642,7 @@
 "tube_split_eps": {
 "__f__": "0.0"
 },
+"turbine_blade_material_key": "",
 "turbine_exhaust_cant_deg": {
 "__f__": "0.0"
 },
@@ -10106,7 +10107,7 @@
 "turbine_staging": "reaction",
 "warnings": [
 "required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.",
-"Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.",
+"Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).",
 "Cronidur 30 (15Cr-N stainless): bearing DN 2,834,983 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material."
 ]
 },
@@ -10118,7 +10119,7 @@
 "Near the end of active cooling (area ratio ~77.5), estimated jacket/coolant pressure (~24.9 MPa) exceeds local hot-gas static pressure (~0.0 MPa) - the net load on the channel-land wall there REVERSES direction. Modeled as a clamped-strip bending stress across the ~20.8 mm channel width, this reversed ~24.9 MPa differential is ~21648 MPa against a ~67 MPa allowable (Stainless Steel (304/316), SF 1.5) - but this is a coarse clamped-plate-strip proxy, NOT a real buckling/FEA analysis, and this codebase has no real-engine spot check for it yet. Treat this as 'worth a closer structural look', not a validated failure prediction. Consider more/narrower channels (smaller span), tapering the actively-cooled length, or a thicker wall there.",
 "Fuel pump: impeller outlet 0.18 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "Ox pump: impeller outlet 0.18 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
-"[turbopump] required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit - the turbine disk/blades need a hotter-capable alloy (powder-met superalloy) or turbine cooling.; Cronidur 30 (15Cr-N stainless): bearing DN 2,834,983 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
+"[turbopump] required head/tip-speed combination implies wanting ~31 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).; Cronidur 30 (15Cr-N stainless): bearing DN 2,834,983 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "TEA-TEB pyrophoric slug is an unusual choice for LOX/LH2 (typically used with LOX/RP-1).",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.180) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]

@@ -62,7 +62,8 @@ def turbopump_and_plumbing(self, s):
             enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw,
             auto_staging_resolved=s.turbine_staging_info.get("staging")
             if self.turbine_staging in ("", "auto") else None,
-            u_pitch_cap_m_s=s.turbine_staging_info.get("u_pitch_cap_m_s"))
+            u_pitch_cap_m_s=s.turbine_staging_info.get("u_pitch_cap_m_s"),
+            blade_material_key=self.turbine_blade_material_key)
         s.turbopump_mass_kg = s.tp_sizing["mass_kg"] * s.tp_sizing["mass_modifier"]
         suction_stage.suction_checks(self, s)
         suction_stage.hydraulics_checks(self, s)
