@@ -244,8 +244,20 @@ mass/energy balance to validate against.
 
 Unique STBE Tap-Off, 750 Klbf SL thrust, Pc 2400 psia, MR (overall) 3.5 `[leaf 341-344,
 Tables 4.3.1-2/4.3.2-1]`: throat area 178.9 in², injector flow rate 2462 lbm/s, throat
-flow rate 2329 lbm/s, **tap-off flow rate 132 lbm/s — i.e. ~5.4% of injector flow is
-tapped off the main chamber near the throat to drive the turbines**, eps 35. Coolant
+flow rate 2329 lbm/s, **tap-off flow rate 132 lbm/s (~5.4% of injector flow)**, eps 35.
+**How the tap-off works** `[leaf 338 = p.317 §4.3.1.1]` (corrected 2026-09-26; this note
+first said "tapped near the throat" and missed the mixer): "The tap-off provides **1.9 percent
+of the O/F biased chamber flow** to the mixer inlet where **cold methane mixes with the hot
+gases** to provide **2293 psia, 1800 R gas** to drive the high pressure propellant pumps."
+12.5 % of the pumped methane reaches that **hot-gas mixer** through the fuel bypass valve
+(85.7 % goes to the coolant circuit). The mixed gas drives the methane turbine, then the
+oxygen turbine, in series, and exhausts through a 5:1 nozzle. Methane pump 16,295 rpm /
+4368 psia; oxygen pump 6,844 rpm / 3144 psia `[p.317]`. **Ambiguity:** Table 4.3.1-2's throat
+flow = injector - 132 lbm/s, which reads as 132 lbm/s of HOT gas; but 1.9 % hot plus 12.5 %
+of the methane mixes to 1,800 R and totals ~124 lbm/s, and `engine_designer`'s power balance
+needs ~132 lbm/s of 1,000 K fuel-rich gas in TOTAL, so the text reading (132 = the mixed
+turbine flow) is followed. Table 4.3.1-1 (p.317) lists MR 3.0 / Isp 342 s against Table
+4.3.1-2's MR 3.5 - two design iterations, not one consistent point. Coolant
 (methane, full-flow, counterflow through both nozzle tube bank and chamber machined
 passages, discharging into the injector) enters at 239 R/5055 psia, exits at 450 R/2607
 psia (ΔP 2448 psid, ΔT 211 R, total heat pickup 97,342 Btu/s). Same cooling-guideline set

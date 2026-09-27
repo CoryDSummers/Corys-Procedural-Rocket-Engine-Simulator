@@ -96,12 +96,16 @@ the table above can do as simply.
 
 **A real second LOX/CH4 tap-off data point, for a hydrocarbon fuel** `[STBE-PW leaf
 341-344]`: a 1989 P&W preliminary-design study (Unique STBE Tap-Off, 750 Klbf SL thrust, Pc
-2400 psia) gives a **tap-off flow rate of 132 lbm/s against a 2462 lbm/s injector flow —
-~5.4% of injector flow tapped near the throat to drive the turbines**. This is a second
-real tap-off anchor alongside `[AEDC-J2S]`'s J-2S numbers above, now for LOX/CH4 rather than
-LOX/LH2 — useful if a tap-off bleed-fraction constant ever needs a hydrocarbon-fuel anchor
-rather than only a hydrogen one (the existing `TAP_OFF_DUMP_ISP_FRACTION` remains otherwise
-unsourced, per the caveat below).
+2400 psia) gives a **tap-off flow rate of 132 lbm/s against a 2462 lbm/s injector flow
+(~5.4%)**. The mechanism matters more than the number `[STBE-PW p.317 §4.3.1.1]`: the engine
+taps **1.9 % of O/F-biased chamber gas** into a **hot-gas mixer** where **cold methane (12.5 %
+of the pumped fuel, via the fuel bypass valve)** dilutes it to **1,800 R (1,000 K) at 2293 psia
+(0.955 x Pc)**. The fuel-rich mix drives the methane turbine, then the oxygen turbine, in
+series. So a hydrocarbon tap-off turbine does NOT see chamber gas "film-cooled" to ~1,150 K.
+It sees GG-like fuel-rich gas at ~1,000 K, most of it pumped bypass fuel. (Corrected
+2026-09-26: this passage and the source note first read it as "tapped near the throat".)
+Implemented as `physics/tap_off.py` (the hot-gas mixer, default for LOX/CH4 and LOX/RP-1)
+and gated by validate "TAP-OFF".
 
 **A new real cycle variant — the "split expander" cycle (P&W-specific, distinct from any
 existing entry in this table)** `[STBE-PW leaf 28-29]`: "The split expander cycle differs

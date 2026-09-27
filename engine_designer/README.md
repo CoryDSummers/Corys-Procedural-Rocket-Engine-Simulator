@@ -144,6 +144,7 @@ python3 -m engine_designer.physics.turbopump_efficiency
 python3 -m engine_designer.physics.inducer        # pump suction: inducer NPSH required / TSH
 python3 -m engine_designer.physics.turbopump_intent  # directional pump design intent
 python3 -m engine_designer.physics.pump_meanline  # pump meanline hydraulics (centrifugal / axial)
+python3 -m engine_designer.physics.tap_off        # tap-off hot-gas mixer (STBE split)
 python3 -m engine_designer.physics.turbopump_sizing
 python3 -m engine_designer.gui.schematic
 python3 -m engine_designer.gui.preview3d          # matplotlib fallback preview
@@ -196,9 +197,19 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   not a shared preset with tweaked constants:
   - **gas generator** - fuel-rich GG; its turbine exhaust leaves the engine
     through one of three real disposal modes (below).
-  - **tap-off** - turbine driven by *main-chamber* combustion products tapped
-    near the injector face, film-cooled to ~1150 K (`combustion.mixture_cp_j_kgk`
-    gives the real chamber-products Cp); still an open cycle, same exhaust modes.
+  - **tap-off** - turbine driven by gas tapped from the *main chamber*; still an
+    open cycle, same exhaust modes. For LOX/CH4 and LOX/RP-1 the default is the
+    **hot-gas mixer** (`physics/tap_off.py`, after P&W's STBE tap-off design
+    [STBE-PW p.317]): a small hot tap (~2 % of chamber gas) is diluted with cold
+    pumped fuel (~10-13 % of the fuel) to 1,000 K fuel-rich gas at 0.955 x Pc. The
+    pumps now also move that turbine flow. "Tap-off turbine gas temp" sets the
+    mixer temperature (a cooler turbine needs more flow and costs Isp). The old
+    model (chamber gas at min(Tc x 0.55, 1150 K), unsourced) stays as
+    `tap_off_model "legacy"` and is still the default for LOX/LH2, until a J-2S
+    source is found. An optional **turbine blade material** splits the
+    turbine-temperature check into blades (limits from SP-8110 Fig. 30, anchored
+    on the F-1's cast 713C blades) and disk (the turbopump material). The tool
+    only warns; it never picks a material for you.
   - **Turbine-exhaust handling** (open cycles, `physics/turbine_exhaust.py`,
     Turbopump tab -> "Turbine Exhaust"):
     - The three modes:

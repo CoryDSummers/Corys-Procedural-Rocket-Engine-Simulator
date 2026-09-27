@@ -276,6 +276,23 @@ into that and makes no claims about it.
     - **Legacy `NSS_TARGET_US["lh2_class"]` error.** It was back-solved with the J-2 LH2 pump
       at 3,000 gpm; `[SP-8107 Table II]` gives 8,530 gpm (Ss at NPSH_crit ~98,000). Kept only
       on the legacy path for bit-identity.
+  - **Tap-off follow-ups (2026-09-26, tap-off accuracy round).** Wanted:
+    - **A J-2S tap-off gas source.** The legacy model's `min(Tc x 0.55, 1150 K)` and the old
+      "J-2S ~1,140 K" note trace to nothing in claude_lit. Wanted: tap-off gas temperature,
+      pressure and tap-port design (location, hot-gas duct, any mixing or film). Look for
+      Rocketdyne's J-2S development / final report. LOX/LH2 tap-off stays on the legacy
+      model until then.
+    - **A second hydrocarbon tap-off point.** The mixer rests on ONE design study (P&W STBE,
+      LOX/CH4), which is internally inconsistent (MR 3.0 vs 3.5 between tables; the 132 lbm/s
+      reading). No LOX/RP-1 tap-off has flown: kerosene as a mixer diluent (coking, soot,
+      cracking at ~1,000 K) is unaddressed.
+    - **Mixer gas properties.** The mixed turbine gas takes the equilibrium fuel-rich
+      `GG_GAS_PROPERTIES` cp/gamma. The real mix is combustion products plus unreacted (and
+      partly reformed) fuel. A mixed-composition property calculation would replace it.
+    - **Turbine alloy data.** Rene 41 and DS MAR-M-246 limits are Tier 3 (no strength vs
+      temperature in claude_lit); Fig. 30 ends at 1,500 F, capping IN100 / Udimet 700;
+      `DISK_METAL_TEMP_FRACTION` rests on the F-1 alone. SP-8110's unread materials sections
+      or MMPDS elevated-temperature data would fix these.
   - **Pump meanline follow-ups (2026-09-26, turbopump Round 2).** Wanted:
     - **Disk-friction coefficient.** Neither SP-8109 nor Huzel gives one; `pump_meanline.
       DISK_CM_COEFF` is a Daily-Nece-type form (Tier 3). Gülich / Stepanoff / Daily & Nece 1960

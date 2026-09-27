@@ -146,8 +146,23 @@ work only makes the warning judge whatever the user picked correctly.
 
 ## Status checklist (per commit)
 - [x] C0: branch `turbopump/tapoff-accuracy` off origin/main, this plan, draft PR
-- [ ] C1: `physics/tap_off.py` mixer model (pure + self-test) + constants
-- [ ] C2: wired into feed_stage + flow accounting, schema 18, STBE corpus engine, TAP-OFF banner, corpus report/snapshot
-- [ ] C3: turbine blade/disk material split + validate rows
-- [ ] C4: GUI (tap-off model, tap Tin slider, blade material, details lines)
-- [ ] C5: docs + claude_lit STBE fix + memory
+- [x] C1 (57020ad): `physics/tap_off.py` mixer model (pure + self-test) + constants
+- [x] C2 (f51b48c): wired into feed_stage + flow accounting, schema 18, TAP-OFF banner, corpus report/snapshot
+- [x] C3 (41eefe8): turbine blade/disk material split + validate rows
+- [x] C4 (a419b96): GUI (tap-off model, tap Tin slider, blade material, details lines)
+- [x] C5: docs + claude_lit STBE fix + memory
+
+## Deviations from the approved plan (recorded at implementation)
+- **STBE is a validate-only engine, not a corpus engine.** It is a paper design study with
+  no RealismOverhaul config, and its two tables disagree (MR 3.0 / Isp 342 vs MR 3.5).
+  Putting it in the "real-engine corpus" with a cited Isp would overstate it, so
+  `validate/tap_off_checks.py` builds it inline.
+- **The blade limit uses an absolute allowable, not a retention fraction.** The planned rule
+  (the fraction of the room-temperature allowable the F-1's 713C blades ran at) would rank
+  cast IN100 below 713C, although IN100's Fig. 30 allowable is higher at temperature. The
+  rule used instead: the temperature where each alloy's allowable falls to the F-1 713C
+  level (15.0e9 in2 rpm2).
+- **Which reading of the STBE report the model follows.** Table 4.3.1-2's throat flow
+  (injector - 132) reads as 132 lbm/s of hot gas. The text's 1.9 % hot + 12.5 % of the fuel
+  gives a 1,800 R mix of ~124 lbm/s, and the tool's own power balance needs ~132 lbm/s total,
+  so the model follows the text reading.
