@@ -25,6 +25,9 @@ axis, one directory up) into:
                              tubes, ring loops, streams inside drawn tubes
   - shading.py              - PBR fragment shader + light rig/environment + its
                              numpy reference twin (headless-testable look)
+  - turbopump_meshes.py     - turbopump casings for the Turbopump 3D tab: corner-
+                             split polyline revolve, spiral volute scroll +
+                             tangential discharge cone, mirror/translate placement
 
 This __init__.py re-exports every public name from all of the above, so
 external code (gui/mesh_builder.py's ~100 call sites) keeps using the exact
@@ -179,6 +182,16 @@ from .shading import (
     BACKGROUND_FRAGMENT_SHADER,
     background_triangle,
 )
+from .turbopump_meshes import (
+    CASING_CORNER_DEG,
+    DISCHARGE_DIFFUSER_HALF_ANGLE_DEG,
+    DISCHARGE_MIN_LEN_DIA_MULT,
+    VOLUTE_STATIONS,
+    revolve_polyline_pieces,
+    volute_sections,
+    volute_scroll_pieces,
+    place_pieces,
+)
 
 __all__ = [
     "VISUAL_CHANNEL_COUNT_MAX",
@@ -308,4 +321,12 @@ __all__ = [
     "BACKGROUND_VERTEX_SHADER",
     "BACKGROUND_FRAGMENT_SHADER",
     "background_triangle",
+    "CASING_CORNER_DEG",
+    "DISCHARGE_DIFFUSER_HALF_ANGLE_DEG",
+    "DISCHARGE_MIN_LEN_DIA_MULT",
+    "VOLUTE_STATIONS",
+    "revolve_polyline_pieces",
+    "volute_sections",
+    "volute_scroll_pieces",
+    "place_pieces",
 ]
