@@ -42,21 +42,38 @@ def isp_vs_mr_curve(design, n=25):
             "is_monopropellant": mono,
         }
 
-    mrs, isp_eng, isp_ch, thr = [], [], [], []
-    for i in range(n):
-        mr = lo + (hi - lo) * i / (n - 1)
-        r = dataclasses.replace(design, mixture_ratio=mr).compute()
-        mrs.append(mr)
-        isp_eng.append(r["isp_vac_engine_s"])
-        isp_ch.append(r["isp_vac_chamber_s"])
-        thr.append(r["thrust_vac_n"])
+    mrs = sweep_mrs(design, n)
+    points = [sweep_point(design, mr) for mr in mrs]
+    return curve_from_points(mrs, points)
 
-    peak_i = max(range(n), key=lambda i: isp_eng[i])
+
+def sweep_mrs(design, n=25):
+    """The bipropellant sweep's MR grid: n points evenly across
+    combustion.mr_bounds, endpoints included. Split out (with sweep_point /
+    curve_from_points) so gui/async_compute.py can farm the points out to a
+    process pool and still assemble a bit-identical curve."""
+    lo, hi = combustion.mr_bounds(design.propellant_pair)
+    return [lo + (hi - lo) * i / (n - 1) for i in range(n)]
+
+
+def sweep_point(design, mr):
+    """One sweep point: (engine vac Isp, chamber vac Isp, vac thrust) of
+    `design` at mixture ratio `mr`, every other input held fixed. Top-level
+    and pure, so it pickles to a worker process."""
+    r = dataclasses.replace(design, mixture_ratio=mr).compute()
+    return r["isp_vac_engine_s"], r["isp_vac_chamber_s"], r["thrust_vac_n"]
+
+
+def curve_from_points(mrs, points):
+    """isp_vs_mr_curve's bipropellant result dict from the MR grid and its
+    sweep_point tuples, in grid order (peak = the first engine-Isp maximum)."""
+    isp_eng = [p[0] for p in points]
+    peak_i = max(range(len(mrs)), key=lambda i: isp_eng[i])
     return {
-        "mr": mrs,
+        "mr": list(mrs),
         "isp_vac_engine_s": isp_eng,
-        "isp_vac_chamber_s": isp_ch,
-        "thrust_vac_n": thr,
+        "isp_vac_chamber_s": [p[1] for p in points],
+        "thrust_vac_n": [p[2] for p in points],
         "peak_mr": mrs[peak_i],
         "peak_isp_s": isp_eng[peak_i],
         "is_monopropellant": False,

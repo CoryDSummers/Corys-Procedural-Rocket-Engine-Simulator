@@ -192,12 +192,28 @@ class EnginePreviewGLFrame(pyopengltk.OpenGLFrame):
 
     # --- public API, called from gui/app.py ---
 
-    def update_result(self, result):
-        """Rebuild meshes for a new EngineDesign.compute() result and redraw."""
+    def mesh_build_job(self):
+        """(key, build) for building this widget's mesh OFF the Tk thread
+        (gui/async_compute.py's worker): build(result) is pure numpy
+        (mesh_builder), with the render-state args captured now; pass
+        (key, build(result)) back as update_result's `prebuilt`."""
+        key = (self._heat_flux_mode, self._duct_bend_radius_mult)
+        heat_flux_mode, bend_mult = key
+        return key, lambda result: mesh_builder.build_mesh_data(
+            result, heat_flux_mode, duct_bend_radius_mult=bend_mult)
+
+    def update_result(self, result, prebuilt=None):
+        """Rebuild meshes for a new EngineDesign.compute() result and redraw.
+        `prebuilt` = (key, mesh_data) from mesh_build_job, used as-is unless a
+        render toggle changed since it was built (then rebuilt here)."""
         self._last_result = result
-        self._pending_mesh_data = mesh_builder.build_mesh_data(
-            result, self._heat_flux_mode,
-            duct_bend_radius_mult=self._duct_bend_radius_mult)
+        if prebuilt is not None and prebuilt[0] == (self._heat_flux_mode,
+                                                    self._duct_bend_radius_mult):
+            self._pending_mesh_data = prebuilt[1]
+        else:
+            self._pending_mesh_data = mesh_builder.build_mesh_data(
+                result, self._heat_flux_mode,
+                duct_bend_radius_mult=self._duct_bend_radius_mult)
         center, half = preview3d_gl_core.compute_bounds(result)
         self._last_bounds = (center, half)
         self._camera.set_target(center, fit_distance=half * 2.6)
