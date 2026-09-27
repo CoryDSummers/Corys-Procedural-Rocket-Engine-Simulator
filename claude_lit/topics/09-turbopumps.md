@@ -91,11 +91,11 @@ capture (it varies max-use-temperature and density, not shrouding-vs-tip-speed).
 **Real suction-specific-speed design limits** `[SP-8109 §3.2.1.2 p.63]` — a direct,
 quotable design criterion: **"For a pump with an integral inducer, maximum suction specific
 speed of 40,000 for the inducer is recommended. Without an integral inducer, limit the Ss
-value to 12,000."** Real fleet Ss data (corrected, roughly ×1000) sits well below that
-ceiling: F-1 RP-1 pump ≈23,400; F-1 LOX ≈19,500; J-2 LOX ≈10,200; Atlas booster LOX
-≈14,250; Atlas sustainer LOX ≈8,600 (no inducer, ≈15,000 for its RP-1 pump); X-8 LH2
-≈11,000 — i.e. **40,000 is an upper design limit, not a typical achieved value**; real
-hardware historically ran with much more suction margin than the limit allows. Also gives a
+value to 12,000."** (Correction, 2026-09-26: an earlier version of this paragraph listed "real
+fleet Ss" values of 8,600-23,400 read from SP-8109 Fig. 5. Those were the figure legend's
+impeller tip diameters in inches, not Ss. The real fleet suction data is `[SP-8107 Table II]`'s
+NPSH_min/NPSH_crit columns, now transcribed and checked in Round 1's `physics/inducer.py`.) Also
+gives a
 real **NPSH margin factor by propellant class**: NPSH ≥ 3.0·cm1²/2g (water/RP-1, low vapor
 pressure), 2.3·cm1²/2g (LOX/LF2), 1.3·cm1²/2g (LH2) — no counterpart yet in
 `turbopump_sizing.py`.
@@ -332,6 +332,64 @@ open item if ever needed.
 - **Relative leakage:** a labyrinth leaks ~5× a floating ring; a stepped labyrinth ~½ a
   straight one.
 
+## Pump meanline design (turbopump Round 2 batch, 2026-09-26)
+
+These come from the deep re-read of SP-8109 §2.3-2.5/§3.3-3.5, Huzel §6.3-6.4 and SP-8125.
+Full tables are in the source notes.
+
+- **Slip.** SP-8109's own correlation is eq. 17 (not Wiesner): M = c_u2∞/c_u2 =
+  1 + (1.37+0.23 sin β2)(φ2+0.05)^0.6 / [0.5·Z2·X_L^0.6·(1+X_L/2)(1−0.12δ)].
+  - With ψ = η_h(1−φ2 cot β2)/M, it reproduces the Fig. 16 blade carpet at X_L ≈ 0.25 and
+    η_h ≈ 0.82 `[SP-8109 p.30-31]`.
+  - Huzel instead lumps slip and loss into a vane coefficient e_v = cu2'/cu2 of 0.65-0.75
+    `[Huzel eq. 6-32]`.
+- **Blade angle and count.**
+  - β2 is "the most important single design element": 17-28°, average 22.5° `[Huzel p.208]`.
+    The fleet spans 22.5-90°, and LH2 pumps are often radial `[SP-8109 Table I]`.
+  - z ≈ β2/3 for 5-12 blades `[Huzel eq. 6-44]`. Z2 must be ≥ the Fig. 16 minimum.
+  - 4-8 inlet blades, with splitters for more.
+  - Z2 ≤ 28 sin β2 if machined; Dt2/b2 < 20 for shrouded machined impellers `[SP-8109
+    §3.3.1.3, §3.3.3]`.
+- **Coefficients.**
+  - ψ 0.35-0.70+: low ψ with few blades gives a wide stable range, high ψ needs many blades.
+  - φ2 0.05-0.30; c_m2 = 1-1.5 c_m1 `[SP-8109 p.28, 66]`.
+  - Fleet b2/Dt2 is 0.04-0.14 (Table I).
+  - A-1 LOX worked example: ψ 0.46, β2 24°, e_v 0.74 → φ2 0.116, b2/d2 0.129, z 8, η 70.7 %
+    `[Huzel SC 6-7]`.
+- **Stability.** The H-Q curve must fall with flow. Zero slope must be ≥ 10 % and stall ≥ 15 %
+  below the lowest flow.
+  - Backswept low-ψ pumps rise to a shutoff ψ/ψd of 1.1-1.3.
+  - Radial high-ψ LH2 pumps droop.
+  - ψ ≤ 0.5 with a vaned diffuser gives rising head to the lowest flow `[SP-8109 §3.2.3.1,
+    §3.3.1.3, Fig. 13]`.
+- **Losses and efficiency.**
+  - η = η_h·η_v·η_m.
+  - Mechanical losses are negligible at ≥ 10 in and up to 20 % at 1 in `[SP-8109 p.8]`.
+  - Seal clearance 0.0005·D2 gives ~95 % of zero-clearance η (J-2 LOX); leak Q_L =
+    K·πD·c·√(2gΔh), K 0.25-0.7 `[SP-8109 p.34, Fig. 22]`.
+  - Leakage is 1-5 % of flow (centrifugal) and 2-10 % (axial) `[Huzel eq. 6-35, 6-87]`.
+  - Volute loss is 0.10-0.30 ΔH `[Huzel eq. 6-34]`.
+  - The size effect is SP-8109 Fig. 6 (e.g. Ns 1600: 80 % at 10 in, 69 % at 4 in, 60.5 % at
+    1 in). The Ss penalty is Fig. 9 (Ns 2000: 0.4-5.1 points over Ss 10k-60k).
+  - Disk friction is named as a loss (and as fluid heating) but **no coefficient is given in
+    either source**.
+- **Diffusers.**
+  - Vaned when ψ > 0.5 or Ns < 1000, for +3 % η at Ns 1200, more below `[SP-8109 §3.4.1.2.2,
+    p.43]`. Vaneless-only is worst.
+  - Volute: constant moment of momentum plus friction correction `[SP-8109 §3.4.1.3.1]`, or
+    constant velocity c3' = K_v√(2gΔH) with K_v 0.15-0.55 `[Huzel eq. 6-70]`.
+  - Tongue at 1.05-1.10 r2; b3 1.6-2.0 b2.
+- **Axial LH2.**
+  - Stage ψ_T 0.23-0.35, φ_T 0.29-0.47, ν 0.76-0.86 `[SP-8125 Table II; Huzel p.230]`.
+  - Design DF 0.45-0.55; stall at DF 0.75 `[SP-8125 p.69-72]`.
+  - Stage hydraulic η 0.84-0.92, but the whole pump is 70-79 % `[SP-8125 Fig. 1]`.
+  - Choose axial above stage Ns ~3000, only when throttling is not needed `[SP-8125 §3.2.1]`.
+  - Huzel's A-2 LH2 axial: 27,000 rpm, 7 stages + inducer, d_t 7.0 in, ν 0.857, z_r 16 /
+    z_s 41, η 80 % `[Huzel SC 6-10, Table 3-3]`.
+- **Pump heating.** SSME HPFTP LH2 goes 23.7 → 51.5 K at 298 → 5,956 psia (η 0.75). LPFTP
+  goes 20.4 → 23.7 K. HPOTP LOX rises +10.6 K `[SSME-Orientation p.19]`. The heating is small
+  below ~1,250 psia and "very significant" at 6,000 psi `[SP-8107 p.14]`.
+
 ## Caveats
 
 - Specific-power figures are for the turbopump *assembly* as flown; "turbopump" (Table II)
@@ -340,9 +398,9 @@ open item if ever needed.
 - SSME rows in `[SP-8107]` are pre-operational projections (mid-1973).
 - `Ns` and tip-speed limits are US-customary and geometry-specific; they bound a design,
   they don't predict one.
-- `[SP-8109]`'s real fleet Ss data (8,600–23,400) sits well below its own 40,000 recommended
-  ceiling — don't calibrate a future Nss validate.py check against 40,000 as if it were a
-  typical achieved value; use it as an upper bound and the fleet data as typical-case anchors.
+- `[SP-8109]`'s 40,000 is a recommended ceiling for inducer design. The "fleet Ss 8,600–23,400"
+  once quoted here was a misreading of Fig. 5's tip diameters (corrected 2026-09-26). Real
+  suction anchors are `[SP-8107 Table II]`.
 - `[SP-8048]`'s 3.0×10⁶ DN ceiling is a blanket rolling-element limit, not broken out by
   bearing material — it validates the tool's overall order-of-magnitude but not its
   material-by-material gradation (440C vs Cronidur 30 vs Si3N4). Only ~15 of 84 pages of
@@ -392,17 +450,19 @@ open item if ever needed.
   shaft rule (F-1 vs J-2). Anchored so the J-2 LH2 pump comes out ~7 stages. Spot-checked
   in `physics/validate.py::run_turbopump_sizing_check()` against real J-2 / F-1 / RD-0110
   rotor & tip speeds with wide (factor ~2-3) bands.
-- **NPSH / cavitation / suction specific speed**: still NOT modelled - so the 1-D sizing
-  above over-predicts rotor speed for extreme high-head pumps a real designer slows with
-  extra axial stages for cavitation margin. `[SP-8107 §2.1.1.2, §2.2.1]` has the framework
-  if a real NPSH model is ever added. **Update**: `[SP-8109 §3.2.1.2]` now gives this a real
-  citation — the pending NPSH/suction-specific-speed feature plan's `NSS_TARGET_US
-  ["lox_class"] = 40_000.0` seed value matches this monograph's integral-inducer
-  recommendation exactly (though `[SP-8109]` frames 40,000 as a general inducer-equipped
-  limit, not LOX-specific, and gives no separate LH2-class number — the plan's `lh2_class:
-  58_000.0` still rests on the F-1/J-2 two-anchor derivation, not this source). The
-  3.0/2.3/1.3 NPSH-margin-factor-by-propellant-class numbers above are new and have no
-  counterpart in `turbopump_sizing.py` yet.
+- **NPSH / cavitation / suction specific speed: MODELLED since turbopump Round 1
+  (2026-09-26)** - `physics/inducer.py` + `design/suction_stage.py`:
+  - NPSH required = the `[SP-8052 §2.1.3]` Brumfield inducer at a design K back-solved to
+    `[SP-8109 §3.2.1.2]`'s 40,000 recommended Ss, less the `[SP-8052 eq. 54]` tip-clearance
+    loss, minus a TSH credit (`[SP-8052 §2.1.4]` F-1 LOX / J-2 LH2 anchors scaled with
+    vapor pressure), floored at SP-8109's 2.3 (LOX) / 1.3 (LH2) / 3.0 c_m²/2g.
+  - NPSH available = tank pressure + liquid head - suction line (`[SP-8052 eq. 57]`
+    velocity limit) + optional boost pump - vapor pressure (Round 0 saturation table).
+  - Each pump's rpm is capped where the two meet (exact inversion). Validated against all
+    `[SP-8107 Table II]` pumps (the table's suction columns are now in the SP-8107 source
+    note); F-1 LOX sits at 0.92 of the cap, J-2 LOX 0.88, J-2 LH2 0.86.
+  - Still open (OPEN_QUESTIONS): TSH for CH4/N2O4, TSH speed scaling, storable vapor
+    pressure, RD-180 boost pressures; the speed a designer CHOOSES below the cap (Round 2).
 - **Bearing DN Tier-3 estimate now has a real citation**: `[SP-8048 §3.1.2]`'s 1.0×10⁶/
   3.0×10⁶ DN bands are noticeably **more permissive** than `turbopump_materials.py`'s current
   flagged-estimate `max_dn_mm_rpm` values (~1.2M–2.4M) — either the tool's numbers are

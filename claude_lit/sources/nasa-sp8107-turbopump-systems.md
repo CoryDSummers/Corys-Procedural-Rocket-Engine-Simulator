@@ -56,6 +56,34 @@ low (F-1 O₂ 65/60).
 30 200 hp. **F-1 RP-1 pump**: 1856 psia, 5168 ft, 1715 lbm/s, 5488 rpm, 22 100 hp.
 (F-1 Pc 1122 psia → O₂ discharge/Pc = 1.43, RP-1 discharge/Pc = 1.65.)
 
+**Table II suction columns in full** (re-read from the page render 2026-09-26, turbopump
+Round 1; PDF leaf 17, printed p.4). Rated inlet pressure (psia), volume flow (gpm), speed
+(rpm), NPSH_min (contractually specified, "maximum acceptable") / NPSH_crit (2 % head drop),
+ft; "–" = not given. This is `physics/inducer.REAL_PUMP_SUCTION_DATA`.
+
+| Engine | Pump | Inlet psia | gpm | rpm | NPSH_min | NPSH_crit |
+|---|---|---|---|---|---|---|
+| A-7 | O₂ / alcohol | 49.8 / 42.5 | 1,290 / 1,190 | 4,718 | 18 / 40 | 11 / 35 |
+| MB-3 | O₂ / RJ-1 | 53.0 / 48.0 | 2,870 / 1,700 | 6,303 | 55 / 34 | – |
+| LR87-AJ-3 | O₂ / RP-1 | 53.0 / 22.0 | 2,600 / 1,630 | 7,949 / 8,780 | 40 / 30 | – |
+| LR91-AJ-3 | O₂ / RP-1 | 35.0 / 42.0 | 1,100 / 659 | 8,945 / 25,207 | 31 / 100 | – |
+| H-1 | O₂ / RP-1 | 65.0 / 57.0 | 3,410 / 2,130 | 6,680 | 35 / 35 | 25 / 28 |
+| MA-5 sustainer | O₂ / RP-1 | 53.0 / 77.0 | 1,200 / 745 | 10,160 | 30 / 85 | 14 / 60 |
+| MA-5 booster | O₂ / RP-1 | 50.0 / 73.0 | 2,862 / 1,867 | 6,314 | 40 / 33 | – |
+| F-1 | O₂ / RP-1 | 65.0 / 45.0 | 25,200 / 15,250 | 5,488 | 65 / 70 | 60 / 55 |
+| YLR81-BA-11 | IRFNA / UDMH | 24.0 / 24.0 | 180 / 139 | 25,389 / 14,410 | 12 / 34 | – |
+| YLR87-AJ-7 | N₂O₄ / A-50 | 84.0 / 33.5 | 2,700 / 2,180 | 8,382 / 9,209 | 44 / 43 | – |
+| YLR91-AJ-7 | N₂O₄ / A-50 (mixed flow) | 41.0 / 44.5 | 1,010 / 904 | 8,405 / 23,685 | 30 / 100 | – |
+| RL10A-3-3 | O₂ / H₂ (2 stages) | 60.5 / 30.0 | 184 / 581 | 12,100 / 30,250 | 17 / 132 | – |
+| J-2 | O₂ / H₂ (axial, 7 + inducer) | 39.0 / 30.0 | 2,920 / 8,530 | 8,753 / 27,130 | 25 / 130 | 18 / 75 |
+| SSME (EPL, not operational) | O₂ 1/2 stages / H₂ 3 | 379/4,940 / 188 | 7,250/633 / 16,450 | 31,000 / 37,400 | boost pump upstream | – |
+
+Effective (TSH-inclusive) Ss at NPSH_min spans ~10,000 (MA-5 sustainer RP-1, no inducer)
+to ~65,000 (J-2 LH2); the F-1 LOX (38,000) and J-2 LOX (42,000) pumps sit near the
+`[SP-8109]` 40,000 inducer limit, i.e. were designed at their suction limit. The J-2 LH2
+pump flows **8,530 gpm**, not the 3,000 gpm the old `NSS_TARGET_US["lh2_class"]` derivation
+used.
+
 ### Table III — turbines
 
 | Engine | Working fluid | Type | Inlet T (°F) | PR | η (%) | Pitchline (ft/s) |

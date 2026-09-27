@@ -156,7 +156,10 @@ def run_two_pass_cooling_check():
     # temperature-dependent H2 density the down-pass dP ~ G^2/rho grows as the
     # hydrogen expands, and the passages are auto-sized (not the J-2's real
     # tube bundle) - the old constant liquid-density model understated it.
-    dp_band_ok = 0.2e6 <= c["jacket_dp_pa"] <= 8.0e6
+    # 10 MPa since turbopump Round 2: the computed (colder, denser) LH2 jacket inlet
+    # - the fuel pump outlet, ~31 K vs the old flat 45 K - shrinks the channels, which
+    # are sized at the INLET coolant velocity (see claude_lit/OPEN_QUESTIONS.md)
+    dp_band_ok = 0.2e6 <= c["jacket_dp_pa"] <= 10.0e6
     dt_ok = 0.0 < c["coolant_delta_t_k"] <= cooling.MAX_COOLANT_DELTA_T_K.get("LOX/LH2", 500.0)
     ji = ref["jacket_manifold_result"]["jacket_inlet"]
     single_v = cooling.passage_velocity_ms(
@@ -164,7 +167,7 @@ def run_two_pass_cooling_check():
         ref["geometry"]["throat_dia_m"], ji["mdot_kgs"], "LOX/LH2")
     n_up, n_down = cooling.two_pass_tube_counts(ref["geometry"]["throat_dia_m"])
     v_ok = abs(ji["design_feed_velocity_ms"] / single_v - (n_up + n_down) / n_down) < 0.05
-    print(f"(4) J-2 @ inlet eps 8: jacket dP {c['jacket_dp_pa']/1e6:.2f} MPa in [0.2, 8.0], "
+    print(f"(4) J-2 @ inlet eps 8: jacket dP {c['jacket_dp_pa']/1e6:.2f} MPa in [0.2, 10.0], "
           f"dT {c['coolant_delta_t_k']:.0f} K; inlet ring {ji['design_feed_velocity_ms']:.0f} m/s "
           f"= {ji['design_feed_velocity_ms']/single_v:.2f}x single-pass, ring ID "
           f"{ji['ring_inlet_inner_diameter_m']*1000:.0f} mm   "

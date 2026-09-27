@@ -7,7 +7,6 @@ import numpy as np
 from .. import (cycles, expander, geometry, nozzle_shapes, throttle, turbopump_sizing)
 from .constants import (
     PA_SEA_LEVEL,
-    TANK_HEAD_PA,
     EXPANDER_TURBINE_PR,
     SEPARATION_K,
 )
@@ -91,15 +90,16 @@ def chamber_detail(self, s):
            f"OK - L/D {s.chamber_l_over_d:.2f}")
 
     if self.cycle == cycles.EXPANDER:
+        _bd_f, _bd_o = s.boost_drive_dp["fuel"], s.boost_drive_dp["ox"]   # suction_stage
         s.eta_pf, s.eta_po, s.eta_turb = turbopump_sizing.derive_expander_efficiencies(
-            s.mdot, self.mixture_ratio, s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox,
+            s.mdot, self.mixture_ratio, s.dp_fuel + _bd_f, s.dp_ox + _bd_o, s.rho_fuel, s.rho_ox,
             self.turbopump_material_key, EXPANDER_TURBINE_PR, s.build_quality,
             pump_stages_fuel=self.pump_stages_fuel, pump_stages_ox=self.pump_stages_ox,
             eta_pump_fuel_override=self.eta_pump_fuel, eta_pump_ox_override=self.eta_pump_ox,
             enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
         s.cyc = expander.expander_result(
             self.propellant_pair, s.mdot, self.mixture_ratio, self.chamber_pressure_pa,
-            s.dp_fuel, s.dp_ox, s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po,
+            s.dp_fuel + _bd_f, s.dp_ox + _bd_o, s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po,
             self.pump_specific_power_w_kg,
             s.xs, s.rs, s.geo["throat_dia_m"], s.cstar, s.mu_gas, s.cp_gas, s.pr_gas, s.t_aw_chamber_k,
             cutoff_area_ratio=s.regen_cut_eps, eta_turbine=s.eta_turb,
@@ -110,8 +110,8 @@ def chamber_detail(self, s):
             heat_w=s.thermal["wall_heat_regen_w"], coolant_model=s.thermal["coolant_model"],
             t_inlet_k=s.coolant_inlet_k,
         )
-        s.cyc["pump_discharge_fuel_pa"] = s.dp_fuel + TANK_HEAD_PA
-        s.cyc["pump_discharge_ox_pa"] = s.dp_ox + TANK_HEAD_PA
+        s.cyc["pump_discharge_fuel_pa"] = s.dp_fuel + s.pump_inlet_pa["fuel"]
+        s.cyc["pump_discharge_ox_pa"] = s.dp_ox + s.pump_inlet_pa["ox"]
         s.cyc["turbine_pressure_ratio"] = EXPANDER_TURBINE_PR
         _check(s.checklist, s.warnings, "expander", "Expander turbine power feasibility",
                s.cyc["feasibility_margin"] >= 1.0,

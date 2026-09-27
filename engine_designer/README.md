@@ -141,6 +141,7 @@ python3 -m engine_designer.physics.staged_combustion
 python3 -m engine_designer.physics.electric_pump
 python3 -m engine_designer.physics.turbopump_materials
 python3 -m engine_designer.physics.turbopump_efficiency
+python3 -m engine_designer.physics.inducer        # pump suction: inducer NPSH required / TSH
 python3 -m engine_designer.physics.turbopump_sizing
 python3 -m engine_designer.gui.schematic
 python3 -m engine_designer.gui.preview3d          # matplotlib fallback preview
@@ -600,10 +601,16 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
     discharge pressures (`validate` FEED/PUMP CALIBRATION) "auto"
   derives all of it; overriding any of it is the ONLY thing that moves computed
   dry mass (a documented gearbox / extra-stage modifier; the auto architecture
-  is exactly 1.0). Optional per-pump **inlet NPSH available** inputs (0 = not
-  limiting, the default) cap a pump's rpm at its suction-specific-speed limit
-  (bigger impeller, lower efficiency) - the NPSH comes from the user, the tool
-  still has no tank model. Otherwise rotor speed is a preliminary estimate - `validate.py`'s
+  is exactly 1.0). **Pump suction** (turbopump Round 1): each pump's rpm is
+  capped at its inducer suction limit (bigger impeller, lower efficiency) -
+  NPSH required from a Brumfield inducer + thermodynamic suppression head
+  (`physics/inducer.py`, SP-8052/SP-8109, validated against SP-8107 Table II),
+  NPSH available from the tank side (`design/suction_stage.py`: tank pressure,
+  propellant temperature -> vapor pressure, liquid head, suction line, optional
+  SSME-style boost pump; the Turbopump tab's "Pump suction" controls). The old
+  per-pump NPSH inputs now override the computed value; `suction_model
+  "legacy"` restores the pre-Round-1 behaviour bit-for-bit. `validate` PUMP
+  SUCTION pins it. Otherwise rotor speed is a preliminary estimate - `validate.py`'s
   `run_turbopump_sizing_check()` spot-checks it against real J-2 / F-1 /
   RD-0110 numbers with wide bands. Warns (never blocks) on tip-speed over the
   material limit, turbine gas too hot for the material, titanium wetted by an
@@ -765,7 +772,8 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 - Turbopump rotor speed / tip speed / stage & turbine count / shaft arrangement
   / efficiency / mass / physical size ARE now derived (1-D `Ns` sizing +
   `physics/turbopump_efficiency.py` + the SP-8107 mass-vs-power trend), but
-  NPSH available is a user input (no tank / vapor-pressure model), and an
+  the suction cap can only LOWER the Ns-optimum speed (the speed a designer
+  chooses below it - e.g. the SSME HPOTP's 22k rpm - is Round 2's), and an
   axial-pump Ns target for LH2 isn't modelled, so rotor speed is a
   preliminary estimate (validated against real engines with wide
   bands) and the volumetric envelope is scaled to the mass rather than trusted

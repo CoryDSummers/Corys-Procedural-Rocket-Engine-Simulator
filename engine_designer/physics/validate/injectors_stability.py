@@ -214,7 +214,9 @@ def run_combustion_stability_check():
     baf = EngineDesign(**trip_kw, injector_baffles=True).compute()
     baf_row = _row(baf, "Combustion acoustic-mode margin")
     baf_ok = baf_row["passed"] and "baffle" in baf_row["detail"].lower()
-    baf_mass_ok = baf["computed_dry_mass_kg"] > base["computed_dry_mass_kg"]
+    # the baffle hardware's own mass: the total dry mass also moves with the indirect
+    # turbopump/plumbing re-sizing its c* cost causes, which is not what this row tests
+    baf_mass_ok = baf["stability_aid_mass_kg"] > base["stability_aid_mass_kg"]
 
     cav = EngineDesign(**trip_kw, acoustic_cavities=True, acoustic_cavity_count=12).compute()
     cav_ok = _row(cav, "Combustion acoustic-mode margin")["passed"]
@@ -231,7 +233,7 @@ def run_combustion_stability_check():
     print(f"\nStability aids (LOX/RP-1 impinging, 1T ~{trip_1t:.0f} Hz)  "
           f"[{'OK' if aids_ok else '*** FAIL ***'}]")
     print(f"  base design trips the acoustic advisory   [{'OK' if trips else 'FAIL'}]")
-    print(f"  + injector-face baffle clears it (+{baf['computed_dry_mass_kg']-base['computed_dry_mass_kg']:.1f} kg)"
+    print(f"  + injector-face baffle clears it (+{baf['stability_aid_mass_kg']-base['stability_aid_mass_kg']:.1f} kg)"
           f"   [{'OK' if baf_ok and baf_mass_ok else 'FAIL'}]")
     print(f"  + Helmholtz cavities clear it   [{'OK' if cav_ok else 'FAIL'}]")
     print(f"  + very-stiff injector clears it (dP {base['injector_dp_pa']/1e6:.2f} -> "

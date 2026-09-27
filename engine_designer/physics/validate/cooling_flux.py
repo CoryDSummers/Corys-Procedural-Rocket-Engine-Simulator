@@ -63,7 +63,9 @@ def run_contraction_ratio_sensitivity_check():
 # T_wg against the liner limit is allowed to run right up to / just past it for
 # the two engines whose real throats did (SSME cracked; the F-1 copper wall sat
 # near its limit).
-T_WG_LO_K = 200.0   # 2026-09-23: was 450. With a real 45 K LH2 inlet and the cited
+T_WG_LO_K = 150.0   # turbopump Round 2: was 200 - the computed LH2 jacket inlet (fuel
+                    # pump outlet, ~29 K on the RL10-class vs the old flat 45 K) cools
+                    # the small copper throat further (192 K). 2026-09-23: was 450. With a real 45 K LH2 inlet and the cited
                     # roughness/curvature coolant-side enhancement, a small copper
                     # RL10-class throat legitimately runs ~300 K; this floor only
                     # guards against an absurd (sub-coolant) solve.
@@ -96,7 +98,9 @@ COOLING_CHECKS = [
          # +/- a factor ~1.5-4 (plausibility, uncited - was 3-22, set around the
          # old 0.55-scaled model).
          q_throat_lo_mw=10.0, q_throat_hi_mw=60.0, hg_lo=3000.0, hg_hi=30000.0,
-         t_wg_hi_k=1000.0, dp_lo_mpa=0.5, dp_hi_mpa=5.0),
+         # dp_hi 8 (was 5) since turbopump Round 2: the colder computed LH2 inlet +
+         # channels sized at the INLET velocity -> ~1.8x the dP (OPEN_QUESTIONS)
+         t_wg_hi_k=1000.0, dp_lo_mpa=0.5, dp_hi_mpa=8.0),
 ]
 # Neutral-default regression: the reference regen design in "channels" mode must
 # reproduce the tool's long-standing flat JACKET_DP_PA (1.6 MPa) to within a few

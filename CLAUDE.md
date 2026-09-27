@@ -83,8 +83,8 @@ touching any cooling number.** What changed structurally:
   gamma. The hand `combustion._TABLES` serves only the monopropellants.
   `saturation_properties.json` (2026-09-26, turbopump Round 0; `--saturation-only`, CoolProp,
   no Cantera) = vapor pressure / rho_l / rho_v / h_fg per PUMPED propellant (LOX, LH2, CH4,
-  RP-1 n-dodecane surrogate; storables absent), read by `thermo_tables.saturation()` - the
-  input for Round 1's NPSH model.
+  RP-1 n-dodecane surrogate; storables absent), read by `thermo_tables.saturation()` - since
+  Round 1 the pump-inlet vapor pressure of the computed suction model (`design/suction_stage.py`).
 - `engine_designer/validation_engines/`: real-engine corpus (`build_corpus.py`, cited
   reference blocks) + frozen copies of the user's designs; `run_corpus.py --check` is
   in `verify_all.sh` (bit-identical vs `golden/`), `--report [--diff]` compares against
@@ -192,6 +192,8 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.cost_model
    python3 -m engine_designer.physics.turbopump_materials
    python3 -m engine_designer.physics.turbopump_efficiency
+   python3 -m engine_designer.physics.inducer        # suction: Brumfield inducer / NPSH required /
+                                                     # TSH vs SP-8052 Table I + SP-8107 Table II
    python3 -m engine_designer.physics.turbopump_sizing
    python3 -m engine_designer.physics.flow_network  # flow-visualization data contract: per-
                                                      # stream temperature along feed line ->
@@ -272,8 +274,12 @@ touching any cooling number.** What changed structurally:
    honestly-reported (not gated) Quentmeyer-CR185257 flux-cut comparison, 2026-09-25) and
    "ALL FEED/PUMP CALIBRATION CHECKS OK" (turbopump Round 0, 2026-09-26: F-1 at its real
    injector-end Pc + H-1 200K pump discharge / ox pump power / GG share within 10 %, fuel legs
-   gated excluding the jacket dP, U/C0 staging direction; `validate/feed_calibration.py`)
-   (29 banners
+   gated excluding the jacket dP, U/C0 staging direction; `validate/feed_calibration.py`) and
+   "ALL PUMP SUCTION CHECKS OK" (turbopump Round 1, 2026-09-26: every SP-8107 Table II pump at
+   or below the model's suction-limited rpm at its own NPSH_min, F-1 LOX within 15 % of it,
+   RD-0110, SP-8052 Table I, TSH anchors, corpus F-1 / H-1 real inlets / SSME HPOTP boost;
+   `validate/suction.py`)
+   (30 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -361,10 +367,15 @@ unconnected run still gets the straight ray; a connected run's `plumbing.run_pre
 (+ `VALVE_AND_UNMODELED_K`) REPLACES the default feed loss for that pump leg (open cycles: the
 Pc-scaled, F-1/H-1-calibrated `design.FEED_LOSS_OVER_PC`, floored at `LINE_LOSS_PA`, with a warn
 row when a drawn run models under half of it; other cycles: the flat `LINE_LOSS_PA`) via a
-two-pass `compute()` (`_compute_pass`; no connected run = one pass, bit-identical); per-pump
-`npsh_available_fuel_ft`/`_ox_ft` (0 = off) cap pump rpm at the suction-specific-speed limit
-(`turbopump_sizing.suction_limited_rpm`); every node carries `kind`/`role` tags for future features
-to walk); `combustion.py` adds `chamber_flow`
+two-pass `compute()` (`_compute_pass`; no connected run = one pass, bit-identical); pump SUCTION
+(turbopump Round 1, `EngineDesign.suction_model` "computed" default | "legacy" bit-identical to
+before): `design/suction_stage.py` builds each leg's NPSH available (tank pressure 0 = `TANK_HEAD_PA`,
+inlet temperature 0 = NBP for cryogens / 293 K, liquid head x accel, `plumbing.suction_line_loss_pa`,
+optional SSME-style `boost_pump_rise_*_pa` whose drive head is charged to pump POWER) and
+`physics/inducer.py` the NPSH required (Brumfield inducer at a K back-solved to SP-8109's 40,000 Ss,
+tip clearance, SP-8052 TSH scaled with vapor pressure, SP-8109 Z floor); `size_pump(suction=)` caps
+each pump's rpm where they meet; `npsh_available_*_ft` > 0 still overrides a leg's NPSH available;
+every node carries `kind`/`role` tags for future features to walk); `combustion.py` adds `chamber_flow`
 (finite-contraction-ratio chamber Mach + injector-end Pc rise), per-pair L* defaults and
 `residence_time_from_lstar_s` (the residence-time chamber-sizing method's L*-equivalent);
 `geometry.chamber_geometry` sizes chamber volume by L* OR by a target combustion residence
@@ -488,6 +499,8 @@ work in progress, each with a per-commit checklist. Check there first when resum
 that may have been cut off mid-way (unticked boxes = not landed yet).
 **Turbopump fidelity** (`plans/2026-09-25_turbopump_fidelity_roadmap.md`): a multi-round roadmap
 (Rounds 0-5 internal + E1-E5 exterior). EACH ROUND is developed on its OWN test branch off
-`origin/main` (Round 0 = `turbopump/round-0`, plan `plans/2026-09-26_turbopump_round0.md`;
-worktree `.claude/worktrees/turbopump-fidelity/`), with a draft PR to `main` that is not merged
+`origin/main` (Round 0 = `turbopump/round-0`, plan `plans/2026-09-26_turbopump_round0.md`, PR
+#18; Round 1 = `turbopump/round-1` STACKED on round-0 (it needs Round 0's saturation table),
+plan `plans/2026-09-26_turbopump_round1.md`, PR #19 based on `turbopump/round-0`;
+worktree `.claude/worktrees/turbopump-fidelity/`), with a draft PR that is not merged
 until Cory has tested it. Do this work there, not on `main`.
