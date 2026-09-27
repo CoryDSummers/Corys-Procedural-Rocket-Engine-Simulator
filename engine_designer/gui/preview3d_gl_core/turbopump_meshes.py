@@ -25,6 +25,9 @@ CASING_CORNER_DEG = 35.0
 # minimum length in exit diameters (render-only defaults, not a hydraulic design).
 DISCHARGE_DIFFUSER_HALF_ANGLE_DEG = 5.0
 DISCHARGE_MIN_LEN_DIA_MULT = 1.0
+# ...and a cap, so a port bore far above the volute's end section (the port is sized by the
+# downstream ring, not the pump) steepens the cone instead of stretching it metres long.
+DISCHARGE_MAX_LEN_DIA_MULT = 1.5
 # Volute stations the 10-deg meanline spiral table is resampled to (smooth sweep).
 VOLUTE_STATIONS = 73
 
@@ -119,14 +122,16 @@ def volute_scroll_pieces(x_m, center_r_m, tube_r_m, wrap_rad, discharge_dia_m, n
                          base_color_rgb, *, u_start_rad=0.0, handed=1,
                          half_angle_deg=DISCHARGE_DIFFUSER_HALF_ANGLE_DEG,
                          min_len_dia_mult=DISCHARGE_MIN_LEN_DIA_MULT,
+                         max_len_dia_mult=DISCHARGE_MAX_LEN_DIA_MULT,
                          flange_lip_m=0.0, flange_width_m=0.0, n_bolts=0,
                          specular_strength=0.0, shininess=32.0):
     """
     A spiral volute (or constant-section collector) wrapped `wrap_rad` round the x axis in
     the plane x = x_m, from u_start_rad (u = 0 is +y) in the `handed` (+1/-1) sense, then a
     TANGENTIAL conical discharge diffuser from the scroll's end section to the discharge
-    bore (length = the larger of min_len_dia_mult exit diameters and the length that keeps
-    the cone at half_angle_deg), with an optional bolted flange at its exit.
+    bore (length = the length that keeps the cone at half_angle_deg, clamped to
+    [min_len_dia_mult, max_len_dia_mult] exit diameters), with an optional bolted flange at
+    its exit.
     Returns (pieces, exit) - exit = {"pos", "dir", "dia_m"} of the discharge face.
     """
     ctr = np.asarray(center_r_m, dtype=float)
@@ -142,8 +147,9 @@ def volute_scroll_pieces(x_m, center_r_m, tube_r_m, wrap_rad, discharge_dia_m, n
     start = np.array([x_m, 0.0, 0.0]) + ctr[-1] * radial
     r0 = float(tube[-1])
     r1 = 0.5 * discharge_dia_m if discharge_dia_m > 0.0 else r0
-    length = max(min_len_dia_mult * 2.0 * r1,
-                 abs(r1 - r0) / math.tan(math.radians(half_angle_deg)))
+    length = min(max(min_len_dia_mult * 2.0 * r1,
+                     abs(r1 - r0) / math.tan(math.radians(half_angle_deg))),
+                 max_len_dia_mult * 2.0 * r1)
     end = start + length * onward
     pieces += frustum_mesh(start, end, r0, r1, n_tube, base_color_rgb, **kw)
     if flange_lip_m > 0.0 and flange_width_m > 0.0:
@@ -223,7 +229,12 @@ def self_test():
         assert abs(ex["dir"][2] - handed) < 1e-12 and abs(ex["dia_m"] - 0.06) < 1e-12
         half = math.degrees(math.atan(abs(0.03 - tube[-1]) / np.linalg.norm(d)))
         assert half <= DISCHARGE_DIFFUSER_HALF_ANGLE_DEG + 1e-9
+        assert np.linalg.norm(d) <= DISCHARGE_MAX_LEN_DIA_MULT * 0.06 + 1e-12
         assert len(pcs) >= 1 + 3 + 3 + 12                # scroll + cone(3) + flange(3 + 2 x 6)
+    # a port bore far above the end section: capped length, steeper cone
+    _, ex = volute_scroll_pieces(0.2, ctr, tube, wrap, 0.5, 16, rgb)
+    assert abs(np.linalg.norm(ex["pos"] - np.array([0.2, ctr[-1], 0.0]))
+               - DISCHARGE_MAX_LEN_DIA_MULT * 0.5) < 1e-9
 
     # --- placement: mirror + translate keeps normals outward and winding consistent ---
     base = revolve_polyline_pieces([0.0, 0.2], [0.1, 0.1], 16, rgb)
