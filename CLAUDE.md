@@ -194,6 +194,9 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.turbopump_efficiency
    python3 -m engine_designer.physics.inducer        # suction: Brumfield inducer / NPSH required /
                                                      # TSH vs SP-8052 Table I + SP-8107 Table II
+   python3 -m engine_designer.physics.turbopump_intent  # directional pump design intent -> parameters
+   python3 -m engine_designer.physics.pump_meanline  # centrifugal/axial meanline (slip, blades, b2,
+                                                     # losses) vs SP-8109 Fig. 16 / Table I + real pumps
    python3 -m engine_designer.physics.turbopump_sizing
    python3 -m engine_designer.physics.flow_network  # flow-visualization data contract: per-
                                                      # stream temperature along feed line ->
@@ -231,6 +234,7 @@ touching any cooling number.** What changed structurally:
                                                      # Tk/OpenGL) - same testable split as above
    python3 -m engine_designer.gui.injector_face
    python3 -m engine_designer.gui.turbopump_diagram
+   python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (Agg, headless)
    python3 -m engine_designer.gui.project_io   # design save/load round-trip
    python3 -m engine_designer.validation_engines.run_corpus  # corpus bit-identical vs golden/
    python3 -c "import ast; ast.parse(open('engine_designer/gui/app.py').read())"  # GUI: syntax only
@@ -278,8 +282,12 @@ touching any cooling number.** What changed structurally:
    "ALL PUMP SUCTION CHECKS OK" (turbopump Round 1, 2026-09-26: every SP-8107 Table II pump at
    or below the model's suction-limited rpm at its own NPSH_min, F-1 LOX within 15 % of it,
    RD-0110, SP-8052 Table I, TSH anchors, corpus F-1 / H-1 real inlets / SSME HPOTP boost;
-   `validate/suction.py`)
-   (30 banners
+   `validate/suction.py`) and "ALL PUMP MEANLINE CHECKS OK" (turbopump Round 2, 2026-09-26:
+   meanline eta of 7 real centrifugal + 2 axial pumps within +-0.08, SP-8109 eq. 17 vs its
+   Fig. 16, predicted b2/D2 vs SP-8109 Table I, Fig. 6 size-effect trend, neutral intent ==
+   Round 1 geometry, intent directions, corpus J-2 axial pump, SSME pump-heating temperatures
+   and the corpus RS-25 jacket inlet 52 K; `validate/pump_meanline.py`)
+   (31 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -375,7 +383,18 @@ optional SSME-style `boost_pump_rise_*_pa` whose drive head is charged to pump P
 `physics/inducer.py` the NPSH required (Brumfield inducer at a K back-solved to SP-8109's 40,000 Ss,
 tip clearance, SP-8052 TSH scaled with vapor pressure, SP-8109 Z floor); `size_pump(suction=)` caps
 each pump's rpm where they meet; `npsh_available_*_ft` > 0 still overrides a leg's NPSH available;
-every node carries `kind`/`role` tags for future features to walk); `combustion.py` adds `chamber_flow`
+every node carries `kind`/`role` tags for future features to walk); pump HYDRAULICS (turbopump
+Round 2, `EngineDesign.pump_model` "meanline" default | "correlation" = Round 1 Ns-bell, bit-identical):
+`physics/pump_meanline.py` designs each pump stage by stage (SP-8109 eq. 17 slip, Huzel blade rule to
+c_m2 >= c_m1, eye from the SP-8109 Fig. 5 fleet x the required Ss, loss build-up - friction/diffusion/
+volute/leakage/disk/mechanical/Ss penalty - with K_HYD fitted to real pumps; an axial option on SP-8125,
+`pump_type_*`), steered by DIRECTIONAL design intent (`physics/turbopump_intent.py`: four -1..+1
+sliders `pump_priority` / `pump_head_curve` / `suction_aggressiveness` / `tip_speed_aggressiveness` +
+`inducer_mode` / `diffuser_type`; 0 = Round 1 geometry exactly), wired through `size_pump(hydraulics=)`
+by `design/suction_stage.pump_hydraulics` (exact-arg-cached - the staged solvers re-size pumps thousands
+of times); `suction_stage.pump_heating` gives each pump's outlet temperature and the fuel pump's becomes
+the regen jacket inlet (`coolant_inlet_model` "computed" default, up to 3 corrective compute passes);
+drawn by `gui/turbopump_detail.py` in the GUI's Turbopump Detail tab; `combustion.py` adds `chamber_flow`
 (finite-contraction-ratio chamber Mach + injector-end Pc rise), per-pair L* defaults and
 `residence_time_from_lstar_s` (the residence-time chamber-sizing method's L*-equivalent);
 `geometry.chamber_geometry` sizes chamber volume by L* OR by a target combustion residence
@@ -501,6 +520,7 @@ that may have been cut off mid-way (unticked boxes = not landed yet).
 (Rounds 0-5 internal + E1-E5 exterior). EACH ROUND is developed on its OWN test branch off
 `origin/main` (Round 0 = `turbopump/round-0`, plan `plans/2026-09-26_turbopump_round0.md`, PR
 #18; Round 1 = `turbopump/round-1` STACKED on round-0 (it needs Round 0's saturation table),
-plan `plans/2026-09-26_turbopump_round1.md`, PR #19 based on `turbopump/round-0`;
-worktree `.claude/worktrees/turbopump-fidelity/`), with a draft PR that is not merged
+plan `plans/2026-09-26_turbopump_round1.md`, PR #19 based on `turbopump/round-0`; Round 2 =
+`turbopump/round-2` STACKED on round-1, plan `plans/2026-09-26_turbopump_round2.md`, PR #20 based on
+`turbopump/round-1`; worktree `.claude/worktrees/turbopump-fidelity/`), with a draft PR that is not merged
 until Cory has tested it. Do this work there, not on `main`.

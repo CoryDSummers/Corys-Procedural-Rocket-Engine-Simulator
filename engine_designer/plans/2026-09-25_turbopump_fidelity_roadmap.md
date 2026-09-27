@@ -24,7 +24,7 @@ same design file.
 - [x] Round 0: groundwork (distill new PDFs, acquire SP-8052/8110/8125/8121/8101, vapor-pressure table columns, F-1 pump-power fix) - branch `turbopump/round-0`, PR #18, `plans/2026-09-26_turbopump_round0.md`
 - [x] Round 1: suction side (inducer.py, computed NPSHr + thermodynamic suppression, tank/line/boost pump) - branch `turbopump/round-1` (stacked on round-0), PR #19, `plans/2026-09-26_turbopump_round1.md`
 - [ ] E1: pump placement/orientation/mounting + clash check (can run alongside Round 1)
-- [ ] Round 2: pump meanline hydraulics + pump heating into the thermal solve
+- [x] Round 2: pump meanline hydraulics + pump heating into the thermal solve, plus directional design intent, the Turbopump Detail tab and the axial LH2 option - branch `turbopump/round-2` (stacked on round-1), PR #20, `plans/2026-09-26_turbopump_round2.md`
 - [ ] Round 3: turbine meanline + blade/disk stress
 - [ ] E2: volute scroll + real casings
 - [ ] E3: hoop-stress casing walls (retires `render_scale`)

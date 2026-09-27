@@ -142,12 +142,15 @@ python3 -m engine_designer.physics.electric_pump
 python3 -m engine_designer.physics.turbopump_materials
 python3 -m engine_designer.physics.turbopump_efficiency
 python3 -m engine_designer.physics.inducer        # pump suction: inducer NPSH required / TSH
+python3 -m engine_designer.physics.turbopump_intent  # directional pump design intent
+python3 -m engine_designer.physics.pump_meanline  # pump meanline hydraulics (centrifugal / axial)
 python3 -m engine_designer.physics.turbopump_sizing
 python3 -m engine_designer.gui.schematic
 python3 -m engine_designer.gui.preview3d          # matplotlib fallback preview
 python3 -m engine_designer.gui.preview3d_gl_core  # OpenGL preview's pure-numpy math layer
 python3 -m engine_designer.gui.injector_face
 python3 -m engine_designer.gui.turbopump_diagram
+python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (headless)
 ```
 
 `gui/preview3d_gl.py` (the OpenGL widget itself) can only be syntax-checked
@@ -610,7 +613,19 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   SSME-style boost pump; the Turbopump tab's "Pump suction" controls). The old
   per-pump NPSH inputs now override the computed value; `suction_model
   "legacy"` restores the pre-Round-1 behaviour bit-for-bit. `validate` PUMP
-  SUCTION pins it. Otherwise rotor speed is a preliminary estimate - `validate.py`'s
+  SUCTION pins it. **Pump hydraulics** (turbopump Round 2): each pump is designed
+  blade by blade (`physics/pump_meanline.py` - velocity triangles, SP-8109 slip,
+  blade count, outlet width, volute or vaned diffuser, and a loss build-up whose
+  efficiency replaces the old Ns-bell curve; an axial option for J-2-class LH2
+  pumps), steered by four DIRECTIONAL design-intent sliders on the Turbopump tab
+  (Efficient<->Compact, Stable<->Max head, Conservative<->Aggressive suction,
+  Stress margin<->Max tip speed; 0 = the previous design exactly). The fuel pump's
+  outlet temperature (pump heating) becomes the regen jacket's coolant inlet. The
+  new **Turbopump Detail** tab draws the chosen pump: meridional section, impeller
+  face or axial cascade, velocity triangles, where the power goes, suction margin,
+  and a head-flow sketch. `pump_model "correlation"` restores Round 1 bit-for-bit;
+  `validate` PUMP MEANLINE pins it (real F-1/J-2/H-1/SSME pumps, SP-8109 Table I
+  outlet widths, SSME pump temperatures). Otherwise rotor speed is a preliminary estimate - `validate.py`'s
   `run_turbopump_sizing_check()` spot-checks it against real J-2 / F-1 /
   RD-0110 numbers with wide bands. Warns (never blocks) on tip-speed over the
   material limit, turbine gas too hot for the material, titanium wetted by an

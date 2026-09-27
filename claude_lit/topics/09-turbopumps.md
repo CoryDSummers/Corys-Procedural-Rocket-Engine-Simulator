@@ -522,3 +522,16 @@ Full tables are in the source notes.
     with the `[SP-8101]` margin rule.
   - **Bearing DN.** The `max_dn_mm_rpm` flag gains a third real cite: LH2-cooled 2×10⁶ state
     of the art `[SP-8125 p.8]`.
+- **Turbopump Round 2 (2026-09-26): the meanline batch above is now `physics/pump_meanline.py`**
+  (`pump_model` "meanline", default).
+  - **Centrifugal.** SP-8109 eq. 17 slip. Huzel's z = β2/3 raised to c_m2 ≥ c_m1. Eye from the
+    Fig. 5 fleet × the REQUIRED Ss. Losses as in the batch. K_HYD fitted to the F-1, J-2,
+    H-1 and SSME pumps.
+  - **Axial.** SP-8125 R 0.5 pitchline with Fig. 8 profile loss; K_AX fitted to the J-2
+    Mark 15-F and M-1.
+  - **Directional intent** (`turbopump_intent.py`) steers Ns, ψ, β2, inducer K and tip
+    speed within the ranges cited above.
+  - **Pump heating** (SP-8107 eq. 17 on the coolant tables) sets the regen jacket inlet: the
+    corpus RS-25 gets 52.2 K against the real 52.0 K `[SSME-Orientation p.45]`.
+  - **Where to push next:** a disk-friction coefficient, diffuser recovery data, the
+    small-pump size effect, and the LH2 stage-Ns/stage-count rule (all OPEN_QUESTIONS).

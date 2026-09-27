@@ -276,6 +276,34 @@ into that and makes no claims about it.
     - **Legacy `NSS_TARGET_US["lh2_class"]` error.** It was back-solved with the J-2 LH2 pump
       at 3,000 gpm; `[SP-8107 Table II]` gives 8,530 gpm (Ss at NPSH_crit ~98,000). Kept only
       on the legacy path for bit-identity.
+  - **Pump meanline follow-ups (2026-09-26, turbopump Round 2).** Wanted:
+    - **Disk-friction coefficient.** Neither SP-8109 nor Huzel gives one; `pump_meanline.
+      DISK_CM_COEFF` is a Daily-Nece-type form (Tier 3). Gülich / Stepanoff / Daily & Nece 1960
+      would cite it.
+    - **Small-pump size effect.** The meanline runs ~5-8 pts optimistic against SP-8109 Fig. 6
+      for 2-6 in impellers, pessimistic at 1 in. The wear-ring clearance floor is fitted to
+      Fig. 6. This is why the RL10 LOX pump is gated +-0.13. A per-size loss breakdown
+      (relative roughness, blade blockage, clearances) from a pump-design text would fix it.
+    - **Volute / vaned-diffuser loss coefficients.** SP-8109 gives none; Huzel gives "70-90 %
+      of the kinetic head converted". A cited recovery Cp vs area ratio would replace
+      `ZETA_DIFFUSER`.
+    - **LH2 multistage stage Ns.** At the neutral stage Ns 2,200 the tool's LH2 pumps get
+      b2/D2 ~0.18-0.22 (beyond SP-8109 Table I's 0.14; a warn row suggests "efficient"). Real
+      LH2 stages run slower (SSME HPFTP ~1,130). The tool's stage count for high-head LH2
+      pumps (6,000 ft/stage, capped at 8: RS-25 HPFTP gets 8 vs the real 3) is also a Round
+      0/1 rule. A Round 4-5 sizing pass should choose Ns and stages together.
+    - **Channels-mode jacket dP vs coolant inlet density.** The channels model sizes passages
+      at the jacket INLET coolant velocity. With the Round 2 computed (colder, denser) LH2
+      inlet, the J-2 jacket dP rose 3.3 -> 4.9 MPa and the RL10 9.3 -> 12.1 MPa; two
+      plausibility bands were widened. Real LH2 jacket dP is ~1-2 MPa (SP-8107: the RL10's
+      whole fuel-pump discharge is ~1,000 psia), so the tool over-predicts either way.
+      Belongs to a cooling round: size passages on throat or mean velocity, or on mass flux.
+    - **LOX compression heating at high pressure.** `suction_stage.LOX_BETA_PER_K` is a constant
+      that reproduces the SSME HPOTP (+10.6 K at 25 MPa); RD-180 / Raptor ox pumps (55-60 MPa)
+      get ~+35 K. That is reported only. A LOX coolant table (CoolProp) would replace it.
+    - **Pump discharge-temperature anchors beyond the SSME.** No J-2, RL10, M-1, H-1 or F-1
+      RP-1 discharge temperature exists in `literature/`; the F-1 LOX has only an indirect
+      heat-exchanger inlet (-288 F). There is also no RL10 source at all.
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with

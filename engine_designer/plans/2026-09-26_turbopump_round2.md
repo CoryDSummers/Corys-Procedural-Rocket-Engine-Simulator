@@ -9,10 +9,10 @@ Branch: `turbopump/round-2`, cut from `turbopump/round-1` @ 70d09f6 (stacked). D
 
 ## Status
 - [x] C0: this document + draft PR (513e7e1, PR #20)
-- [x] C1: literature (SP-8109 §2.3.1/§2.4/§3.3-3.4 + Table I, Huzel §6.3-6.4, SP-8125 blade design, pump discharge-T anchors)
+- [x] C1 (65e8c30): literature (SP-8109 §2.3.1/§2.4/§3.3-3.4 + Table I, Huzel §6.3-6.4, SP-8125 blade design, pump discharge-T anchors)
 - [x] C2 (d7a003d): `physics/turbopump_intent.py` + `physics/pump_meanline.py` (pure, self-tests; corpus bit-identical)
 - [x] C3 (4d14a67): meanline + intent wired into sizing, schema 17, PUMP MEANLINE validate banner, corpus report + snapshot
-- [x] C4: pump heating → jacket inlet (`coolant_inlet_model`, second pass), anchors, corpus report + snapshot
+- [x] C4 (b7cca25): pump heating → jacket inlet (`coolant_inlet_model`, second pass), anchors, corpus report + snapshot
   - Pump outlet T: the isentropic enthalpy rise is marched in increments on the coolant tables,
     with η on the isentropic head [SP-8107 eq. 17]. Charging every increment's loss separately
     over-heated the SSME HPFTP by 5 K; the chosen basis lands within 1.4 K. LOX has no table,
@@ -66,7 +66,7 @@ Branch: `turbopump/round-2`, cut from `turbopump/round-1` @ 70d09f6 (stacked). D
   - At the neutral stage Ns 2,200, LH2 multistage pumps get wide outlets (b2/D2 ~0.18–0.22,
     beyond Table I's 0.14). A warn row suggests "efficient".
 - [ ] C4: pump heating → jacket inlet (`coolant_inlet_model`, second pass), anchors, corpus report + snapshot
-- [x] C5: GUI: `gui/turbopump_detail.py` + right-notebook tab + left "Design intent" section
+- [x] C5 (52421c9): GUI: `gui/turbopump_detail.py` + right-notebook tab + left "Design intent" section
   - Panels A-F plus a caption, drawn from the meanline; headless self-test renders 8 cases;
     `app.py` is syntax/import-checked only (no display here).
   - The impeller face shows blades + splitters, a realistic ~130° wrap, and a volute spiral
@@ -74,7 +74,7 @@ Branch: `turbopump/round-2`, cut from `turbopump/round-1` @ 70d09f6 (stacked). D
   - The machinable-blade warning now fires only when z > 28·sin β2 AND the tip speed is
     above the ~1,400 ft/s casting limit [SP-8109 §3.3.3]; otherwise the impeller is cast.
   - The axial H-Q sketch is normalised on its own design value and shows a stall dip.
-- [ ] C6: docs (ASSUMPTIONS, OPEN_QUESTIONS, CLAUDE.md, README, roadmap tick, memory)
+- [x] C6: docs (ASSUMPTIONS, OPEN_QUESTIONS, topics/09, CLAUDE.md, README, roadmap tick, memory)
 
 ## Context
 Rounds 0 and 1 are done (PRs #18 and #19, both awaiting Cory's GUI test). Round 2 in the roadmap
