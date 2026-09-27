@@ -5,8 +5,8 @@ Approved plan copy, 2026-09-27. Branch `turbopump/e2a-3d-tab`.
 ## Checklist
 - [x] C1 `preview3d_gl_core/turbopump_meshes.py` + self-test + re-export
 - [x] C2 `gui/turbopump_scene.py` + self-test (+ discharge-cone length cap)
-- [ ] C3 `gui/pieces_preview.py` + `app.py` Turbopump 3D tab + verify_all lines
-- [ ] C4 docs (CLAUDE.md, README, ASSUMPTIONS, roadmap)
+- [x] C3 `gui/pieces_preview.py` + `app.py` Turbopump 3D tab + verify_all lines
+- [x] C4 docs (CLAUDE.md, README, ASSUMPTIONS, roadmap)
 
 ## Context
 The 3D preview draws the turbopump as a "ghost": coaxial capped cylinders from fixed

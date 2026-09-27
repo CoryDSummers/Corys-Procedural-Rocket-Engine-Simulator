@@ -26,7 +26,8 @@ same design file.
 - [ ] E1: pump placement/orientation/mounting + clash check (can run alongside Round 1)
 - [x] Round 2: pump meanline hydraulics + pump heating into the thermal solve, plus directional design intent, the Turbopump Detail tab and the axial LH2 option - branch `turbopump/round-2` (stacked on round-1), PR #20, `plans/2026-09-26_turbopump_round2.md`
 - [ ] Round 3: turbine meanline + blade/disk stress
-- [ ] E2: volute scroll + real casings
+- [x] E2a: volute scroll + casings at true scale in a SEPARATE Turbopump 3D tab (2026-09-27, `turbopump/e2a-3d-tab`, plan `plans/2026-09-27_turbopump_3d_tab.md`)
+- [ ] E2b: adopt the casings in the main 3D preview (moves ports -> plumbing line loss -> golden re-snapshot), gearbox case, bearing/seal housings, turbine casings from Round 3
 - [ ] E3: hoop-stress casing walls (retires `render_scale`)
 - [ ] Round 4: rotor mechanics + geometry-derived mass
 - [ ] E4: GG/preburner/start hardware as plumbing hosts

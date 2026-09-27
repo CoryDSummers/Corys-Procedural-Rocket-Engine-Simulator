@@ -243,6 +243,8 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.gui.injector_face
    python3 -m engine_designer.gui.turbopump_diagram
    python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (Agg, headless)
+   python3 -m engine_designer.gui.turbopump_scene   # Turbopump 3D tab scene: whole-assembly casings at
+                                                     # true meanline scale (pure numpy, no Tk/GL)
    python3 -m engine_designer.gui.project_io   # design save/load round-trip
    python3 -m engine_designer.validation_engines.run_corpus  # corpus bit-identical vs golden/
    python3 -c "import ast; ast.parse(open('engine_designer/gui/app.py').read())"  # GUI: syntax only
@@ -406,7 +408,12 @@ sliders `pump_priority` / `pump_head_curve` / `suction_aggressiveness` / `tip_sp
 by `design/suction_stage.pump_hydraulics` (exact-arg-cached - the staged solvers re-size pumps thousands
 of times); `suction_stage.pump_heating` gives each pump's outlet temperature and the fuel pump's becomes
 the regen jacket inlet (`coolant_inlet_model` "computed" default, up to 3 corrective compute passes);
-drawn by `gui/turbopump_detail.py` in the GUI's Turbopump Detail tab; TAP-OFF drive gas (tap-off
+drawn by `gui/turbopump_detail.py` in the GUI's Turbopump Detail tab; the whole assembly's CASINGS at true
+meanline scale (volutes from the meanline spiral + tangential discharge cone, axial barrel +
+collector, turbine housing/inlet torus/exhaust scroll, motor) are drawn by `gui/turbopump_scene.py`
+(meshes in `preview3d_gl_core/turbopump_meshes.py`, widget `gui/pieces_preview.py`) in the SEPARATE
+**Turbopump 3D** tab - deliberately NOT in the main 3D preview yet (Cory's call 2026-09-27: the main
+preview's ghost bodies/ports feed the plumbing line loss, so adopting it there is its own round); TAP-OFF drive gas (tap-off
 accuracy round, `EngineDesign.tap_off_model` "auto" = `physics/tap_off.py`'s hot-gas MIXER for LOX/CH4 +
 LOX/RP-1, legacy for everything else | "mixer" | "legacy" = the old chamber gas at min(Tc x 0.55, 1150 K),
 bit-identical): a small hot chamber tap (effective 0.890 x Tc, back-solved on the P&W STBE split
