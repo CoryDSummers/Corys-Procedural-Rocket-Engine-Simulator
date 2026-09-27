@@ -144,12 +144,17 @@ def overall_efficiency(eta_pump, eta_turbine):
 # (name, kind, staging, ns_pump_us, q_m3s, u_pitch_m_s, power_w, PR, real_eta)
 _PUMP_ANCHORS = [
     # name,            ns_pump_us, q_m3s, real_eta   [SP-8107 Table II]
-    ("F-1 RP-1 pump",      2200.0,  0.96, 0.726),
-    ("F-1 LOX pump",       2200.0,  1.57, 0.746),
+    # F-1 / H-1 Ns and flow are their REAL operating points (turbopump Round 0,
+    # 2026-09-26): both pumps share one shaft speed - F-1 5,490 rpm [SP-8110
+    # Table I] with flow/head from [F1-Man Fig 3-14] (the RP-1 pump sits at Ns
+    # ~1,120, well off the peak); H-1 6,717 rpm with gpm/head straight from
+    # [H1-Man Fig 1-44] (the old 0.55/0.90 m3/s H-1 flows were ~4x too high).
+    ("F-1 RP-1 pump",      1120.0,  0.984, 0.726),
+    ("F-1 LOX pump",       2089.0,  1.583, 0.746),
     ("J-2 LOX pump",       2200.0,  0.18, 0.800),
     ("J-2 LH2 pump (7st)",  511.0,  0.54, 0.730),
-    ("H-1 RP-1 pump",      2200.0,  0.55, 0.718),
-    ("H-1 LOX pump",       2200.0,  0.90, 0.778),
+    ("H-1 RP-1 pump",       818.0,  0.133, 0.718),
+    ("H-1 LOX pump",       1407.0,  0.213, 0.778),
     ("RL10 H2 pump (2st)", 1309.0,  0.05, 0.550),
     ("SSME LOX pump",      2200.0,  0.45, 0.781),
     ("SSME H2 pump (3st)",  965.0,  0.60, 0.741),
@@ -157,8 +162,12 @@ _PUMP_ANCHORS = [
 _TURBINE_ANCHORS = [
     # name,        staging,                       u_pitch, power_w,  PR,   real_eta  [SP-8107 Table III]
     ("F-1 turbine",  "velocity_compounded_2row",   256.0,  3.9e7, 16.4, 0.605),
-    ("J-2 fuel trb", "velocity_compounded_2row",   451.0,  6.0e6,  7.3, 0.601),
-    ("J-2 ox trb",   "velocity_compounded_2row",   180.0,  2.0e6,  2.5, 0.484),
+    # J-2 PRs per [SP-8110 Table I] (6.35 / 3.16; the old 7.3 / 2.5 were J-2S-like)
+    ("J-2 fuel trb", "velocity_compounded_2row",   451.0,  6.0e6,  6.35, 0.601),
+    ("J-2 ox trb",   "velocity_compounded_2row",   180.0,  2.0e6,  3.16, 0.484),
+    # H-1: [SP-8107 Table III] 70.2 % (and [H1-Man Fig 1-47] 69.6 %) vs [SP-8110
+    # Table I] 62.5 % total-to-static for the same Mark 3 turbine - unresolved
+    # (T-T vs T-S basis?); see claude_lit/OPEN_QUESTIONS.md
     ("H-1 turbine",  "pressure_compounded_2stage", 393.0,  1.5e7, 17.7, 0.702),
     ("RL10 turbine", "pressure_compounded_2stage", 238.0,  5.0e5,  1.4, 0.740),
     ("SSME fuel trb", "reaction",                  506.0,  4.0e7,  1.6, 0.790),

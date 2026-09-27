@@ -2930,6 +2930,14 @@
 },
 "jacket_thermal_stress_pa": null,
 "jacket_worst_station_eps": null,
+"line_loss_calibrated_pa": {
+"fuel": {
+"__f__": "500000.0"
+},
+"ox": {
+"__f__": "500000.0"
+}
+},
 "line_loss_computed": {
 "fuel": null,
 "ox": null
@@ -3442,6 +3450,12 @@
 }
 ]
 },
+"pump_discharge_fuel_pa": {
+"__f__": "5494747.003493684"
+},
+"pump_discharge_ox_pa": {
+"__f__": "4636436.4418167155"
+},
 "rated_burn_time_s": {
 "__f__": "103.86777845942179"
 },
@@ -3851,6 +3865,7 @@
 "rpm_ns_optimum": {
 "__f__": "18882.629486197442"
 },
+"shaft_limited": false,
 "suction_limited": false,
 "tip_speed_margin": {
 "__f__": "3.6241708888636768"
@@ -3929,6 +3944,7 @@
 "rpm_ns_optimum": {
 "__f__": "14514.709178879313"
 },
+"shaft_limited": false,
 "suction_limited": false,
 "tip_speed_margin": {
 "__f__": "7.1113658388618"

@@ -58,7 +58,10 @@ def turbopump_and_plumbing(self, s):
             eta_pump_fuel_final=s.eta_pf, eta_pump_ox_final=s.eta_po, eta_turbine_final=s.eta_turb,
             motor_mass_kg=s.cyc.get("motor_mass_kg", 0.0),   # electric pump-fed: motor body in the envelope
             bearing_material_key=self.bearing_material_key,
-            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw)
+            enforce_suction_limit=self.enforce_suction_limit, **s._suction_kw,
+            auto_staging_resolved=s.turbine_staging_info.get("staging")
+            if self.turbine_staging in ("", "auto") else None,
+            u_pitch_cap_m_s=s.turbine_staging_info.get("u_pitch_cap_m_s"))
         s.turbopump_mass_kg = s.tp_sizing["mass_kg"] * s.tp_sizing["mass_modifier"]
         tp_detail = "; ".join(s.tp_sizing["warnings"])
         _check(s.checklist, s.warnings, "turbopump", "Turbopump sizing / material feasibility",

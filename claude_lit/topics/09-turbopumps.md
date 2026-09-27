@@ -214,6 +214,124 @@ directly from Rocketdyne's own engine manual rather than a design-criteria monog
 turbine efficiency percentage was found in the same source (unlike H-1's cited 69.6%) — an
 open item if ever needed.
 
+## Real component data & design criteria (SP-8052 / 8110 / 8121 / 8125 / 8101 batch, 2026-09-26)
+
+**Turbines — fleet data, all total-to-static** `[SP-8110 Table I p.10]`:
+
+| Engine | Type | hp | rpm | Dm in | U ft/s | Tt1 °F | PR | U/C0 | η |
+|---|---|---|---|---|---|---|---|---|---|
+| F-1 | 2-row VC | 54,359 | 5,490 | 34.9 | 840 | 1550 | 16.3 | 0.20 | 60.5 % |
+| H-1 (geared) | 2-stage PC | 4,007 | 32,800 | 9.0 | 1290 | 1200 | 17.7 | 0.42 | 62.5 % |
+| J-2 fuel | 2-row VC | 8,749 | 26,052 | 12.5 | 1448 | 1200 | 6.35 | 0.18 | 60.1 % |
+| J-2 ox | 2-row VC | 2,604 | 8,650 | 15.5 | 585 | 740 | 3.16 | 0.11 | 48.4 % |
+| Atlas sustainer | 2-stage PC | 1,680 | 38,000 | 6.0 | 995 | 1075 | 25 | 0.39 | 46.3 % |
+| M-1 fuel | 2-row VC | 74,138 | 12,961 | 23.2 | 1310 | 1000 | 3.87 | 0.19 | 65.0 % |
+| RL10 A3-3 | 2-stage PC | 660 | 28,670 | 5.9 | 738 | −88 | 1.42 | 0.35 | 74.0 % |
+
+- **Staging is chosen by the ACHIEVABLE U/C0, not by propellant** `[SP-8110 §3.1.4 p.83]`:
+  - reaction above ~0.45
+  - single-row impulse / pressure-compounded at ~0.30–0.45
+  - 2-row velocity-compounded at ~0.20–0.30
+  - below ~0.15, one or two more rows are worth +10 / +23 points
+
+  U is capped by stress (fleet pitchline 1000–1500 ft/s). On a DIRECT-DRIVE shaft U is also
+  capped by the pump shaft speed × a practical wheel size. That is why the slow F-1 (5,490 rpm)
+  lands at 0.20, while the H-1's turbine is geared to 32,800 rpm and reaches 0.42.
+  `[SP-8101 p.3]`: the H-1 and RL10 turbopumps are geared.
+- **Idealized η vs U/C0 peaks** `[SP-8110 Fig 13 p.17]`: 1-row ~80 % at 0.42, 2-row ~69 % at
+  0.23, 3-row ~54 % at 0.13. Real hardware runs 5–10 points lower.
+- **Loss correlation** `[SP-8110 Fig 55]`: the 2-row VC η multiplier vs blade-size ratio
+  Dm/An (shrouded ≈ 1.076 − 0.0455·Dm/An). The monograph's worked example reproduces the J-2
+  fuel turbine's 60.1 %.
+- **Frozen turbine-gas properties** `[SP-8110 Table III p.16]`: LOX/RP-1 at 1300 / 1500 °F has
+  cp 0.648 / 0.656 Btu/lb·°R (≈ 2,710 / 2,750 J/kg·K) and γ 1.115 / 1.132. LOX/LH2 at
+  1200 °F has cp 1.91 Btu/lb·°R (≈ 8,000), γ 1.364.
+- **Structural criteria** `[SP-8110 §3.5-3.6]`:
+  - design speed 1.10× max
+  - burst ≥ 120 %, yield ≥ 105 %
+  - blades ±15 % off resonance; rotor ±20 % off criticals
+- **H-1 turbine η disagreement.** [SP-8110] gives 62.5 % T-S. [SP-8107 Table III] gives
+  70.2 % and [H1-Man Fig 1-47] 69.6 % for the same Mark 3 turbine. Unresolved; see
+  OPEN_QUESTIONS.
+
+**Inducers** `[SP-8052 Table I p.4]` (Ss measured in water at 10 % head drop):
+
+| Inducer | Fluid | φ | β_tip | ν (hub/tip) | Ss |
+|---|---|---|---|---|---|
+| Thor Mk 3 | LOX | 0.116 | 14.2° | 0.31 | 28,500 |
+| J-2 Mk 15 | LOX | 0.109 | 9.8° | 0.20 | 34,300 |
+| X-8 Mk 19 | LOX | 0.106 | 9.8° | 0.23 | 31,200 |
+| X-8 Mk 19 shrouded | LOX | 0.05 | 5.0° | 0.19 | 58,000 |
+| J-2 Mk 15 | LH2 | 0.074–0.094 | 7.4–7.9° | 0.38–0.42 | 43,200–44,200 |
+
+- **Brumfield sizing** `[SP-8052 §2.2]`: φ_opt = √(K/2(1+K)), and max S′s = 5055 /
+  ((1+K)^¼·K^½). A K* of 0.006–0.01 caps Ss at about 50–65k. It reproduces 4 of the 6 Table I
+  Ss values within 1–8 %.
+- **NPSH:** NPSHr ≈ 3·c_m²/2g for an ideal fluid (the same Z ≈ 3 as SP-8109).
+- **Thermodynamic suppression head (TSH)** is empirical per fluid and not predicted: F-1 LOX
+  11 ft, J-2 LH2 250 ft.
+- **Tip clearance** costs Ss a factor (1 − 0.5…0.65·√(c/L)).
+- **Structural:** burst speed ≥ 1.2× and yield ≥ 1.05× design speed.
+
+**Axial pumps** `[SP-8125 Table I p.4, Table II p.17]` (all LH2; only the J-2's flew):
+
+| Pump | Flow | Head | Speed | Stages |
+|---|---|---|---|---|
+| **J-2 Mk 15-F** | 9,062 gpm | 40,300 ft | 28,266 rpm | inducer + 7 |
+| M-1 | 62,300 gpm | 56,500 ft | 13,225 rpm | inducer + transition + 8 |
+
+- The Mk 15-F runs a tip speed of ~890 ft/s, ~5,100–5,600 ft per stage and head coefficient
+  ψ_T 0.23 (g·H/U², the tool's definition). That is well below the centrifugal 0.5.
+- Stage hydraulic η is 0.84–0.92; overall pump peak is 0.70–0.79 `[SP-8125 Fig 1]`.
+- **Axial vs centrifugal selection** `[§3.2.1 p.68]`: axial when stage Ns is above ~3,000 and
+  no wide flow range or throttling is needed.
+- **Stage-loading limits for LH2** `[§3.2.2]`:
+  - φ ≥ 0.25, hub/tip ≤ 0.9
+  - diffusion factor 0.45–0.55 for efficiency, 0.55–0.60 to minimise stages; stall at DF 0.75
+  - tip clearance ≤ 2 % of blade height
+- **Bearing DN:** 2×10⁶ is the LH2-cooled "state-of-the-art limit" for short-life pumps `[p.8]`.
+- **H₂ embrittlement:** Ti-5Al-2.5Sn ELI forgings gave 1 % elongation at LH2 temperature
+  until vacuum degassing raised it to 10 %. Criteria are ≥ 4 % elongation and ≥ 12 ft-lbf
+  Charpy.
+
+**Shafts and couplings** `[SP-8101]`:
+- **Shaft size is set by STIFFNESS (critical speed) at the bearings, not by torsion.** "Shaft
+  torsional shear stress rarely is a controlling factor" `[§3.1.1.3 p.62]`.
+- **Journal sizing:** the journal is made as large as DN and seal-rubbing-speed limits allow,
+  and journals are made SMALLER than the rest of the shaft to meet DN. The bearing bore equals
+  the journal to within microns `[Table IV p.14]`.
+- **Allowables:**
+  - preliminary shear allowable at the bearings: 2/3 of ultimate shear `[§2.1.1.3 p.7]`
+  - safety factors ≥ 1.1 yield / 1.3 ultimate / 1.25 fatigue `[§3.1.3.2 p.70]`
+- **Critical-speed rule** `[§3.2.1.2.1 p.79]`:
+  - lowest bending critical ≥ max(1.25 × normal speed, 1.15 × max overspeed)
+  - rigid-body criticals below running speed ≤ 0.85 × the lowest steady speed
+  - predictions are good to ±5 % at best
+- **Material:** no 4340 at cryogenic temperature `[p.68]`, although Table II rates it
+  satisfactory in oxygen.
+
+**Rotating-shaft seals** `[SP-8121]`:
+- **Selection by condition** `[§3.2.1 p.106]`:
+  - welded-bellows face-contact seals for cryogenic or reactive liquids to ~500 psig;
+    piston-ring face seals above that
+  - elastomer face seals for RP-1 / oil to ~1000 psig
+  - segmented carbon for purged or hot-gas seals below 100 psig; floating ring above
+  - clearance or fluid-film seals above ~500 ft/s rubbing speed or beyond 4 h life
+- **Real seals** `[Table I p.4-6]`:
+  - F-1 LOX face seal: 6.46 in, 6,000 rpm, 25 SCFM
+  - J-2 LH2: 2.95 in, 28,000 rpm, 360 ft/s, 0.01 lb/s
+  - J-2 turbine: segmented carbon at 460 ft/s, 20 SCFM
+- **Inter-propellant layout:**
+  - two primary face seals plus separate drains, with a purged intermediate seal between them
+  - the purge must exceed the maximum drain back-pressure and come from a supply that cannot
+    fail
+  - F-1 and H-1 use a GN2 purge; hydrogen systems use helium only
+  - **No purge flow rates are given** (gap: OPEN_QUESTIONS)
+- **Leakage magnitudes:** primary-seal leakage is ~1e-5–1e-4 of pump flow, negligible. The
+  real efficiency loss is the pressure-breakdown recirculation bleed.
+- **Relative leakage:** a labyrinth leaks ~5× a floating ring; a stepped labyrinth ~½ a
+  straight one.
+
 ## Caveats
 
 - Specific-power figures are for the turbopump *assembly* as flown; "turbopump" (Table II)
@@ -319,3 +437,28 @@ open item if ever needed.
   (6/2/3+3/3+2 across LPOTP/LPFTP/HPOTP/HPFTP) at a real high-Pc staged-combustion design
   point, a useful plausibility check if the tool's own stage-count logic is ever validated
   against a named real engine beyond the existing `[SP-8107]` table. Report-only.
+- **Turbopump Round 0 (2026-09-26) - what the SP-8052/8110/8125/8121/8101 batch changed or
+  flagged in `engine_designer`:**
+  - **Turbine staging.** Open-cycle staging is now derived from the achievable U/C0
+    `[SP-8110 §3.1.4]` (`turbopump_sizing.open_cycle_turbine_staging`): a stress cap
+    `TURBINE_PITCHLINE_CAP_M_S` = 1,500 ft/s, plus a direct-drive wheel-diameter cap
+    `TURBINE_DMEAN_OVER_PUMP_D` (Tier 3, F-1-fitted). The old cycle/propellant rule
+    mis-staged the F-1 as pressure-compounded.
+  - **LOX/RP-1 GG gas cp.** Changed 2100 → 2735 J/kg·K from `[SP-8110 Table III]`. The old
+    value under-stated the F-1's isentropic drop by ~23 %.
+  - **NSS targets.** `lox_class` 40,411 sits at the top of the LOX water-test band
+    (28.5–34.3k; SP-8052 treats > 40k as the special high-performance case). `lh2_class`
+    58,027 is really a water Ss of ~44k plus the J-2's 250 ft thermodynamic suppression head.
+    The Round 1 inducer model should use water Ss + TSH credit `[SP-8052]` instead of one
+    effective number.
+  - **`H_PER_STAGE_FT_TYPICAL` = 6000 ft.** It reproduces the J-2 stage count by matching an
+    AXIAL machine (ψ_T 0.23, ~5,100–5,600 ft/stage `[SP-8125]`), not a centrifugal one at
+    ψ 0.5. That coincidence belongs wherever the anchor is cited.
+  - **Shaft constants.** `SHAFT_ALLOWABLE_SHEAR_PA` (200 MPa) now has a cited structure: 2/3 of
+    ultimate shear `[SP-8101]`, which still needs an alloy value.
+    `BEARING_BORE_OVER_SHAFT_FACTOR` 1.15 is contradicted: the bore equals the journal, and
+    the journal is sized DOWN to the DN limit `[SP-8101 Table IV]`. Torsion sizing is a lower
+    bound only. Round 4 should size the journal at the DN limit and check critical speeds
+    with the `[SP-8101]` margin rule.
+  - **Bearing DN.** The `max_dn_mm_rpm` flag gains a third real cite: LH2-cooled 2×10⁶ state
+    of the art `[SP-8125 p.8]`.

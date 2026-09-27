@@ -2843,6 +2843,14 @@
 },
 "jacket_thermal_stress_pa": null,
 "jacket_worst_station_eps": null,
+"line_loss_calibrated_pa": {
+"fuel": {
+"__f__": "500000.0"
+},
+"ox": {
+"__f__": "500000.0"
+}
+},
 "line_loss_computed": {
 "fuel": null,
 "ox": null
@@ -3355,6 +3363,8 @@
 }
 ]
 },
+"pump_discharge_fuel_pa": null,
+"pump_discharge_ox_pa": null,
 "rated_burn_time_s": {
 "__f__": "200.0"
 },

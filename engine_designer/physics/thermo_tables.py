@@ -25,6 +25,16 @@ Coolant (per pair's fuel, grid = pressure x temperature, bilinear in (T, ln P)):
     ``coolant_temperature_from_enthalpy(pair, h_j_kg, p_pa)`` inverts h(T) at
     fixed pressure (monotonic) - what an enthalpy-based coolant march needs
     across the supercritical H2 / CH4 cp peak, where cp*dT is badly wrong.
+
+Saturation (per PUMPED PROPELLANT - "LOX", "LH2", "CH4", "RP-1" - not per pair;
+the two-phase dome, triple point .. 0.98 Tc):
+    ``saturation(propellant, t_k)`` -> dict with p_sat_pa, rho_l_kg_m3,
+    rho_v_kg_m3, h_fg_j_kg (+ ``t_clamped``, ``surrogate``), or None for a
+    propellant with no table (N2O4 / MMH / UDMH / N2H4 / H2O2 - not in CoolProp).
+    ln p_sat is interpolated linearly in 1/T (Clausius-Clapeyron makes that
+    nearly straight), the densities and h_fg linearly in T.
+    ``saturation_temperature(propellant, p_pa)`` inverts p_sat(T). What a pump
+    NPSH / cavitation model needs; RP-1 is the n-dodecane SURROGATE.
 """
 from __future__ import annotations
 
@@ -38,10 +48,12 @@ import numpy as np
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "property_data")
 GAS_FILE = os.path.join(DATA_DIR, "combustion_equilibrium.json")
 COOLANT_FILE = os.path.join(DATA_DIR, "coolant_properties.json")
+SATURATION_FILE = os.path.join(DATA_DIR, "saturation_properties.json")
 
 GAS_KEYS = ("tc_k", "m_molar", "cp_frozen_j_kgk", "gamma_frozen", "cp_equilibrium_j_kgk",
             "gamma_s", "mu_pa_s", "k_frozen_w_mk", "pr_frozen", "cstar_ms")
 COOLANT_KEYS = ("rho_kg_m3", "cp_j_kgk", "mu_pa_s", "k_w_mk", "h_j_kg")
+SATURATION_KEYS = ("rho_l_kg_m3", "rho_v_kg_m3", "h_fg_j_kg")   # + p_sat_pa (log-interpolated)
 
 
 @functools.lru_cache(maxsize=None)
@@ -85,6 +97,30 @@ def _coolant_db():
     return out
 
 
+@functools.lru_cache(maxsize=None)
+def _saturation_db():
+    if not os.path.exists(SATURATION_FILE):
+        return {}
+    with open(SATURATION_FILE) as f:
+        raw = json.load(f)
+    out = {}
+    for prop, t in raw["propellants"].items():
+        tk = np.asarray(t["t_k"], float)
+        out[prop] = dict(t=tk, lnp=np.log(np.asarray(t["p_sat_pa"], float)),
+                         fluid=t["fluid"], surrogate=t["surrogate"],
+                         nbp=t["normal_boiling_t_k"],
+                         **{k: np.asarray(t[k], float) for k in SATURATION_KEYS})
+    return out
+
+
+def saturation_meta():
+    """Saturation-table provenance dict, or {} if the table is absent."""
+    if not os.path.exists(SATURATION_FILE):
+        return {}
+    with open(SATURATION_FILE) as f:
+        return json.load(f)["meta"]
+
+
 def meta():
     """(gas meta, coolant meta) provenance dicts, or ({}, {}) if tables are absent."""
     g = c = {}
@@ -103,6 +139,10 @@ def has_gas_table(pair):
 
 def has_coolant_table(pair):
     return pair in _coolant_db()
+
+
+def has_saturation(propellant):
+    return propellant in _saturation_db()
 
 
 def _bracket(grid, x):
@@ -268,6 +308,34 @@ def coolant_temperature_from_enthalpy(pair, h_j_kg, p_pa):
     return 0.5 * (lo + hi)
 
 
+def saturation(propellant, t_k):
+    """Saturated-liquid / vapor state of a pumped propellant at temperature t_k
+    (clamped to the table's triple-point .. 0.98 Tc range, flagged)."""
+    tab = _saturation_db().get(propellant)
+    if tab is None:
+        return None
+    t = tab["t"]
+    tc = min(max(float(t_k), float(t[0])), float(t[-1]))
+    inv = 1.0 / t   # decreasing - flip for np.interp
+    out = {"p_sat_pa": math.exp(float(np.interp(1.0 / tc, inv[::-1], tab["lnp"][::-1])))}
+    for k in SATURATION_KEYS:
+        out[k] = float(np.interp(tc, t, tab[k]))
+    out["t_clamped"] = tc != float(t_k)
+    out["surrogate"] = tab["surrogate"]
+    return out
+
+
+def saturation_temperature(propellant, p_pa):
+    """Temperature at which p_sat(T) == p_pa (p_sat rises monotonically along the
+    dome); clamped to the table's range. None for a propellant with no table."""
+    tab = _saturation_db().get(propellant)
+    if tab is None:
+        return None
+    lnp = min(max(math.log(p_pa), float(tab["lnp"][0])), float(tab["lnp"][-1]))
+    inv = float(np.interp(lnp, tab["lnp"], 1.0 / tab["t"]))
+    return 1.0 / inv
+
+
 if __name__ == "__main__":
     gdb, cdb = _gas_db(), _coolant_db()
     assert gdb, f"missing {GAS_FILE} - run tools/property_tables/generate_property_tables.py"
@@ -331,6 +399,37 @@ if __name__ == "__main__":
         v = pe_over_pc_at_eps(pair, t["mr"][2], math.exp(t["lnp"][3]), math.exp(t["lnpe_lneps"][4]))[0]
         assert abs(math.log(v) - t["lnpe"][4, 3, 2]) < 1e-9, pair
     assert isp_vac_ideal_s("Hydrazine", 1.0, 2e6, 20.0) is None
+    # 9. saturation: every tabulated propellant boils at 1 atm at its NIST normal
+    #    boiling point (O2 90.19, para-H2 20.27, CH4 111.67 K; n-dodecane ~489 K),
+    #    p_sat / rho_v rise and rho_l fall along the dome, h_fg falls above the
+    #    normal boiling point (para-H2's h_fg genuinely PEAKS at ~16.6 K, just above
+    #    its 13.8 K triple point - real CoolProp behaviour, not a table error), the
+    #    inverse round-trips, grid points reproduce, and storables report "no table"
+    sdb = _saturation_db()
+    assert sdb, f"missing {SATURATION_FILE}"
+    nbp_ref = {"LOX": 90.19, "LH2": 20.27, "CH4": 111.67, "RP-1": 489.4}
+    for prop, ref in nbp_ref.items():
+        t_b = saturation_temperature(prop, 101325.0)
+        assert abs(t_b - ref) < 0.1, (prop, t_b, ref)
+        assert abs(saturation(prop, ref)["p_sat_pa"] / 101325.0 - 1.0) < 0.01, prop
+        tab = sdb[prop]
+        ts = np.linspace(tab["t"][0], tab["t"][-1], 50)
+        st = [saturation(prop, x) for x in ts]
+        for k, sign in (("p_sat_pa", 1), ("rho_v_kg_m3", 1), ("rho_l_kg_m3", -1), ("h_fg_j_kg", -1)):
+            v = [s[k] for x, s in zip(ts, st) if k != "h_fg_j_kg" or x >= tab["nbp"]]
+            assert all(sign * (b - a) > 0 for a, b in zip(v, v[1:])), (prop, k)
+        for p in (2e4, 3e5, 2e6):
+            if tab["lnp"][0] < math.log(p) < tab["lnp"][-1]:
+                assert abs(saturation(prop, saturation_temperature(prop, p))["p_sat_pa"] / p - 1) < 1e-6
+        kk = len(tab["t"]) // 2
+        assert abs(math.log(saturation(prop, tab["t"][kk])["p_sat_pa"]) - tab["lnp"][kk]) < 1e-9
+        assert saturation(prop, 1e4)["t_clamped"]
+    assert saturation("N2O4", 293.0) is None and not has_saturation("MMH")
+    assert sdb["RP-1"]["surrogate"] and not sdb["LOX"]["surrogate"]
+    for prop in nbp_ref:
+        s = saturation(prop, sdb[prop]["nbp"])
+        print(f"  {prop:4s} NBP {sdb[prop]['nbp']:6.2f} K  rho_l {s['rho_l_kg_m3']:7.1f}  "
+              f"rho_v {s['rho_v_kg_m3']:6.3f}  h_fg {s['h_fg_j_kg'] / 1e3:6.1f} kJ/kg")
     for pair in ("LOX/LH2", "LOX/CH4", "LOX/RP-1"):
         s = gas_state(pair, {"LOX/LH2": 6.0, "LOX/CH4": 3.55, "LOX/RP-1": 2.34}[pair], 10e6)
         print(f"  {pair:9s} Tc {s['tc_k']:6.0f} K  M {s['m_molar']:5.2f}  g_f {s['gamma_frozen']:.3f}"

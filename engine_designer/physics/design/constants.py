@@ -26,6 +26,23 @@ JACKET_DP_FRACTION_BY_COOLING_METHOD = {
     "uncooled": 0.0,       # no active cooling loop at all
 }
 LINE_LOSS_PA = 0.5e6
+# Open-cycle (gas-generator / tap-off) feed loss per pump leg, pump discharge ->
+# injector manifold EXCLUDING the injector orifices and the regen jacket (valves,
+# calibrating orifices, ducts, manifolds), as a fraction of the feed Pc
+# (pc_feed). Reverse-solved (turbopump Round 0, 2026-09-26) so the total
+# discharge budget (Pc + injector dP 0.175 Pc + this) matches the two real GG
+# engines whose pump discharge pressures are published, averaged:
+#   F-1 [F1-Man Fig 3-14]: ox 1,602 / fuel 1,870 psia vs 1,125 psia injector-end
+#       Pc and 244 psi jacket -> (disch - Pc - jacket)/Pc = ox 0.424, fuel 0.445
+#   H-1 200K [H1-Man Fig 1-44 / 1-18]: ox 950.2 / fuel 1,011.8 psia vs 689.3 psia
+#       and 135 psi jacket -> ox 0.379, fuel 0.272
+# less the 0.175 injector share -> ox 0.2265, fuel 0.1835 (each engine's legs then
+# land within ~6 % of its real discharge). Floored at LINE_LOSS_PA so low-Pc
+# designs keep the old value. Tier 2 (two anchors; the fuel legs scatter 0.10 -
+# 0.27). Staged-combustion / expander chains keep LINE_LOSS_PA - their pressure
+# chains are pinned separately (validate: pump pressure-chain checks).
+FEED_LOSS_OVER_PC = {"fuel": 0.1835, "ox": 0.2265}
+FEED_LOSS_SCALED_CYCLES = ("gas_generator", "tap_off")
 TANK_HEAD_PA = 0.3e6           # slight positive tank head, subtracted from required pump dP
 # Pump efficiency used to be two flat constants here (0.72/0.75) - now a per-design
 # choice (EngineDesign.eta_pump_fuel/eta_pump_ox, suggested by physics/turbopump_tech.py's
@@ -61,7 +78,15 @@ EXPANDER_TURBINE_PR = 1.4            # ACTUAL expander turbine PR (RL10 1.42) - 
 #               very-fuel-rich hydrazine-family gas is lighter/more H2-bearing than
 #               kerosene soot, so cp is nudged up from the kerolox value.
 GG_GAS_PROPERTIES = {
-    "LOX/RP-1":        dict(tin_k=1050.0, cp=2100.0, gamma=1.13),
+    "LOX/RP-1":        dict(tin_k=1050.0, cp=2735.0, gamma=1.126),  # cp/gamma: [SP-8110 Table III
+                                                                    # p.16] frozen LOX/RP-1 turbine
+                                                                    # gas, interpolated at 1050 K
+                                                                    # (1430 F) between its 1300 F
+                                                                    # (0.648 Btu/lb-R, 1.115) and
+                                                                    # 1500 F (0.656, 1.132) rows.
+                                                                    # Was cp 2100 (Round 0: 23 % low
+                                                                    # - it under-stated the F-1's
+                                                                    # ~840 kJ/kg isentropic drop)
     "LOX/LH2":         dict(tin_k=922.0,  cp=8000.0, gamma=1.36),
     "LOX/CH4":         dict(tin_k=1050.0, cp=3200.0, gamma=1.20),   # estimate - fuel-rich methane
                                                                     # GG gas: more CO/H2 than

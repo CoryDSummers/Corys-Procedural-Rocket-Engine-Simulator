@@ -173,13 +173,14 @@ def run_chamber_detail_check():
     c1_ok = (0.34 < tight["mach"] < 0.46
              and 0.05 < tight["pc_loss_fraction"] < 0.12
              and loose["pc_loss_fraction"] < 0.02)
-    # feeding it in raises pump discharge but not Isp
+    # feeding it in raises pump discharge but not the NOZZLE's Isp (the chamber
+    # Isp - the engine Isp legitimately moves with the extra GG dump flow)
     base = EngineDesign(cycle="gas_generator", contraction_ratio=1.5).compute()
     lossy = EngineDesign(cycle="gas_generator", contraction_ratio=1.5,
                           apply_chamber_pressure_loss=True).compute()
     c1_feed_ok = (lossy["cycle_result"]["turbopump"]["power_total_w"]
                   > base["cycle_result"]["turbopump"]["power_total_w"]
-                  and abs(lossy["isp_vac_engine_s"] - base["isp_vac_engine_s"]) < 0.5)
+                  and abs(lossy["isp_vac_chamber_s"] - base["isp_vac_chamber_s"]) < 0.5)
     all_ok &= c1_ok and c1_feed_ok
     print(f"\nC1 injector-end Pc loss  [{'OK' if c1_ok and c1_feed_ok else '*** FAIL ***'}]")
     print(f"  CR 1.6: Mc {tight['mach']:.2f}, {tight['pc_loss_fraction']*100:.0f}% loss; "
