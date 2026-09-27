@@ -255,6 +255,55 @@ into that and makes no claims about it.
     RP-1 via n-dodecane). N2O4 (≈ 1 atm at room temperature, the one that matters for NPSH),
     MMH, UDMH, N2H4 and H2O2 need a cited vapor-pressure curve before Round 1's NPSH model
     covers them. Look first at `[Sutton]` Ch. 7 propellant tables and `[Huzel]`.
+    **Round 1 (2026-09-26) status:** the computed suction model takes their vapor pressure as
+    ZERO (NPSH available optimistic, said so on the checklist row) until a curve is baked.
+  - **Pump-suction model follow-ups (2026-09-26, turbopump Round 1).** Wanted:
+    - **TSH for CH4 and N2O4.** `inducer.TSH_ANCHORS` has only `[SP-8052]`'s F-1 LOX
+      (11 ft) and J-2 LH2 (250 ft). SP-8052 names N2O4 as a thermodynamic-effect fluid and
+      methane surely is one; both get 0 today (conservative). A methalox inducer TSH or a
+      Ruggeri-Moore B-factor dataset with constants would close it.
+    - **TSH speed scaling.** SP-8052 says TSH "rises with rpm at fixed phi" but gives no
+      exponent; the model scales with vapor pressure only.
+    - **RD-180 boost-pump pressures.** The corpus RD-180's LOX pump is now suction-limited on
+      the default inlet (its staged balance already did not close: margin 0.91 -> 0.86). The
+      real engine has LOX and kerosene boost pumps, but claude_lit has no RD-180 inlet /
+      boost-discharge pressures (KBKhA covers only the RD-0110/RD-0124).
+    - **Model rotor speeds sit below real on high-pressure pumps.** The Ns-optimum speed
+      (flat stage Ns 2,200) gives the RS-25 HPOTP 13.4k vs the real 22.2k rpm and Merlin
+      ~22k vs ~36k class; the suction cap can only lower it. `validate` PUMP SUCTION (g)
+      shows the cap itself is right at the REAL HPOTP speed (exceeded at 100 psia, satisfied
+      at the boosted 380 psia). A later round (pump meanline, Round 2) owns the speed choice.
+    - **Legacy `NSS_TARGET_US["lh2_class"]` error.** It was back-solved with the J-2 LH2 pump
+      at 3,000 gpm; `[SP-8107 Table II]` gives 8,530 gpm (Ss at NPSH_crit ~98,000). Kept only
+      on the legacy path for bit-identity.
+  - **Pump meanline follow-ups (2026-09-26, turbopump Round 2).** Wanted:
+    - **Disk-friction coefficient.** Neither SP-8109 nor Huzel gives one; `pump_meanline.
+      DISK_CM_COEFF` is a Daily-Nece-type form (Tier 3). Gülich / Stepanoff / Daily & Nece 1960
+      would cite it.
+    - **Small-pump size effect.** The meanline runs ~5-8 pts optimistic against SP-8109 Fig. 6
+      for 2-6 in impellers, pessimistic at 1 in. The wear-ring clearance floor is fitted to
+      Fig. 6. This is why the RL10 LOX pump is gated +-0.13. A per-size loss breakdown
+      (relative roughness, blade blockage, clearances) from a pump-design text would fix it.
+    - **Volute / vaned-diffuser loss coefficients.** SP-8109 gives none; Huzel gives "70-90 %
+      of the kinetic head converted". A cited recovery Cp vs area ratio would replace
+      `ZETA_DIFFUSER`.
+    - **LH2 multistage stage Ns.** At the neutral stage Ns 2,200 the tool's LH2 pumps get
+      b2/D2 ~0.18-0.22 (beyond SP-8109 Table I's 0.14; a warn row suggests "efficient"). Real
+      LH2 stages run slower (SSME HPFTP ~1,130). The tool's stage count for high-head LH2
+      pumps (6,000 ft/stage, capped at 8: RS-25 HPFTP gets 8 vs the real 3) is also a Round
+      0/1 rule. A Round 4-5 sizing pass should choose Ns and stages together.
+    - **Channels-mode jacket dP vs coolant inlet density.** The channels model sizes passages
+      at the jacket INLET coolant velocity. With the Round 2 computed (colder, denser) LH2
+      inlet, the J-2 jacket dP rose 3.3 -> 4.9 MPa and the RL10 9.3 -> 12.1 MPa; two
+      plausibility bands were widened. Real LH2 jacket dP is ~1-2 MPa (SP-8107: the RL10's
+      whole fuel-pump discharge is ~1,000 psia), so the tool over-predicts either way.
+      Belongs to a cooling round: size passages on throat or mean velocity, or on mass flux.
+    - **LOX compression heating at high pressure.** `suction_stage.LOX_BETA_PER_K` is a constant
+      that reproduces the SSME HPOTP (+10.6 K at 25 MPa); RD-180 / Raptor ox pumps (55-60 MPa)
+      get ~+35 K. That is reported only. A LOX coolant table (CoolProp) would replace it.
+    - **Pump discharge-temperature anchors beyond the SSME.** No J-2, RL10, M-1, H-1 or F-1
+      RP-1 discharge temperature exists in `literature/`; the F-1 LOX has only an indirect
+      heat-exchanger inlet (-288 F). There is also no RL10 source at all.
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
@@ -313,7 +362,10 @@ Real citations now exist for the following, but no `engine_designer/ASSUMPTIONS.
 edit has actually been made — `claude_lit`'s standing rule is "report-only, propose no
 edits," so these are sitting in topic-file prose waiting for whoever next touches the code.
 
-- **NPSH/suction-specific-speed feature plan** (see the historical plan file's
+- **RESOLVED 2026-09-26 (turbopump Round 1): the 40,000 limit and the 3.0/2.3/1.3 Z factors
+  are now used directly** (`inducer.DESIGN_CAVITATION_NUMBER` back-solved to 40,000;
+  `inducer.Z_MIN`), validated against SP-8107 Table II. Original note:
+  **NPSH/suction-specific-speed feature plan** (see the historical plan file's
   `NSS_TARGET_US["lox_class"] = 40_000.0` seed value): now has a direct real-criterion
   citation, `[SP-8109 §3.2.1.2]` — *"For a pump with an integral inducer, maximum suction
   specific speed of 40,000 for the inducer is recommended. Without an integral inducer,
@@ -321,9 +373,9 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   (3.0× water/RP-1, 2.3× LOX/LF2, 1.3× LH2, all ×`cm1²/2g`) with no counterpart in
   `turbopump_sizing.py` yet. `lh2_class: 58_000.0` still rests on the older F-1/J-2
   two-anchor-point derivation, not this source — only the `lox_class` seed is directly
-  confirmed. Real fleet Ss data (8,600-23,400 across F-1/J-2/Atlas/X-8) sits well below the
-  40,000 ceiling — don't calibrate a future validate.py check against 40,000 as if it were a
-  typical value; it's an upper design bound.
+  confirmed. (The "real fleet Ss 8,600-23,400" once quoted here was a misreading of SP-8109
+  Fig. 5's tip diameters, corrected 2026-09-26. Real suction anchors are `[SP-8107 Table II]`,
+  used by Round 1's `physics/inducer.py`.)
 - **`turbopump_materials.py` `BEARING_MATERIALS.max_dn_mm_rpm`** (~1.2M-2.4M, previously
   flagged Tier-3 with no citation at all): now has a real blanket citation, `[SP-8048
   §3.1.2]` — one-piece cages required above 1.0×10⁶ DN, angular-contact ball bearings

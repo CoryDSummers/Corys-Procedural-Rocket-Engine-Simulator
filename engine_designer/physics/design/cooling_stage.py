@@ -124,7 +124,8 @@ def thermal(self, s):
     s.nozzle_liner_required_thickness_m = 0.0
     s.nozzle_liner_target_shell_k = None
     liner_resistance = np.zeros(len(s.rs))
-    s.coolant_inlet_k = COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0)
+    s.coolant_inlet_k = (getattr(s, "coolant_inlet_override", None)
+                         or COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0))
     s.coolant_limit_k = cooling.coolant_limit_k(self.propellant_pair)
     regen_chamber = s.chamber_cooling in ("regenerative", "dump")
 

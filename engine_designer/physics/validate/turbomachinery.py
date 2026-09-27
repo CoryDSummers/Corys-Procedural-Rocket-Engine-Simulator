@@ -13,6 +13,9 @@ from ..design import EngineDesign
 # from Table III. Bands are +-0.08 absolute (the curve shapes are calibrated
 # choices, no published eta-vs-Ns / eta-vs-U-C0 curve exists). RL10's tiny 1962
 # geared H2 pump (55%) is a documented low outlier - reported, gated at +-0.13.
+# Its geared 12,100-rpm LOX pump (63%) likewise (turbopump Round 2): the tool designs a
+# ~2-in direct-drive impeller at ~33,000 rpm, where the meanline runs ~8 pts above
+# SP-8109 Fig. 6 (a documented small-pump limitation) - gated at +-0.13 as well.
 TURBOPUMP_EFFICIENCY_CHECKS = [
     dict(name="F-1 (LOX/RP-1, GG, 2-row VC turbine)",
          kw=dict(propellant_pair="LOX/RP-1", mixture_ratio=2.27, chamber_pressure_pa=7.0e6,
@@ -34,7 +37,7 @@ TURBOPUMP_EFFICIENCY_CHECKS = [
     dict(name="RL10 (LOX/LH2, expander, reaction turbine)",
          kw=dict(propellant_pair="LOX/LH2", mixture_ratio=5.5, chamber_pressure_pa=3.2e6,
                  expansion_ratio=61.0, cycle="expander", target_vac_thrust_n=73_000.0),
-         eta_pf=0.55, eta_po=0.63, eta_turb=0.74, eta_pf_tol=0.13),
+         eta_pf=0.55, eta_po=0.63, eta_turb=0.74, eta_pf_tol=0.13, eta_po_tol=0.13),
     dict(name="SSME-class (LOX/LH2, FRSC, reaction turbine)",
          kw=dict(propellant_pair="LOX/LH2", mixture_ratio=6.0, chamber_pressure_pa=20.0e6,
                  expansion_ratio=69.0, cycle="frsc", turbopump_material_key="powder_met_superalloy",

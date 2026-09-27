@@ -7,15 +7,11 @@ default.
 This is the by-hand method of [SP-8107 2.1.1] / [Huzel Ch. VI], nothing more:
 specific speed Ns fixes rotor speed, a head coefficient fixes tip speed, and a
 representative per-stage head (anchored so the J-2 LH2 pump comes out
-multistage) fixes stage count. Suction performance is modelled only as far as
-the user supplies it: `npsh_available_*_ft` > 0 caps each pump's rpm at its
-suction-specific-speed limit (suction_limited_rpm), and the opt-in
-`enforce_suction_limit` adds stages against a historical NPSH-required anchor.
-With neither set (the default) there is no cavitation limit, so rotor speed is
-over-predicted for an extreme high-head pump a real designer would slow down -
-the spot check in physics/validate.py uses wide (factor ~2-3) bands for this.
-There is no tank/suction-line model and no boost pump yet (the planned
-turbopump/lines round).
+multistage) fixes stage count. Suction performance (turbopump Round 1): each
+pump's rpm is capped at its inducer suction limit (size_pump's `suction` spec,
+physics/inducer.py) against the NPSH available design/suction_stage.py builds
+from the tank side. The pre-Round-1 LEGACY path (suction_model "legacy") keeps
+`npsh_available_*_ft` / `enforce_suction_limit` as its only suction limit.
 
 Neutral-default contract (same idea as turbopump_tech's `mature` tier and
 `contraction_ratio=1.6`): the AUTO-derived architecture always yields
@@ -23,9 +19,10 @@ Neutral-default contract (same idea as turbopump_tech's `mature` tier and
 existing compute() result. Only a user OVERRIDE (forcing a gearbox, adding pump
 stages, an exotic turbine staging) moves the mass.
 """
+import dataclasses
 import math
 
-from . import turbopump_efficiency, turbopump_materials
+from . import inducer, pump_meanline, turbopump_efficiency, turbopump_materials
 
 G = 9.80665
 _M3S_TO_GPM = 15850.323
@@ -58,17 +55,20 @@ TIP_SPEED_DESIGN_FRACTION = 0.85  # design a stage to this fraction of the rotor
 # 33.3/36.6 MPa - comfortably inside this band, not at its edge.
 FEED_DP_PLAUSIBLE_CEILING_PA = 55.2e6   # 8000 psia [SP-8107 Tables V-VI]
 
-# --- suction specific speed / NPSH-required (opt-in, default OFF) -----------
+# --- LEGACY suction model (EngineDesign.suction_model == "legacy") ----------
+# Since turbopump Round 1 (2026-09-26) the DEFAULT suction model is the computed
+# one - physics/inducer.py (Brumfield inducer + thermodynamic suppression head)
+# fed a vehicle-side NPSH available by design/suction_stage.py (tank pressure,
+# vapor pressure, liquid head, suction line, boost pump); size_pump's `suction`
+# spec. Everything in this block serves only the legacy path, kept bit-identical.
 # Nss = N*Q^0.5/NPSH^0.75 (US units, same convention as the Ns relation above).
-# This tool has NO propellant tank pressure or vapor-pressure model at all
-# (README: tank/vehicle modeling is RealFuels' job), so it can NEVER compute a
-# real NPSH-AVAILABLE-vs-required verdict - only what NPSH a candidate rotor
-# speed/flow combination REQUIRES to hit a propellant class's achievable
-# suction specific speed. Never claims to know actual cavitation risk on a
-# real vehicle. NSS_TARGET_US is computed directly from two real [SP-8107
-# Table II] / [Ch12-Materials] data points, not invented:
+# NSS_TARGET_US was computed from two [SP-8107 Table II] / [Ch12-Materials] data
+# points:
 #   F-1 O2 pump:  N=5488 rpm, Q=25,200 gpm, NPSH_crit=60 ft -> Nss ~= 40,400
 #   J-2 LH2 pump: N=27,000 rpm, Q=3,000 gpm, NPSH_crit=75 ft -> Nss ~= 58,000
+# KNOWN ERROR (found in Round 1): SP-8107 Table II gives the J-2 LH2 pump 8,530
+# gpm at 27,130 rpm, which puts its NPSH_crit Ss at ~98,000, not 58,000 - the
+# lh2_class value is kept unchanged only so the legacy path stays bit-identical.
 # Trust the DIRECTION (LH2 achieves much higher real suction specific speed
 # than a dense propellant, matching [SP-8107]'s qualitative claim that LH2 has
 # "excellent cavitation characteristics") far more than these exact magnitudes
@@ -252,6 +252,9 @@ GEARBOX_MASS_FRACTION = 0.10       # adding a reduction gearbox - flagged estima
 EXTRA_STAGE_MASS_FRACTION = 0.06   # per pump stage beyond the auto-derived count -
                                    # flagged estimate
 MASS_MODIFIER_CLAMP = (0.7, 1.6)
+# Directional-intent mass scaling (turbopump Round 2): geometry-mass ratio to the same
+# machine at neutral intent, clamped - Tier 3 until Round 4 derives mass from geometry.
+INTENT_MASS_RATIO_CLAMP = (0.6, 1.6)
 
 ARRANGEMENTS = ("single_shaft", "dual_shaft", "geared")
 TURBINE_STAGINGS = tuple(TURBINE_U_OVER_C0)
@@ -280,25 +283,28 @@ def effective_arrangement(arrangement, rho_fuel, rho_ox, thrust_n, cycle=""):
 def size_pump_pair(mdot_fuel, mdot_ox, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, material,
                    arrangement, *, pump_stages_fuel=0, pump_stages_ox=0, build_quality=1.0,
                    enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                   npsh_available_ox_ft=0.0):
+                   npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None,
+                   hydraulics_fuel=None, hydraulics_ox=None):
     """Both pumps; on a SINGLE shaft the faster-optimum pump is re-sized at the
     slower one's speed (they share the shaft - the real F-1 turns both pumps at
     5,490 rpm [SP-8110 Table I], which puts its RP-1 pump at Ns ~1,120, below the
     efficiency peak). Dual-shaft / geared / electric keep independent speeds."""
     kw = dict(build_quality=build_quality, enforce_suction_limit=enforce_suction_limit)
     fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, material, forced_stages=pump_stages_fuel,
-                   npsh_available_ft=npsh_available_fuel_ft, **kw)
+                   npsh_available_ft=npsh_available_fuel_ft, suction=suction_fuel, hydraulics=hydraulics_fuel, **kw)
     op = size_pump(mdot_ox, dp_ox_pa, rho_ox, material, forced_stages=pump_stages_ox,
-                   npsh_available_ft=npsh_available_ox_ft, **kw)
+                   npsh_available_ft=npsh_available_ox_ft, suction=suction_ox, hydraulics=hydraulics_ox, **kw)
     if arrangement == "single_shaft" and fp["n_rpm"] > 0 and op["n_rpm"] > 0:
         shared = min(fp["n_rpm"], op["n_rpm"])
         if fp["n_rpm"] > shared:
             fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, material,
                            forced_stages=pump_stages_fuel,
-                           npsh_available_ft=npsh_available_fuel_ft, shaft_rpm_cap=shared, **kw)
+                           npsh_available_ft=npsh_available_fuel_ft, shaft_rpm_cap=shared,
+                           suction=suction_fuel, hydraulics=hydraulics_fuel, **kw)
         elif op["n_rpm"] > shared:
             op = size_pump(mdot_ox, dp_ox_pa, rho_ox, material, forced_stages=pump_stages_ox,
-                           npsh_available_ft=npsh_available_ox_ft, shaft_rpm_cap=shared, **kw)
+                           npsh_available_ft=npsh_available_ox_ft, shaft_rpm_cap=shared,
+                           suction=suction_ox, hydraulics=hydraulics_ox, **kw)
     return fp, op
 
 
@@ -441,7 +447,8 @@ def derive_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, materi
                         pump_stages_fuel=0, pump_stages_ox=0,
                         eta_pump_fuel_override=0.0, eta_pump_ox_override=0.0,
                         enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                        npsh_available_ox_ft=0.0, arrangement=None, cycle="",
+                        npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None, arrangement=None, cycle="",
+                        hydraulics_fuel=None, hydraulics_ox=None,
                         staging_info=None):
     """
     Pump & turbine efficiency for the power balance, DERIVED from the machinery
@@ -472,16 +479,20 @@ def derive_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, materi
                                 pump_stages_ox=pump_stages_ox, build_quality=build_quality,
                                 enforce_suction_limit=enforce_suction_limit,
                                 npsh_available_fuel_ft=npsh_available_fuel_ft,
-                                npsh_available_ox_ft=npsh_available_ox_ft)
+                                npsh_available_ox_ft=npsh_available_ox_ft,
+                                suction_fuel=suction_fuel, suction_ox=suction_ox,
+        hydraulics_fuel=hydraulics_fuel, hydraulics_ox=hydraulics_ox)
     else:
         fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, mat,
                        forced_stages=pump_stages_fuel, build_quality=build_quality,
                        enforce_suction_limit=enforce_suction_limit,
-                       npsh_available_ft=npsh_available_fuel_ft)
+                       npsh_available_ft=npsh_available_fuel_ft, suction=suction_fuel,
+                       hydraulics=hydraulics_fuel)
         op = size_pump(mdot_ox, dp_ox_pa, rho_ox, mat,
                        forced_stages=pump_stages_ox, build_quality=build_quality,
                        enforce_suction_limit=enforce_suction_limit,
-                       npsh_available_ft=npsh_available_ox_ft)
+                       npsh_available_ft=npsh_available_ox_ft, suction=suction_ox,
+                       hydraulics=hydraulics_ox)
     eta_pf = eta_pump_fuel_override if (eta_pump_fuel_override or 0.0) > 0.0 else fp["eta"]
     eta_po = eta_pump_ox_override if (eta_pump_ox_override or 0.0) > 0.0 else op["eta"]
     eta_pf = eta_pf or GG_ETA_TURBINE_SEED   # degenerate guard
@@ -521,7 +532,8 @@ def derive_expander_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_o
                                  pump_stages_fuel=0, pump_stages_ox=0,
                                  eta_pump_fuel_override=0.0, eta_pump_ox_override=0.0,
                                  enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                                 npsh_available_ox_ft=0.0):
+                                 npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None,
+                   hydraulics_fuel=None, hydraulics_ox=None):
     """Same as derive_efficiencies but for the expander cycle, whose turbine is
     driven by heated fuel (not a fuel-rich GG mix): a low-PR reaction turbine.
     The turbine specific work = shaft power / fuel flow (all fuel goes through
@@ -534,11 +546,13 @@ def derive_expander_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_o
     fp = size_pump(mdot_fuel, dp_fuel_pa, rho_fuel, mat,
                    forced_stages=pump_stages_fuel, build_quality=build_quality,
                    enforce_suction_limit=enforce_suction_limit,
-                   npsh_available_ft=npsh_available_fuel_ft)
+                   npsh_available_ft=npsh_available_fuel_ft, suction=suction_fuel,
+                       hydraulics=hydraulics_fuel)
     op = size_pump(mdot_ox, dp_ox_pa, rho_ox, mat,
                    forced_stages=pump_stages_ox, build_quality=build_quality,
                    enforce_suction_limit=enforce_suction_limit,
-                   npsh_available_ft=npsh_available_ox_ft)
+                   npsh_available_ft=npsh_available_ox_ft, suction=suction_ox,
+                       hydraulics=hydraulics_ox)
     eta_pf = eta_pump_fuel_override if (eta_pump_fuel_override or 0.0) > 0.0 else fp["eta"]
     eta_po = eta_pump_ox_override if (eta_pump_ox_override or 0.0) > 0.0 else op["eta"]
     eta_pf = eta_pf or GG_ETA_TURBINE_SEED
@@ -557,7 +571,8 @@ def derive_expander_efficiencies(mdot, mr, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_o
 
 
 def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_quality=1.0,
-              enforce_suction_limit=False, npsh_available_ft=0.0, shaft_rpm_cap=0.0):
+              enforce_suction_limit=False, npsh_available_ft=0.0, shaft_rpm_cap=0.0,
+              suction=None, hydraulics=None):
     """
     One propellant pump. `material` is a turbopump_materials.TurbopumpMaterial.
 
@@ -585,17 +600,48 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     slower pump's speed, as the real F-1 does at 5,490 rpm). Same mechanics as
     the suction cap: head-fixed tip speed, bigger impeller, efficiency at the
     actual (lower) whole-pump Ns.
+
+    `suction` (an inducer.SuctionSpec, turbopump Round 1): the COMPUTED suction
+    model - NPSH required from the Brumfield inducer + TSH (physics/inducer.py)
+    and the vehicle-side NPSH available the spec carries. When given it
+    REPLACES the legacy class-Nss path above (`npsh_available_ft` and
+    `enforce_suction_limit` are ignored): the rotor speed is capped at
+    inducer.suction_limited_rpm, and the inlet eye is the inducer tip diameter
+    [SP-8052 eq. 8]. None = the legacy path, bit-identical.
+
+    `hydraulics` (a pump_meanline.HydraulicsSpec, turbopump Round 2): the
+    directional design intent (Ns target, head coefficient, tip-speed fraction,
+    beta2, diffuser, pump type) and the MEANLINE efficiency (pump_meanline) in
+    place of the Ns-bell correlation, which is kept as `eta_correlation`. At the
+    neutral intent the speed / diameter / stages are identical to None; None =
+    the correlation path, bit-identical.
     """
     q_m3s = mdot_kgs / rho_kg_m3 if rho_kg_m3 > 0 else 0.0
     q_gpm = q_m3s * _M3S_TO_GPM
     head_m = dp_pa / (rho_kg_m3 * G) if rho_kg_m3 > 0 else 0.0
     head_ft = head_m * _M_TO_FT
     warnings = []
+    ns_target = hydraulics.ns_target_us if hydraulics is not None else NS_TARGET_US
+    psi_design = hydraulics.psi if hydraulics is not None else HEAD_COEFFICIENT_PSI
+    tip_fraction = (hydraulics.tip_speed_fraction if hydraulics is not None
+                    else TIP_SPEED_DESIGN_FRACTION)
+    axial = hydraulics is not None and hydraulics.pump_type == "axial"
+    if axial:
+        # axial: ~6,000 ft per stage [Huzel p.225], stage Ns ~4,000 [SP-8125 Table II],
+        # tip head coefficient psi_T [SP-8125]; the inducer takes a fixed head share
+        ns_target = pump_meanline.AX_NS_TARGET_US * ns_target / NS_TARGET_US
+        psi_design = pump_meanline.AX_PSI_T * psi_design / HEAD_COEFFICIENT_PSI
 
     typ_stages = max(1, math.ceil(head_ft / H_PER_STAGE_FT_TYPICAL)) if head_ft > 0 else 1
-    u_single = math.sqrt(G * head_m / HEAD_COEFFICIENT_PSI) if head_m > 0 else 0.0
-    cap = TIP_SPEED_DESIGN_FRACTION * material.max_tip_speed_m_s
+    if axial:
+        typ_stages = pump_meanline.axial_stage_count(head_m)
+    u_single = math.sqrt(G * head_m / psi_design) if head_m > 0 else 0.0
+    cap = tip_fraction * material.max_tip_speed_m_s
     tip_stages = max(1, math.ceil(u_single / cap)) if cap > 0 else 1
+    if axial:
+        u_single = math.sqrt(G * head_m * (1.0 - pump_meanline.AX_INDUCER_HEAD_FRACTION)
+                             / psi_design) if head_m > 0 else 0.0
+        tip_stages = max(1, math.ceil((u_single / cap) ** 2)) if cap > 0 else 1
     stages_wanted = max(typ_stages, tip_stages)   # pre-clamp - see feed-system
                                                    # plausibility warning just below
     auto_stages = min(MAX_PUMP_STAGES, stages_wanted)
@@ -619,11 +665,13 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
             f"understates real head-per-stage/tip-speed demand rather than representing "
             f"genuinely buildable hardware.")
 
+    main_fraction = (1.0 - pump_meanline.AX_INDUCER_HEAD_FRACTION) if axial else 1.0
+
     def _stage_quantities(stages):
-        stage_m = head_m / stages
-        stage_ft = head_ft / stages
-        tip = math.sqrt(G * stage_m / HEAD_COEFFICIENT_PSI) if stage_m > 0 else 0.0
-        rpm = (NS_TARGET_US * stage_ft ** 0.75 / q_gpm ** 0.5) if q_gpm > 0 and stage_ft > 0 else 0.0
+        stage_m = head_m * main_fraction / stages
+        stage_ft = head_ft * main_fraction / stages
+        tip = math.sqrt(G * stage_m / psi_design) if stage_m > 0 else 0.0
+        rpm = (ns_target * stage_ft ** 0.75 / q_gpm ** 0.5) if q_gpm > 0 and stage_ft > 0 else 0.0
         return stage_ft, tip, rpm
 
     head_stage_ft, u_tip, n_rpm = _stage_quantities(n_stages)
@@ -635,7 +683,10 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     anchor_ft = NPSH_REAL_ANCHOR_FT[nss_class]
     npsh_required_ft = required_npsh_ft(n_rpm, q_gpm, nss_target) if n_rpm > 0 else 0.0
     unforced = not forced_stages or forced_stages <= 0
-    if enforce_suction_limit and unforced and n_rpm > 0:
+    if suction is not None:
+        nss_target = suction.ss_water
+        npsh_required_ft = inducer.npsh_required_ft(n_rpm, q_gpm, suction) if n_rpm > 0 else 0.0
+    if enforce_suction_limit and unforced and n_rpm > 0 and suction is None:
         while (npsh_required_ft > NPSH_MARGIN_FACTOR * anchor_ft
                and n_stages < MAX_PUMP_STAGES):
             n_stages += 1
@@ -654,7 +705,14 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     # Vehicle-NPSH speed cap (opt-in; see docstring).
     rpm_ns_optimum = n_rpm
     suction_limited = False
-    if npsh_available_ft and npsh_available_ft > 0 and n_rpm > 0:
+    if suction is not None:
+        npsh_available_ft = suction.npsh_available_ft
+        n_cap = inducer.suction_limited_rpm(q_gpm, suction) if n_rpm > 0 else 0.0
+        if 0 < n_cap < n_rpm:
+            n_rpm = n_cap
+            suction_limited = True
+            npsh_required_ft = float(npsh_available_ft)
+    elif npsh_available_ft and npsh_available_ft > 0 and n_rpm > 0:
         n_cap = suction_limited_rpm(q_gpm, npsh_available_ft, nss_target)
         if 0 < n_cap < n_rpm:
             n_rpm = n_cap
@@ -665,7 +723,9 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
         n_rpm = float(shaft_rpm_cap)
         shaft_limited = True
         if not suction_limited:
-            npsh_required_ft = required_npsh_ft(n_rpm, q_gpm, nss_target)
+            npsh_required_ft = (inducer.npsh_required_ft(n_rpm, q_gpm, suction)
+                                if suction is not None else
+                                required_npsh_ft(n_rpm, q_gpm, nss_target))
 
     d_impeller_m = 60.0 * u_tip / (math.pi * n_rpm) if n_rpm > 0 else 0.0
     ns_us = (n_rpm * q_gpm ** 0.5 / head_stage_ft ** 0.75) if head_stage_ft > 0 else 0.0
@@ -675,13 +735,38 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     # every STAGE at NS_TARGET_US, so a multistage pump's whole-pump Ns is
     # NS_TARGET_US / n_stages**0.75 - a J-2-class 7-stage LH2 pump lands well
     # below the efficiency peak, which is why it is only ~73% efficient.
-    ns_pump_us = NS_TARGET_US / n_stages ** 0.75 if n_stages > 0 else NS_TARGET_US
+    ns_pump_us = ns_target / n_stages ** 0.75 if n_stages > 0 else ns_target
     eta = turbopump_efficiency.pump_efficiency(ns_pump_us, q_m3s, build_quality) if q_m3s > 0 else 0.0
     if suction_limited or shaft_limited:
         eta_opt = eta
         ns_pump_us = ns_us / n_stages ** 0.75
         eta = turbopump_efficiency.pump_efficiency(ns_pump_us, q_m3s, build_quality)
-    if suction_limited:
+    meanline = None
+    eta_correlation = eta
+    if hydraulics is not None and q_m3s > 0 and n_rpm > 0 and u_tip > 0:
+        if axial:
+            meanline = pump_meanline.design_axial(
+                q_m3s, head_m, n_rpm, n_stages, rho_kg_m3, hydraulics.nu_kin,
+                psi_t=psi_design, build_quality=build_quality)
+        else:
+            d_eye = (inducer.tip_diameter_m(q_m3s, n_rpm, suction.phi, suction.nu)
+                     if suction is not None else inlet_eye_dia_m(q_m3s, n_rpm))
+            # the impeller is designed for the suction performance it NEEDS [SP-8109
+            # §3.3.1.1]: the water-basis Ss at its NPSH available (+ TSH credit), between
+            # 10,000 and the inducer's capability - ample NPSH -> smaller eye, less penalty
+            ss_design = nss_target
+            if suction is not None and suction.npsh_available_ft > 0:
+                ss_req = n_rpm * math.sqrt(q_gpm) / (suction.npsh_available_ft
+                                                     + suction.tsh_ft) ** 0.75
+                ss_design = max(10_000.0, min(suction.ss_water, ss_req))
+            meanline = pump_meanline.design_centrifugal(
+                q_m3s, head_m, n_rpm, u_tip, n_stages, rho_kg_m3, hydraulics.nu_kin,
+                beta2_deg=hydraulics.beta2_deg, diffuser=hydraulics.diffuser,
+                ss_design=ss_design, d_eye_m=d_eye, build_quality=build_quality)
+        if suction_limited or shaft_limited:
+            eta_opt += meanline["eta"] - eta   # keep the reported drop on the meanline basis
+        eta = meanline["eta"]
+    if suction_limited and suction is None:   # computed model: suction_stage's own row
         warnings.append(
             f"pump suction-limited to {n_rpm:.0f} rpm by the {npsh_available_ft:.0f} ft NPSH "
             f"available (Ns-optimum {rpm_ns_optimum:.0f} rpm) - larger impeller, efficiency "
@@ -697,7 +782,17 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
     body_length_m = max(MIN_BODY_LEN_M, (INDUCER_LEN_FACTOR
                         + n_stages ** STAGE_COUNT_EXPONENT * STAGE_WIDTH_FACTOR) * d_impeller_m)
 
-    return {
+    extra = {}
+    if hydraulics is not None:
+        extra = {"pump_model": "meanline", "pump_type": "axial" if axial else "centrifugal",
+                 "eta_correlation": eta_correlation, "meanline": meanline,
+                 "ns_target_us": ns_target, "psi_design": psi_design,
+                 "tip_speed_fraction": tip_fraction}
+        if meanline is not None:
+            for w in meanline["warnings"]:
+                if w not in warnings:
+                    warnings.append(w)
+    return {**extra,
         "q_m3s": q_m3s, "head_m": head_m, "n_stages": n_stages, "auto_stages": auto_stages,
         "u_tip_m_s": u_tip, "n_rpm": n_rpm, "d_impeller_m": d_impeller_m, "ns_us": ns_us,
         "ns_pump_us": ns_pump_us, "eta": eta,
@@ -707,7 +802,10 @@ def size_pump(mdot_kgs, dp_pa, rho_kg_m3, material, *, forced_stages=0, build_qu
         "rpm_ns_optimum": rpm_ns_optimum, "suction_limited": suction_limited,
         "shaft_limited": shaft_limited,
         "npsh_available_ft": float(npsh_available_ft or 0.0),
-        "inlet_eye_dia_m": inlet_eye_dia_m(q_m3s, n_rpm),
+        "inlet_eye_dia_m": (inducer.tip_diameter_m(q_m3s, n_rpm, suction.phi, suction.nu)
+                            if suction is not None else inlet_eye_dia_m(q_m3s, n_rpm)),
+        "suction_model": "computed" if suction is not None else "legacy",
+        "tsh_ft": suction.tsh_ft if suction is not None else 0.0,
     }
 
 
@@ -778,7 +876,9 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
                    eta_pump_fuel_final=0.0, eta_pump_ox_final=0.0, eta_turbine_final=0.0,
                    motor_mass_kg=0.0, bearing_material_key="cronidur_30",
                    enforce_suction_limit=False, npsh_available_fuel_ft=0.0,
-                   npsh_available_ox_ft=0.0, auto_staging_resolved=None,
+                   npsh_available_ox_ft=0.0, suction_fuel=None, suction_ox=None,
+                   hydraulics_fuel=None, hydraulics_ox=None,
+                   auto_staging_resolved=None,
                    u_pitch_cap_m_s=None):
     """
     Full turbopump preliminary sizing for a pump-fed `cyc` (the dict from
@@ -807,50 +907,81 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
         "electric" if is_electric else eff_arr, pump_stages_fuel=pump_stages_fuel,
         pump_stages_ox=pump_stages_ox, build_quality=build_quality,
         enforce_suction_limit=enforce_suction_limit,
-        npsh_available_fuel_ft=npsh_available_fuel_ft, npsh_available_ox_ft=npsh_available_ox_ft)
-
-    if is_electric:
-        # Battery + brushless DC motors drive the pumps directly - no turbine.
-        n_turbines = 0
-        fuel_shaft_rpm = fuel_pump["n_rpm"]
-        ox_shaft_rpm = ox_pump["n_rpm"]
-    elif eff_arr == "dual_shaft":
-        n_turbines = 2
-        fuel_shaft_rpm = fuel_pump["n_rpm"]
-        ox_shaft_rpm = ox_pump["n_rpm"]
-    elif eff_arr == "geared":
-        n_turbines = 1
-        fuel_shaft_rpm = fuel_pump["n_rpm"]          # turbine + fuel pump direct
-        ox_shaft_rpm = ox_pump["n_rpm"]              # ox pump geared off it
-    else:  # single_shaft
-        n_turbines = 1
-        fuel_shaft_rpm = ox_shaft_rpm = min(p for p in (fuel_pump["n_rpm"], ox_pump["n_rpm"]) if p > 0) \
-            if (fuel_pump["n_rpm"] > 0 or ox_pump["n_rpm"] > 0) else 0.0
+        npsh_available_fuel_ft=npsh_available_fuel_ft, npsh_available_ox_ft=npsh_available_ox_ft,
+        suction_fuel=suction_fuel, suction_ox=suction_ox,
+        hydraulics_fuel=hydraulics_fuel, hydraulics_ox=hydraulics_ox)
 
     dh = 0.0 if is_electric else (
         turbine_specific_work_j_kg if turbine_specific_work_j_kg is not None
         else (cyc.get("turbine_specific_work_j_kg") or 0.0))
-    # Shaft power each turbine delivers: for a single/geared turbopump the one
-    # turbine drives both pumps; for a dual-shaft layout each turbine drives its
-    # own pump.
-    fuel_turb_power = tp["power_total_w"] if n_turbines == 1 else tp["power_fuel_w"]
-    ox_turb_power = tp["power_ox_w"]
-    dh_fuel_turb, dh_ox_turb = split_turbine_work(cycle, n_turbines, dh, tp["power_fuel_w"],
-                                                  tp["power_ox_w"], cyc)
-    turbine = (size_turbine(fuel_shaft_rpm, dh_fuel_turb, eff_stg, mat, shaft_power_w=fuel_turb_power,
-                            pressure_ratio=turbine_pressure_ratio, build_quality=build_quality,
-                            u_pitch_max_m_s=u_pitch_cap_m_s)
-               if dh > 0 and fuel_shaft_rpm > 0 else None)
-    ox_turbine = (size_turbine(ox_shaft_rpm, dh_ox_turb, eff_stg, mat,
-                               shaft_power_w=ox_turb_power, pressure_ratio=turbine_pressure_ratio,
-                               build_quality=build_quality)
-                  if n_turbines == 2 and dh > 0 and (dh_ox_turb or 0) > 0 and ox_shaft_rpm > 0
-                  else None)
 
-    # --- physical envelope + geometry-derived mass ------------------------
-    bodies, assembly_length_m, assembly_od_m, n_bodies = _assemble_bodies(
-        eff_arr, fuel_pump, ox_pump, turbine, ox_turbine)
-    mass_geometry_kg = _turbopump_mass_from_geometry(bodies, mat.density_kg_m3)
+    def _machine(fuel_pump, ox_pump):
+        """Shafts, turbines, body envelope and geometry mass for a pump pair."""
+        if is_electric:
+            # Battery + brushless DC motors drive the pumps directly - no turbine.
+            n_turbines = 0
+            fuel_shaft_rpm = fuel_pump["n_rpm"]
+            ox_shaft_rpm = ox_pump["n_rpm"]
+        elif eff_arr == "dual_shaft":
+            n_turbines = 2
+            fuel_shaft_rpm = fuel_pump["n_rpm"]
+            ox_shaft_rpm = ox_pump["n_rpm"]
+        elif eff_arr == "geared":
+            n_turbines = 1
+            fuel_shaft_rpm = fuel_pump["n_rpm"]          # turbine + fuel pump direct
+            ox_shaft_rpm = ox_pump["n_rpm"]              # ox pump geared off it
+        else:  # single_shaft
+            n_turbines = 1
+            fuel_shaft_rpm = ox_shaft_rpm = min(p for p in (fuel_pump["n_rpm"], ox_pump["n_rpm"]) if p > 0) \
+                if (fuel_pump["n_rpm"] > 0 or ox_pump["n_rpm"] > 0) else 0.0
+        # Shaft power each turbine delivers: for a single/geared turbopump the one
+        # turbine drives both pumps; for a dual-shaft layout each turbine drives its
+        # own pump.
+        fuel_turb_power = tp["power_total_w"] if n_turbines == 1 else tp["power_fuel_w"]
+        ox_turb_power = tp["power_ox_w"]
+        dh_fuel_turb, dh_ox_turb = split_turbine_work(cycle, n_turbines, dh, tp["power_fuel_w"],
+                                                      tp["power_ox_w"], cyc)
+        turbine = (size_turbine(fuel_shaft_rpm, dh_fuel_turb, eff_stg, mat, shaft_power_w=fuel_turb_power,
+                                pressure_ratio=turbine_pressure_ratio, build_quality=build_quality,
+                                u_pitch_max_m_s=u_pitch_cap_m_s)
+                   if dh > 0 and fuel_shaft_rpm > 0 else None)
+        ox_turbine = (size_turbine(ox_shaft_rpm, dh_ox_turb, eff_stg, mat,
+                                   shaft_power_w=ox_turb_power, pressure_ratio=turbine_pressure_ratio,
+                                   build_quality=build_quality)
+                      if n_turbines == 2 and dh > 0 and (dh_ox_turb or 0) > 0 and ox_shaft_rpm > 0
+                      else None)
+        bodies, assembly_length_m, assembly_od_m, n_bodies = _assemble_bodies(
+            eff_arr, fuel_pump, ox_pump, turbine, ox_turbine)
+        mass_geometry_kg = _turbopump_mass_from_geometry(bodies, mat.density_kg_m3)
+        return (n_turbines, fuel_shaft_rpm, ox_shaft_rpm, fuel_turb_power, ox_turb_power,
+                turbine, ox_turbine, bodies, assembly_length_m, assembly_od_m, n_bodies,
+                mass_geometry_kg)
+
+    (n_turbines, fuel_shaft_rpm, ox_shaft_rpm, fuel_turb_power, ox_turb_power, turbine,
+     ox_turbine, bodies, assembly_length_m, assembly_od_m, n_bodies,
+     mass_geometry_kg) = _machine(fuel_pump, ox_pump)
+
+    # Directional intent (turbopump Round 2): the assembly mass stays anchored on
+    # specific power, but a non-neutral intent (compact / efficient, tip speed)
+    # scales it by its geometry-mass ratio to the SAME machine at neutral intent.
+    intent_mass_ratio = 1.0
+    specs = [h for h in (hydraulics_fuel, hydraulics_ox) if h is not None]
+    if specs and not all(h.neutral for h in specs) and mass_geometry_kg > 0:
+        neutral = lambda h: (dataclasses.replace(
+            h, ns_target_us=NS_TARGET_US, psi=HEAD_COEFFICIENT_PSI,
+            tip_speed_fraction=TIP_SPEED_DESIGN_FRACTION, neutral=True) if h is not None else None)
+        nf, no = size_pump_pair(
+            tp["mdot_fuel_kgs"], tp["mdot_ox_kgs"], dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, mat,
+            "electric" if is_electric else eff_arr, pump_stages_fuel=pump_stages_fuel,
+            pump_stages_ox=pump_stages_ox, build_quality=build_quality,
+            enforce_suction_limit=enforce_suction_limit,
+            npsh_available_fuel_ft=npsh_available_fuel_ft, npsh_available_ox_ft=npsh_available_ox_ft,
+            suction_fuel=suction_fuel, suction_ox=suction_ox,
+            hydraulics_fuel=neutral(hydraulics_fuel), hydraulics_ox=neutral(hydraulics_ox))
+        m_neutral = _machine(nf, no)[-1]
+        if m_neutral > 0:
+            intent_mass_ratio = max(INTENT_MASS_RATIO_CLAMP[0],
+                                    min(INTENT_MASS_RATIO_CLAMP[1], mass_geometry_kg / m_neutral))
     mass_assembly_kg = turbopump_mass_kg(tp["power_total_w"])   # the mass used downstream
 
     # The raw 1-D envelope runs a few x too big (approximate rotor speeds -> big
@@ -888,6 +1019,7 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
     extra_stages = ((fuel_pump["n_stages"] - fuel_pump["auto_stages"])
                     + (ox_pump["n_stages"] - ox_pump["auto_stages"]))
     mod *= (1.0 + EXTRA_STAGE_MASS_FRACTION * extra_stages)
+    mod *= intent_mass_ratio
     lo, hi = MASS_MODIFIER_CLAMP
     mass_modifier = max(lo, min(hi, mod))
 
@@ -949,6 +1081,7 @@ def size_turbopump(cyc, dp_fuel_pa, dp_ox_pa, rho_fuel, rho_ox, pair, thrust_n, 
         "mass_geometry_kg": mass_geometry_kg,      # envelope cross-check only
         "mass_specific_power_kg": tp["turbopump_mass_kg"],  # legacy 36 kW/kg estimate
         "mass_modifier": mass_modifier,
+        "intent_mass_ratio": intent_mass_ratio,
         "bearing_material_key": bearing_material_key,
         "bearing_material_display": bearing_mat.display_name,
         "fuel_bearing_dn": fuel_bearing_dn, "ox_bearing_dn": ox_bearing_dn,

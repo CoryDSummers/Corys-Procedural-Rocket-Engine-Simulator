@@ -5,11 +5,10 @@ between stages lives on the PassState `s` (see design/state.py)."""
 import numpy as np
 
 from .. import (combustion, cycles, electric_pump, gimbal, ignition, injectors,
-                manifold, mass_model, materials)
+                manifold, mass_model, materials, turbopump_intent)
 from .constants import (
     PA_SEA_LEVEL,
     LINE_LOSS_PA,
-    TANK_HEAD_PA,
     COOLANT_INLET_TEMP_K,
     OXIDIZER_INLET_TEMP_K,
     CONTRACTION_RATIO_TYPICAL,
@@ -99,7 +98,8 @@ def burn_time_and_mass(self, s):
     battery_motor_mass_kg = 0.0
     if self.cycle == cycles.ELECTRIC_PUMP:
         s.cyc = electric_pump.electric_pump_result(
-            s.mdot, self.mixture_ratio, self.chamber_pressure_pa, s.dp_fuel, s.dp_ox,
+            s.mdot, self.mixture_ratio, self.chamber_pressure_pa,
+            s.dp_fuel + s.boost_drive_dp["fuel"], s.dp_ox + s.boost_drive_dp["ox"],
             s.rho_fuel, s.rho_ox, s.eta_pf, s.eta_po, self.pump_specific_power_w_kg, s.rated_burn_time_s)
         battery_motor_mass_kg = s.cyc["battery_mass_kg"] + s.cyc["motor_mass_kg"]
         _check(s.checklist, s.warnings, "turbopump", "Electric pump-fed hardware mass",
@@ -317,19 +317,31 @@ def checks_and_result(self, s):
                   else "calibrated" if s.line_loss_calibrated[leg] > LINE_LOSS_PA else "flat")
             for leg in ("fuel", "ox")},
         "line_loss_calibrated_pa": dict(s.line_loss_calibrated),
-        # pump discharge (total) pressure = required dP + the tank head it starts from;
-        # None for a cycle with no pumps
-        "pump_discharge_fuel_pa": (s.dp_fuel + TANK_HEAD_PA
+        # pump discharge (total) pressure = required dP + the main-pump inlet pressure it
+        # starts from (suction_stage; TANK_HEAD_PA in legacy mode); None with no pumps
+        "pump_discharge_fuel_pa": (s.dp_fuel + s.pump_inlet_pa["fuel"]
                                    if getattr(s, "dp_fuel", None) is not None else None),
-        "pump_discharge_ox_pa": (s.dp_ox + TANK_HEAD_PA
+        "pump_discharge_ox_pa": (s.dp_ox + s.pump_inlet_pa["ox"]
                                  if getattr(s, "dp_ox", None) is not None else None),
+        # per-leg suction model (suction_stage.pump_suction); {} in legacy mode
+        "suction_model": self.suction_model,
+        "suction": s.suction,
+        "pump_inlet_pa": dict(s.pump_inlet_pa),
+        # pump hydraulics + design intent (turbopump Round 2); the per-pump meanline
+        # lives in turbopump_sizing.{fuel,ox}_pump["meanline"]
+        "pump_model": getattr(self, "pump_model", "meanline"),
+        "pump_intent": (dict(vars(s.pump_intent), readout=turbopump_intent.readout_lines(s.pump_intent))
+                        if getattr(s, "pump_intent", None) is not None else {}),
         "line_loss_computed": s.line_loss_computed,
         "line_loss_residual_pa": 0.0,
         "plumbing_mass_kg": s.plumbing_mass_kg,
         "plumbing_total_length_m": s.plumbing_total_length_m,
         "cooling_flow_topology": self.cooling_flow_topology,
         # Stream inlet temperatures (flow visualization only - see the tables).
-        "coolant_inlet_t_k": COOLANT_INLET_TEMP_K.get(self.propellant_pair, 290.0),
+        "coolant_inlet_t_k": s.coolant_inlet_k,
+        "coolant_inlet_source": ("pump outlet (computed)" if getattr(s, "coolant_inlet_override", None)
+                                 else "table"),
+        "pump_heating": getattr(s, "pump_heating", {}),
         "oxidizer_inlet_t_k": OXIDIZER_INLET_TEMP_K.get(self.propellant_pair),
         "jacket_inlet_eps_effective": s.jacket_inlet_eps_eff,
         "jacket_return_split_fraction": s.jacket_return_split_fraction,

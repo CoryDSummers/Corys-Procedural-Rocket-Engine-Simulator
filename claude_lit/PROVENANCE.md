@@ -695,3 +695,47 @@ round (turbopump Round 0, commit 9d0cb17):
 Each is recorded in ASSUMPTIONS.md. Coverage: SP-8052, SP-8110 and SP-8125 were read in
 design-relevant depth. For SP-8121, about 60 % was read (secondary-element, mounting and
 hydrostatic detail was skipped). SP-8101 was read in §1–§3.
+
+## 2026-09-26 — SP-8107 Table II suction columns (turbopump Round 1, no new PDF)
+
+- Re-read `[SP-8107]` Table II "Chief Features of Operational Turbopumps" (PDF leaf 17,
+  printed p.4) from a 200-dpi pymupdf page render (throwaway venv in the job tmp dir): the
+  rated inlet pressure, gpm, rpm, NPSH_min and NPSH_crit columns for all 13 engines, which the
+  earlier distillation had summarised only as ranges. Transcribed into
+  `sources/nasa-sp8107-turbopump-systems.md` and `engine_designer/physics/inducer.py`
+  (`REAL_PUMP_SUCTION_DATA`). Found: the J-2 LH2 pump flows 8,530 gpm, not the 3,000 gpm the
+  old `NSS_TARGET_US["lh2_class"]` derivation used.
+- Also read `[H1-Man Fig 1-44]` (leaf render from Round 0): H-1 inlet 65/57 psia total, NPSH
+  required 35 ft (starting requirement), 6,717 rpm, 3,382/2,102 gpm.
+
+## 2026-09-26 — pump meanline deep read (turbopump Round 2, no new PDF)
+
+Method:
+- Four parallel extraction agents rendered pages with pymupdf `get_pixmap` (150-400 dpi, in a
+  throwaway venv in the job tmp dir) and read them visually. The text layers garble every table
+  and equation.
+- Each agent wrote a findings draft; the drafts were integrated by hand. All four agents were
+  cut off by a session usage limit after writing their drafts. Three had reached their caveats
+  sections. The Huzel one left raw page notes covering printed p.184-238, missing only
+  pp.215-219 of SC 6-7, whose numbers are in the notes.
+
+What was read and where it went:
+- **`[SP-8109]`**: §2.3.1 impeller hydrodynamics (every figure digitized), §2.4 housing, §2.5
+  thrust balance, §3.3-3.5 criteria.
+  - Added Table I (20 impellers), eq. 17 slip + the Fig. 16 blade carpet (fitted X_L 0.25,
+    η_h 0.82), Fig. 6 size effect, Fig. 9 Ss penalty, the seal leakage model, diffuser/volute
+    rules and the H-Q stability margins.
+  - **Corrected two first-pass errors:** the page offset is +12, not +11, and the "fleet Ss
+    8,600-23,400" values were Fig. 5's impeller tip diameters. Also fixed in topics/09 and
+    OPEN_QUESTIONS.
+- **`[Huzel]` ch. 6** (printed p.184-238): pump equations and ranges, the vane coefficient e_v,
+  volute and leakage loss fractions, Fig. 6-23, and complete worked examples:
+  - SC 6-7: A-1 LOX inducer + impeller
+  - SC 6-8: volute
+  - SC 6-10: A-2 LH2 axial pump
+- **`[SP-8125]`**: re-extracted overall pump η (Fig. 1), blockage, derived blade counts, the
+  DF-ψ_i pitchline relation, and the Fig. 8 profile loss.
+- **`[SSME-Orientation]`**: pump station temperatures from the p.19 flow schematic (HPFTP LH2
+  23.7 → 51.5 K, etc.), the first pump-heating anchors in the set.
+- **Searched with no discharge-temperature anchor found:** J-2, RL10 (no RL10 PDF in
+  `literature/`), M-1, H-1, F-1 RP-1, KBKhA.

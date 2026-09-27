@@ -89,8 +89,12 @@ ENGINES = {
                     wall_construction="tube_wall", cooling_flow_topology="j2_mid_nozzle_inlet",
                     jacket_inlet_eps=8.0, injector_type="coax_post", config_name="J-2",
                     regen_channel_count=360, turbine_exhaust_mode="nozzle_injection",
-                    turbine_exhaust_inject_eps=10.9, **_BELL),
-        notes=["347-stainless tube wall, full-length regen, two-pass with a mid-nozzle inlet "
+                    turbine_exhaust_inject_eps=10.9,
+                    # Mark 15-F LH2 pump: inducer + 7 axial stages [SP-8125 Table I p.4]
+                    pump_type_fuel="axial", **_BELL),
+        notes=["Fuel pump axial (Mark 15-F: inducer + 7 stages, 28,266 rpm) [SP-8125 Table I] "
+               "(turbopump Round 2).",
+               "347-stainless tube wall, full-length regen, two-pass with a mid-nozzle inlet "
                "(validate.run_two_pass_cooling_check's J-2 layout).",
                "Tubes: 180 down then 360 up [AEDC-J2S s2.1.1 p.1-2] (J-2S; same circuit as the "
                "J-2's 1-1/2-pass layout [SP-8087 Table I p.5]) -> regen_channel_count=360 (the "
@@ -108,10 +112,19 @@ ENGINES = {
                     chamber_cooling_method="regenerative", nozzle_cooling_method="regenerative",
                     cooling_transition_eps=5.0, regen_nozzle_end_eps=77.5,
                     regen_channel_model="channels", wall_construction="milled_channel",
-                    injector_type="coax_post", config_name="RS-25", **_BELL),
+                    injector_type="coax_post", config_name="RS-25",
+                    # Pump suction [SSME-Orientation p.52-71, NPL]: LPOTP inlet 100 psia ->
+                    # HPOTP inlet 380 psia; LPFTP inlet 30 psia -> HPFTP inlet 250 psia. The
+                    # boost rise is the net gain at the main-pump inlet (after the
+                    # inter-pump duct), the "tank pressure" the low-pressure pump inlet.
+                    tank_pressure_ox_pa=100.0 * 6894.757, tank_pressure_fuel_pa=30.0 * 6894.757,
+                    boost_pump_rise_ox_pa=280.0 * 6894.757,
+                    boost_pump_rise_fuel_pa=220.0 * 6894.757, **_BELL),
         notes=["NARloy-Z milled-channel main combustion chamber; regen stainless tube-wall nozzle "
                "to the exit (bell_material stainless_steel, transition eps 5 is a stand-in for "
-               "the MCC/nozzle joint)."],
+               "the MCC/nozzle joint).",
+               "Low-pressure boost pumps and pump-inlet pressures from [SSME-Orientation p.52-71] "
+               "(turbopump Round 1)."],
         cite='[RO SSME_Config.cfg first block]', isp=(455.2, 363.2),
         extra={"q_throat_mw_m2": _SSME_Q,
                "t_wg_throat_k": {"value": None, "lo": 0.0, "hi": 811.0, "unit": "K",

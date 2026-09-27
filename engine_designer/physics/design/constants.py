@@ -170,6 +170,12 @@ COOLANT_INLET_TEMP_K = {
     "Hydrazine": 290.0,
     "H2O2": 290.0,
 }
+# Turbopump Round 2: with EngineDesign.coolant_inlet_model "computed" (default) the
+# table above is only pass 1's seed - the jacket inlet becomes the fuel pump's
+# computed outlet temperature (design/suction_stage.pump_heating) on a second compute
+# pass when the two differ by more than this.
+COOLANT_INLET_TOLERANCE_K = 0.5
+COOLANT_INLET_MAX_EXTRA_PASSES = 2   # beyond the first corrective pass (expander feedback)
 # Representative OXIDIZER inlet temperature at the engine, per pair - used ONLY
 # by physics/flow_network.py (the 3D preview's flow visualization), never by
 # any sizing/performance calc. LOX at its normal boiling point (90.2 K, a
