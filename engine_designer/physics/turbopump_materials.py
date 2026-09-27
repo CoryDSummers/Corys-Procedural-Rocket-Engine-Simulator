@@ -142,7 +142,7 @@ MATERIALS = {
     ),
     "powder_met_superalloy": TurbopumpMaterial(
         key="powder_met_superalloy",
-        display_name="Powder-Metallurgy Superalloy (HIP, e.g. MAR-M / Rene PM)",
+        display_name="Powder-Metallurgy / HIP Superalloy (high-strength disks & housings)",
         density_kg_m3=8250.0,
         max_use_temp_k=1150.0,
         max_tip_speed_m_s=700.0,
@@ -155,12 +155,39 @@ MATERIALS = {
         metallic=1.0,
         roughness=0.45,
         tech_era_hint="Modern (HIP / powder-metallurgy blisks, staged combustion)",
-        notes="Hot-isostatic-pressed powder-metallurgy superalloy blisks are "
-              "what real staged-combustion turbopumps (KBKhA RD-0124-class, "
-              "SSME) use to survive the pump discharge pressures (>2x Pc) and "
-              "turbine temperatures those cycles impose - [KBKhA] notes staged "
-              "combustion cannot use the lower-strength cast/forged housings a "
-              "GG cycle gets away with. Highest cost. Figures are Tier 3 estimates.",
+        notes="Hot-isostatic-pressed powder-metallurgy superalloy disks, blisks "
+              "and housings are what real staged-combustion turbopumps (KBKhA "
+              "RD-0124-class, SSME) use to survive the pump discharge pressures "
+              "(>2x Pc) those cycles impose - [KBKhA] notes staged combustion "
+              "cannot use the lower-strength cast/forged housings a GG cycle gets "
+              "away with. It is a STRENGTH choice first: hot turbine BLADES are "
+              "cast alloys (713C, IN100, directionally-solidified MAR-M-246 - see "
+              "BLADE_MATERIALS; MAR-M alloys are cast, not powder). A GG turbine "
+              "near 1,100 K ran on wrought Inconel 718 / Rene 41 disks with cast "
+              "713C blades (F-1, [SP-8110 p.3, Table II]). Highest cost. Figures "
+              "are Tier 3 estimates.",
+    ),
+    "rene_41": TurbopumpMaterial(
+        key="rene_41",
+        display_name="Rene 41 (wrought Ni-Co superalloy)",
+        density_kg_m3=8250.0,
+        max_use_temp_k=1090.0,
+        max_tip_speed_m_s=620.0,
+        strength_class="high",
+        oxidizer_compatible=True,
+        relative_cost_factor=1.5,
+        color_hex="#86847C",
+        specular_strength=0.4,
+        shininess=45.0,
+        metallic=1.0,
+        roughness=0.44,
+        tech_era_hint="Mature (F-1 turbine disks, nozzles and manifolds)",
+        notes="The F-1 turbine's disk / nozzle / manifold alloy alongside Inconel 718 "
+              "([SP-8110 p.3, Table II]; SP-8110 also lists it for disks, nozzles and "
+              "manifolds and warns its welds need Hastelloy W filler). Hotter-capable "
+              "than 718 for the disk and hot casings. max_use_temp_k 1,090 K "
+              "(~1,500 F) and tip speed (= 718's) are Tier 3 estimates - no Rene 41 "
+              "strength-vs-temperature data in claude_lit.",
     ),
     "monel_k500": TurbopumpMaterial(
         key="monel_k500",
@@ -284,6 +311,131 @@ def bearing_suitability(mat_key, *, dn_mm_rpm, use_temp_k):
     return out
 
 
+# --- turbine BLADE materials (tap-off accuracy round, 2026-09-26) ---------------------
+# The rotor MATERIALS table above is the disk / housing / impeller alloy. Real turbines
+# split it: the F-1's turbine (1,550 F = ~1,116 K inlet total) ran Inconel 718 / Rene 41
+# disks with CAST Alloy 713C blades [SP-8110 p.3, Table II], and SP-8110 lists blades of
+# cast 713C / IN100 / Udimet 700 vs disks of 16-25-6 / X-750 / Rene 41 / 718.
+#
+# Blade limits are DERIVED from [SP-8110 Fig. 30]: the allowable blade loading AaN^2
+# (annulus area x speed^2, x1e9 in^2 rpm^2, blade+shroud/solid weight ratio 0.85) vs
+# temperature. An alloy's limit is the temperature at which its allowable falls to the level
+# the F-1's 713C blades demonstrably ran at. That level is 713C's allowable at the F-1's
+# blade metal temperature, taking the inlet gas / the gas-to-metal margin the suitability
+# check already uses. So 713C sits exactly at the F-1 point, and the others follow from
+# their own curves (linear in F). An alloy still above that level at Fig. 30's top point
+# (1,500 F) is capped there - the data go no further. Round 3's blade-stress check will
+# compare the turbine's real AaN^2 against these same rows.
+FIG30_TEMPS_F = (100.0, 600.0, 1000.0, 1200.0, 1500.0)
+FIG30_AAN2 = {
+    "inconel_718": (35.0, 33.0, 31.0, 27.0, 5.0),
+    "udimet_700": (51.0, 35.0, 31.0, 28.0, 16.0),
+    "in100": (45.0, 38.0, 35.0, 29.0, 22.0),
+    "alloy_713c": (26.0, 24.0, 24.0, 21.0, 12.0),
+}
+TURBINE_GAS_TO_METAL_MARGIN = 1.08     # the suitability check's gas-vs-metal allowance
+F1_TURBINE_INLET_K = (1550.0 + 459.67) / 1.8   # [SP-8110] F-1 inlet total 1,550 F
+F1_BLADE_METAL_K = F1_TURBINE_INLET_K / TURBINE_GAS_TO_METAL_MARGIN
+# Disk metal temperature / turbine-inlet gas temperature (Tier 3, one anchor): set so the
+# F-1's real Inconel 718 disks (rotor limit 980 K) at its 1,116 K inlet just pass.
+DISK_METAL_TEMP_FRACTION = 980.0 / F1_TURBINE_INLET_K
+
+
+def _f(t_k):
+    return t_k * 1.8 - 459.67
+
+
+def _k(t_f):
+    return (t_f + 459.67) / 1.8
+
+
+def fig30_allowable(key, t_k):
+    """SP-8110 Fig. 30 allowable AaN^2 [x1e9 in^2 rpm^2] of a blade alloy at t_k (linear
+    in F; held flat outside 100-1500 F)."""
+    ys = FIG30_AAN2[key]
+    tf = min(max(_f(t_k), FIG30_TEMPS_F[0]), FIG30_TEMPS_F[-1])
+    for i in range(len(FIG30_TEMPS_F) - 1):
+        t0, t1 = FIG30_TEMPS_F[i], FIG30_TEMPS_F[i + 1]
+        if tf <= t1:
+            return ys[i] + (ys[i + 1] - ys[i]) * (tf - t0) / (t1 - t0)
+    return ys[-1]
+
+
+F1_DEMONSTRATED_AAN2 = fig30_allowable("alloy_713c", F1_BLADE_METAL_K)
+
+
+def fig30_temperature_limit_k(key):
+    """Temperature at which the alloy's Fig. 30 allowable falls to F1_DEMONSTRATED_AAN2
+    (capped at Fig. 30's 1,500 F top point)."""
+    ys, a = FIG30_AAN2[key], F1_DEMONSTRATED_AAN2
+    for i in range(len(FIG30_TEMPS_F) - 1):
+        if ys[i] >= a >= ys[i + 1] and ys[i] > ys[i + 1]:
+            t0, t1 = FIG30_TEMPS_F[i], FIG30_TEMPS_F[i + 1]
+            return _k(t0 + (t1 - t0) * (ys[i] - a) / (ys[i] - ys[i + 1]))
+    return _k(FIG30_TEMPS_F[-1])
+
+
+@dataclass(frozen=True)
+class BladeMaterial:
+    key: str
+    display_name: str
+    max_use_temp_k: float          # blade metal service limit (derived, or Tier 3 - see notes)
+    cast: bool
+    oxidizer_compatible: bool      # same ignition-hazard framing as the rotor MATERIALS table
+    source: str
+    notes: str
+
+
+BLADE_MATERIALS = {
+    "inconel_718": BladeMaterial(
+        key="inconel_718", display_name="Inconel 718 (wrought) blades",
+        max_use_temp_k=fig30_temperature_limit_k("inconel_718"), cast=False,
+        oxidizer_compatible=True, source="[SP-8110 Fig. 30]",
+        notes="A disk alloy first: its Fig. 30 allowable collapses from 27 to 5 (x1e9) "
+              "between 1,200 and 1,500 F, so as a BLADE it tops out near 1,000 K."),
+    "udimet_700": BladeMaterial(
+        key="udimet_700", display_name="Udimet 700 (wrought) blades",
+        max_use_temp_k=fig30_temperature_limit_k("udimet_700"), cast=False,
+        oxidizer_compatible=True, source="[SP-8110 Fig. 30]",
+        notes="Still above the F-1-demonstrated blade loading at Fig. 30's 1,500 F top "
+              "point, so its limit is capped there (the data end)."),
+    "in100": BladeMaterial(
+        key="in100", display_name="IN100 (cast) blades",
+        max_use_temp_k=fig30_temperature_limit_k("in100"), cast=True,
+        oxidizer_compatible=True, source="[SP-8110 Fig. 30]",
+        notes="The strongest cast alloy in Fig. 30 at temperature (22 x1e9 at 1,500 F vs "
+              "713C's 12); capped at the 1,500 F top point."),
+    "alloy_713c": BladeMaterial(
+        key="alloy_713c", display_name="Alloy 713C (cast) blades - F-1",
+        max_use_temp_k=fig30_temperature_limit_k("alloy_713c"), cast=True,
+        oxidizer_compatible=True, source="[SP-8110 p.3, Table II, Fig. 30]",
+        notes="The F-1's turbine blade alloy (investment castings). Its limit IS the F-1 "
+              "point by construction: 1,550 F inlet / the 1.08 gas-to-metal margin."),
+    "mar_m_246_ds": BladeMaterial(
+        key="mar_m_246_ds", display_name="MAR-M-246 (directionally solidified) blades",
+        max_use_temp_k=1150.0, cast=True, oxidizer_compatible=True,
+        source="[Ch12-Materials via topics/12] (use only; limit Tier 3)",
+        notes="SSME HPFTP turbine blades: cast, directionally solidified MAR-M-246 on "
+              "Waspaloy hubs (hydrogen-embrittlement-prone). No strength-vs-temperature "
+              "data in claude_lit - the 1,150 K limit is a Tier 3 estimate, flagged."),
+}
+
+
+def available_blade_materials():
+    return list(BLADE_MATERIALS.keys())
+
+
+def turbine_gas_temperature_limit_k(rotor_key, blade_key=""):
+    """Highest turbine-inlet gas temperature the chosen alloys tolerate without a warning.
+    blade_key "" = the single-material rule (rotor limit x the gas-to-metal margin)."""
+    rotor = MATERIALS[rotor_key]
+    blade = BLADE_MATERIALS.get(blade_key or "")
+    if blade is None:
+        return rotor.max_use_temp_k * TURBINE_GAS_TO_METAL_MARGIN
+    return min(blade.max_use_temp_k * TURBINE_GAS_TO_METAL_MARGIN,
+               rotor.max_use_temp_k / DISK_METAL_TEMP_FRACTION)
+
+
 _STRENGTH_ORDER = {"low": 0, "medium": 1, "high": 2, "very_high": 3}
 _STAGED_COMBUSTION_CYCLES = {"frsc", "orsc", "ffsc"}
 _OXIDIZER_RICH_CYCLES = {"orsc", "ffsc"}   # FFSC's ox-side turbopump runs an ox-rich preburner
@@ -294,13 +446,20 @@ def available_turbopump_materials():
 
 
 def turbopump_material_suitability(mat_key, *, turbine_inlet_k, tip_speed_m_s,
-                                   cycle, touches_oxidizer):
+                                   cycle, touches_oxidizer, blade_key=""):
     """
     Warn-not-block suitability check for a chosen turbopump material against the
     duty the rest of the design implies. Returns a list of human-readable
-    warning strings (empty list = nothing to flag). Never raises, never blocks.
+    warning strings (empty list = nothing to flag). Never raises, never blocks,
+    and never changes the user's choice.
+
+    blade_key "" (default): one material for the whole rotor, judged on the turbine gas
+    temperature with the 1.08 gas-to-metal margin (the original rule). A BLADE_MATERIALS
+    key splits the check: blades on their own [SP-8110 Fig. 30]-derived limit, and the
+    disk (mat_key) on an estimated disk metal temperature (DISK_METAL_TEMP_FRACTION x gas).
     """
     mat = MATERIALS[mat_key]
+    blade = BLADE_MATERIALS.get(blade_key or "")
     out = []
 
     if tip_speed_m_s > mat.max_tip_speed_m_s:
@@ -313,11 +472,30 @@ def turbopump_material_suitability(mat_key, *, turbine_inlet_k, tip_speed_m_s,
     # Turbine disk/blade METAL runs cooler than the gas inlet temperature (short
     # burn, blade cooling, incomplete thermal soak), so allow an 8% margin
     # between the gas temperature and the material's service limit before warning.
-    if turbine_inlet_k > mat.max_use_temp_k * 1.08:
-        out.append(
-            f"{mat.display_name}: turbine-inlet gas ~{turbine_inlet_k:.0f} K is well above its "
-            f"~{mat.max_use_temp_k:.0f} K service limit - the turbine disk/blades need a "
-            f"hotter-capable alloy (powder-met superalloy) or turbine cooling.")
+    fix = ("lower the turbine gas temperature (GG / tap-off / preburner temperature) or "
+           "choose a hotter-capable alloy")
+    if blade is None:
+        if turbine_inlet_k > mat.max_use_temp_k * TURBINE_GAS_TO_METAL_MARGIN:
+            out.append(
+                f"{mat.display_name}: turbine-inlet gas ~{turbine_inlet_k:.0f} K is well above its "
+                f"~{mat.max_use_temp_k:.0f} K service limit for disk AND blades - {fix}, or set a "
+                f"separate turbine blade material (real turbines near 1,100 K ran wrought disks "
+                f"with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).")
+    else:
+        if turbine_inlet_k > blade.max_use_temp_k * TURBINE_GAS_TO_METAL_MARGIN:
+            out.append(
+                f"{blade.display_name}: turbine-inlet gas ~{turbine_inlet_k:.0f} K is above the "
+                f"blades' ~{blade.max_use_temp_k:.0f} K limit {blade.source} - {fix}.")
+        disk_k = turbine_inlet_k * DISK_METAL_TEMP_FRACTION
+        if disk_k > mat.max_use_temp_k:
+            out.append(
+                f"{mat.display_name} (disk/rotor): estimated disk metal ~{disk_k:.0f} K "
+                f"({DISK_METAL_TEMP_FRACTION:.3f} x gas, F-1-anchored estimate) exceeds its "
+                f"~{mat.max_use_temp_k:.0f} K service limit - {fix}.")
+        if (touches_oxidizer and cycle in _OXIDIZER_RICH_CYCLES
+                and not blade.oxidizer_compatible):
+            out.append(f"{blade.display_name} is not oxidiser-compatible but an oxidiser-rich "
+                       f"turbine wets it.")
 
     if touches_oxidizer and not mat.oxidizer_compatible:
         extra = (" Titanium ignites on impact/rub in oxygen." if mat.key == "titanium_forged"
@@ -397,7 +575,31 @@ if __name__ == "__main__":
         w_ceramic = bearing_suitability("si3n4_ceramic", dn_mm_rpm=dn_test, use_temp_k=400.0)
         assert not (w_steel == [] and w_ceramic != []), (dn_test, w_steel, w_ceramic)
 
+    # --- blade materials (SP-8110 Fig. 30, F-1 anchored) ---
+    assert abs(BLADE_MATERIALS["alloy_713c"].max_use_temp_k - F1_BLADE_METAL_K) < 0.5, \
+        "713C's limit is the F-1 blade point by construction"
+    assert 13.0 < F1_DEMONSTRATED_AAN2 < 17.0, F1_DEMONSTRATED_AAN2   # ~15 x1e9 at 1,400 F
+    assert (BLADE_MATERIALS["inconel_718"].max_use_temp_k
+            < BLADE_MATERIALS["alloy_713c"].max_use_temp_k
+            <= BLADE_MATERIALS["in100"].max_use_temp_k), "718 < 713C <= IN100 at temperature"
+    # F-1 hardware (1,116 K gas, Inconel 718 disks + 713C blades): no temperature warning;
+    # 718 blades: warns; the single-material 718 rule flags the real F-1 (why the split exists).
+    kw = dict(turbine_inlet_k=F1_TURBINE_INLET_K, tip_speed_m_s=300.0, cycle="gas_generator",
+              touches_oxidizer=True)
+    w_f1 = turbopump_material_suitability("inconel_718", blade_key="alloy_713c", **kw)
+    w_718b = turbopump_material_suitability("inconel_718", blade_key="inconel_718", **kw)
+    w_one = turbopump_material_suitability("inconel_718", **kw)
+    assert not any("K" in s and "limit" in s for s in w_f1), w_f1
+    assert any("blades" in s for s in w_718b), w_718b
+    assert any("disk AND blades" in s for s in w_one), w_one
+    assert abs(turbine_gas_temperature_limit_k("inconel_718", "alloy_713c")
+               - F1_TURBINE_INLET_K) < 1.0
+
     print(f"turbopump_materials.py smoke test OK - {len(keys)} rotor materials, "
+          f"{len(BLADE_MATERIALS)} blade materials (713C {BLADE_MATERIALS['alloy_713c'].max_use_temp_k:.0f} K, "
+          f"718 {BLADE_MATERIALS['inconel_718'].max_use_temp_k:.0f} K, IN100 "
+          f"{BLADE_MATERIALS['in100'].max_use_temp_k:.0f} K; F-1 blade loading "
+          f"{F1_DEMONSTRATED_AAN2:.1f}e9 in2rpm2), "
           f"{len(bkeys)} bearing materials, tip-speed ceiling "
           f"{MATERIALS['titanium_forged'].max_tip_speed_m_s:.0f} m/s (forged Ti, SP-8107 "
           f"anchor), DN ceiling {BEARING_MATERIALS['si3n4_ceramic'].max_dn_mm_rpm:,.0f} "

@@ -4122,6 +4122,10 @@
 "tank_pressure_ox_pa": {
 "__f__": "0.0"
 },
+"tap_off_model": "auto",
+"tap_off_tin_k": {
+"__f__": "0.0"
+},
 "target_vac_thrust_n": {
 "__f__": "600000.0"
 },
@@ -4143,6 +4147,7 @@
 "tube_split_eps": {
 "__f__": "0.0"
 },
+"turbine_blade_material_key": "",
 "turbine_exhaust_cant_deg": {
 "__f__": "0.0"
 },

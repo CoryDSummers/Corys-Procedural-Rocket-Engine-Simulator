@@ -197,6 +197,8 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.turbopump_intent  # directional pump design intent -> parameters
    python3 -m engine_designer.physics.pump_meanline  # centrifugal/axial meanline (slip, blades, b2,
                                                      # losses) vs SP-8109 Fig. 16 / Table I + real pumps
+   python3 -m engine_designer.physics.tap_off        # tap-off hot-gas mixer: STBE split back-solve +
+                                                     # energy balance (fuel enthalpy from the coolant table)
    python3 -m engine_designer.physics.turbopump_sizing
    python3 -m engine_designer.physics.flow_network  # flow-visualization data contract: per-
                                                      # stream temperature along feed line ->
@@ -292,8 +294,12 @@ touching any cooling number.** What changed structurally:
    meanline eta of 7 real centrifugal + 2 axial pumps within +-0.08, SP-8109 eq. 17 vs its
    Fig. 16, predicted b2/D2 vs SP-8109 Table I, Fig. 6 size-effect trend, neutral intent ==
    Round 1 geometry, intent directions, corpus J-2 axial pump, SSME pump-heating temperatures
-   and the corpus RS-25 jacket inlet 52 K; `validate/pump_meanline.py`)
-   (31 banners
+   and the corpus RS-25 jacket inlet 52 K; `validate/pump_meanline.py`) and "ALL TAP-OFF
+   CHECKS OK" (tap-off accuracy round, 2026-09-26: STBE-like LOX/CH4 tap-off total turbine flow
+   vs the P&W study's 132/2462 lbm/s within 25 %, 1,000 K at 0.955 x Pc, legacy/LH2 unchanged,
+   Tin direction, kerolox mixer, turbine blade/disk split vs the real F-1 hardware;
+   `validate/tap_off_checks.py`)
+   (32 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -400,7 +406,16 @@ sliders `pump_priority` / `pump_head_curve` / `suction_aggressiveness` / `tip_sp
 by `design/suction_stage.pump_hydraulics` (exact-arg-cached - the staged solvers re-size pumps thousands
 of times); `suction_stage.pump_heating` gives each pump's outlet temperature and the fuel pump's becomes
 the regen jacket inlet (`coolant_inlet_model` "computed" default, up to 3 corrective compute passes);
-drawn by `gui/turbopump_detail.py` in the GUI's Turbopump Detail tab; `combustion.py` adds `chamber_flow`
+drawn by `gui/turbopump_detail.py` in the GUI's Turbopump Detail tab; TAP-OFF drive gas (tap-off
+accuracy round, `EngineDesign.tap_off_model` "auto" = `physics/tap_off.py`'s hot-gas MIXER for LOX/CH4 +
+LOX/RP-1, legacy for everything else | "mixer" | "legacy" = the old chamber gas at min(Tc x 0.55, 1150 K),
+bit-identical): a small hot chamber tap (effective 0.890 x Tc, back-solved on the P&W STBE split
+[STBE-PW p.317]) diluted with cold PUMPED fuel to `tap_off_tin_k` (0 = 1,000 K) at 0.955 x Pc, fuel-rich
+GG-gas properties, pumped at the mixed MR via `cycles.gas_generator_result(gg_mixture_ratio=)`; turbine
+alloys split by the optional `turbine_blade_material_key` (`turbopump_materials.BLADE_MATERIALS`,
+limits derived from SP-8110 Fig. 30 anchored on the F-1's cast 713C blades; the turbopump material is
+then judged as the DISK via `DISK_METAL_TEMP_FRACTION`) - warn-only, never changes the user's choice;
+`combustion.py` adds `chamber_flow`
 (finite-contraction-ratio chamber Mach + injector-end Pc rise), per-pair L* defaults and
 `residence_time_from_lstar_s` (the residence-time chamber-sizing method's L*-equivalent);
 `geometry.chamber_geometry` sizes chamber volume by L* OR by a target combustion residence
@@ -529,4 +544,7 @@ that may have been cut off mid-way (unticked boxes = not landed yet).
 plan `plans/2026-09-26_turbopump_round1.md`, PR #19 based on `turbopump/round-0`; Round 2 =
 `turbopump/round-2` STACKED on round-1, plan `plans/2026-09-26_turbopump_round2.md`, PR #20 based on
 `turbopump/round-1`; worktree `.claude/worktrees/turbopump-fidelity/`), with a draft PR that is not merged
-until Cory has tested it. Do this work there, not on `main`.
+until Cory has tested it. Do this work there, not on `main`. Rounds 0-2 are MERGED to main (PR #21, after
+the stacked PRs #18-#20 had merged into each other's branches, leaving main at Round 0 - for a stacked
+round, merge bottom-up and retarget the child PR to main first). Tap-off accuracy round =
+`turbopump/tapoff-accuracy` off main, plan `plans/2026-09-26_tapoff_accuracy.md`, PR #22.

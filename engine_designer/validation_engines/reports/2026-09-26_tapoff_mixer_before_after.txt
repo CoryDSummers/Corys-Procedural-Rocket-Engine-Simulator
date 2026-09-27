@@ -1,0 +1,109 @@
+
+=== user_designs/RS-29  [LOX/RP-1 MR 2.38 Pc 12.00 MPa eps 18.0 tap_off ch=regenerative noz=regenerative]
+  Isp vac            304.1 s       (was 307.2, -1.0%)
+  Isp SL             276.8 s       (was 279.6, -1.0%)
+  F vac               1600 kN      (was 1600, +0.0%)
+  Tc                  3681 K      
+  q throat           25.21 MW/m2   (was 25.2, +0.0%)
+  h_g throat         10.87 kW/m2K  (was 10.87, +0.0%)
+  T_wg throat         1305 K       (was 1305, +0.0%)
+  T_w peak            2153 K       (was 2153, +0.0%)
+  margin             0.958 x       (was 0.958, -0.0%)
+  Q wall             25.72 MW      (was 25.77, -0.2%)
+  coolant dT         72.89 K       (was 72.84, +0.1%)
+  jacket dP          1.032 MPa     (was 1.031, +0.1%)
+  v cool thr         36.13 m/s     (was 36.13, +0.0%)
+  regen bonus       0.3293 %       (was 0.3291, +0.1%)
+  dump frac              0 %      
+  burn time          88.86 s       (was 88.86, -0.0%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.360 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.51/0.96 ok 
+  ! checklist: [cooling] Actively-cooled nozzle has a coolant path: The nozzle is set to 'regenerative' but part of it has no coolant: active cooling past the material transit
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Stainless Steel (304/316): computed wall temp 2153 K EXCEEDS its 1100 K max service tem
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1305 K EXCEEDS its 1250 K max service temp (Tc 3681 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~12.6, radiative): wall ~2153 K, 0.51x that section's material
+  ! checklist: [turbopump] Ox pump suction (NPSH): Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 12,294 rpm instead of its specific-speed optimu
+  ! checklist: [turbopump] Fuel pump impeller outlet: Fuel pump: impeller outlet 0.20 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-f
+
+=== user_designs/RS-29A  [LOX/RP-1 MR 2.38 Pc 12.00 MPa eps 18.0 tap_off ch=regenerative noz=regenerative]
+  Isp vac            304.5 s       (was 307.3, -0.9%)
+  Isp SL             277.1 s       (was 279.6, -0.9%)
+  F vac               1600 kN      (was 1600, -0.0%)
+  Tc                  3681 K      
+  q throat           25.14 MW/m2   (was 25.14, +0.0%)
+  h_g throat         10.87 kW/m2K  (was 10.86, +0.0%)
+  T_wg throat         1309 K       (was 1309, +0.0%)
+  T_w peak            1326 K       (was 1326, -0.0%)
+  margin            0.9546 x       (was 0.9546, -0.0%)
+  Q wall             30.74 MW      (was 30.79, -0.2%)
+  coolant dT         86.23 K       (was 86.19, +0.0%)
+  jacket dP          1.008 MPa     (was 1.007, +0.1%)
+  v cool thr         36.61 m/s     (was 36.6, +0.0%)
+  regen bonus       0.3936 %       (was 0.3934, +0.1%)
+  dump frac              0 %      
+  burn time            164 s       (was 164, +0.0%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.361 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.94/0.95 ok 
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1309 K EXCEEDS its 1250 K max service temp (Tc 3681 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.1, regen): wall ~1326 K, 0.94x that section's m
+  ! checklist: [cooling] Hatband structural adequacy (SP-8120): Hatbands: Unsupported tube length between hatbands exceeds the allowable span (tube bending at wall pressure, S
+  ! checklist: [turbopump] Ox pump suction (NPSH): Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 12,298 rpm instead of its specific-speed optimu
+  ! checklist: [turbopump] Fuel pump impeller outlet: Fuel pump: impeller outlet 0.20 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-f
+
+=== user_designs/RS-29C  [LOX/RP-1 MR 2.0 Pc 12.00 MPa eps 18.0 tap_off ch=regenerative noz=regenerative]
+  Isp vac            291.5 s       (was 294.9, -1.2%)
+  Isp SL             264.6 s       (was 267.8, -1.2%)
+  F vac               1600 kN      (was 1600, +0.0%)
+  Tc                  3377 K      
+  q throat            26.9 MW/m2   (was 26.88, +0.1%)
+  h_g throat          12.6 kW/m2K  (was 12.59, +0.0%)
+  T_wg throat        719.1 K       (was 719.1, -0.0%)
+  T_w peak             743 K       (was 743, -0.0%)
+  margin             1.113 x       (was 1.112, +0.0%)
+  Q wall             30.19 MW      (was 30.26, -0.2%)
+  coolant dT         72.82 K       (was 72.76, +0.1%)
+  jacket dP          1.017 MPa     (was 1.016, +0.1%)
+  v cool thr         36.36 m/s     (was 36.35, +0.0%)
+  regen bonus       0.3907 %       (was 0.3903, +0.1%)
+  dump frac              0 %      
+  burn time          187.3 s       (was 187.3, +0.0%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.252 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   1.08/1.11 ok 
+  ! checklist: [materials] Chamber material thermal margin: NARloy-Z Copper Alloy (Cu-Ag-Zr): only 11% thermal margin (computed wall temp 719 K vs 800 K max). Thin margin. Bas
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the convergent section (area ratio ~1.1, regen): wall ~743 K, 1.08x that section's ma
+  ! checklist: [turbopump] Ox pump suction (NPSH): Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 12,365 rpm instead of its specific-speed optimu
+  ! checklist: [turbopump] Fuel pump impeller outlet: Fuel pump: impeller outlet 0.20 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-f
+
+=== user_designs/RS-30  [LOX/RP-1 MR 2.38 Pc 14.00 MPa eps 20.0 tap_off ch=regenerative noz=uncooled]
+  Isp vac            302.5 s       (was 305.9, -1.1%)
+  Isp SL             276.7 s       (was 279.9, -1.1%)
+  F vac               1600 kN      (was 1600, -0.0%)
+  Tc                  3700 K      
+  q throat           23.59 MW/m2   (was 23.59, +0.0%)
+  h_g throat         11.89 kW/m2K  (was 11.88, +0.0%)
+  T_wg throat         1657 K       (was 1657, +0.0%)
+  T_w peak            2208 K       (was 2207, +0.0%)
+  margin            0.7542 x       (was 0.7543, -0.0%)
+  Q wall              18.8 MW      (was 18.84, -0.2%)
+  coolant dT         54.16 K       (was 54.08, +0.2%)
+  jacket dP         0.8539 MPa     (was 0.8522, +0.2%)
+  v cool thr         35.44 m/s     (was 35.44, +0.0%)
+  regen bonus       0.2401 %       (was 0.2398, +0.1%)
+  dump frac              0 %      
+  burn time          98.48 s       (was 98.48, -0.0%)
+  ~ q/(h_g(Taw-Twg))           1.00 ok 
+  ~ Twg/Taw                   0.455 
+  ~ Qregen/(m dh)             1.000 ok 
+  ~ peak<=throat margin   0.57/0.75 ok 
+  ! checklist: [materials] Nozzle-extension material thermal margin: [nozzle extension] Inconel 718 Nickel Superalloy: computed wall temp 2208 K EXCEEDS its 1250 K max service
+  ! checklist: [materials] Chamber material thermal margin: Inconel 718 Nickel Superalloy: computed wall temp 1657 K EXCEEDS its 1250 K max service temp (Tc 3700 K, regenerati
+  ! checklist: [cooling] Peak wall temperature along the wall: Hottest wall station is in the nozzle (area ratio ~6.2, radiative): wall ~2208 K, 0.57x that section's material 
+  ! checklist: [cooling] Jacket overpressure vs. channel-wall structural margin: Near the end of active cooling (area ratio ~6.0), estimated jacket/coolant pressure (~17.4 MPa
+  ! checklist: [turbopump] Ox pump suction (NPSH): Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 12,296 rpm instead of its specific-speed optimu
+  ! checklist: [turbopump] Fuel pump impeller outlet: Fuel pump: impeller outlet 0.21 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-f

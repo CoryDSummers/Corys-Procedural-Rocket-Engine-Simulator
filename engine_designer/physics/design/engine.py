@@ -387,6 +387,11 @@ class EngineDesign:
     turbine_staging: str = "auto"         # auto | single_impulse | velocity_compounded_2row
                                            #      | pressure_compounded_2stage | reaction
     turbopump_material_key: str = "inconel_718"  # physics/turbopump_materials.py catalog key
+    # Turbine BLADE alloy (turbopump_materials.BLADE_MATERIALS key). "" = the turbopump
+    # material above for the whole rotor (the original single-material temperature check);
+    # a key splits it: blades on their SP-8110 Fig. 30 limit, the disk (turbopump material)
+    # on an estimated disk metal temperature. Warn-only - never changes the choice.
+    turbine_blade_material_key: str = ""
     bearing_material_key: str = "cronidur_30"  # physics/turbopump_materials.py BEARING_MATERIALS key
     enforce_suction_limit: bool = False   # opt-in NPSH-required/suction-specific-speed check
                                            # (physics/turbopump_sizing.py) - REQUIRED-only, never
@@ -452,6 +457,12 @@ class EngineDesign:
     # fuel side); ox_preburner_tin_k = the oxidiser-rich one (ORSC, FFSC ox side).
     preburner_tin_k: float = 0.0
     ox_preburner_tin_k: float = 0.0
+    # Tap-off turbine drive gas (physics/tap_off.py): "auto" (default) = the STBE hot-gas
+    # MIXER model for the hydrocarbons (LOX/CH4, LOX/RP-1), legacy for everything else;
+    # "mixer" / "legacy" force one. tap_off_tin_k = the turbine-inlet (mixer) temperature,
+    # 0 = default (mixer: 1,000 K [STBE-PW p.317]; legacy: min(Tc x 0.55, 1150 K)).
+    tap_off_model: str = "auto"
+    tap_off_tin_k: float = 0.0
     pump_stages_fuel: int = 0             # 0 = auto (derived); >0 overrides
     pump_stages_ox: int = 0
     controller_tech_key: str = "baseline"  # physics/controller_tech.py catalog key - export-time only
@@ -485,7 +496,13 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 17  # 17 (2026-09-26): pump hydraulics + design intent (pump_model,
+    SCHEMA_VERSION = 18  # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
+                         # tap_off_tin_k, turbine_blade_material_key - no key migration; an older file takes the
+                         # defaults, i.e. the hot-gas MIXER tap-off for a hydrocarbon
+                         # tap-off engine (a deliberate physics change - set
+                         # tap_off_model "legacy" for the old behavior); other cycles and
+                         # LOX/LH2 tap-off are unchanged.
+                         # 17 (2026-09-26): pump hydraulics + design intent (pump_model,
                          # pump_priority, pump_head_curve, suction_aggressiveness,
                          # tip_speed_aggressiveness, inducer_mode, diffuser_type,
                          # pump_type_fuel/ox, coolant_inlet_model) - no key migration; an
