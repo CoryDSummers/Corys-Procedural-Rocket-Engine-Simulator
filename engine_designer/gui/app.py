@@ -36,7 +36,7 @@ from ..physics import (combustion, controller_tech, cooling, cost_model, cycles,
                         ignition,
                         hatbands, injectors, materials, mixture_ratio, plumbing, reliability,
                         tech_tree,
-                        turbine_exhaust, turbopump_materials, turbopump_sizing, turbopump_tech)
+                        tap_off, turbine_exhaust, turbopump_materials, turbopump_sizing, turbopump_tech)
 from ..physics.design import EngineDesign
 from . import project_io
 from .collapsible import CollapsibleSection
@@ -78,6 +78,9 @@ CATALOG_PATH = Path(__file__).resolve().parents[1] / "catalog" / "catalog.json"
 
 NOZZLE_TYPE_DISPLAY = {"conical": "Conical", "bell": "Bell (Rao parabolic)"}
 NOZZLE_TYPE_FROM_DISPLAY = {v: k for k, v in NOZZLE_TYPE_DISPLAY.items()}
+
+# Turbine-blade dropdown entry for "" (no separate blade alloy - the turbopump material).
+BLADE_SAME_AS_ROTOR = "Same as turbopump material"
 
 # Single source of truth for cycle names lives in physics/cycles.py (shared
 # with the .cfg header text in export/cfg_writer.py, so they can't drift).
@@ -1064,6 +1067,17 @@ class EngineDesignerApp:
             list(self.turbopump_material_display_to_key.keys()),
             turbopump_materials.MATERIALS[self.design.turbopump_material_key].display_name,
             width=34)
+        # Optional separate turbine BLADE alloy ("" = the turbopump material for the whole
+        # rotor): judged on its own SP-8110 Fig. 30 limit, the turbopump material then as the
+        # disk. Warn-only - the tool never changes either choice.
+        self.blade_material_display_to_key = {BLADE_SAME_AS_ROTOR: ""}
+        self.blade_material_display_to_key.update({
+            turbopump_materials.BLADE_MATERIALS[k].display_name: k
+            for k in turbopump_materials.available_blade_materials()})
+        tc_row = self._add_dropdown(
+            tcb, tc_row, "Turbine blade material", "blade_material_var",
+            list(self.blade_material_display_to_key.keys()),
+            self._blade_display(self.design.turbine_blade_material_key), width=34)
 
         self.bearing_material_display_to_key = {
             turbopump_materials.BEARING_MATERIALS[k].display_name: k
@@ -1138,6 +1152,15 @@ class EngineDesignerApp:
         tc_row = self._add_slider(tcb, tc_row,
                                    "Ox-rich preburner temp [K] (ORSC/FFSC; 0 = pair default)",
                                    self.pb_tin_or_var, 0.0, 1400.0, decimals=0)
+        # Tap-off turbine drive gas (physics/tap_off.py): auto = the STBE hot-gas mixer for
+        # LOX/CH4 and LOX/RP-1, legacy otherwise. Ignored by non-tap-off cycles.
+        tc_row = self._add_dropdown(tcb, tc_row, "Tap-off turbine gas model (tap-off cycle)",
+                                    "tap_off_model_var", list(tap_off.TAP_OFF_MODELS),
+                                    self.design.tap_off_model, width=12)
+        self.tap_tin_var = tk.DoubleVar(value=self.design.tap_off_tin_k)
+        tc_row = self._add_slider(tcb, tc_row,
+                                   "Tap-off turbine gas temp [K] (0 = default: mixer 1000 K)",
+                                   self.tap_tin_var, 0.0, 1400.0, decimals=0)
 
         ttk.Label(tcb, text="Turbopump details").grid(row=tc_row, column=0, columnspan=2, sticky="w")
         tc_row += 1
@@ -1621,6 +1644,11 @@ class EngineDesignerApp:
         self._tab_dirty = {key: False for key in self._tab_frames}
         notebook.bind("<<NotebookTabChanged>>", self._on_result_tab_changed)
 
+    def _blade_display(self, key):
+        """Turbine-blade dropdown label for a BLADE_MATERIALS key ("" = same as rotor)."""
+        blade = turbopump_materials.BLADE_MATERIALS.get(key or "")
+        return blade.display_name if blade else BLADE_SAME_AS_ROTOR
+
     def _add_dropdown(self, parent, row, label, attr_name, values, initial_value,
                        on_select=None, width=None):
         ttk.Label(parent, text=label).grid(row=row, column=0, columnspan=2, sticky="w")
@@ -1890,6 +1918,10 @@ class EngineDesignerApp:
             self.design.boost_pump_rise_ox_pa = max(0.0, float(self.boost_ox_var.get())) * 1e5
             self.design.preburner_tin_k = max(0.0, float(self.pb_tin_fr_var.get()))
             self.design.ox_preburner_tin_k = max(0.0, float(self.pb_tin_or_var.get()))
+            self.design.tap_off_model = self.tap_off_model_var.get() or "auto"
+            self.design.tap_off_tin_k = max(0.0, float(self.tap_tin_var.get()))
+            self.design.turbine_blade_material_key = self.blade_material_display_to_key.get(
+                self.blade_material_var.get(), self.design.turbine_blade_material_key)
             self.design.pump_model = self.pump_model_var.get() or "meanline"
             self.design.pump_priority = max(-1.0, min(1.0, float(self.pump_priority_var.get())))
             self.design.pump_head_curve = max(-1.0, min(1.0, float(self.pump_head_curve_var.get())))
@@ -2656,6 +2688,22 @@ class EngineDesignerApp:
                         f"NPSH required: fuel ~{fp['npsh_required_ft']:.0f} ft / "
                         f"ox ~{op['npsh_required_ft']:.0f} ft (legacy model: REQUIRED vs the "
                         f"historical class anchor)")
+                _tap = (result.get("cycle_result") or {}).get("tap_off")
+                if _tap and _tap.get("model") == "mixer":
+                    tp_lines.append(
+                        f"Tap-off (hot-gas mixer): {_tap['hot_fraction_of_chamber'] * 100:.1f} % of "
+                        f"chamber gas (~{_tap['t_hot_k']:.0f} K) + "
+                        f"{_tap['dilution_fraction_of_fuel'] * 100:.1f} % of the fuel -> "
+                        f"{_tap['t_mix_k']:.0f} K, MR {_tap['mr_mix']:.2f} ({_tap['tin_source']})")
+                elif _tap:
+                    tp_lines.append(f"Tap-off (legacy): chamber gas at {_tap['t_mix_k']:.0f} K "
+                                    f"({_tap['tin_source']})")
+                if self.design.cycle != cycles.ELECTRIC_PUMP:
+                    _lim = turbopump_materials.turbine_gas_temperature_limit_k(
+                        self.design.turbopump_material_key, self.design.turbine_blade_material_key)
+                    tp_lines.append(
+                        f"Turbine gas limit for these alloys: ~{_lim:.0f} K "
+                        f"(blades: {self._blade_display(self.design.turbine_blade_material_key)})")
                 tp_lines.append(
                     f"Assembly: ~{sizing['assembly_length_m']:.2f} x {sizing['assembly_od_m']:.2f} m, "
                     f"{sizing['mass_kg']*sizing['mass_modifier']:.0f} kg "
@@ -2820,6 +2868,9 @@ class EngineDesignerApp:
         self.boost_ox_var.set(d.boost_pump_rise_ox_pa / 1e5)
         self.pb_tin_fr_var.set(d.preburner_tin_k)
         self.pb_tin_or_var.set(d.ox_preburner_tin_k)
+        self.tap_off_model_var.set(d.tap_off_model)
+        self.tap_tin_var.set(d.tap_off_tin_k)
+        self.blade_material_var.set(self._blade_display(d.turbine_blade_material_key))
         self.pump_model_var.set(d.pump_model)
         self.pump_priority_var.set(d.pump_priority)
         self.pump_head_curve_var.set(d.pump_head_curve)
