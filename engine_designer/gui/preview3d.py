@@ -147,7 +147,22 @@ def draw_3d_preview(ax3d, result, n_theta=32):
         # Mount at the injector end, axis parallel to the engine, offset outboard
         # in +Y - the same placement as the GL preview (geometry3d.turbopump_origin_xyz).
         origin = geometry3d.turbopump_origin_for_result(result)
-        for kind, (Xt, Yt, Zt) in geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin):
+        layout = result.get("turbopump_layout")
+        if layout:
+            # turbopump_geometry_model "casings": the true-scale casings as triangles
+            from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+            from .preview3d_gl_core import layout_pieces
+            rgb = lambda c: tuple(int(c.lstrip("#")[i:i + 2], 16) / 255.0 for i in (0, 2, 4))
+            for _key, pcs in layout_pieces(layout, rgb(pump_c), rgb(turb_c), (0.5, 0.5, 0.52),
+                                           n_theta=24, n_tube=12):
+                for mesh in pcs:
+                    ax3d.add_collection3d(Poly3DCollection(
+                        mesh.vertices[mesh.indices], facecolor=mesh.colors[mesh.indices].mean(axis=1),
+                        edgecolor="none", alpha=1.0))
+                    tp_y_extent = max(tp_y_extent, float(mesh.vertices[:, 1].max()))
+                    tp_x_extent = max(tp_x_extent, float(mesh.vertices[:, 0].max()))
+        for kind, (Xt, Yt, Zt) in ([] if layout else
+                                   geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin)):
             ax3d.plot_surface(Xt, Yt, Zt, color=turb_c if kind == "turbine" else pump_c,
                                alpha=1.0, linewidth=0, antialiased=True, rstride=1, cstride=1)
             tp_y_extent = max(tp_y_extent, float(Yt.max()))

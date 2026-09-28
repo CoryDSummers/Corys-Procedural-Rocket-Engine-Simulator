@@ -568,11 +568,48 @@ def self_test():
             assert gap < 0.69 * 0.7, gap                          # was 0.69 m of bare shaft
         pts = pump_points_from_layout(lay)
         assert set(pts) == set(PUMP_KEYS), tag
+    # casings mode end to end: design.py takes its ports from the placed layout and every
+    # pump-connected run closes onto its casing flange
+    import dataclasses
+    from . import manifold, plumbing
+
+    def hooks_of(res):
+        return {"manifold_result": res["manifold_result"],
+                "jacket_manifold_result": res["jacket_manifold_result"],
+                "turbine_exhaust_hardware": res["turbine_exhaust_hardware"]}
+
+    for name in ("F-1", "J-2"):
+        d = corpus(name, turbopump_geometry_model="casings")
+        r = d.compute()
+        lay = r["turbopump_layout"]
+        assert lay and lay["origin_xyz"][1] > float(np.max(r["profile_rs_m"])), name
+        again = ports_from_layout(lay)
+        for key, group in r["turbopump_ports"].items():
+            for pname, p in group.items():
+                assert np.allclose(p["pos"], again[key][pname]["pos"]), (name, key, pname)
+        # "Route to pump" runs (the Shape Lab's seed) onto both pumps' casing discharges
+        runs = []
+        for host in ("jacket_inlet", "ox"):
+            hk = plumbing.hook_for_host(hooks_of(r), host)
+            port = plumbing.port_for_host(r["turbopump_ports"], host)
+            runs.append(plumbing.run_to_dict(plumbing.seed_route_to_port(
+                hk, port, hk["major_radius_m"], manifold.ring_outer_radius_at(hk, 0.0), host)))
+        r = dataclasses.replace(d, plumbing_runs=runs).compute()
+        for rd in runs:
+            run = plumbing.run_from_dict(rd)
+            hook = plumbing.hook_for_host(hooks_of(r), run.host)
+            port = plumbing.port_for_host(r["turbopump_ports"], run.host)
+            res = plumbing.resolve_run(run, hook, hook["major_radius_m"],
+                                       manifold.ring_outer_radius_at(hook, run.attach_angle_deg),
+                                       port=port)
+            assert np.allclose(res["waypoints_xyz"][-1], port["pos"], atol=1e-9), (name, run.host)
+        assert all(v is not None for v in r["line_loss_computed"].values()), (name, r["line_loss_computed"])
     assert build_layout(None) is None and place_layout(None, 1.0, 1.0) is None
     assert build_layout(EngineDesign(cycle="pressure_fed").compute().get("turbopump_sizing")) is None
     print("turbopump_layout self-test: OK (volute sections, scroll exits, 7 corpus layouts: "
           "ports on flange faces facing the engine, same port set/bores as the ghost, "
-          "tightened spans, dual-shaft clearance, pressure-fed None)")
+          "tightened spans, dual-shaft clearance; casings-mode F-1/J-2: design ports = layout "
+          "ports, pump-connected runs land on the casing flanges; pressure-fed None)")
 
 
 if __name__ == "__main__":
