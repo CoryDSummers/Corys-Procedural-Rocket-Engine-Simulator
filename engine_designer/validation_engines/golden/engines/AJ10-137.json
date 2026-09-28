@@ -2774,6 +2774,7 @@
 },
 "turbine_staging": "auto",
 "turbopump_arrangement": "auto",
+"turbopump_geometry_model": "envelope",
 "turbopump_material_key": "inconel_718",
 "turbopump_tech_key": "mature",
 "wall_construction": "milled_channel"
@@ -3971,6 +3972,7 @@
 "turbine_exhaust_hardware_mass_kg": {
 "__f__": "0.0"
 },
+"turbopump_layout": null,
 "turbopump_ports": null,
 "turbopump_sizing": null,
 "warnings": [

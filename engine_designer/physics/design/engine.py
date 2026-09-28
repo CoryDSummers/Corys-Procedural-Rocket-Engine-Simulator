@@ -445,6 +445,13 @@ class EngineDesign:
     diffuser_type: str = "auto"           # auto | volute | vaned
     pump_type_fuel: str = "auto"          # auto (= centrifugal) | centrifugal | axial
     pump_type_ox: str = "auto"
+    # Turbopump 3D geometry (roadmap E2b, 2026-09-27): "envelope" (default) = the ghost
+    # bodies sized to the specific-power mass (turbopump_sizing render_scale) and their
+    # ports (geometry3d.turbopump_ports) - bit-identical to before; "casings" = the
+    # true-scale meanline casings (physics/turbopump_layout.py): the main 3D preview / Shape
+    # Lab draw them and the pump inlet/discharge + turbine exhaust ports sit on their
+    # flanges, so pump-connected line losses and the exhaust duct follow. Mass unchanged.
+    turbopump_geometry_model: str = "envelope"
     # Regen coolant (fuel) jacket-inlet temperature: "computed" (default) = the fuel
     # pump's outlet (tank temperature + boost + main-pump heating, suction_stage.
     # pump_heating; applied on a second compute pass) - needs pump_model "meanline";
@@ -496,7 +503,9 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 18  # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
+    SCHEMA_VERSION = 19  # 19 (2026-09-27): turbopump_geometry_model ("envelope" | "casings")
+                         # - no key migration; an older file takes "envelope", bit-identical.
+                         # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
                          # tap_off_tin_k, turbine_blade_material_key - no key migration; an older file takes the
                          # defaults, i.e. the hot-gas MIXER tap-off for a hydrocarbon
                          # tap-off engine (a deliberate physics change - set

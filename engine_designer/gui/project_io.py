@@ -156,4 +156,11 @@ if __name__ == "__main__":
     assert rebuilt.plumbing_runs == d.plumbing_runs
     assert plumbing.run_from_dict(rebuilt.plumbing_runs[0]).pipes[1].pitch_deg == 60.0
 
+    # v19 turbopump_geometry_model: an older file takes "envelope"; "casings" round-trips
+    old_v18 = EngineDesign.from_dict({"schema_version": 18, "design": {"cycle": "gas_generator"}})
+    assert old_v18.turbopump_geometry_model == "envelope"
+    cas = EngineDesign(turbopump_geometry_model="casings")
+    assert EngineDesign.from_dict(json.loads(json.dumps(cas.to_dict()))) == cas
+    assert EngineDesign().to_dict()["schema_version"] >= 19
+
     print("project_io.py self-checks: OK")
