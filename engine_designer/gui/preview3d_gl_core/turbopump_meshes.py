@@ -1,35 +1,34 @@
 """
-Turbopump casing mesh primitives for the "Turbopump 3D" tab (gui/turbopump_scene.py):
-the revolved casing walls, the spiral volute / collector scroll with its tangential
-discharge diffuser cone, and the mirror/translate placement of a component built in its
-own local frame. Every component is built with its SHAFT ON THE LOCAL x AXIS (the same
-axis every revolved-engine primitive in this package uses); turbopump_scene lays the
-components out along the assembly shaft with `place_pieces`.
+Turbopump casing meshes: the revolved casing walls, the spiral volute / collector scroll
+with its tangential discharge diffuser cone, the mirror/translate placement of a component
+built in its own local frame, and `layout_pieces` - the whole true-scale casing layout
+(physics/turbopump_layout.py, the ONE source of the geometry and the ports) as meshes,
+drawn by the Turbopump 3D tab (gui/turbopump_scene.py) and, with EngineDesign.
+turbopump_geometry_model "casings", by the main 3D preview and the Shape Lab. Every
+component has its SHAFT ON THE LOCAL x AXIS (the same axis every revolved-engine
+primitive in this package uses).
 
-Render-only geometry - no physics reads anything here. Pure numpy, no OpenGL/Tk import,
-self-tested by `python3 -m engine_designer.gui.preview3d_gl_core`.
+Pure numpy, no OpenGL/Tk import, self-tested by `python3 -m engine_designer.gui.preview3d_gl_core`.
 """
 import dataclasses
 import math
 
 import numpy as np
 
-from .mesh_primitives import MeshBuffers, mesh_from_grid, scroll_manifold_mesh
+from ...physics import turbopump_layout
+from ...physics.turbopump_layout import (DISCHARGE_DIFFUSER_HALF_ANGLE_DEG,  # noqa: F401 (re-exported)
+                                         DISCHARGE_MAX_LEN_DIA_MULT, DISCHARGE_MIN_LEN_DIA_MULT,
+                                         VOLUTE_STATIONS, scroll_exit, volute_sections)
+from .mesh_primitives import MeshBuffers, manifold_ring_mesh, mesh_from_grid, scroll_manifold_mesh
 from .duct_meshes import frustum_mesh, pipe_flange_pieces
 
 # A casing profile is split into separately-shaded strips wherever it turns by more than
 # this, so a radial side wall meets the shroud with a crisp edge instead of one smeared
 # normal (render-only).
 CASING_CORNER_DEG = 35.0
-# Tangential discharge diffuser cone after the volute: conical-diffuser half-angle and a
-# minimum length in exit diameters (render-only defaults, not a hydraulic design).
-DISCHARGE_DIFFUSER_HALF_ANGLE_DEG = 5.0
-DISCHARGE_MIN_LEN_DIA_MULT = 1.0
-# ...and a cap, so a port bore far above the volute's end section (the port is sized by the
-# downstream ring, not the pump) steepens the cone instead of stretching it metres long.
-DISCHARGE_MAX_LEN_DIA_MULT = 1.5
-# Volute stations the 10-deg meanline spiral table is resampled to (smooth sweep).
-VOLUTE_STATIONS = 73
+# Default mesh resolutions for layout_pieces.
+LAYOUT_N_THETA = 48          # revolves
+LAYOUT_N_TUBE = 24           # scroll / torus / cone cross-sections
 
 
 def _orient_to_normals(mesh):
@@ -102,22 +101,6 @@ def revolve_polyline_pieces(xs_m, rs_m, n_theta, base_color_rgb, corner_deg=CASI
     return pieces
 
 
-def volute_sections(spiral, r_tongue_m, floor_r_m, n=VOLUTE_STATIONS):
-    """
-    Meanline volute spiral table [(theta_deg, r_outer_m), ...] (pump_meanline.
-    _volute_geometry: constant-mean-velocity law, outer radius = r_tongue + 2 x section
-    radius) -> per-station (wrap_rad, center_r_m, tube_r_m) for scroll_manifold_mesh. The
-    section radius is floored (the throat area is 0 at the tongue; the casing must still
-    cover the impeller outlet) and kept non-decreasing; the inner edge stays on r_tongue.
-    """
-    th = np.array([p[0] for p in spiral], dtype=float)
-    ro = np.array([p[1] for p in spiral], dtype=float)
-    u = np.linspace(th[0], th[-1], n)
-    rs = np.maximum(float(floor_r_m), 0.5 * (np.interp(u, th, ro) - float(r_tongue_m)))
-    rs = np.maximum.accumulate(rs)
-    return math.radians(th[-1] - th[0]), float(r_tongue_m) + rs, rs
-
-
 def volute_scroll_pieces(x_m, center_r_m, tube_r_m, wrap_rad, discharge_dia_m, n_tube,
                          base_color_rgb, *, u_start_rad=0.0, handed=1,
                          half_angle_deg=DISCHARGE_DIFFUSER_HALF_ANGLE_DEG,
@@ -141,17 +124,10 @@ def volute_scroll_pieces(x_m, center_r_m, tube_r_m, wrap_rad, discharge_dia_m, n
     kw = dict(specular_strength=specular_strength, shininess=shininess)
     pieces = list(scroll_manifold_mesh(x_m, ctr, tube, u_start_rad, span, n_tube,
                                        base_color_rgb, cap_tail=False, **kw))
-    ue = u_start_rad + span
-    radial = np.array([0.0, math.cos(ue), math.sin(ue)])
-    onward = handed * np.array([0.0, -math.sin(ue), math.cos(ue)])
-    start = np.array([x_m, 0.0, 0.0]) + ctr[-1] * radial
-    r0 = float(tube[-1])
-    r1 = 0.5 * discharge_dia_m if discharge_dia_m > 0.0 else r0
-    length = min(max(min_len_dia_mult * 2.0 * r1,
-                     abs(r1 - r0) / math.tan(math.radians(half_angle_deg))),
-                 max_len_dia_mult * 2.0 * r1)
-    end = start + length * onward
-    pieces += frustum_mesh(start, end, r0, r1, n_tube, base_color_rgb, **kw)
+    cn = scroll_exit(x_m, ctr[-1], tube[-1], u_start_rad + span, handed, discharge_dia_m,
+                     half_angle_deg, min_len_dia_mult, max_len_dia_mult)
+    end, onward, r1 = cn["end"], cn["dir"], cn["r1"]
+    pieces += frustum_mesh(cn["start"], end, cn["r0"], r1, n_tube, base_color_rgb, **kw)
     if flange_lip_m > 0.0 and flange_width_m > 0.0:
         nrm = np.array([1.0, 0.0, 0.0])
         pieces += pipe_flange_pieces(end - 0.5 * flange_width_m * onward, onward, nrm,
@@ -177,6 +153,63 @@ def place_pieces(pieces, x0_m=0.0, sx=1.0, dy_m=0.0, dz_m=0.0):
             idx = idx[:, [0, 2, 1]]
         out.append(dataclasses.replace(p, vertices=v.astype(np.float32), normals=n,
                                        indices=np.ascontiguousarray(idx)))
+    return out
+
+
+def flange_pieces(face_xyz, direction_xyz, bore_r_m, rgb, n_tube=LAYOUT_N_TUBE, **kw):
+    """A turbopump_layout flange spec as a bolted pipe flange: OUTER face at `face_xyz`
+    (the port plane), its body FLANGE_WIDTH_BORE_MULT x bore behind it along -dir."""
+    t = np.asarray(direction_xyz, dtype=float)
+    n = np.array([0.0, 1.0, 0.0]) if abs(t[1]) < 0.9 else np.array([1.0, 0.0, 0.0])
+    n = n - np.dot(n, t) * t
+    n /= np.linalg.norm(n)
+    w = turbopump_layout.FLANGE_WIDTH_BORE_MULT * bore_r_m
+    return pipe_flange_pieces(np.asarray(face_xyz, dtype=float) - 0.5 * w * t, t, n,
+                              np.cross(t, n), bore_r_m,
+                              turbopump_layout.FLANGE_LIP_BORE_MULT * bore_r_m, w,
+                              turbopump_layout.FLANGE_BOLTS, n_tube, rgb, **kw)
+
+
+def component_pieces(comp, rgb, flange_rgb, n_theta=LAYOUT_N_THETA, n_tube=LAYOUT_N_TUBE, **kw):
+    """One turbopump_layout component spec as meshes, in its LOCAL frame."""
+    pieces = []
+    for xs, rs in comp["revolves"]:
+        pieces += revolve_polyline_pieces(xs, rs, n_theta, rgb, **kw)
+    for s in comp["scrolls"]:
+        pieces += scroll_manifold_mesh(s["x"], s["center_r"], s["tube_r"], s["u_start"],
+                                       s["span"], n_tube, rgb, cap_tail=False, **kw)
+        cn = s["cone"]
+        pieces += frustum_mesh(cn["start"], cn["end"], cn["r0"], cn["r1"], n_tube, rgb, **kw)
+    for x, ctr, tube in comp["tori"]:
+        pieces.append(manifold_ring_mesh(x, ctr, tube, n_theta, n_tube, rgb, **kw))
+    for a, b, ra, rb in comp["cones"]:
+        pieces += frustum_mesh(a, b, ra, rb, n_tube, rgb, **kw)
+    for f in comp["flanges"]:
+        pieces += flange_pieces(f["face"], f["dir"], f["bore_r"], flange_rgb, n_tube, **kw)
+    return pieces
+
+
+def layout_pieces(layout, pump_rgb, turbine_rgb, flange_rgb, n_theta=LAYOUT_N_THETA,
+                  n_tube=LAYOUT_N_TUBE, **kw):
+    """
+    A physics/turbopump_layout layout as meshes in the layout's frame (engine coordinates
+    once place_layout has run): [(component_key, [MeshBuffers]), ...] - one entry per
+    component (pumps in pump_rgb, turbines and the motor in turbine_rgb, flanges in
+    flange_rgb) + one "shaft" entry per bearing/seal housing between neighbours (tapered
+    from one neighbour's link radius to the other's, pump_rgb).
+    """
+    ox, oy, oz = layout["origin_xyz"]
+    out = []
+    for key, comp in layout["components"].items():
+        pl = layout["placements"][key]
+        rgb = pump_rgb if comp["kind"] == "pump" else turbine_rgb
+        local = component_pieces(comp, rgb, flange_rgb, n_theta, n_tube, **kw)
+        out.append((key, place_pieces(local, x0_m=ox + pl["x0"], sx=pl["sx"], dy_m=oy,
+                                      dz_m=oz + pl["dz"])))
+    for link in layout["links"]:
+        housing = revolve_polyline_pieces([link["x0"], link["x1"]], [link["r0"], link["r1"]],
+                                          n_theta, pump_rgb, **kw)
+        out.append(("shaft", place_pieces(housing, x0_m=ox, dy_m=oy, dz_m=oz + link["dz"])))
     return out
 
 

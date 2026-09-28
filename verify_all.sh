@@ -38,6 +38,7 @@ MODULES=(
   engine_designer.physics.pump_meanline       # centrifugal/axial meanline vs SP-8109 / SP-8125 / real pumps
   engine_designer.physics.tap_off             # tap-off hot-gas mixer (STBE split, energy balance)
   engine_designer.physics.turbopump_sizing
+  engine_designer.physics.turbopump_layout    # true-scale casing layout + casing ports (turbopump_geometry_model "casings")
   engine_designer.physics.validate
   engine_designer.physics.flow_network
   engine_designer.catalog.build_catalog

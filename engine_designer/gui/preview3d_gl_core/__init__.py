@@ -25,9 +25,11 @@ axis, one directory up) into:
                              tubes, ring loops, streams inside drawn tubes
   - shading.py              - PBR fragment shader + light rig/environment + its
                              numpy reference twin (headless-testable look)
-  - turbopump_meshes.py     - turbopump casings for the Turbopump 3D tab: corner-
-                             split polyline revolve, spiral volute scroll +
-                             tangential discharge cone, mirror/translate placement
+  - turbopump_meshes.py     - turbopump casings (Turbopump 3D tab; main view with
+                             turbopump_geometry_model "casings"): corner-split
+                             polyline revolve, spiral volute scroll + tangential
+                             discharge cone, mirror/translate placement, and
+                             layout_pieces (physics/turbopump_layout -> meshes)
 
 This __init__.py re-exports every public name from all of the above, so
 external code (gui/mesh_builder.py's ~100 call sites) keeps using the exact
@@ -192,6 +194,9 @@ from .turbopump_meshes import (
     volute_sections,
     volute_scroll_pieces,
     place_pieces,
+    flange_pieces,
+    component_pieces,
+    layout_pieces,
 )
 
 __all__ = [
@@ -331,4 +336,7 @@ __all__ = [
     "volute_sections",
     "volute_scroll_pieces",
     "place_pieces",
+    "flange_pieces",
+    "component_pieces",
+    "layout_pieces",
 ]
