@@ -1681,10 +1681,13 @@ class EngineDesignerApp:
         self.canvas_tpd = FigureCanvasTkAgg(self.fig_tpd, master=tab_tp_detail)
         self.canvas_tpd.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
-        # Turbopump 3D (turbopump roadmap E2a): the whole assembly's casings at TRUE
-        # meanline scale (gui/turbopump_scene.py, Tk-free, self-tested headless) in its
-        # own view - deliberately NOT applied to the main 3D Preview yet (Cory's call,
-        # 2026-09-27). "Show" isolates one component; its options follow the design.
+        # Turbopump 3D (turbopump roadmap E2a/E2b): the whole assembly's casings at TRUE
+        # meanline scale (physics/turbopump_layout.py, meshed by gui/turbopump_scene.py,
+        # Tk-free, self-tested headless). "Show" isolates one component; its options follow
+        # the design. The "Use in main 3D view" checkbox is the SAVED design setting
+        # turbopump_geometry_model (envelope | casings): on, the main 3D Preview and Shape
+        # Lab draw these casings and the pump/turbine ports + plumbing sit on their flanges
+        # (pump-connected line losses follow); off (default) = the mass-sized ghost.
         tab_tp3d = ttk.Frame(notebook)
         notebook.add(tab_tp3d, text="Turbopump 3D")
         self.tp3d_summary = ttk.Label(tab_tp3d, text="", justify=tk.LEFT, anchor="w",
@@ -1700,6 +1703,12 @@ class EngineDesignerApp:
                                              values=[_assembly], state="readonly", width=14)
         self.tp3d_isolate_box.pack(side=tk.LEFT, padx=2, pady=2)
         self.tp3d_isolate_box.bind("<<ComboboxSelected>>", self._on_tp3d_isolate)
+        self.tp_casings_main_var = tk.BooleanVar(
+            value=self.design.turbopump_geometry_model == "casings")
+        ttk.Checkbutton(self.tp3d_preview.toolbar,
+                        text="Use in main 3D view (moves pump/turbine ports + plumbing)",
+                        variable=self.tp_casings_main_var, command=self._on_control_change
+                        ).pack(side=tk.LEFT, padx=(12, 2), pady=2)
         self.tp3d_preview.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # Redrawing every result tab (2D schematic, 3D preview, injector face,
@@ -2018,6 +2027,8 @@ class EngineDesignerApp:
             self.design.turbine_blade_material_key = self.blade_material_display_to_key.get(
                 self.blade_material_var.get(), self.design.turbine_blade_material_key)
             self.design.pump_model = self.pump_model_var.get() or "meanline"
+            self.design.turbopump_geometry_model = ("casings" if self.tp_casings_main_var.get()
+                                                    else "envelope")
             self.design.pump_priority = max(-1.0, min(1.0, float(self.pump_priority_var.get())))
             self.design.pump_head_curve = max(-1.0, min(1.0, float(self.pump_head_curve_var.get())))
             self.design.suction_aggressiveness = max(-1.0, min(1.0, float(self.suction_aggr_var.get())))
@@ -3144,6 +3155,7 @@ class EngineDesignerApp:
         self.tap_tin_var.set(d.tap_off_tin_k)
         self.blade_material_var.set(self._blade_display(d.turbine_blade_material_key))
         self.pump_model_var.set(d.pump_model)
+        self.tp_casings_main_var.set(d.turbopump_geometry_model == "casings")
         self.pump_priority_var.set(d.pump_priority)
         self.pump_head_curve_var.set(d.pump_head_curve)
         self.suction_aggr_var.set(d.suction_aggressiveness)
