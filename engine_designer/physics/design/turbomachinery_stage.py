@@ -91,21 +91,44 @@ def turbopump_and_plumbing(self, s):
     # "turbine_exhaust" plumbing host roots on (physics/turbine_exhaust.py).
     s.te_hardware = None
     s.te_hardware_mass_kg = 0.0
-    if s.turbine_exhaust:
-        s.te_hardware = turbine_exhaust.size_hardware(
+    # the termination sits on the turbopump's side (its azimuth) - or, an overboard
+    # nozzle with a baked duct run, where that run is rooted (the run sets it, as a
+    # user pipe sets a header ring's inlet)
+    _te_baked = [r for r in plumbing.runs_for_host(self.plumbing_runs, "turbine_exhaust")
+                 if plumbing.run_from_dict(r).pipes]
+
+    def _size_te(angle_deg, outlet_radius_m=0.0):
+        return turbine_exhaust.size_hardware(
             s.turbine_exhaust, xs=s.xs, rs=s.rs, throat_dia_m=s.geo["throat_dia_m"],
             inject_eps=s.turbine_exhaust.get("inject_eps") or self.turbine_exhaust_inject_eps,
             aspirator_fwd_length_frac=self.aspirator_fwd_length_frac,
             aspirator_overhang_frac=self.aspirator_overhang_frac,
             nozzle_eps=self.turbine_exhaust_nozzle_eps, cant_deg=self.turbine_exhaust_cant_deg,
-            attach_angle_deg=0.0)   # the turbopump's side (+y, geometry3d)
+            attach_angle_deg=angle_deg, outlet_radius_m=outlet_radius_m)
+
+    if s.turbine_exhaust:
+        s.te_hardware = _size_te(float(self.turbopump_azimuth_deg))
+        if _te_baked and s.te_hardware["exhaust"].get("point_hook"):
+            s.te_hardware = _size_te(float(plumbing.run_from_dict(_te_baked[0]).attach_angle_deg))
         s.te_hardware_mass_kg = s.te_hardware["mass_kg"]
     _plumbing_hooks = {"manifold_result": s.manifold_result,
                        "jacket_manifold_result": s.jacket_manifold_result,
                        "turbine_exhaust_hardware": s.te_hardware}
     s.turbopump_ports = None
     s.turbopump_layout = None
+    s.turbopump_placement = None
     if s.tp_sizing and s.tp_sizing.get("bodies"):
+        # Placement (roadmap E1, geometry3d.turbopump_placement): the user's clock /
+        # station / standoff / shaft orientation; each box clears the contour + every
+        # ring and the exhaust hardware over its own axial span.
+        _te_hw = s.te_hardware or {}
+        _pl_kw = dict(azimuth_deg=float(self.turbopump_azimuth_deg),
+                      axial_station_frac=float(self.turbopump_axial_station_frac),
+                      standoff_m=float(self.turbopump_standoff_m),
+                      shaft_orientation=self.turbopump_shaft_orientation,
+                      bands=geometry3d.obstacle_bands(
+                          [plumbing.hook_for_host(_plumbing_hooks, h) for h in plumbing.HOSTS],
+                          _te_hw))
         _fuel_primary = plumbing.hook_for_host(_plumbing_hooks, "jacket_inlet") or \
             plumbing.hook_for_host(_plumbing_hooks, "fuel")
         _ox_hook = plumbing.hook_for_host(_plumbing_hooks, "ox")
@@ -117,7 +140,8 @@ def turbopump_and_plumbing(self, s):
             # every run / duct below closes onto them instead of the ghost envelope's
             s.turbopump_layout = turbopump_layout.place_layout(
                 turbopump_layout.build_layout(s.tp_sizing, _dis, _exhaust_dia),
-                float(np.max(s.xs)), float(np.max(s.rs)))
+                s.xs, s.rs, **_pl_kw)
+            s.turbopump_placement = s.turbopump_layout["placement"]
             s.turbopump_ports = turbopump_layout.ports_from_layout(s.turbopump_layout)
             _meanline_less = [k.replace("_", " ") for k in turbopump_layout.PUMP_KEYS
                               if s.tp_sizing.get(k) and not s.tp_sizing[k].get("meanline")]
@@ -129,11 +153,32 @@ def turbopump_and_plumbing(self, s):
                    "True-scale meanline casings: pump/turbine ports + plumbing on the casing "
                    "flanges (turbopump mass is still the specific-power estimate).")
         else:
+            s.turbopump_placement = geometry3d.turbopump_placement(
+                geometry3d.boxes_from_bodies(s.tp_sizing["bodies"]), s.xs, s.rs, **_pl_kw)
             s.turbopump_ports = geometry3d.turbopump_ports(
-                s.tp_sizing["bodies"],
-                geometry3d.turbopump_origin_xyz(float(np.max(s.xs)), float(np.max(s.rs)),
-                                                s.tp_sizing["assembly_od_m"]),
+                s.tp_sizing["bodies"], s.turbopump_placement,
                 s.tp_sizing, _dis, turbine_exhaust_dia_m=_exhaust_dia)
+        _pl = s.turbopump_placement
+        _check(s.checklist, s.warnings, "turbopump", "Turbopump placement", True, "",
+               f"OK - {_pl['shaft_orientation']} shaft at {_pl['azimuth_deg']:.0f} deg, axis "
+               f"{_pl['axis_radius_m']:.2f} m off the engine axis, x {_pl['x_span_m'][0]:.2f}-"
+               f"{_pl['x_span_m'][1]:.2f} m, {_pl['standoff_m'] * 1e3:.0f} mm clear of the "
+               f"{_pl['envelope_r_m']:.2f} m local envelope ({_pl['governing_kind']})")
+        # An overboard exhaust nozzle with no baked duct run clocks onto the turbine
+        # exhaust port's axis (plumbing.overboard_outlet_on_port_axis): the default duct
+        # is then one forward pipe + one elbow into the port, not a U round its standoff.
+        # (The placement above cleared the nozzle's pre-clock band; it sits aft, beside
+        # the bell, so moving it does not reach back to the pump.)
+        if s.te_hardware and s.te_hardware["exhaust"].get("point_hook") and not _te_baked:
+            _te_port0 = plumbing.port_for_host(s.turbopump_ports, "turbine_exhaust")
+            _spot = plumbing.overboard_outlet_on_port_axis(
+                _te_port0, float(s.te_hardware["exhaust"]["major_radius_m"]),
+                plumbing.PlumbingRun().port_standoff_dia_mult * float(_te_port0["dia_m"])
+                if _te_port0 else 0.0)
+            if _spot is not None:
+                s.te_hardware = _size_te(*_spot)
+                s.te_hardware_mass_kg = s.te_hardware["mass_kg"]
+                _plumbing_hooks["turbine_exhaust_hardware"] = s.te_hardware
     s.line_loss_computed = {"fuel": None, "ox": None}
     s.plumbing_results = []
     s.plumbing_mass_kg = 0.0

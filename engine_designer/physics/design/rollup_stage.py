@@ -309,6 +309,9 @@ def checks_and_result(self, s):
         # turbopump_geometry_model "casings": the placed true-scale casing layout
         # (physics/turbopump_layout.py) the ports came from; None for the envelope
         "turbopump_layout": s.turbopump_layout,
+        # where the assembly went (geometry3d.turbopump_placement: origin_xyz, rotation,
+        # azimuth, shaft orientation, axis radius, x span, resolved standoff, envelope)
+        "turbopump_placement": s.turbopump_placement,
         "turbine_exhaust_hardware": s.te_hardware,
         "turbine_exhaust_hardware_mass_kg": s.te_hardware_mass_kg,
         "line_loss_fuel_pa": s.line_loss_fuel_pa,

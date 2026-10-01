@@ -452,6 +452,19 @@ class EngineDesign:
     # Lab draw them and the pump inlet/discharge + turbine exhaust ports sit on their
     # flanges, so pump-connected line losses and the exhaust duct follow. Mass unchanged.
     turbopump_geometry_model: str = "envelope"
+    # Turbopump placement (roadmap E1, 2026-09-30; geometry3d.turbopump_placement - drawing
+    # + port positions, so pump-connected line losses / the exhaust duct follow; no mass):
+    # azimuth = clock round the engine axis (0 = +Y, toward +Z - the manifold attach-angle
+    # convention; the exhaust hardware and the default ring inlets clock with it); axial
+    # station = the assembly's midpoint / engine length (0 = auto: its forward end at
+    # TURBOPUMP_ORIGIN_X_LENGTH_FRACTION x length); standoff = the gap between the
+    # assembly's engine-side reach and the local contour/ring envelope, m (0 = auto,
+    # TURBOPUMP_STANDOFF_R_FRACTION x that local radius); shaft "axial" (parallel to the
+    # engine axis) | "tangential" (along the local circumference).
+    turbopump_azimuth_deg: float = 0.0
+    turbopump_axial_station_frac: float = 0.0
+    turbopump_standoff_m: float = 0.0
+    turbopump_shaft_orientation: str = "axial"
     # Regen coolant (fuel) jacket-inlet temperature: "computed" (default) = the fuel
     # pump's outlet (tank temperature + boost + main-pump heating, suction_stage.
     # pump_heating; applied on a second compute pass) - needs pump_model "meanline";
@@ -503,7 +516,14 @@ class EngineDesign:
     new_part_description: str = ""           # blank -> auto one-liner
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 19  # 19 (2026-09-27): turbopump_geometry_model ("envelope" | "casings")
+    SCHEMA_VERSION = 20  # 20 (2026-09-30): turbopump placement (turbopump_azimuth_deg,
+                         # turbopump_axial_station_frac, turbopump_standoff_m,
+                         # turbopump_shaft_orientation) - no key migration; an older file
+                         # takes the defaults = auto placement, which is the NEW span-aware
+                         # rule (standoff from the local contour/ring radius, not the bell
+                         # exit) - a deliberate geometry change: ports move, so a baked
+                         # pump-connected run's line loss moves with them.
+                         # 19 (2026-09-27): turbopump_geometry_model ("envelope" | "casings")
                          # - no key migration; an older file takes "envelope", bit-identical.
                          # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
                          # tap_off_tin_k, turbine_blade_material_key - no key migration; an older file takes the

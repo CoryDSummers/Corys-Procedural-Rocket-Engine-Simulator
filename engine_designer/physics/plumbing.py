@@ -146,7 +146,7 @@ AUTO_LEG_TURN_TOLERANCE_DEG = 10.0
 # straights, each along one axis of the pump's frame (port["frame"]: engine axis, the
 # pump's outboard radial, its tangent); a component shorter than this x the port bore is
 # folded into the longest straight instead of getting an elbow of its own.
-MANHATTAN_MIN_LEG_DIA_MULT = 0.25
+MANHATTAN_MIN_LEG_DIA_MULT = 0.5
 # When S lies straight behind the last pipe (every ordering would double back on it), the
 # auto legs first step sideways this x the port bore - a U of 90-deg corners.
 MANHATTAN_JOG_DIA_MULT = 3.0
@@ -658,7 +658,9 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
         if turn > turn_cap + 1e-6:
             advisories.append(f"Pipe {k + 1}: combined yaw+pitch turn is {turn:.0f} deg (> "
                               f"{PIPE_TURN_DEG_MAX:.0f}) - a very tight elbow for a feed line.")
-    for k in range(1, n_pipes + 1):
+    # (the user's own pipes only: an auto leg heading inboard to a pump beside the chamber
+    # is expected - auto_leg_clearance_advisories checks those against the real contour)
+    for k in range(1, len(run.pipes) + 1):
         radial = math.hypot(waypoints[k][1], waypoints[k][2])
         if radial < ring_center_r_m - ring_tube_r_m - 1e-9:
             advisories.append(f"Pipe {k}: its end lies inside the manifold ring's radius "
@@ -951,6 +953,34 @@ def suction_line_loss_pa(mdot_kgs, rho_kg_m3, npsh_tank_m, length_m, viscosity_p
     return (f * length_m / bore + SUCTION_LINE_MINOR_K) * 0.5 * rho_kg_m3 * v * v, info
 
 
+def overboard_outlet_on_port_axis(port, r_min_m, standoff_m):
+    """(attach_angle_deg, radius_m) for an overboard exhaust nozzle (a point hook, its
+    inlet facing forward) clocked ONTO the turbine exhaust port's axis, so the default duct
+    is one forward pipe + one elbow straight into the port (E1) - or None when the port
+    faces forward (no such spot). A tangential port: the point `standoff_m` out along its
+    axis (further if that is still inside `r_min_m`, the nozzle's own wall clearance); an
+    aft-facing port: right behind it, pushed out radially to r_min_m if needed."""
+    if not port:
+        return None
+    p = np.asarray(port["pos"], dtype=float)
+    d = np.asarray(port["dir"], dtype=float)
+    d = d / np.linalg.norm(d)
+    if d[0] > 0.5:
+        yz = p[1:].copy()
+    elif abs(d[0]) < 1e-6:
+        b = d[1:] / np.linalg.norm(d[1:])
+        ab = float(np.dot(p[1:], b))
+        disc = ab * ab - float(np.dot(p[1:], p[1:])) + r_min_m * r_min_m
+        t = max(float(standoff_m), -ab + math.sqrt(disc) if disc > 0.0 else 0.0)
+        yz = p[1:] + t * b
+    else:
+        return None
+    r = float(np.hypot(*yz))
+    if r < 1e-9:
+        return None
+    return math.degrees(math.atan2(yz[1], yz[0])) % 360.0, max(r, float(r_min_m))
+
+
 def auto_leg_clearance_advisories(res, profile_xs_m, profile_rs_m, host=""):
     """Warn-only: an auto leg of a resolved run (resolve_run) that dips inside the engine
     contour - AUTO_LEG_CLEARANCE_SAMPLES points per leg against the contour radius at
@@ -1105,9 +1135,19 @@ def _seed_scroll_route(hook, port, ring_center_r_m, host, bend_radius_dia_mult):
     # point ON the port's axis, SEED_APPROACH bores beyond S, so the auto legs close with
     # one straight into the port; otherwise end a chord short of S's angle.
     on_axis = abs(p_dir[0]) < 1e-6
-    target = s_pt + SEED_APPROACH_DIA_MULT * d_port * p_dir if on_axis else s_pt
-    theta_s = math.degrees(math.atan2(target[2], target[1]))
     r_c = max(float(ring_center_r_m), 1e-9)
+    target = s_pt
+    if on_axis:
+        # the nearest point on the port axis, at least the standoff out, that the tangent
+        # leg can reach: radius >= hypot(r_c, its minimum length) - |a + t b| = R, b unit
+        l1_min = max(SCROLL_SEED_TANGENT_LEG_DIA_MULT, bend_radius_dia_mult + 1.0) * dia
+        r_need = math.hypot(r_c, l1_min)
+        a_yz, b_yz = p_pos[1:], p_dir[1:] / max(np.linalg.norm(p_dir[1:]), 1e-12)
+        ab = float(np.dot(a_yz, b_yz))
+        disc = ab * ab - float(np.dot(a_yz, a_yz)) + r_need * r_need
+        t_reach = -ab + math.sqrt(disc) if disc > 0.0 else 0.0
+        target = p_pos + max(run.port_standoff_dia_mult * d_port, t_reach) * p_dir
+    theta_s = math.degrees(math.atan2(target[2], target[1]))
     r_s = math.hypot(target[1], target[2])
     l_reach = math.sqrt(max(r_s * r_s - r_c * r_c, 0.0))
     l1_mult = _clamp(max(SCROLL_SEED_TANGENT_LEG_DIA_MULT, bend_radius_dia_mult + 1.0,

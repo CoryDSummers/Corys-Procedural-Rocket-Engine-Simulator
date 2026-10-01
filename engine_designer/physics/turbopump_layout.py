@@ -414,18 +414,49 @@ def build_layout(sizing, discharge_dia_by_pump=None, turbine_exhaust_dia_m=0.0):
             "length_m": length, "neg_y_extent_m": neg_y, "origin_xyz": (0.0, 0.0, 0.0)}
 
 
-def place_layout(layout, profile_x_max_m, profile_r_max_m):
-    """`layout` moved beside the engine the way geometry3d.turbopump_origin_xyz places the
-    ghost: x = the same fraction of the engine length, shaft parallel to the engine axis,
-    offset in +y so the casing's engine-side reach clears the widest chamber/bell radius
-    by the same stand-off."""
+def _z_extent(comp):
+    """How far a LOCAL component reaches either way in z (the dual-unit / tangential
+    direction) - conservative, like _neg_y_extent."""
+    lip = 1.0 + FLANGE_LIP_BORE_MULT
+    ext = [float(np.max(rs)) for _, rs in comp["revolves"]]
+    for s in comp["scrolls"]:
+        ext.append(float(np.max(s["center_r"] + s["tube_r"])))
+        cn = s["cone"]
+        ext += [abs(cn["start"][2]) + cn["r0"] * lip, abs(cn["end"][2]) + cn["r1"] * lip]
+    ext += [ctr + tube for _, ctr, tube in comp["tori"]]
+    for a, b, ra, rb in comp["cones"]:
+        ext += [abs(a[2]) + ra * lip, abs(b[2]) + rb * lip]
+    ext += [abs(f["face"][2]) + f["bore_r"] * lip for f in comp["flanges"]]
+    return max(ext) if ext else 0.0
+
+
+def layout_boxes(layout):
+    """The casing layout as LOCAL placement boxes (geometry3d.turbopump_placement): one per
+    component (its shaft span, unit offset, z half-width and engine-side reach) and one per
+    bearing/seal housing between neighbours."""
+    boxes = []
+    for key, comp in layout["components"].items():
+        pl = layout["placements"][key]
+        boxes.append({"x0": pl["x_start"], "x1": pl["x_end"], "dz": pl["dz"],
+                      "half_z": _z_extent(comp), "reach": _neg_y_extent(comp), "kind": key})
+    for k in layout["links"]:
+        r = max(k["r0"], k["r1"])
+        boxes.append({"x0": k["x0"], "x1": k["x1"], "dz": k["dz"], "half_z": r, "reach": r,
+                      "kind": "shaft"})
+    return boxes
+
+
+def place_layout(layout, profile_xs_m, profile_rs_m, **placement_kw):
+    """`layout` moved beside the engine by the ONE placement rule the ghost uses
+    (geometry3d.turbopump_placement - azimuth / axial station / standoff / shaft
+    orientation in `placement_kw`, the obstacle `bands`): each casing box clears the local
+    contour + rings over its own span. Adds "rotation" and "placement" (the solve's
+    report) to the layout."""
     if layout is None:
         return None
-    r_max = float(profile_r_max_m)
-    origin = (geometry3d.TURBOPUMP_ORIGIN_X_LENGTH_FRACTION * float(profile_x_max_m),
-              r_max + layout["neg_y_extent_m"] + geometry3d.TURBOPUMP_STANDOFF_R_FRACTION * r_max,
-              0.0)
-    return dict(layout, origin_xyz=origin)
+    pl = geometry3d.turbopump_placement(layout_boxes(layout), profile_xs_m, profile_rs_m,
+                                        **placement_kw)
+    return dict(layout, origin_xyz=pl["origin_xyz"], rotation=pl["rotation"], placement=pl)
 
 
 def _rotation(layout):
@@ -531,8 +562,7 @@ def self_test():
         ports = r["turbopump_ports"]
         dis = {k: ports[k]["discharge"]["dia_m"] for k in PUMP_KEYS}
         exh = ports.get("turbine", {}).get("exhaust", {}).get("dia_m", 0.0)
-        lay = place_layout(build_layout(sz, dis, exh), float(np.max(r["profile_xs_m"])),
-                           float(np.max(r["profile_rs_m"])))
+        lay = place_layout(build_layout(sz, dis, exh), r["profile_xs_m"], r["profile_rs_m"])
         tag = f"{name}{over or ''}"
         dual = len(lay["units"]) > 1
         cp = ports_from_layout(lay)
@@ -568,8 +598,13 @@ def self_test():
                 if rest:
                     assert np.sign(group["inlet"]["dir"][0]) == np.sign(mid - np.mean(rest)), (tag, key)
         # the engine-side reach clears the chamber by the ghost's stand-off
+        # every casing box clears the local contour over its own span by the standoff
+        # (span-aware, E1) - and the assembly sits inboard of the old bell-exit rule
+        for kind, clr in geometry3d.placement_clearances(layout_boxes(lay), lay["placement"],
+                                                         r["profile_xs_m"], r["profile_rs_m"]):
+            assert clr > 0.0, (tag, kind, clr)
         r_max = float(np.max(r["profile_rs_m"]))
-        assert lay["origin_xyz"][1] - lay["neg_y_extent_m"] > r_max, tag
+        assert lay["origin_xyz"][1] - lay["neg_y_extent_m"] <= r_max * 1.04 + 1e-9, tag
         # tightened spans: each bearing housing is SHAFT_SPAN_FACTOR x the smaller neighbour
         for k in lay["links"]:
             assert k["x1"] > k["x0"] and k["r0"] > 0 and k["r1"] > 0, tag
@@ -617,7 +652,8 @@ def self_test():
         d = corpus(name, turbopump_geometry_model="casings")
         r = d.compute()
         lay = r["turbopump_layout"]
-        assert lay and lay["origin_xyz"][1] > float(np.max(r["profile_rs_m"])), name
+        assert lay and lay["placement"]["axis_radius_m"] > float(np.max(r["profile_rs_m"][:5])), name
+        assert r["turbopump_placement"]["origin_xyz"] == lay["origin_xyz"], name
         again = ports_from_layout(lay)
         for key, group in r["turbopump_ports"].items():
             for pname, p in group.items():
