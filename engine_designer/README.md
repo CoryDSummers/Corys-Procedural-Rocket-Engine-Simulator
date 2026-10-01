@@ -673,7 +673,17 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   flanges (discharges face the engine), so a pump-connected plumbing run - and its
   computed line loss - and the exhaust duct follow them. Turbopump mass is unchanged
   (casing walls are roadmap E3). Casings only; the turbine's are envelope factors until
-  Round 3; a geared set is drawn inline (no gearbox yet). Otherwise rotor speed is a preliminary estimate - `validate.py`'s
+  Round 3; a geared set is drawn inline (no gearbox yet). **Turbopump Placement (3D)**
+  (Turbopump tab, roadmap E1, 2026-09-30, schema 20): clock angle round the engine,
+  axial station, stand-off and shaft orientation (axial / tangential); the auto default
+  sits the assembly beside the chamber - each part clears the local contour, manifold
+  rings and exhaust hardware over its own span (`geometry3d.turbopump_placement`), no
+  longer the bell-exit radius - and the exhaust hardware / ring inlets clock with it.
+  Pump-connected runs close onto the ports with orthogonal auto legs (along the pump's
+  axes, warn rows for oblique / through-the-wall / stale routes), and an overboard
+  exhaust nozzle without a baked duct sits on the exhaust port's axis (one-elbow default
+  duct). Drawing + port positions only - no mass; mounting struts and a clash check are
+  still to come. Otherwise rotor speed is a preliminary estimate - `validate.py`'s
   `run_turbopump_sizing_check()` spot-checks it against real J-2 / F-1 /
   RD-0110 numbers with wide bands. Warns (never blocks) on tip-speed over the
   material limit, turbine gas too hot for the material, titanium wetted by an

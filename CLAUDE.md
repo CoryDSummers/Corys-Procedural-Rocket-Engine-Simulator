@@ -384,11 +384,20 @@ one status/Edit/Clear row per `plumbing.HOSTS` entry, labels/hints/roles in `HOS
 per-ring manifold sizing sliders (fuel / ox / jacket inlet groups); runs are seeded from `default_run_for_host` = the old auto-drawn
 jacket-inlet duct), drawn by `gui/mesh_builder.build_plumbing_pieces` in BOTH the Lab and the main
 3D preview, where a baked jacket_inlet run replaces the legacy auto duct; the Lab also ghosts the
-turbopump (placed via `geometry3d.turbopump_origin_for_result`, shared by both previews, the Lab
-and design.py); each pump has inlet/discharge HOOK POINTS (`geometry3d.turbopump_ports` ->
-`result["turbopump_ports"]`: pos/dir/bore; inlet = eye dia `turbopump_sizing.inlet_eye_dia_m`,
-discharge = the downstream ring's feed bore) drawn as nozzle stubs; a run with `connect_to_pump`
-gets two AUTO legs closing it onto `plumbing.HOST_PUMP[host]`'s discharge port (re-solved per
+turbopump (placed by `geometry3d.turbopump_placement` - roadmap E1, schema 20: user
+`turbopump_azimuth_deg` / `_axial_station_frac` / `_standoff_m` / `_shaft_orientation` (axial |
+tangential), auto = every assembly box clears the contour + rings + exhaust hardware
+(`obstacle_bands`/`envelope_r_max`) over its OWN span, not the bell-exit radius; a placement dict
+{origin_xyz, rotation} pivots the legacy local frame (`split_placement`), consumers read
+`turbopump_placement_for_result` / `result["turbopump_placement"]`; exhaust hardware + ring-inlet
+defaults clock with the azimuth, an overboard nozzle with no baked duct clocks onto the exhaust
+port's axis (`plumbing.overboard_outlet_on_port_axis`); mounts + clash check = rest of E1, open);
+each pump has inlet/discharge HOOK POINTS (`geometry3d.turbopump_ports` ->
+`result["turbopump_ports"]`: pos/dir/bore/frame; inlet = eye dia `turbopump_sizing.inlet_eye_dia_m`,
+discharge = the downstream ring's feed bore; turbine exhaust = tangential on the engine-side rim)
+drawn as nozzle stubs; a run with `connect_to_pump` gets ORTHOGONAL AUTO legs (`plumbing.
+_manhattan_targets`: <= 3 straights along the port's frame, warn rows for oblique / stale /
+through-the-wall legs) closing it onto `plumbing.HOST_PUMP[host]`'s discharge port (re-solved per
 caller, so it always lands on the port; "Route to pump" = `plumbing.seed_route_to_port`), an
 unconnected run still gets the straight ray; a connected run's `plumbing.run_pressure_loss_pa`
 (+ `VALVE_AND_UNMODELED_K`) REPLACES the default feed loss for that pump leg (open cycles: the

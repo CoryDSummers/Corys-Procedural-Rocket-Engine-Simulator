@@ -251,8 +251,11 @@ flowchart TD
     STP --> CHK["turbopump_material_suitability<br/>no blade alloy: one rule for disk and blades<br/>blade alloy set: blade limit from SP-8110 Fig. 30 + disk at 0.878 Tin<br/>bearing_suitability: shaft d from torque, DN = rpm x bore"]
     CHK --> SC2["suction_checks, hydraulics_checks<br/>NPSH, temperature, boost, head curve, impeller outlet, axial stall"]
     STP --> TEH["turbine_exhaust.size_hardware (open cycles)<br/>duct, scroll, exhaust nozzle, HX"]
-    STP --> PORTS["geometry3d.turbopump_ports<br/>pump inlet / discharge / turbine exhaust hook points"]
-    PORTS --> PL["plumbing runs, incl. the default exhaust duct<br/>plumbing.run_pressure_loss_pa"]
+    STP --> PLACE["geometry3d.turbopump_placement (E1)<br/>azimuth / axial station / standoff / shaft orientation<br/>every box clears contour + rings + exhaust hardware over its own span"]
+    TEH --> PLACE
+    PLACE --> PORTS["geometry3d.turbopump_ports or turbopump_layout.ports_from_layout<br/>pump inlet / discharge / turbine exhaust hook points + routing frame"]
+    PORTS --> TEC["overboard nozzle clocked onto the exhaust port axis<br/>(no baked duct run) - size_hardware again"]
+    PORTS --> PL["plumbing runs, incl. the default exhaust duct<br/>orthogonal auto legs onto the port<br/>plumbing.run_pressure_loss_pa"]
     PL --> LLC[/"line_loss_computed: used by the next pass"/]
     MASS --> RU["stage 20 rollup_stage.burn_time_and_mass<br/>electric: battery + motor rebuilt at the rated burn time<br/>dry mass += turbopump + battery/motor + exhaust hardware"]
     TEH --> RU
