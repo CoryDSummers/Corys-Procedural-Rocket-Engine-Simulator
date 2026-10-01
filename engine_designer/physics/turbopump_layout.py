@@ -455,7 +455,8 @@ def dir_to_world(layout, key, direction):
 
 def _port_world(layout, key, port):
     return {"base": to_world(layout, key, port["base"]), "pos": to_world(layout, key, port["pos"]),
-            "dir": dir_to_world(layout, key, port["dir"]), "dia_m": port["dia_m"]}
+            "dir": dir_to_world(layout, key, port["dir"]), "dia_m": port["dia_m"],
+            "frame": geometry3d.port_frame_rows(_rotation(layout))}
 
 
 def ports_from_layout(layout):

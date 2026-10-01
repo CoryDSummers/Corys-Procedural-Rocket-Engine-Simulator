@@ -150,10 +150,10 @@ def turbopump_and_plumbing(self, s):
         _tube = manifold.ring_outer_radius_at(_hk, _hk["attach_angular_position_deg"])
         _te_port = plumbing.port_for_host(s.turbopump_ports, "turbine_exhaust")
         if _te_port is not None:
+            # (a point hook - the overboard exhaust nozzle - keeps its own attach angle:
+            # plumbing._seed_point_route seeds for it, not for the port's angle)
             _seed = plumbing.seed_route_to_port(_hk, _te_port, _hk["major_radius_m"], _tube,
                                                 "turbine_exhaust", bend_radius_dia_mult=1.0)
-            if _hk.get("point_hook"):   # the exhaust nozzle stays where it was placed
-                _seed.attach_angle_deg = float(_hk["attach_angular_position_deg"])
         else:
             _seed = plumbing.default_run_for_host(_hk, _tube, "turbine_exhaust")
         _implicit_te = plumbing.run_to_dict(_seed)
@@ -193,6 +193,9 @@ def turbopump_and_plumbing(self, s):
                                     manifold.ring_outer_radius_at(_hook, _run.attach_angle_deg),
                                     supercritical=((s._fuel_lh2 and _run.host != "ox")
                                                    or _te_run), port=_port)
+        if _res["closes_on_port"]:
+            _res["advisories"].extend(plumbing.auto_leg_clearance_advisories(
+                _res, s.xs, s.rs, _run.host))
         _m_total, _m_pipe, _m_flange = plumbing.plumbing_mass_kg(_hook, _res)
         s.plumbing_mass_kg += _m_total
         s.plumbing_total_length_m += _res["total_length_m"]

@@ -424,7 +424,7 @@
 },
 {
 "category": "plumbing",
-"detail": "OK - 2.03 m, 30.2 kg, -> turbine, line loss 42 kPa",
+"detail": "OK - 2.55 m, 33.4 kg, -> turbine, line loss 48 kPa",
 "name": "Plumbing run on 'turbine_exhaust' geometry (1 pipes) (default exhaust duct)",
 "passed": true
 },
@@ -448,7 +448,7 @@
 },
 {
 "category": "plumbing",
-"detail": "OK - 30.2 kg over 2.03 m",
+"detail": "OK - 33.4 kg over 2.55 m",
 "name": "Plumbing structural mass fraction",
 "passed": true
 },
@@ -529,7 +529,7 @@
 "__f__": "0.9971611434734085"
 },
 "computed_dry_mass_kg": {
-"__f__": "1232.1520293374062"
+"__f__": "1235.3737722462604"
 },
 "convergent_half_angle_deg": {
 "__f__": "30.0"
@@ -3995,14 +3995,14 @@
 },
 "performance_source": "equilibrium",
 "plumbing_mass_kg": {
-"__f__": "30.219327409298234"
+"__f__": "33.441070318152526"
 },
 "plumbing_results": [
 {
 "advisories": [
-"Pipe 2: its 1.00-dia elbow needs more straight run than pipe 1 / pipe 2 have - rendered at 0.15 dia instead.",
-"Pipe 2: combined yaw+pitch turn is 168 deg (> 90) - a very tight elbow for a feed line.",
-"Pipe 3: combined yaw+pitch turn is 102 deg (> 90) - a very tight elbow for a feed line."
+"Pipe 2: its 1.00-dia elbow needs more straight run than pipe 1 / pipe 2 have - rendered at 0.43 dia instead.",
+"Pipe 3: its 1.00-dia elbow needs more straight run than pipe 2 / pipe 3 have - rendered at 0.73 dia instead.",
+"Pipe 4: its 1.00-dia elbow needs more straight run than pipe 3 / pipe 4 have - rendered at 0.73 dia instead."
 ],
 "connected_pump": "turbine",
 "flange_mass_kg": {
@@ -4011,7 +4011,7 @@
 "host": "turbine_exhaust",
 "implicit": true,
 "mass_kg": {
-"__f__": "30.219327409298234"
+"__f__": "33.441070318152526"
 },
 "n_flanges": 1,
 "n_pipes": 1,
@@ -4024,12 +4024,24 @@
 },
 {
 "__f__": "0.24738932333456015"
+},
+{
+"__f__": "0.24738932333456015"
+},
+{
+"__f__": "0.24738932333456015"
 }
 ],
 "pipe_mass_kg": {
-"__f__": "12.49128119997442"
+"__f__": "15.71302410882871"
 },
 "pipe_velocities_ms": [
+{
+"__f__": "135.9128988601007"
+},
+{
+"__f__": "135.9128988601007"
+},
 {
 "__f__": "135.9128988601007"
 },
@@ -4041,17 +4053,17 @@
 }
 ],
 "pressure_loss_pa": {
-"__f__": "42116.828698157384"
+"__f__": "48448.2654830597"
 },
 "pressure_loss_parts_pa": {
 "elbows_pa": {
-"__f__": "27642.648076276124"
+"__f__": "33669.23902670455"
 },
 "entry_pa": {
 "__f__": "13292.238068181814"
 },
 "friction_pa": {
-"__f__": "1181.9425536994431"
+"__f__": "1486.7883881733408"
 },
 "reducers_pa": {
 "__f__": "0.0"
@@ -4061,12 +4073,12 @@
 "root_reducer": false,
 "root_tangential": false,
 "total_length_m": {
-"__f__": "2.026268984305768"
+"__f__": "2.5488829281526058"
 }
 }
 ],
 "plumbing_total_length_m": {
-"__f__": "2.026268984305768"
+"__f__": "2.5488829281526058"
 },
 "profile_meta": {
 "convergent_length_m": {
@@ -5266,7 +5278,7 @@
 "__f__": "0.0"
 },
 "attach_poloidal_deg": {
-"__f__": "0.0"
+"__f__": "90.0"
 },
 "connect_to_pump": true,
 "flange_at_root": false,
@@ -5290,7 +5302,7 @@
 "flange_at_end": false,
 "kind": "pipe",
 "length_dia_mult": {
-"__f__": "2.6"
+"__f__": "0.37880395171852616"
 },
 "pitch_deg": {
 "__f__": "0.0"
@@ -5399,6 +5411,43 @@
 }
 ]
 },
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
+]
+},
 "pos": {
 "__nd__": [
 {
@@ -5441,6 +5490,43 @@
 {
 "__f__": "0.0"
 }
+]
+},
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
 ]
 },
 "pos": {
@@ -5489,6 +5575,43 @@
 }
 ]
 },
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
+]
+},
 "pos": {
 "__nd__": [
 {
@@ -5531,6 +5654,43 @@
 {
 "__f__": "0.0"
 }
+]
+},
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
 ]
 },
 "pos": {
@@ -5577,6 +5737,43 @@
 {
 "__f__": "0.0"
 }
+]
+},
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
 ]
 },
 "pos": {

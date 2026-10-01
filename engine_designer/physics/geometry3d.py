@@ -133,6 +133,14 @@ def place_dir(rot, d):
     return d if rot is None else rot @ np.asarray(d, dtype=float)
 
 
+def port_frame_rows(rot):
+    """A port's routing frame (plumbing.port_frame): rows = the assembly's local x / y / z
+    axes in engine coordinates (R^T) - for either shaft orientation the same three axes:
+    the engine axis, the pump's outboard radial (always row 1) and its tangent. The pipe
+    runs closing onto the port are squared to these."""
+    return np.eye(3) if rot is None else np.asarray(rot, dtype=float).T.copy()
+
+
 def turbopump_origin_xyz(profile_x_max_m, profile_r_max_m, assembly_od_m):
     """The (x, y, z) the assembly's `x0_m = 0` bodies start from."""
     y_offset = (profile_r_max_m + 0.5 * assembly_od_m
@@ -246,7 +254,7 @@ def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None,
                                 turbine_exhaust_dia_m)
         return {key: {name: dict(p, base=place_point(origin_xyz, rot, p["base"]),
                                  pos=place_point(origin_xyz, rot, p["pos"]),
-                                 dir=place_dir(rot, p["dir"]))
+                                 dir=place_dir(rot, p["dir"]), frame=port_frame_rows(rot))
                       for name, p in group.items()}
                 for key, group in ports.items()}
     discharge_dia_by_pump = discharge_dia_by_pump or {}
@@ -270,9 +278,11 @@ def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None,
         eye = float(((sizing or {}).get(name) or {}).get("inlet_eye_dia_m", 0.0) or 0.0)
         dis_dia = float(discharge_dia_by_pump.get(name, 0.0) or 0.0)
         out[name] = {"inlet": {"base": inlet_pos, "dir": inlet_dir, "dia_m": eye,
-                               "pos": inlet_pos + PORT_STUB_DIA_MULT * eye * inlet_dir},
+                               "pos": inlet_pos + PORT_STUB_DIA_MULT * eye * inlet_dir,
+                               "frame": port_frame_rows(None)},
                      "discharge": {"base": dis_pos, "dir": dis_dir, "dia_m": dis_dia,
-                                   "pos": dis_pos + PORT_STUB_DIA_MULT * dis_dia * dis_dir}}
+                                   "pos": dis_pos + PORT_STUB_DIA_MULT * dis_dia * dis_dir,
+                                   "frame": port_frame_rows(None)}}
     turbines = [c for c in centers if c["kind"] == "turbine"]
     if turbine_exhaust_dia_m > 0 and turbines:
         c = turbines[0]
@@ -283,7 +293,8 @@ def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None,
         ex_base = c["pos"] + 0.5 * c["length_m"] * ex_dir
         d = float(turbine_exhaust_dia_m)
         out["turbine"] = {"exhaust": {"base": ex_base, "dir": ex_dir, "dia_m": d,
-                                      "pos": ex_base + PORT_STUB_DIA_MULT * d * ex_dir}}
+                                      "pos": ex_base + PORT_STUB_DIA_MULT * d * ex_dir,
+                                      "frame": port_frame_rows(None)}}
     return out
 
 

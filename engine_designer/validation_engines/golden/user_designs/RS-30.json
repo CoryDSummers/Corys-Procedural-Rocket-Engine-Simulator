@@ -442,7 +442,7 @@
 },
 {
 "category": "plumbing",
-"detail": "OK - 2.73 m, 60.7 kg, -> turbine, line loss 79 kPa",
+"detail": "OK - 1.02 m, 45.2 kg, -> turbine, line loss 71 kPa",
 "name": "Plumbing run on 'turbine_exhaust' geometry (1 pipes) (default exhaust duct)",
 "passed": true
 },
@@ -466,7 +466,7 @@
 },
 {
 "category": "plumbing",
-"detail": "OK - 60.7 kg over 2.73 m",
+"detail": "OK - 45.2 kg over 1.02 m",
 "name": "Plumbing structural mass fraction",
 "passed": true
 },
@@ -547,7 +547,7 @@
 "__f__": "0.9986016950366152"
 },
 "computed_dry_mass_kg": {
-"__f__": "2790.9026162405044"
+"__f__": "2775.390109623371"
 },
 "convergent_half_angle_deg": {
 "__f__": "35.0"
@@ -4071,13 +4071,13 @@
 },
 "performance_source": "equilibrium",
 "plumbing_mass_kg": {
-"__f__": "60.67975262917663"
+"__f__": "45.167246012042874"
 },
 "plumbing_results": [
 {
 "advisories": [
-"Pipe 2: its 1.00-dia elbow needs more straight run than pipe 1 / pipe 2 have - rendered at 0.29 dia instead.",
-"Pipe 2: combined yaw+pitch turn is 160 deg (> 90) - a very tight elbow for a feed line."
+"Pipe 2: its 1.00-dia elbow needs more straight run than pipe 1 / pipe 2 have - rendered at 0.59 dia instead.",
+"Pipe 3: its 1.00-dia elbow needs more straight run than pipe 2 / pipe 3 have - rendered at 0.49 dia instead."
 ],
 "connected_pump": "turbine",
 "flange_mass_kg": {
@@ -4086,7 +4086,7 @@
 "host": "turbine_exhaust",
 "implicit": true,
 "mass_kg": {
-"__f__": "60.67975262917663"
+"__f__": "45.167246012042874"
 },
 "n_flanges": 1,
 "n_pipes": 1,
@@ -4102,7 +4102,7 @@
 }
 ],
 "pipe_mass_kg": {
-"__f__": "24.75561250304021"
+"__f__": "9.243105885906452"
 },
 "pipe_velocities_ms": [
 {
@@ -4116,17 +4116,17 @@
 }
 ],
 "pressure_loss_pa": {
-"__f__": "79079.29762855599"
+"__f__": "71449.57722880217"
 },
 "pressure_loss_parts_pa": {
 "elbows_pa": {
-"__f__": "50770.05643735459"
+"__f__": "44494.690537396615"
 },
 "entry_pa": {
 "__f__": "26147.896412037036"
 },
 "friction_pa": {
-"__f__": "2161.3447791643493"
+"__f__": "806.9902793685173"
 },
 "reducers_pa": {
 "__f__": "0.0"
@@ -4136,12 +4136,12 @@
 "root_reducer": false,
 "root_tangential": false,
 "total_length_m": {
-"__f__": "2.728171968160797"
+"__f__": "1.0186289017722834"
 }
 }
 ],
 "plumbing_total_length_m": {
-"__f__": "2.728171968160797"
+"__f__": "1.0186289017722834"
 },
 "profile_meta": {
 "convergent_length_m": {
@@ -5320,7 +5320,7 @@
 "__f__": "0.0"
 },
 "attach_poloidal_deg": {
-"__f__": "0.0"
+"__f__": "90.0"
 },
 "connect_to_pump": true,
 "flange_at_root": false,
@@ -5344,7 +5344,7 @@
 "flange_at_end": false,
 "kind": "pipe",
 "length_dia_mult": {
-"__f__": "2.776896236993688"
+"__f__": "1.0503872161869516"
 },
 "pitch_deg": {
 "__f__": "0.0"
@@ -5453,6 +5453,43 @@
 }
 ]
 },
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
+]
+},
 "pos": {
 "__nd__": [
 {
@@ -5495,6 +5532,43 @@
 {
 "__f__": "0.0"
 }
+]
+},
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
 ]
 },
 "pos": {
@@ -5543,6 +5617,43 @@
 }
 ]
 },
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
+]
+},
 "pos": {
 "__nd__": [
 {
@@ -5585,6 +5696,43 @@
 {
 "__f__": "0.0"
 }
+]
+},
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
 ]
 },
 "pos": {
@@ -5631,6 +5779,43 @@
 {
 "__f__": "0.0"
 }
+]
+},
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+}
+]
 ]
 },
 "pos": {
