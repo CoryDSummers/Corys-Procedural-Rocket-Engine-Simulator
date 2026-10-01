@@ -2768,7 +2768,15 @@
 "__f__": "0.0"
 },
 "turbopump_geometry_model": "envelope",
+"turbopump_head_offset_m": {
+"__f__": "0.0"
+},
 "turbopump_material_key": "inconel_718",
+"turbopump_mount": "side",
+"turbopump_roll_deg": {
+"__f__": "0.0"
+},
+"turbopump_shaft_flip": false,
 "turbopump_shaft_orientation": "axial",
 "turbopump_standoff_m": {
 "__f__": "0.0"

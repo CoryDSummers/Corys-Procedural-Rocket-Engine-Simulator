@@ -88,24 +88,55 @@ TURBOPUMP_UNIT_GAP_OD_MULT = 1.15            # dual-shaft unit spacing along Z
 # {"origin_xyz", "rotation"} then pivots that about the origin: world = O + R (p - O).
 # rotation None / identity = the legacy frame, byte-for-byte. R's columns are the local
 # x / y / z axes in engine coordinates (turbopump_rotation).
-SHAFT_ORIENTATIONS = ("axial", "tangential")
+SHAFT_ORIENTATIONS = ("axial", "tangential", "radial")
+# "side" = beside the contour, pushed out radially (turbopump_placement); "head" = forward
+# of the injector head, NK-33 / RD-170 style (turbopump_placement mount="head").
+TURBOPUMP_MOUNTS = ("side", "head")
 
 
-def turbopump_rotation(azimuth_deg=0.0, shaft_orientation="axial"):
-    """3x3 rotation, columns = the assembly's local x (shaft) / y (outboard radial) / z
-    axes in engine coordinates, for an assembly clocked `azimuth_deg` round the engine
-    axis (0 = +Y, increasing toward +Z - the manifold attach_angle convention):
-      "axial":      shaft parallel to the engine axis       [e_x | e_r | e_theta]
-      "tangential": shaft along the local circumference     [e_theta | e_r | -e_x]
-    (both det +1, so mesh winding survives). Azimuth 0 + "axial" is exactly I."""
+def placement_frame(azimuth_deg=0.0):
+    """The engine-aligned frame at the pump's clock angle, as COLUMNS [e_x | e_r | e_theta]
+    (0 = +Y, increasing toward +Z - the manifold attach_angle convention). Azimuth 0 is
+    exactly I. It is also the "axial" shaft rotation."""
     phi = np.radians(float(azimuth_deg))
     c, s_ = (1.0, 0.0) if float(azimuth_deg) == 0.0 else (float(np.cos(phi)), float(np.sin(phi)))
-    e_x = np.array([1.0, 0.0, 0.0])
-    e_r = np.array([0.0, c, s_])
-    e_t = np.array([0.0, -s_, c])
+    return np.column_stack([np.array([1.0, 0.0, 0.0]), np.array([0.0, c, s_]),
+                            np.array([0.0, -s_, c])])
+
+
+def turbopump_rotation(azimuth_deg=0.0, shaft_orientation="axial", roll_deg=0.0, flip=False):
+    """3x3 rotation, columns = the assembly's local x (shaft) / y / z axes in engine
+    coordinates: R = P(azimuth) . B0(orientation) . F(flip) . Rx(roll).
+      "axial":      shaft parallel to the engine axis       [e_x | e_r | e_theta]
+      "tangential": shaft along the local circumference     [e_theta | e_r | -e_x]
+      "radial":     shaft along the outboard radial         [e_r | e_x | -e_theta]
+    `flip` reverses the shaft ends (180 deg about local y, so the engine side -y stays);
+    `roll_deg` spins the assembly about its own shaft (right-handed: +y toward +z), which
+    clocks its ports. All det +1, so mesh winding survives. Azimuth 0 + "axial" with no
+    roll / flip is exactly I; roll 0 / no flip leave each preset's matrix bit-for-bit."""
+    pf = placement_frame(azimuth_deg)
+    e_x, e_r, e_t = pf[:, 0], pf[:, 1], pf[:, 2]
     if shaft_orientation == "tangential":
-        return np.column_stack([e_t, e_r, -e_x])
-    return np.column_stack([e_x, e_r, e_t])
+        rot = np.column_stack([e_t, e_r, -e_x])
+    elif shaft_orientation == "radial":
+        rot = np.column_stack([e_r, e_x, -e_t])
+    else:
+        rot = pf
+    if flip:
+        rot = np.column_stack([-rot[:, 0], rot[:, 1], -rot[:, 2]])
+    if roll_deg and float(roll_deg) % 360.0 != 0.0:
+        a = np.radians(float(roll_deg))
+        ca, sa = float(np.cos(a)), float(np.sin(a))
+        rot = rot @ np.array([[1.0, 0.0, 0.0], [0.0, ca, -sa], [0.0, sa, ca]])
+    return rot
+
+
+def placement_frame_rows(azimuth_deg=0.0):
+    """The routing frame stamped on every port (plumbing.port_frame): ROWS = the engine
+    axis, the outboard radial at the pump's clock angle (always row 1) and its tangent.
+    Engine-aligned whatever the pump's own orientation / roll, so the closing pipe legs
+    stay squared to the engine; only a rolled port's own stub leaves at an angle."""
+    return placement_frame(azimuth_deg).T.copy()
 
 
 def split_placement(placement):
@@ -134,11 +165,22 @@ def place_dir(rot, d):
 
 
 def port_frame_rows(rot):
-    """A port's routing frame (plumbing.port_frame): rows = the assembly's local x / y / z
-    axes in engine coordinates (R^T) - for either shaft orientation the same three axes:
-    the engine axis, the pump's outboard radial (always row 1) and its tangent. The pipe
-    runs closing onto the port are squared to these."""
+    """A port's routing frame from a bare rotation (R^T) - the fallback for a placement
+    dict with no "frame" (placement_frame_of). Only meaningful for an un-rolled preset,
+    where R's columns ARE the engine axis / outboard radial / tangent in some order;
+    turbopump_placement stamps the engine-aligned placement_frame_rows instead."""
     return np.eye(3) if rot is None else np.asarray(rot, dtype=float).T.copy()
+
+
+def placement_frame_of(placement):
+    """The routing frame rows for a placement dict (its "frame", set by
+    turbopump_placement) - else port_frame_rows of its rotation; a bare origin tuple
+    = the legacy engine axes."""
+    if isinstance(placement, dict):
+        if placement.get("frame") is not None:
+            return np.asarray(placement["frame"], dtype=float).copy()
+        return port_frame_rows(split_placement(placement)[1])
+    return np.eye(3)
 
 
 def turbopump_origin_xyz(profile_x_max_m, profile_r_max_m, assembly_od_m):
@@ -146,6 +188,31 @@ def turbopump_origin_xyz(profile_x_max_m, profile_r_max_m, assembly_od_m):
     y_offset = (profile_r_max_m + 0.5 * assembly_od_m
                 + TURBOPUMP_STANDOFF_R_FRACTION * profile_r_max_m)
     return (TURBOPUMP_ORIGIN_X_LENGTH_FRACTION * float(profile_x_max_m), float(y_offset), 0.0)
+
+
+# The injector head's domed cap (drawn by gui/mesh_builder / preview3d, framed by
+# preview3d_gl_core.compute_bounds): a quarter-ellipse this x the chamber head radius deep,
+# forward of the injector face (x < 0). Tier 3 cosmetic; shared here because a head-mounted
+# turbopump has to clear it.
+INJECTOR_DOME_DEPTH_R_FRACTION = 0.42
+
+
+def injector_dome_depth_m(chamber_head_r_m):
+    """How far the domed injector cap reaches forward of x = 0 (0 without a chamber)."""
+    r = float(chamber_head_r_m)
+    return INJECTOR_DOME_DEPTH_R_FRACTION * r if r > 0 else 0.0
+
+
+def head_x_fwd(profile_xs_m, profile_rs_m, bands=()):
+    """The forward-most x of the engine itself: the contour start, the injector dome and
+    every obstacle band (rings / exhaust hardware). A head-mounted turbopump (mount "head")
+    sits wholly forward of it - everything else is aft, so the global minimum is right."""
+    xs = np.asarray(profile_xs_m, dtype=float)
+    rs = np.asarray(profile_rs_m, dtype=float)
+    x = min(float(xs.min()), -injector_dome_depth_m(rs[0] if rs.size else 0.0))
+    for lo, _hi, _r in bands:
+        x = min(x, float(lo))
+    return x
 
 
 def obstacle_bands(hooks=(), te_hardware=None):
@@ -196,81 +263,196 @@ def envelope_r_max(profile_xs_m, profile_rs_m, x_lo, x_hi, bands=()):
 
 def boxes_from_bodies(bodies):
     """The ghost envelope's bodies as LOCAL placement boxes (turbopump_placement): shaft
-    span [x0, x1], unit offset dz, half-width in z and the engine-side (-y) reach."""
+    span [x0, x1], unit offset dz, half-width in z, the engine-side (-y) reach and the
+    outboard (+y) reach (a cylinder: both its radius)."""
     return [{"x0": float(b["x0_m"]), "x1": float(b["x0_m"] + b["length_m"]), "dz": float(dz),
-             "half_z": 0.5 * float(b["od_m"]), "reach": 0.5 * float(b["od_m"]), "kind": b["kind"]}
+             "half_z": 0.5 * float(b["od_m"]), "reach": 0.5 * float(b["od_m"]),
+             "reach_out": 0.5 * float(b["od_m"]), "kind": b["kind"]}
             for b, dz in zip(bodies, turbopump_unit_dz(bodies))]
+
+
+def port_boxes(local_ports):
+    """LOCAL placement boxes for the ghost envelope's port nozzle stubs (turbopump_ports
+    built at origin (0, 0, 0) = the local frame): each stub = a cylinder of the port bore
+    from `base` to `pos`, as its axis-aligned box (an end disk spans r sqrt(1 - d_i^2) along
+    axis i). Added to boxes_from_bodies so a stub aimed at the engine - an inlet facing the
+    injector on a head mount, a discharge rolled toward the chamber - is cleared too. Each
+    carries its local `aim` (the port dir): turbopump_placement only counts a stub that,
+    once rotated, points AT the obstacle (_stub_counts) - one running along / round the
+    engine is cosmetic and must not push the whole pump out."""
+    out = []
+    for key, group in (local_ports or {}).items():
+        for name, p in group.items():
+            r = 0.5 * float(p.get("dia_m") or 0.0)
+            if r <= 0.0:
+                continue
+            b, q = np.asarray(p["base"], dtype=float), np.asarray(p["pos"], dtype=float)
+            d = np.asarray(p["dir"], dtype=float)
+            h = r * np.sqrt(np.clip(1.0 - d * d, 0.0, 1.0))
+            lo, hi = np.minimum(b, q) - h, np.maximum(b, q) + h
+            out.append({"x0": float(lo[0]), "x1": float(hi[0]), "reach": float(-lo[1]),
+                        "reach_out": float(hi[1]), "dz": float(0.5 * (lo[2] + hi[2])),
+                        "half_z": float(0.5 * (hi[2] - lo[2])), "kind": f"{key} {name} stub",
+                        "aim": d / max(float(np.linalg.norm(d)), 1e-12)})
+    return out
+
+
+# A port stub counts toward the placement hull when its rotated direction points at the
+# obstacle by more than this (cos of ~75 deg off it): inboard along -e_r (side mount) or
+# aft along +x (head mount). Tier 3.
+STUB_AIM_COS_MIN = 0.25
+
+
+def _active_boxes(boxes, rot, e_r, mount):
+    """The boxes a placement clears: every body / casing box, plus the port-stub boxes
+    (port_boxes, tagged "aim") whose rotated direction points at the obstacle."""
+    out = []
+    for b in boxes:
+        aim = b.get("aim")
+        if aim is not None:
+            w = rot @ np.asarray(aim, dtype=float)
+            toward = float(w[0]) if mount == "head" else -float(np.dot(w, e_r))
+            if toward <= STUB_AIM_COS_MIN:
+                continue
+        out.append(b)
+    return out
+
+
+def _box_corners(b):
+    """A local box's 8 corners: x0/x1 x (-reach, +reach_out) x dz +- half_z."""
+    return [(x, y, z) for x in (b["x0"], b["x1"]) for y in (-b["reach"], b.get("reach_out", b["reach"]))
+            for z in (b["dz"] - b["half_z"], b["dz"] + b["half_z"])]
+
+
+def placed_box_corners(boxes, placement):
+    """(N, 3) engine-coordinate corners of every LOCAL box under a placement dict / bare
+    origin - the assembly's bounding hull, for camera framing (preview3d_gl_core.
+    compute_bounds, preview3d)."""
+    origin, rot = split_placement(placement)
+    o = np.asarray(origin, dtype=float)
+    pts = np.array([c for b in boxes for c in _box_corners(b)], dtype=float)
+    if not len(pts):
+        return pts.reshape(0, 3)
+    return o + (pts if rot is None else pts @ rot.T)
+
+
+def _box_support(rot, c_l, b, g):
+    """(world-x min, world-x max, min projection on the world vector g) of a local box's
+    corners about the local point c_l under `rot` - plain scalar arithmetic in a fixed
+    order, so an identity rotation reproduces the pre-roll solve bit-for-bit."""
+    r0 = rot[0]
+    gl = rot.T @ np.asarray(g, dtype=float)       # g in the local frame
+    dxs, dgs = [], []
+    for x, y, z in _box_corners(b):
+        u = x - c_l[0]
+        dxs.append(r0[0] * u + r0[1] * y + r0[2] * z)
+        dgs.append(gl[0] * u + gl[1] * y + gl[2] * z)
+    return min(dxs), max(dxs), min(dgs)
 
 
 def turbopump_placement(boxes, profile_xs_m, profile_rs_m, azimuth_deg=0.0,
                         axial_station_frac=0.0, standoff_m=0.0, shaft_orientation="axial",
-                        bands=()):
+                        bands=(), roll_deg=0.0, flip=False, mount="side", head_offset_m=0.0):
     """
     Where the turbopump goes (roadmap E1): the assembly - LOCAL boxes (boxes_from_bodies
-    / turbopump_layout.layout_boxes; shaft on local x from 0, engine side -y) - clocked
-    to `azimuth_deg`, shaft per `shaft_orientation` (turbopump_rotation), its MIDPOINT at
-    axial_station_frac x engine length (0 = auto: forward end at
-    TURBOPUMP_ORIGIN_X_LENGTH_FRACTION x length, the legacy station), and pushed out
-    radially until EVERY box clears the envelope over its OWN axial span (envelope_r_max:
-    contour + rings + exhaust hardware) by `standoff_m` (0 = auto,
-    TURBOPUMP_STANDOFF_R_FRACTION x that local envelope radius). Span-aware: a pump beside
-    a narrow chamber sits beside the chamber, not beyond the bell exit.
-    Conservative: a box's tangential offset only ever adds clearance.
-    Returns {"origin_xyz", "rotation", "azimuth_deg", "shaft_orientation",
-    "axis_radius_m", "station_x_m", "x_span_m", "standoff_m", "envelope_r_m",
-    "governing_kind"} (the last three for the governing box).
-    With a constant contour, no bands, azimuth 0 and an axial shaft this is exactly the
-    legacy turbopump_origin_xyz.
+    / turbopump_layout.layout_boxes; shaft on local x from 0, engine side -y) - oriented
+    by turbopump_rotation (clock `azimuth_deg`, shaft preset `shaft_orientation`, `flip`
+    ends, `roll_deg` about its own shaft), then placed by `mount`:
+    - "side": its MIDPOINT at axial_station_frac x engine length (0 = auto: forward end at
+      TURBOPUMP_ORIGIN_X_LENGTH_FRACTION x length, the legacy station), pushed out along
+      the clocked radial until EVERY box clears the envelope over its OWN axial span
+      (envelope_r_max: contour + rings + exhaust hardware) by `standoff_m` (0 = auto,
+      TURBOPUMP_STANDOFF_R_FRACTION x that local envelope radius). Span-aware: a pump
+      beside a narrow chamber sits beside the chamber, not beyond the bell exit. Each box's
+      8 corners are rotated, so any roll / flip / preset is cleared; conservative (a
+      corner's tangential offset only ever adds clearance).
+    - "head": forward of the injector head (NK-33 / RD-170 style): its aft-most corner
+      `standoff_m` (0 = auto, TURBOPUMP_STANDOFF_R_FRACTION x the chamber head radius)
+      forward of head_x_fwd (dome, contour start, every band); its centre `head_offset_m`
+      off the engine axis along the clocked radial (0 = on the axis). axial_station_frac
+      is ignored.
+    Returns {"origin_xyz", "rotation", "frame" (placement_frame_rows - the routing frame),
+    "mount", "azimuth_deg", "shaft_orientation", "roll_deg", "flip", "axis_radius_m",
+    "station_x_m", "x_span_m", "standoff_m", "envelope_r_m", "governing_kind"} (the last
+    three for the governing box; head: envelope_r_m = the chamber head radius) and, head
+    mount only, "head_x_fwd_m" + "forward_extension_m" (how far the assembly reaches
+    forward of the injector head - not in the exported model height).
+    With a constant contour, no bands, azimuth 0, an axial shaft, no roll / flip and the
+    side mount this is exactly the legacy turbopump_origin_xyz.
     """
     orient = shaft_orientation if shaft_orientation in SHAFT_ORIENTATIONS else "axial"
-    rot = turbopump_rotation(azimuth_deg, orient)
+    mount = mount if mount in TURBOPUMP_MOUNTS else "side"
+    rot = turbopump_rotation(azimuth_deg, orient, roll_deg, flip)
+    frame = placement_frame_rows(azimuth_deg)
+    e_r = frame[1]
+    boxes = _active_boxes(boxes, rot, e_r, mount)
     xs = np.asarray(profile_xs_m, dtype=float)
+    rs = np.asarray(profile_rs_m, dtype=float)
     x_max = float(np.max(xs))
     x_lo_l = min(b["x0"] for b in boxes)
     c_l = np.array([0.5 * (x_lo_l + max(b["x1"] for b in boxes)), 0.0, 0.0])
-    # world-x offsets of each box from the assembly centre (local y never moves world x)
-    offs = []
-    for b in boxes:
-        dx = [rot[0, 0] * (x - c_l[0]) + rot[0, 2] * z
-              for x in (b["x0"], b["x1"]) for z in (b["dz"] - b["half_z"], b["dz"] + b["half_z"])]
-        offs.append((min(dx), max(dx)))
-    if axial_station_frac and axial_station_frac > 0.0:
-        c_x = float(axial_station_frac) * x_max
-    else:
-        c_x = TURBOPUMP_ORIGIN_X_LENGTH_FRACTION * x_max - min(o[0] for o in offs)
-    rho, gov = -np.inf, None
-    for b, (lo, hi) in zip(boxes, offs):
-        r_env = envelope_r_max(xs, profile_rs_m, c_x + lo, c_x + hi, bands)
+    # world-x offsets of each box from the assembly centre + its engine-side reach along
+    # the clocked radial (the corners' most-inboard projection)
+    sup = [_box_support(rot, c_l, b, e_r) for b in boxes]
+    offs = [(lo, hi) for lo, hi, _ in sup]
+    extra = {}
+    if mount == "head":
+        x_fwd = head_x_fwd(xs, rs, bands)
+        r_head = float(rs[0]) if rs.size else 0.0
         gap = float(standoff_m) if standoff_m and standoff_m > 0.0 \
-            else TURBOPUMP_STANDOFF_R_FRACTION * r_env
-        need = b["reach"] + r_env + gap
-        if need > rho:
-            rho, gov = need, (b, r_env, gap)
-    e_r = rot[:, 1]
+            else TURBOPUMP_STANDOFF_R_FRACTION * r_head
+        k_gov = max(range(len(boxes)), key=lambda k: offs[k][1])
+        c_x = x_fwd - gap - offs[k_gov][1]
+        rho = max(0.0, float(head_offset_m or 0.0))
+        gov = (boxes[k_gov], r_head, gap)
+        extra = {"head_x_fwd_m": float(x_fwd),
+                 "forward_extension_m": float(x_fwd - (c_x + min(o[0] for o in offs)))}
+    else:
+        if axial_station_frac and axial_station_frac > 0.0:
+            c_x = float(axial_station_frac) * x_max
+        else:
+            c_x = TURBOPUMP_ORIGIN_X_LENGTH_FRACTION * x_max - min(o[0] for o in offs)
+        rho, gov = -np.inf, None
+        for b, (lo, hi, g_min) in zip(boxes, sup):
+            r_env = envelope_r_max(xs, rs, c_x + lo, c_x + hi, bands)
+            gap = float(standoff_m) if standoff_m and standoff_m > 0.0 \
+                else TURBOPUMP_STANDOFF_R_FRACTION * r_env
+            need = -g_min + r_env + gap
+            if need > rho:
+                rho, gov = need, (b, r_env, gap)
     centre = np.array([c_x, 0.0, 0.0]) + rho * e_r
     origin = centre - rot @ c_l
-    return {"origin_xyz": tuple(float(v) for v in origin), "rotation": rot,
-            "azimuth_deg": float(azimuth_deg), "shaft_orientation": orient,
-            "axis_radius_m": float(rho), "station_x_m": float(c_x),
-            "x_span_m": (float(c_x + min(o[0] for o in offs)), float(c_x + max(o[1] for o in offs))),
-            "standoff_m": float(gov[2]), "envelope_r_m": float(gov[1]),
-            "governing_kind": gov[0].get("kind", "")}
+    return dict({"origin_xyz": tuple(float(v) for v in origin), "rotation": rot,
+                 "frame": frame, "mount": mount,
+                 "azimuth_deg": float(azimuth_deg), "shaft_orientation": orient,
+                 "roll_deg": float(roll_deg or 0.0), "flip": bool(flip),
+                 "axis_radius_m": float(rho), "station_x_m": float(c_x),
+                 "x_span_m": (float(c_x + min(o[0] for o in offs)),
+                              float(c_x + max(o[1] for o in offs))),
+                 "standoff_m": float(gov[2]), "envelope_r_m": float(gov[1]),
+                 "governing_kind": gov[0].get("kind", "")}, **extra)
 
 
 def placement_clearances(boxes, placement, profile_xs_m, profile_rs_m, bands=()):
-    """[(kind, clearance_m)] per box of a placed assembly: how far its engine-side reach
-    sits outside the envelope (envelope_r_max) over its OWN world-x span, measured along
-    the pump's outboard radial. >= the resolved standoff for a turbopump_placement solve;
+    """[(kind, clearance_m)] per box of a placed assembly. Side mount: how far its
+    engine-side corners sit outside the envelope (envelope_r_max) over its OWN world-x span,
+    measured along the clocked outboard radial. Head mount: how far its aft-most corner
+    sits forward of head_x_fwd. >= the resolved standoff for a turbopump_placement solve;
     negative = it hits the engine. The check every consumer/test shares."""
     rot = np.asarray(placement["rotation"], dtype=float)
     o = np.asarray(placement["origin_xyz"], dtype=float)
+    e_r = placement_frame_of(placement)[1]
+    head = placement.get("mount") == "head"
+    x_fwd = head_x_fwd(profile_xs_m, profile_rs_m, bands) if head else 0.0
+    zero = np.zeros(3)
     out = []
-    for b in boxes:
-        xw = [o[0] + rot[0] @ np.array([x, 0.0, z])
-              for x in (b["x0"], b["x1"]) for z in (b["dz"] - b["half_z"], b["dz"] + b["half_z"])]
-        r_env = envelope_r_max(profile_xs_m, profile_rs_m, min(xw), max(xw), bands)
-        ctr = o + rot @ np.array([0.5 * (b["x0"] + b["x1"]), 0.0, b["dz"]])
-        out.append((b.get("kind", ""), float(np.dot(ctr, rot[:, 1])) - b["reach"] - r_env))
+    for b in _active_boxes(boxes, rot, e_r, "head" if head else "side"):
+        lo, hi, g_min = _box_support(rot, zero, b, e_r)
+        if head:
+            out.append((b.get("kind", ""), x_fwd - (o[0] + hi)))
+            continue
+        r_env = envelope_r_max(profile_xs_m, profile_rs_m, o[0] + lo, o[0] + hi, bands)
+        out.append((b.get("kind", ""), float(np.dot(o, e_r)) + g_min - r_env))
     return out
 
 
@@ -341,7 +523,11 @@ def turbopump_placement_for_result(result):
         return None
     src = result.get("turbopump_layout") or result.get("turbopump_placement") or {}
     rot = src.get("rotation")
-    return {"origin_xyz": origin, "rotation": None if rot is None else np.asarray(rot, dtype=float)}
+    pl = result.get("turbopump_placement") or src.get("placement") or {}
+    out = {"origin_xyz": origin, "rotation": None if rot is None else np.asarray(rot, dtype=float)}
+    if pl.get("frame") is not None:
+        out["frame"] = np.asarray(pl["frame"], dtype=float)
+    return out
 
 
 PUMP_NAMES = ("fuel_pump", "ox_pump")
@@ -370,19 +556,20 @@ def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None,
       {"turbine": {"exhaust": {"base", "pos", "dir", "dia_m"}}}: on the (first)
       turbine body's rim facing the engine, `dir` tangential (the fuel side's +-z,
       like the casings' exhaust scroll) - where the exhaust duct leaves the turbine.
-    Every port also carries `frame` (port_frame_rows: the axes its pipe runs are
-    squared to).
+    Every port also carries `frame` (placement_frame_of the placement: the engine-aligned
+    axes its pipe runs are squared to, whatever the pump's own roll).
     Each port also carries `base` (the point on the body surface); `pos` sits
     PORT_STUB_DIA_MULT x bore further out along `dir` - the nozzle stub's face,
     where a pipe run lands.
     """
+    frame = placement_frame_of(origin_xyz)
     origin_xyz, rot = split_placement(origin_xyz)
     if rot is not None:   # built in the legacy frame, then pivoted about the origin
         ports = turbopump_ports(bodies, origin_xyz, sizing, discharge_dia_by_pump,
                                 turbine_exhaust_dia_m)
         return {key: {name: dict(p, base=place_point(origin_xyz, rot, p["base"]),
                                  pos=place_point(origin_xyz, rot, p["pos"]),
-                                 dir=place_dir(rot, p["dir"]), frame=port_frame_rows(rot))
+                                 dir=place_dir(rot, p["dir"]), frame=frame.copy())
                       for name, p in group.items()}
                 for key, group in ports.items()}
     discharge_dia_by_pump = discharge_dia_by_pump or {}
@@ -600,13 +787,33 @@ if __name__ == "__main__":
     # pivoted rigidly about the origin - ports, body centres and meshes alike - and
     # the ports' bores / stub geometry survive it.
     assert np.array_equal(turbopump_rotation(0.0, "axial"), np.eye(3))
+    assert np.array_equal(turbopump_rotation(0.0, "axial", 0.0, False), np.eye(3))
+    assert np.array_equal(turbopump_rotation(0.0, "axial", 360.0), np.eye(3))
+    # presets: where the shaft (local x) points - engine axis / tangent / outboard radial
+    for az in (0.0, 37.0, 215.0):
+        pf = placement_frame(az)
+        assert np.array_equal(placement_frame_rows(az), pf.T)
+        shaft = {"axial": pf[:, 0], "tangential": pf[:, 2], "radial": pf[:, 1]}
+        for orient in SHAFT_ORIENTATIONS:
+            for roll in (0.0, 30.0, 90.0, 215.0):
+                for flip in (False, True):
+                    R = turbopump_rotation(az, orient, roll, flip)
+                    assert np.allclose(R.T @ R, np.eye(3)) and np.isclose(np.linalg.det(R), 1.0)
+                    # roll never moves the shaft; flip reverses it
+                    assert np.allclose(R[:, 0], -shaft[orient] if flip else shaft[orient])
+                    # roll = a right-handed spin about the shaft: +y toward +z
+                    R0 = turbopump_rotation(az, orient, 0.0, flip)
+                    a = np.radians(roll)
+                    assert np.allclose(R[:, 1], np.cos(a) * R0[:, 1] + np.sin(a) * R0[:, 2])
     for az in (0.0, 37.0, 90.0, 215.0):
         for orient in SHAFT_ORIENTATIONS:
             R = turbopump_rotation(az, orient)
             assert np.allclose(R.T @ R, np.eye(3)) and np.isclose(np.linalg.det(R), 1.0)
-            # local y (outboard) is the engine radial at the azimuth, both orientations
+            # local y (outboard) is the engine radial at the azimuth for axial /
+            # tangential; the radial preset's shaft is
             phi = np.radians(az)
-            assert np.allclose(R[:, 1], [0.0, np.cos(phi), np.sin(phi)])
+            col = 0 if orient == "radial" else 1
+            assert np.allclose(R[:, col], [0.0, np.cos(phi), np.sin(phi)])
             assert np.isclose(abs(R[0, 0]), 1.0 if orient == "axial" else 0.0)
             pl = {"origin_xyz": origin, "rotation": R}
             o = np.asarray(origin)
@@ -646,29 +853,60 @@ if __name__ == "__main__":
     xs_e = np.array([0.0, 0.6, 0.9, 1.2, 3.0])           # chamber 0.3, throat 0.15, bell 1.0
     rs_e = np.array([0.3, 0.3, 0.15, 0.3, 1.0])
     legacy = turbopump_origin_xyz(3.0, 1.0, od_max)
+    band_e = [(0.05, 0.15, 0.42)]
+    c_l = 0.5 * (min(b["x0"] for b in boxes) + max(b["x1"] for b in boxes))
     for az in (0.0, 90.0, 215.0):
         for orient in SHAFT_ORIENTATIONS:
-            for stand in (0.0, 0.05):
-                pl = turbopump_placement(boxes, xs_e, rs_e, azimuth_deg=az,
-                                         shaft_orientation=orient, standoff_m=stand,
-                                         bands=[(0.05, 0.15, 0.42)])
-                R = pl["rotation"]
-                o = np.asarray(pl["origin_xyz"])
-                assert pl["axis_radius_m"] < legacy[1] - 0.3, (az, orient, pl["axis_radius_m"])
-                for b in boxes:   # each box's engine-side reach clears its own span's envelope
-                    xw = [o[0] + R[0] @ np.array([x, 0.0, z])
-                          for x in (b["x0"], b["x1"]) for z in (b["dz"] - b["half_z"],
-                                                                 b["dz"] + b["half_z"])]
-                    r_env = envelope_r_max(xs_e, rs_e, min(xw), max(xw), [(0.05, 0.15, 0.42)])
-                    ctr = o + R @ np.array([0.5 * (b["x0"] + b["x1"]), 0.0, b["dz"]])
-                    radial = float(np.dot(ctr, R[:, 1]))   # along the pump's outboard radial
-                    gap = stand or TURBOPUMP_STANDOFF_R_FRACTION * r_env
-                    assert radial - b["reach"] >= r_env + gap - 1e-9, (az, orient, b["kind"])
-                # azimuth: the assembly centre sits on the clocked radial, axis_radius out
-                c_l = 0.5 * (min(b["x0"] for b in boxes) + max(b["x1"] for b in boxes))
-                ctr = o + R @ np.array([c_l, 0.0, 0.0])
-                assert np.isclose(np.degrees(np.arctan2(ctr[2], ctr[1])) % 360.0, az % 360.0)
-                assert np.isclose(np.hypot(ctr[1], ctr[2]), pl["axis_radius_m"])
+            for roll, flip in ((0.0, False), (30.0, False), (90.0, True), (215.0, True)):
+                for stand in (0.0, 0.05):
+                    pl = turbopump_placement(boxes, xs_e, rs_e, azimuth_deg=az,
+                                             shaft_orientation=orient, standoff_m=stand,
+                                             bands=band_e, roll_deg=roll, flip=flip)
+                    R = pl["rotation"]
+                    o = np.asarray(pl["origin_xyz"])
+                    e_r = placement_frame(az)[:, 1]
+                    assert np.array_equal(pl["frame"], placement_frame_rows(az))
+                    if orient != "radial":   # a radial shaft sticks out by its own length
+                        assert pl["axis_radius_m"] < legacy[1] - 0.3, (az, orient, roll)
+                    for b in boxes:   # every corner clears its own span's envelope (re-derived)
+                        cw = [o + R @ np.array(c) for c in _box_corners(b)]
+                        r_env = envelope_r_max(xs_e, rs_e, min(c[0] for c in cw),
+                                               max(c[0] for c in cw), band_e)
+                        gap = stand or TURBOPUMP_STANDOFF_R_FRACTION * r_env
+                        inner = min(float(np.dot(c, e_r)) for c in cw)
+                        assert inner >= r_env + gap - 1e-9, (az, orient, roll, flip, b["kind"])
+                    clr = placement_clearances(boxes, pl, xs_e, rs_e, band_e)
+                    assert min(c for _, c in clr) >= stand - 1e-9   # the shared check agrees
+                    # azimuth: the assembly centre sits on the clocked radial, axis_radius out
+                    ctr = o + R @ np.array([c_l, 0.0, 0.0])
+                    assert np.isclose(np.degrees(np.arctan2(ctr[2], ctr[1])) % 360.0, az % 360.0)
+                    assert np.isclose(np.hypot(ctr[1], ctr[2]), pl["axis_radius_m"])
+    # head mount (2026-10-01): wholly forward of the injector dome / contour / bands by the
+    # standoff, centred head_offset_m off the axis along the clocked radial
+    r_head = rs_e[0]
+    assert np.isclose(head_x_fwd(xs_e, rs_e), -INJECTOR_DOME_DEPTH_R_FRACTION * r_head)
+    assert head_x_fwd(xs_e, rs_e, [(-0.5, 0.1, 0.4)]) == -0.5
+    for az in (0.0, 120.0):
+        for orient in SHAFT_ORIENTATIONS:
+            for roll, flip in ((0.0, False), (45.0, True)):
+                for stand, off in ((0.0, 0.0), (0.03, 0.2)):
+                    pl = turbopump_placement(boxes, xs_e, rs_e, azimuth_deg=az,
+                                             shaft_orientation=orient, standoff_m=stand,
+                                             bands=band_e, roll_deg=roll, flip=flip,
+                                             mount="head", head_offset_m=off)
+                    R, o = pl["rotation"], np.asarray(pl["origin_xyz"])
+                    gap = stand or TURBOPUMP_STANDOFF_R_FRACTION * r_head
+                    x_fwd = head_x_fwd(xs_e, rs_e, band_e)
+                    aft = max(float((o + R @ np.array(c))[0]) for b in boxes
+                              for c in _box_corners(b))
+                    assert np.isclose(aft, x_fwd - gap), (az, orient, roll, aft, x_fwd)
+                    ctr = o + R @ np.array([c_l, 0.0, 0.0])
+                    assert np.allclose(ctr[1:], off * placement_frame(az)[1:, 1])
+                    assert pl["mount"] == "head" and pl["forward_extension_m"] > gap
+                    clr = placement_clearances(boxes, pl, xs_e, rs_e, band_e)
+                    assert np.isclose(min(c for _, c in clr), gap)
+    # an unknown mount / orientation falls back to side / axial
+    assert turbopump_placement(boxes, xs_e, rs_e, mount="roof")["mount"] == "side"
     # an explicit axial station centres the assembly there; the ring band pushes it out
     pl_st = turbopump_placement(boxes, xs_e, rs_e, axial_station_frac=0.25)
     assert np.isclose(np.mean(pl_st["x_span_m"]), 0.75)

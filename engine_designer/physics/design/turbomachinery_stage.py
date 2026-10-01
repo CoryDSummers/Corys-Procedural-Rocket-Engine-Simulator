@@ -119,13 +119,18 @@ def turbopump_and_plumbing(self, s):
     s.turbopump_placement = None
     if s.tp_sizing and s.tp_sizing.get("bodies"):
         # Placement (roadmap E1, geometry3d.turbopump_placement): the user's clock /
-        # station / standoff / shaft orientation; each box clears the contour + every
-        # ring and the exhaust hardware over its own axial span.
+        # station / standoff / shaft orientation / roll / flip and side or head mount;
+        # each box clears the contour + every ring and the exhaust hardware over its own
+        # axial span (side), or sits forward of the injector head (head).
         _te_hw = s.te_hardware or {}
         _pl_kw = dict(azimuth_deg=float(self.turbopump_azimuth_deg),
                       axial_station_frac=float(self.turbopump_axial_station_frac),
                       standoff_m=float(self.turbopump_standoff_m),
                       shaft_orientation=self.turbopump_shaft_orientation,
+                      roll_deg=float(self.turbopump_roll_deg),
+                      flip=bool(self.turbopump_shaft_flip),
+                      mount=self.turbopump_mount,
+                      head_offset_m=float(self.turbopump_head_offset_m),
                       bands=geometry3d.obstacle_bands(
                           [plumbing.hook_for_host(_plumbing_hooks, h) for h in plumbing.HOSTS],
                           _te_hw))
@@ -153,17 +158,34 @@ def turbopump_and_plumbing(self, s):
                    "True-scale meanline casings: pump/turbine ports + plumbing on the casing "
                    "flanges (turbopump mass is still the specific-power estimate).")
         else:
+            # the hull = the bodies + their port nozzle stubs (built at the local origin)
             s.turbopump_placement = geometry3d.turbopump_placement(
-                geometry3d.boxes_from_bodies(s.tp_sizing["bodies"]), s.xs, s.rs, **_pl_kw)
+                geometry3d.boxes_from_bodies(s.tp_sizing["bodies"]) + geometry3d.port_boxes(
+                    geometry3d.turbopump_ports(s.tp_sizing["bodies"], (0.0, 0.0, 0.0),
+                                               s.tp_sizing, _dis,
+                                               turbine_exhaust_dia_m=_exhaust_dia)),
+                s.xs, s.rs, **_pl_kw)
             s.turbopump_ports = geometry3d.turbopump_ports(
                 s.tp_sizing["bodies"], s.turbopump_placement,
                 s.tp_sizing, _dis, turbine_exhaust_dia_m=_exhaust_dia)
         _pl = s.turbopump_placement
-        _check(s.checklist, s.warnings, "turbopump", "Turbopump placement", True, "",
-               f"OK - {_pl['shaft_orientation']} shaft at {_pl['azimuth_deg']:.0f} deg, axis "
-               f"{_pl['axis_radius_m']:.2f} m off the engine axis, x {_pl['x_span_m'][0]:.2f}-"
-               f"{_pl['x_span_m'][1]:.2f} m, {_pl['standoff_m'] * 1e3:.0f} mm clear of the "
-               f"{_pl['envelope_r_m']:.2f} m local envelope ({_pl['governing_kind']})")
+        _shaft = _pl['shaft_orientation'] + (" flipped" if _pl.get("flip") else "") + (
+            f", rolled {_pl['roll_deg']:.0f} deg," if _pl.get("roll_deg") else "")
+        if _pl.get("mount") == "head":
+            # the advisory Cory chose (2026-10-01): reported, not in the export height
+            _pl_note = (f"OK - head-mounted, {_shaft} shaft at {_pl['azimuth_deg']:.0f} deg, "
+                        f"axis {_pl['axis_radius_m']:.2f} m off the engine axis, "
+                        f"{_pl['standoff_m'] * 1e3:.0f} mm forward of the injector head "
+                        f"({_pl['governing_kind']}); reaches {_pl['forward_extension_m']:.2f} m "
+                        "forward of the injector head - NOT included in the exported model "
+                        "height, so pick a host model with room above the chamber")
+        else:
+            _pl_note = (f"OK - {_shaft} shaft at {_pl['azimuth_deg']:.0f} deg, axis "
+                        f"{_pl['axis_radius_m']:.2f} m off the engine axis, x "
+                        f"{_pl['x_span_m'][0]:.2f}-{_pl['x_span_m'][1]:.2f} m, "
+                        f"{_pl['standoff_m'] * 1e3:.0f} mm clear of the "
+                        f"{_pl['envelope_r_m']:.2f} m local envelope ({_pl['governing_kind']})")
+        _check(s.checklist, s.warnings, "turbopump", "Turbopump placement", True, "", _pl_note)
         # An overboard exhaust nozzle with no baked duct run clocks onto the turbine
         # exhaust port's axis (plumbing.overboard_outlet_on_port_axis): the default duct
         # is then one forward pipe + one elbow into the port, not a U round its standoff.

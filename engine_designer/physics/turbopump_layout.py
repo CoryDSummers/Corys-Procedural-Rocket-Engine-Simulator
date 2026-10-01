@@ -351,6 +351,22 @@ def _neg_y_extent(comp):
     return max(ext) if ext else 0.0
 
 
+def _pos_y_extent(comp):
+    """How far a LOCAL component reaches toward +y (outboard) - _neg_y_extent's mirror; a
+    rolled / flipped placement can turn this side toward the engine."""
+    lip = 1.0 + FLANGE_LIP_BORE_MULT
+    ext = [float(np.max(rs)) for _, rs in comp["revolves"]]
+    for s in comp["scrolls"]:
+        ext.append(float(np.max(s["center_r"] + s["tube_r"])))
+        cn = s["cone"]
+        ext += [cn["start"][1] + cn["r0"] * lip, cn["end"][1] + cn["r1"] * lip]
+    ext += [ctr + tube for _, ctr, tube in comp["tori"]]
+    for a, b, ra, rb in comp["cones"]:
+        ext += [a[1] + ra * lip, b[1] + rb * lip]
+    ext += [f["face"][1] + f["bore_r"] * lip for f in comp["flanges"]]
+    return max(ext) if ext else 0.0
+
+
 def build_layout(sizing, discharge_dia_by_pump=None, turbine_exhaust_dia_m=0.0):
     """
     The whole assembly at true scale, at the LOCAL origin (place_layout moves it beside
@@ -430,19 +446,54 @@ def _z_extent(comp):
     return max(ext) if ext else 0.0
 
 
+def _x_extent(comp):
+    """(lo, hi) of a component along its OWN shaft x (before the layout's sx flip) over
+    everything drawn - revolves, scrolls / tori (+- tube), discharge cones and flanges
+    (+- the lip) - a flange or scroll can stand proud of the [0, length] span, which a
+    head mount (clearing the injector along x) has to see."""
+    lip = 1.0 + FLANGE_LIP_BORE_MULT
+    lo, hi = [0.0], [float(comp["length_m"])]
+    for xs, _ in comp["revolves"]:
+        lo.append(float(np.min(xs)))
+        hi.append(float(np.max(xs)))
+    for s in comp["scrolls"]:
+        t = float(np.max(s["tube_r"]))
+        lo.append(s["x"] - t)
+        hi.append(s["x"] + t)
+        cn = s["cone"]
+        for p, r in ((cn["start"], cn["r0"]), (cn["end"], cn["r1"])):
+            lo.append(p[0] - r * lip)
+            hi.append(p[0] + r * lip)
+    for x, _ctr, tube in comp["tori"]:
+        lo.append(x - tube)
+        hi.append(x + tube)
+    for a, b, ra, rb in comp["cones"]:
+        lo += [a[0] - ra * lip, b[0] - rb * lip]
+        hi += [a[0] + ra * lip, b[0] + rb * lip]
+    for f in comp["flanges"]:
+        lo.append(f["face"][0] - f["bore_r"] * lip)
+        hi.append(f["face"][0] + f["bore_r"] * lip)
+    return min(lo), max(hi)
+
+
 def layout_boxes(layout):
     """The casing layout as LOCAL placement boxes (geometry3d.turbopump_placement): one per
-    component (its shaft span, unit offset, z half-width and engine-side reach) and one per
-    bearing/seal housing between neighbours."""
+    component (its drawn shaft-wise extent - _x_extent mapped through its x0 / sx - unit
+    offset, z half-width and engine-side / outboard reach) and one per bearing/seal housing
+    between neighbours."""
     boxes = []
     for key, comp in layout["components"].items():
         pl = layout["placements"][key]
-        boxes.append({"x0": pl["x_start"], "x1": pl["x_end"], "dz": pl["dz"],
-                      "half_z": _z_extent(comp), "reach": _neg_y_extent(comp), "kind": key})
+        e_lo, e_hi = _x_extent(comp)
+        ends = (pl["x0"] + pl["sx"] * e_lo, pl["x0"] + pl["sx"] * e_hi)
+        boxes.append({"x0": min(pl["x_start"], *ends), "x1": max(pl["x_end"], *ends),
+                      "dz": pl["dz"],
+                      "half_z": _z_extent(comp), "reach": _neg_y_extent(comp),
+                      "reach_out": _pos_y_extent(comp), "kind": key})
     for k in layout["links"]:
         r = max(k["r0"], k["r1"])
         boxes.append({"x0": k["x0"], "x1": k["x1"], "dz": k["dz"], "half_z": r, "reach": r,
-                      "kind": "shaft"})
+                      "reach_out": r, "kind": "shaft"})
     return boxes
 
 
@@ -487,7 +538,9 @@ def dir_to_world(layout, key, direction):
 def _port_world(layout, key, port):
     return {"base": to_world(layout, key, port["base"]), "pos": to_world(layout, key, port["pos"]),
             "dir": dir_to_world(layout, key, port["dir"]), "dia_m": port["dia_m"],
-            "frame": geometry3d.port_frame_rows(_rotation(layout))}
+            "frame": geometry3d.placement_frame_of(dict(layout.get("placement") or {},
+                                                        origin_xyz=layout["origin_xyz"],
+                                                        rotation=layout.get("rotation")))}
 
 
 def ports_from_layout(layout):
@@ -636,6 +689,32 @@ def self_test():
                         assert min(np.linalg.norm(f - q["pos"]) for f in faces) < 1e-9
             for key, pt in pump_points_from_layout(rl).items():
                 assert np.allclose(pt, o + R @ (pts[key] - o)), (tag, key)
+        # roll / flip / radial preset / head mount (2026-10-01): every casing box clears
+        # (side: the local envelope; head: forward of the injector head), ports stay on
+        # their flange faces with unit dirs, and carry the engine-aligned placement frame
+        base = build_layout(sz, dis, exh)
+        for orient, roll, flip, mount in (("axial", 30.0, False, "side"),
+                                          ("radial", 0.0, True, "side"),
+                                          ("tangential", 215.0, True, "side"),
+                                          ("axial", 0.0, False, "head"),
+                                          ("radial", 90.0, False, "head"),
+                                          ("axial", 45.0, True, "head")):
+            pl_kw = dict(azimuth_deg=120.0, shaft_orientation=orient, roll_deg=roll, flip=flip,
+                         mount=mount, head_offset_m=0.1)
+            ml = place_layout(base, r["profile_xs_m"], r["profile_rs_m"], **pl_kw)
+            assert ml["placement"]["mount"] == mount
+            for kind, clr in geometry3d.placement_clearances(
+                    layout_boxes(ml), ml["placement"], r["profile_xs_m"], r["profile_rs_m"]):
+                assert clr > 0.0, (tag, orient, roll, flip, mount, kind, clr)
+            mp = ports_from_layout(ml)
+            for key, group in mp.items():
+                faces = [to_world(ml, key, f["face"]) for f in ml["components"][key]["flanges"]]
+                for pname, q in group.items():
+                    assert np.isclose(np.linalg.norm(q["dir"]), 1.0)
+                    assert np.array_equal(q["frame"], geometry3d.placement_frame_rows(120.0))
+                    if pname != "discharge" or q["dia_m"] > 0:
+                        assert min(np.linalg.norm(f - q["pos"]) for f in faces) < 1e-9, \
+                            (tag, orient, roll, mount, key, pname)
         assert ports_from_layout(dict(lay, rotation=np.eye(3)))["fuel_pump"]["inlet"]["pos"] \
             .tobytes() == cp["fuel_pump"]["inlet"]["pos"].tobytes()
     # casings mode end to end: design.py takes its ports from the placed layout and every

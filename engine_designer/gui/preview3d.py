@@ -91,7 +91,7 @@ def draw_3d_preview(ax3d, result, n_theta=32):
     st = result.get("stability", {})
     dome_depth = 0.0
     if chamber_head_r > 0:
-        dome_depth = 0.42 * chamber_head_r
+        dome_depth = geometry3d.injector_dome_depth_m(chamber_head_r)
         # Domed injector cap: a quarter-ellipse (0, rc) -> (-dome_depth, 0) revolved.
         t = np.linspace(0.0, np.pi / 2.0, 16)
         dome_xs = -dome_depth * np.sin(t)
@@ -139,6 +139,7 @@ def draw_3d_preview(ax3d, result, n_theta=32):
     sizing = result.get("turbopump_sizing")
     tp_y_extent = 0.0
     tp_x_extent = result["profile_xs_m"].max()
+    tp_x_lo = result["profile_xs_m"].min()   # a head-mounted pump sits forward of x = 0
     tp_mat = None
     if sizing and sizing.get("bodies"):
         tp_mat = turbopump_materials.MATERIALS[result["inputs"]["turbopump_material_key"]]
@@ -162,19 +163,21 @@ def draw_3d_preview(ax3d, result, n_theta=32):
                     tp_y_extent = max(tp_y_extent, float(np.hypot(mesh.vertices[:, 1],
                                                                   mesh.vertices[:, 2]).max()))
                     tp_x_extent = max(tp_x_extent, float(mesh.vertices[:, 0].max()))
+                    tp_x_lo = min(tp_x_lo, float(mesh.vertices[:, 0].min()))
         for kind, (Xt, Yt, Zt) in ([] if layout else
                                    geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin)):
             ax3d.plot_surface(Xt, Yt, Zt, color=turb_c if kind == "turbine" else pump_c,
                                alpha=1.0, linewidth=0, antialiased=True, rstride=1, cstride=1)
             tp_y_extent = max(tp_y_extent, float(np.hypot(Yt, Zt).max()))   # radial reach
             tp_x_extent = max(tp_x_extent, float(Xt.max()))
+            tp_x_lo = min(tp_x_lo, float(Xt.min()))
 
     # Equalize the axes so the shape isn't visually squashed/stretched - matplotlib's
     # 3D axes don't respect 'equal' aspect directly, so size a common cube manually.
     max_r = max(result["profile_rs_m"].max(), tp_y_extent)
     # the injector-face plate/elements sit just proud of x=0 in -x
     head_x_lo = -dome_depth * 1.15 if chamber_head_r > 0 else 0.0
-    x_lo = min(result["profile_xs_m"].min(), head_x_lo)
+    x_lo = min(result["profile_xs_m"].min(), head_x_lo, tp_x_lo)
     x_hi = max(result["profile_xs_m"].max(), tp_x_extent)
     x_span = x_hi - x_lo
     half = max(max_r, x_span / 2.0)

@@ -544,7 +544,7 @@ def build_injector_head_pieces(body_rs, result, chamber_rgb, construction, n_cha
     # surfaces; a follow-on could add a GL_LINES/GL_POINTS path for them.
     chamber_head_r = float(body_rs[0]) if len(body_rs) else float(result["profile_rs_m"].max())
     if chamber_head_r > 0:
-        dome_depth = 0.42 * chamber_head_r
+        dome_depth = geometry3d.injector_dome_depth_m(chamber_head_r)
         t = np.linspace(0.0, np.pi / 2.0, 16)
         dome_xs = -dome_depth * np.sin(t)
         dome_rs = chamber_head_r * np.cos(t)
@@ -1909,7 +1909,29 @@ def self_test():
     # beside the chamber now, not beyond the bell exit (the pre-E1 rule)
     assert result["turbopump_placement"]["axis_radius_m"] < geometry3d.turbopump_origin_xyz(
         float(_xs_p.max()), float(_rs_p.max()), _sz["assembly_od_m"])[1]
-    print("turbopump placement (geometry3d.turbopump_placement, default + clocked tangential): OK")
+    # head mount (2026-10-01), envelope + casings, plain and rolled / flipped / radial: every
+    # drawn turbopump vertex sits forward of the injector dome (and of every ring); a
+    # rolled side mount still keeps every vertex outside the wall
+    _dome = -geometry3d.injector_dome_depth_m(float(_rs_p[0]))
+    for _kw in (dict(turbopump_mount="head"),
+                dict(turbopump_mount="head", turbopump_shaft_orientation="radial",
+                     turbopump_roll_deg=45.0, turbopump_head_offset_m=0.3),
+                dict(turbopump_mount="head", turbopump_shaft_flip=True,
+                     turbopump_geometry_model="casings"),
+                dict(turbopump_roll_deg=90.0, turbopump_shaft_flip=True)):
+        _res_h = _dc.replace(design, **_kw).compute()
+        _hv = np.concatenate([p.vertices for p in build_turbopump_pieces(_res_h)]).astype(float)
+        assert np.all(np.isfinite(_hv)), _kw
+        if _kw.get("turbopump_mount") == "head":
+            assert _hv[:, 0].max() < min(_dome, _res_h["turbopump_placement"]["head_x_fwd_m"]) \
+                + 1e-9, (_kw, _hv[:, 0].max(), _dome)
+            assert _res_h["turbopump_placement"]["forward_extension_m"] > 0.0
+            assert any("head-mounted" in str(row) for row in _res_h["checklist"]), _kw
+        else:
+            _bv = _hv[:len(_sz["bodies"])] if False else _hv
+            assert np.all(np.hypot(_bv[:, 1], _bv[:, 2]) > np.interp(_bv[:, 0], _xs_p, _rs_p))
+    print("turbopump placement (geometry3d.turbopump_placement, default + clocked tangential "
+          "+ head mount / roll / flip / radial): OK")
 
     # turbopump_geometry_model "casings": the true-scale casings replace the ghost + stubs,
     # and every port sits on a drawn flange face (the flange's bolt circle surrounds it)

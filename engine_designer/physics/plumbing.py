@@ -621,7 +621,10 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
                 seg = waypoints[k + 1] - waypoints[k]
                 auto_len += float(np.linalg.norm(seg))
                 tl = seg / max(np.linalg.norm(seg), 1e-12)
-                off = math.degrees(math.acos(min(1.0, float(np.max(np.abs(frame @ tl))))))
+                # squared = along a frame axis, or along the port's own axis (a rolled
+                # pump's port leaves at an angle to the engine-aligned frame)
+                off = math.degrees(math.acos(min(1.0, max(float(np.max(np.abs(frame @ tl))),
+                                                          abs(float(np.dot(p_dir, tl)))))))
                 if off > AUTO_LEG_OBLIQUE_DEG:
                     advisories.append(f"Pipe {k + 1} (auto): runs {off:.0f} deg off the pump's "
                                       "axes - an oblique closing leg; add or lengthen a pipe so "
@@ -1417,12 +1420,15 @@ def self_test():
     assert cres["closes_on_port"] and auto == list(range(2, 2 + len(auto))) and len(auto) >= 2
     assert np.linalg.norm(cres["waypoints_xyz"][-1] - port["pos"]) < 1e-9
 
-    def _square(res, frame=np.eye(3)):
-        """every auto leg on a frame axis (to the fold-in tolerance), no turn > 90 deg"""
+    def _square(res, frame=np.eye(3), p_dir=None):
+        """every auto leg on a frame axis or the port's own axis (to the fold-in
+        tolerance), no turn > 90 deg"""
         dirs_ = res["segment_dirs"]
         for k in res["auto_leg_indices"]:
-            assert float(np.max(np.abs(np.asarray(frame) @ dirs_[k]))) > math.cos(
-                math.radians(AUTO_LEG_OBLIQUE_DEG)), (k, dirs_[k])
+            along = float(np.max(np.abs(np.asarray(frame) @ dirs_[k])))
+            if p_dir is not None:
+                along = max(along, abs(float(np.dot(p_dir, dirs_[k]))))
+            assert along > math.cos(math.radians(AUTO_LEG_OBLIQUE_DEG)), (k, dirs_[k])
         for k in range(1, len(dirs_)):
             assert float(np.dot(dirs_[k - 1], dirs_[k])) > -1e-9, (k, dirs_[k - 1], dirs_[k])
         assert not [a for a in res["advisories"] if "oblique" in a or "turn is" in a], \
@@ -1486,6 +1492,20 @@ def self_test():
     assert np.linalg.norm(sres_r["waypoints_xyz"][-1] - port_r["pos"]) < 1e-9
     assert not sres_r["advisories"], sres_r["advisories"]
     _square(sres_r, port_frame_rows(rot))
+    # a ROLLED pump (roll / flip, 2026-10-01): the port leaves at an angle to the
+    # engine-aligned placement frame - the route still lands, its engine-side legs square to
+    # that frame, only the stub along the port axis is angled, and nothing is "oblique"
+    from .geometry3d import placement_frame_rows
+    for roll, flip in ((30.0, False), (90.0, True), (215.0, False)):
+        rot_k = turbopump_rotation(37.0, "axial", roll, flip)
+        port_k = {"pos": np.array([0.1, 0.0, 0.0]) + rot_k @ np.array([0.0, 0.9, -0.25]),
+                  "dir": rot_k @ np.array([0.0, 0.0, -1.0]), "dia_m": 0.10,
+                  "frame": placement_frame_rows(37.0)}
+        kres = resolve_run(seed_route_to_port(hook, port_k, ring_r, ring_tube), hook, ring_r,
+                           ring_tube, port=port_k)
+        assert np.linalg.norm(kres["waypoints_xyz"][-1] - port_k["pos"]) < 1e-9, roll
+        assert not [a for a in kres["advisories"] if "oblique" in a], (roll, kres["advisories"])
+        _square(kres, port_k["frame"], port_k["dir"]) if roll % 90.0 == 0.0 else None
     # stale saved run: the same seed after the pump moved 3 m aft is flagged, still closes
     moved = dict(port, pos=port["pos"] + np.array([3.0, 0.3, 0.0]))
     stale = resolve_run(seed, hook, ring_r, ring_tube, port=moved)

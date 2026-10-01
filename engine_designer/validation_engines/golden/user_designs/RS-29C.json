@@ -4364,7 +4364,15 @@
 "__f__": "0.0"
 },
 "turbopump_geometry_model": "envelope",
+"turbopump_head_offset_m": {
+"__f__": "0.0"
+},
 "turbopump_material_key": "powder_met_superalloy",
+"turbopump_mount": "side",
+"turbopump_roll_deg": {
+"__f__": "0.0"
+},
+"turbopump_shaft_flip": false,
 "turbopump_shaft_orientation": "axial",
 "turbopump_standoff_m": {
 "__f__": "0.0"
@@ -6087,7 +6095,46 @@
 "envelope_r_m": {
 "__f__": "0.43143524521670423"
 },
+"flip": false,
+"frame": {
+"__nd__": [
+[
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "1.0"
+},
+{
+"__f__": "0.0"
+}
+],
+[
+{
+"__f__": "0.0"
+},
+{
+"__f__": "-0.0"
+},
+{
+"__f__": "1.0"
+}
+]
+]
+},
 "governing_kind": "pump",
+"mount": "side",
 "origin_xyz": [
 {
 "__f__": "0.06370870366920361"
@@ -6099,6 +6146,9 @@
 "__f__": "0.0"
 }
 ],
+"roll_deg": {
+"__f__": "0.0"
+},
 "rotation": {
 "__nd__": [
 [

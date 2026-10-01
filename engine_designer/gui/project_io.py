@@ -166,11 +166,17 @@ if __name__ == "__main__":
     # v20 turbopump placement: an older file takes the auto placement; a set one round-trips
     old_v19 = EngineDesign.from_dict({"schema_version": 19, "design": {"cycle": "gas_generator"}})
     assert (old_v19.turbopump_azimuth_deg, old_v19.turbopump_axial_station_frac,
-            old_v19.turbopump_standoff_m, old_v19.turbopump_shaft_orientation) == \
-        (0.0, 0.0, 0.0, "axial")
+            old_v19.turbopump_standoff_m, old_v19.turbopump_shaft_orientation,
+            old_v19.turbopump_mount, old_v19.turbopump_roll_deg, old_v19.turbopump_shaft_flip,
+            old_v19.turbopump_head_offset_m) == (0.0, 0.0, 0.0, "axial", "side", 0.0, False, 0.0)
     placed = EngineDesign(turbopump_azimuth_deg=135.0, turbopump_axial_station_frac=0.3,
                           turbopump_standoff_m=0.05, turbopump_shaft_orientation="tangential")
     assert EngineDesign.from_dict(json.loads(json.dumps(placed.to_dict()))) == placed
+    # head mount + roll / flip / radial shaft (same unreleased schema 20, 2026-10-01)
+    head = EngineDesign(turbopump_mount="head", turbopump_roll_deg=-45.0,
+                        turbopump_shaft_flip=True, turbopump_head_offset_m=0.25,
+                        turbopump_shaft_orientation="radial")
+    assert EngineDesign.from_dict(json.loads(json.dumps(head.to_dict()))) == head
     assert EngineDesign().to_dict()["schema_version"] >= 20
 
     print("project_io.py self-checks: OK")
