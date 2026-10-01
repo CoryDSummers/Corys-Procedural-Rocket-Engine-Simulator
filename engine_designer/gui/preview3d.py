@@ -144,9 +144,9 @@ def draw_3d_preview(ax3d, result, n_theta=32):
         tp_mat = turbopump_materials.MATERIALS[result["inputs"]["turbopump_material_key"]]
         pump_c = tp_mat.color_hex
         turb_c = _darken(tp_mat.color_hex)
-        # Mount at the injector end, axis parallel to the engine, offset outboard
-        # in +Y - the same placement as the GL preview (geometry3d.turbopump_origin_xyz).
-        origin = geometry3d.turbopump_origin_for_result(result)
+        # The same placement as the GL preview (geometry3d.turbopump_placement_for_result:
+        # origin + clocking/shaft rotation).
+        origin = geometry3d.turbopump_placement_for_result(result)
         layout = result.get("turbopump_layout")
         if layout:
             # turbopump_geometry_model "casings": the true-scale casings as triangles
@@ -159,13 +159,14 @@ def draw_3d_preview(ax3d, result, n_theta=32):
                     ax3d.add_collection3d(Poly3DCollection(
                         mesh.vertices[mesh.indices], facecolor=mesh.colors[mesh.indices].mean(axis=1),
                         edgecolor="none", alpha=1.0))
-                    tp_y_extent = max(tp_y_extent, float(mesh.vertices[:, 1].max()))
+                    tp_y_extent = max(tp_y_extent, float(np.hypot(mesh.vertices[:, 1],
+                                                                  mesh.vertices[:, 2]).max()))
                     tp_x_extent = max(tp_x_extent, float(mesh.vertices[:, 0].max()))
         for kind, (Xt, Yt, Zt) in ([] if layout else
                                    geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin)):
             ax3d.plot_surface(Xt, Yt, Zt, color=turb_c if kind == "turbine" else pump_c,
                                alpha=1.0, linewidth=0, antialiased=True, rstride=1, cstride=1)
-            tp_y_extent = max(tp_y_extent, float(Yt.max()))
+            tp_y_extent = max(tp_y_extent, float(np.hypot(Yt, Zt).max()))   # radial reach
             tp_x_extent = max(tp_x_extent, float(Xt.max()))
 
     # Equalize the axes so the shape isn't visually squashed/stretched - matplotlib's

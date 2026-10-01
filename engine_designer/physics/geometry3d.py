@@ -82,6 +82,57 @@ TURBOPUMP_STANDOFF_R_FRACTION = 0.04         # radial gap = this * max profile r
 TURBOPUMP_UNIT_GAP_OD_MULT = 1.15            # dual-shaft unit spacing along Z
 
 
+# Placement = origin + rotation (turbopump roadmap E1, 2026-09-30). Every turbopump
+# helper below is written in the assembly's LOCAL frame - shaft on x, engine side on -y,
+# dual-shaft units spread along z - translated to the origin; a placement dict
+# {"origin_xyz", "rotation"} then pivots that about the origin: world = O + R (p - O).
+# rotation None / identity = the legacy frame, byte-for-byte. R's columns are the local
+# x / y / z axes in engine coordinates (turbopump_rotation).
+SHAFT_ORIENTATIONS = ("axial", "tangential")
+
+
+def turbopump_rotation(azimuth_deg=0.0, shaft_orientation="axial"):
+    """3x3 rotation, columns = the assembly's local x (shaft) / y (outboard radial) / z
+    axes in engine coordinates, for an assembly clocked `azimuth_deg` round the engine
+    axis (0 = +Y, increasing toward +Z - the manifold attach_angle convention):
+      "axial":      shaft parallel to the engine axis       [e_x | e_r | e_theta]
+      "tangential": shaft along the local circumference     [e_theta | e_r | -e_x]
+    (both det +1, so mesh winding survives). Azimuth 0 + "axial" is exactly I."""
+    phi = np.radians(float(azimuth_deg))
+    c, s_ = (1.0, 0.0) if float(azimuth_deg) == 0.0 else (float(np.cos(phi)), float(np.sin(phi)))
+    e_x = np.array([1.0, 0.0, 0.0])
+    e_r = np.array([0.0, c, s_])
+    e_t = np.array([0.0, -s_, c])
+    if shaft_orientation == "tangential":
+        return np.column_stack([e_t, e_r, -e_x])
+    return np.column_stack([e_x, e_r, e_t])
+
+
+def split_placement(placement):
+    """(origin tuple, R or None) from a placement dict {"origin_xyz", "rotation"} or a
+    bare legacy origin tuple. An identity rotation comes back None (the legacy path)."""
+    if isinstance(placement, dict):
+        rot = placement.get("rotation")
+        origin = tuple(float(v) for v in placement["origin_xyz"])
+        if rot is None:
+            return origin, None
+        rot = np.asarray(rot, dtype=float)
+        return origin, (None if np.array_equal(rot, np.eye(3)) else rot)
+    return tuple(placement), None
+
+
+def place_point(origin, rot, p):
+    """A point built in the legacy (unrotated) frame about `origin` -> engine coordinates."""
+    if rot is None:
+        return p
+    o = np.asarray(origin, dtype=float)
+    return o + rot @ (np.asarray(p, dtype=float) - o)
+
+
+def place_dir(rot, d):
+    return d if rot is None else rot @ np.asarray(d, dtype=float)
+
+
 def turbopump_origin_xyz(profile_x_max_m, profile_r_max_m, assembly_od_m):
     """The (x, y, z) the assembly's `x0_m = 0` bodies start from."""
     y_offset = (profile_r_max_m + 0.5 * assembly_od_m
@@ -104,12 +155,14 @@ def turbopump_unit_dz(bodies):
 def turbopump_body_centers(bodies, origin_xyz):
     """Each body's mid-length point ON its shaft axis, in engine coordinates
     (list of {kind, center, pos (3,), radius_m, length_m} in `bodies` order) -
-    the same placement turbopump_assembly_meshes(axis="x") draws, as data."""
-    ox_, oy_, oz_ = origin_xyz
+    the same placement turbopump_assembly_meshes(axis="x") draws, as data.
+    `origin_xyz` = a legacy origin tuple or a placement dict (split_placement)."""
+    (ox_, oy_, oz_), rot = split_placement(origin_xyz)
     out = []
     for b, dz in zip(bodies, turbopump_unit_dz(bodies)):
+        pos = np.array([ox_ + b["x0_m"] + 0.5 * b["length_m"], oy_, oz_ + dz])
         out.append({"kind": b["kind"], "center": b.get("center", 0),
-                    "pos": np.array([ox_ + b["x0_m"] + 0.5 * b["length_m"], oy_, oz_ + dz]),
+                    "pos": place_point((ox_, oy_, oz_), rot, pos),
                     "radius_m": 0.5 * b["od_m"], "length_m": float(b["length_m"])})
     return out
 
@@ -136,9 +189,25 @@ def turbopump_origin_for_result(result):
         return None
     if result.get("turbopump_layout"):
         return tuple(result["turbopump_layout"]["origin_xyz"])
+    placed = result.get("turbopump_placement")
+    if placed:
+        return tuple(placed["origin_xyz"])
     return turbopump_origin_xyz(float(np.max(result["profile_xs_m"])),
                                 float(np.max(result["profile_rs_m"])),
                                 sizing["assembly_od_m"])
+
+
+def turbopump_placement_for_result(result):
+    """{"origin_xyz", "rotation"} for an EngineDesign.compute() result - what every
+    consumer hands the turbopump helpers (turbopump_assembly_meshes / _pump_points /
+    _body_centers accept it in place of a bare origin). None when there is no turbopump.
+    rotation None = the legacy +Y, shaft-parallel frame."""
+    origin = turbopump_origin_for_result(result)
+    if origin is None:
+        return None
+    src = result.get("turbopump_layout") or result.get("turbopump_placement") or {}
+    rot = src.get("rotation")
+    return {"origin_xyz": origin, "rotation": None if rot is None else np.asarray(rot, dtype=float)}
 
 
 PUMP_NAMES = ("fuel_pump", "ox_pump")
@@ -171,6 +240,15 @@ def turbopump_ports(bodies, origin_xyz, sizing=None, discharge_dia_by_pump=None,
     PORT_STUB_DIA_MULT x bore further out along `dir` - the nozzle stub's face,
     where a pipe run lands.
     """
+    origin_xyz, rot = split_placement(origin_xyz)
+    if rot is not None:   # built in the legacy frame, then pivoted about the origin
+        ports = turbopump_ports(bodies, origin_xyz, sizing, discharge_dia_by_pump,
+                                turbine_exhaust_dia_m)
+        return {key: {name: dict(p, base=place_point(origin_xyz, rot, p["base"]),
+                                 pos=place_point(origin_xyz, rot, p["pos"]),
+                                 dir=place_dir(rot, p["dir"]))
+                      for name, p in group.items()}
+                for key, group in ports.items()}
     discharge_dia_by_pump = discharge_dia_by_pump or {}
     centers = turbopump_body_centers(bodies, origin_xyz)
     pumps = [c for c in centers if c["kind"] == "pump"]
@@ -217,9 +295,12 @@ def turbopump_assembly_meshes(bodies, origin_xyz, axis="x", n_theta=20):
     turbopump the two units (center 0 / 1) are offset from each other along Z
     (turbopump_unit_dz).
 
+    `origin_xyz` = a legacy origin tuple or a placement dict (split_placement): a
+    rotation pivots every mesh about the origin.
+
     Returns list of (kind, (X, Y, Z)). Rendering only - no physics.
     """
-    ox_, oy_, oz_ = origin_xyz
+    (ox_, oy_, oz_), rot = split_placement(origin_xyz)
     out = []
     for b, dz in zip(bodies, turbopump_unit_dz(bodies)):
         r = 0.5 * b["od_m"]
@@ -230,6 +311,11 @@ def turbopump_assembly_meshes(bodies, origin_xyz, axis="x", n_theta=20):
             X, Y, Z = capped_cylinder(0.0, b["length_m"], r, center_yz=(0.0, 0.0),
                                        n_theta=n_theta)
             mesh = (Z + ox_, X + oy_ + b["x0_m"], Y + oz_ + dz)
+        if rot is not None:
+            pts = np.stack([np.asarray(mesh[0], dtype=float) - ox_,
+                            np.asarray(mesh[1], dtype=float) - oy_,
+                            np.asarray(mesh[2], dtype=float) - oz_], axis=-1) @ rot.T
+            mesh = (pts[..., 0] + ox_, pts[..., 1] + oy_, pts[..., 2] + oz_)
         out.append((b["kind"], mesh))
     return out
 
@@ -362,6 +448,45 @@ if __name__ == "__main__":
     assert np.isclose(abs(ex["base"][0] - tc["pos"][0]), 0.5 * tc["length_m"])   # axial end face
     assert np.allclose(ex["pos"], ex["base"] + PORT_STUB_DIA_MULT * 0.2 * ex["dir"])
     print("turbopump placement helpers self-check: OK")
+
+    # Placement rotation (E1): azimuth 0 + axial = identity (the legacy frame,
+    # bit-for-bit); every rotation is proper; a rotated placement is the legacy one
+    # pivoted rigidly about the origin - ports, body centres and meshes alike - and
+    # the ports' bores / stub geometry survive it.
+    assert np.array_equal(turbopump_rotation(0.0, "axial"), np.eye(3))
+    for az in (0.0, 37.0, 90.0, 215.0):
+        for orient in SHAFT_ORIENTATIONS:
+            R = turbopump_rotation(az, orient)
+            assert np.allclose(R.T @ R, np.eye(3)) and np.isclose(np.linalg.det(R), 1.0)
+            # local y (outboard) is the engine radial at the azimuth, both orientations
+            phi = np.radians(az)
+            assert np.allclose(R[:, 1], [0.0, np.cos(phi), np.sin(phi)])
+            assert np.isclose(abs(R[0, 0]), 1.0 if orient == "axial" else 0.0)
+            pl = {"origin_xyz": origin, "rotation": R}
+            o = np.asarray(origin)
+            ports_r = turbopump_ports(bodies, pl, None, {"fuel_pump": 0.08, "ox_pump": 0.09},
+                                      turbine_exhaust_dia_m=0.2)
+            for key, group in turbopump_ports(bodies, origin, None,
+                                              {"fuel_pump": 0.08, "ox_pump": 0.09},
+                                              turbine_exhaust_dia_m=0.2).items():
+                for nm, p in group.items():
+                    q = ports_r[key][nm]
+                    assert np.allclose(q["pos"], o + R @ (p["pos"] - o))
+                    assert np.allclose(q["dir"], R @ p["dir"]) and q["dia_m"] == p["dia_m"]
+                    assert np.allclose(q["pos"], q["base"] + PORT_STUB_DIA_MULT * q["dia_m"] * q["dir"])
+            for c0, c1 in zip(turbopump_body_centers(bodies, origin),
+                              turbopump_body_centers(bodies, pl)):
+                assert np.allclose(c1["pos"], o + R @ (c0["pos"] - o))
+            for (_, m0), (_, m1) in zip(turbopump_assembly_meshes(bodies, origin),
+                                        turbopump_assembly_meshes(bodies, pl)):
+                p0 = np.stack([np.asarray(a) for a in m0], axis=-1) - o
+                p1 = np.stack([np.asarray(a) for a in m1], axis=-1) - o
+                assert np.allclose(p1, p0 @ R.T)
+    # identity placement dict == bare tuple, byte for byte
+    pl_id = {"origin_xyz": origin, "rotation": np.eye(3)}
+    for a, b in zip(turbopump_body_centers(bodies, origin), turbopump_body_centers(bodies, pl_id)):
+        assert np.array_equal(a["pos"], b["pos"])
+    print("turbopump placement rotation self-check: OK")
 
     # axial_bump_delta_r: peaks exactly at height_m at the center, is exactly
     # zero outside the half-width window, and is symmetric about the center

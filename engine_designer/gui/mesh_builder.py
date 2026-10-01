@@ -1110,8 +1110,8 @@ def build_turbopump_pieces(result):
                 pieces.extend(_stamp_material(pcs, tp_mat))
             return pieces
         # Placement shared with gui/preview3d's fallback and the Shape Lab's
-        # ghost turbopump - see geometry3d.turbopump_origin_xyz.
-        origin = geometry3d.turbopump_origin_for_result(result)
+        # ghost turbopump - see geometry3d.turbopump_placement_for_result.
+        origin = geometry3d.turbopump_placement_for_result(result)
         for kind, (Xt, Yt, Zt) in geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin):
             rgb = turb_rgb if kind == "turbine" else pump_rgb
             pieces.extend(_stamp_material([preview3d_gl_core.mesh_from_grid(

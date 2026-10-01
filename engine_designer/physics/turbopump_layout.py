@@ -428,17 +428,29 @@ def place_layout(layout, profile_x_max_m, profile_r_max_m):
     return dict(layout, origin_xyz=origin)
 
 
+def _rotation(layout):
+    """The placed layout's rotation (geometry3d.split_placement: None = legacy frame)."""
+    return geometry3d.split_placement(layout)[1]
+
+
 def to_world(layout, key, point):
-    """A component-local point -> the layout's frame (engine coordinates once placed)."""
+    """A component-local point -> the layout's frame (engine coordinates once placed):
+    strung along the shaft (x0 + sx x, dz), then the placement's rotation about the origin
+    (geometry3d.turbopump_rotation; None / identity = the legacy translate-only frame)."""
     pl = layout["placements"][key]
     ox, oy, oz = layout["origin_xyz"]
     p = np.asarray(point, dtype=float)
-    return np.array([ox + pl["x0"] + pl["sx"] * p[0], oy + p[1], oz + pl["dz"] + p[2]])
+    rot = _rotation(layout)
+    if rot is None:
+        return np.array([ox + pl["x0"] + pl["sx"] * p[0], oy + p[1], oz + pl["dz"] + p[2]])
+    local = np.array([pl["x0"] + pl["sx"] * p[0], p[1], pl["dz"] + p[2]])
+    return np.array([ox, oy, oz], dtype=float) + rot @ local
 
 
 def dir_to_world(layout, key, direction):
     d = np.asarray(direction, dtype=float)
-    return np.array([layout["placements"][key]["sx"] * d[0], d[1], d[2]])
+    out = np.array([layout["placements"][key]["sx"] * d[0], d[1], d[2]])
+    return geometry3d.place_dir(_rotation(layout), out)
 
 
 def _port_world(layout, key, port):
@@ -466,11 +478,14 @@ def pump_points_from_layout(layout):
     """{"fuel_pump"/"ox_pump": xyz} - each pump casing's centre on its shaft (the Shape
     Lab's straight-ray target, geometry3d.turbopump_pump_points' casing twin)."""
     out = {}
-    ox, oy, oz = layout["origin_xyz"]
+    origin = layout["origin_xyz"]
+    ox, oy, oz = origin
+    rot = _rotation(layout)
     for key in PUMP_KEYS:
         pl = layout["placements"].get(key)
         if pl:
-            out[key] = np.array([ox + 0.5 * (pl["x_start"] + pl["x_end"]), oy, oz + pl["dz"]])
+            out[key] = geometry3d.place_point(
+                origin, rot, np.array([ox + 0.5 * (pl["x_start"] + pl["x_end"]), oy, oz + pl["dz"]]))
     return out
 
 
@@ -568,6 +583,25 @@ def self_test():
             assert gap < 0.69 * 0.7, gap                          # was 0.69 m of bare shaft
         pts = pump_points_from_layout(lay)
         assert set(pts) == set(PUMP_KEYS), tag
+        # placement rotation (E1): the rotated layout is the legacy one pivoted rigidly
+        # about its origin - ports still on their flange faces, bores unchanged
+        o = np.asarray(lay["origin_xyz"])
+        for az, orient in ((37.0, "axial"), (215.0, "tangential")):
+            R = geometry3d.turbopump_rotation(az, orient)
+            rl = dict(lay, rotation=R)
+            rp = ports_from_layout(rl)
+            for key, group in cp.items():
+                faces = [to_world(rl, key, f["face"]) for f in lay["components"][key]["flanges"]]
+                for pname, p in group.items():
+                    q = rp[key][pname]
+                    assert np.allclose(q["pos"], o + R @ (p["pos"] - o)), (tag, key, pname)
+                    assert np.allclose(q["dir"], R @ p["dir"]) and q["dia_m"] == p["dia_m"]
+                    if pname != "discharge" or p["dia_m"] > 0:
+                        assert min(np.linalg.norm(f - q["pos"]) for f in faces) < 1e-9
+            for key, pt in pump_points_from_layout(rl).items():
+                assert np.allclose(pt, o + R @ (pts[key] - o)), (tag, key)
+        assert ports_from_layout(dict(lay, rotation=np.eye(3)))["fuel_pump"]["inlet"]["pos"] \
+            .tobytes() == cp["fuel_pump"]["inlet"]["pos"].tobytes()
     # casings mode end to end: design.py takes its ports from the placed layout and every
     # pump-connected run closes onto its casing flange
     import dataclasses
