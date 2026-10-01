@@ -35,7 +35,7 @@ from matplotlib.figure import Figure
 from ..catalog import load_roengines_models
 from ..export.cfg_writer import write_cfg
 from ..physics import (combustion, controller_tech, cooling, cost_model, cycles, flow_network,
-                        ignition,
+                        geometry3d, ignition,
                         hatbands, injectors, materials, plumbing, reliability,
                         tech_tree,
                         tap_off, turbine_exhaust, turbopump_materials, turbopump_sizing, turbopump_tech)
@@ -988,6 +988,34 @@ class EngineDesignerApp:
         tcb = sec_tp_config.body_parent()
         tc_row = 0
         self._register_gate(tcb, lambda: CYCLE_FROM_DISPLAY.get(self.cycle_var.get()) != cycles.PRESSURE_FED)
+
+        # --- turbopump placement (roadmap E1, geometry3d.turbopump_placement): where the
+        # assembly sits round / along the engine. Drawing + port positions (so pump-connected
+        # line losses and the exhaust duct follow) - no mass. Syntax/import-checked only
+        # here (no $DISPLAY) - click-through is Cory's to check.
+        sec_tp_place = CollapsibleSection(tab_turbopump_left, "Turbopump Placement (3D)",
+                                          start_open=False)
+        sec_tp_place.grid(row=tp_row, column=0, columnspan=2, sticky="ew")
+        tp_row += 1
+        tpb = sec_tp_place.body_parent()
+        self._register_gate(tpb, lambda: CYCLE_FROM_DISPLAY.get(self.cycle_var.get()) != cycles.PRESSURE_FED)
+        tpl_row = 0
+        self.tp_azimuth_var = tk.DoubleVar(value=self.design.turbopump_azimuth_deg)
+        tpl_row = self._add_slider(tpb, tpl_row,
+                                   "Clock angle round the engine [deg] (0 = +Y)",
+                                   self.tp_azimuth_var, 0.0, 360.0, decimals=0)
+        self.tp_station_var = tk.DoubleVar(value=self.design.turbopump_axial_station_frac)
+        tpl_row = self._add_slider(tpb, tpl_row,
+                                   "Axial station, x engine length (0 = auto, at the injector end)",
+                                   self.tp_station_var, 0.0, 1.0, decimals=2)
+        self.tp_standoff_var = tk.DoubleVar(value=self.design.turbopump_standoff_m)
+        tpl_row = self._add_slider(tpb, tpl_row,
+                                   "Stand-off from chamber / rings [m] (0 = auto, 4 % of local r)",
+                                   self.tp_standoff_var, 0.0, 1.0, decimals=3)
+        tpl_row = self._add_dropdown(tpb, tpl_row,
+                                     "Shaft orientation (axial = parallel to the engine axis)",
+                                     "tp_shaft_var", list(geometry3d.SHAFT_ORIENTATIONS),
+                                     self.design.turbopump_shaft_orientation, width=12)
 
         # --- turbine exhaust disposal (physics/turbine_exhaust.py) - open cycles
         # only: overboard duct (RS-68/LR-87/LR-91/H-1C), H-1D aspirator, or
@@ -2029,6 +2057,11 @@ class EngineDesignerApp:
             self.design.pump_model = self.pump_model_var.get() or "meanline"
             self.design.turbopump_geometry_model = ("casings" if self.tp_casings_main_var.get()
                                                     else "envelope")
+            self.design.turbopump_azimuth_deg = float(self.tp_azimuth_var.get()) % 360.0
+            self.design.turbopump_axial_station_frac = max(0.0, min(1.0, float(
+                self.tp_station_var.get())))
+            self.design.turbopump_standoff_m = max(0.0, float(self.tp_standoff_var.get()))
+            self.design.turbopump_shaft_orientation = self.tp_shaft_var.get() or "axial"
             self.design.pump_priority = max(-1.0, min(1.0, float(self.pump_priority_var.get())))
             self.design.pump_head_curve = max(-1.0, min(1.0, float(self.pump_head_curve_var.get())))
             self.design.suction_aggressiveness = max(-1.0, min(1.0, float(self.suction_aggr_var.get())))
@@ -2993,6 +3026,13 @@ class EngineDesignerApp:
                     f"(SP-8107 mass-vs-power trend; envelope x-check {sizing['mass_geometry_kg']:.0f} kg)")
                 tp_lines.append(f"Dry-mass modifier: x{sizing['mass_modifier']:.3f}  "
                                 f"({'FEASIBLE' if sizing['feasible'] else 'MARGINAL'})")
+                _pl = result.get("turbopump_placement")
+                if _pl:
+                    tp_lines.append(
+                        f"Placement: {_pl['shaft_orientation']} shaft at {_pl['azimuth_deg']:.0f} deg, "
+                        f"axis {_pl['axis_radius_m']:.2f} m out, x {_pl['x_span_m'][0]:.2f}-"
+                        f"{_pl['x_span_m'][1]:.2f} m, {_pl['standoff_m'] * 1e3:.0f} mm clear "
+                        f"({_pl['governing_kind']})")
                 for w in sizing["warnings"]:
                     tp_lines.append(f"  [!] {w}")
         else:
@@ -3156,6 +3196,10 @@ class EngineDesignerApp:
         self.blade_material_var.set(self._blade_display(d.turbine_blade_material_key))
         self.pump_model_var.set(d.pump_model)
         self.tp_casings_main_var.set(d.turbopump_geometry_model == "casings")
+        self.tp_azimuth_var.set(d.turbopump_azimuth_deg)
+        self.tp_station_var.set(d.turbopump_axial_station_frac)
+        self.tp_standoff_var.set(d.turbopump_standoff_m)
+        self.tp_shaft_var.set(d.turbopump_shaft_orientation)
         self.pump_priority_var.set(d.pump_priority)
         self.pump_head_curve_var.set(d.pump_head_curve)
         self.suction_aggr_var.set(d.suction_aggressiveness)
