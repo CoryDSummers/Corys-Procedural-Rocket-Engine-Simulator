@@ -29,7 +29,7 @@ from tkinter import filedialog, messagebox, ttk
 
 import matplotlib
 matplotlib.use("TkAgg")
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
 from ..catalog import load_roengines_models
@@ -47,6 +47,7 @@ from .injector_face import draw_injector_face
 from .schematic import draw_schematic
 from .turbopump_diagram import draw_turbopump_diagram
 from .turbopump_detail import draw_turbopump_detail
+from .turbopump_section import draw_turbopump_section
 from . import turbopump_scene
 from .pieces_preview import PiecesPreview
 
@@ -1681,6 +1682,17 @@ class EngineDesignerApp:
         self.canvas_tpd = FigureCanvasTkAgg(self.fig_tpd, master=tab_tp_detail)
         self.canvas_tpd.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+        # Turbopump Section: the whole assembly cut through its shaft as an engineering
+        # cross-section (gui/turbopump_section.py - the Turbopump 3D tab's layout + the
+        # meanline internals; Tk-free, self-tested headless). The matplotlib toolbar gives
+        # zoom / pan and Save (PNG/SVG/PDF).
+        tab_tp_section = ttk.Frame(notebook)
+        notebook.add(tab_tp_section, text="Turbopump Section")
+        self.fig_tps = Figure(figsize=(14, 8))
+        self.canvas_tps = FigureCanvasTkAgg(self.fig_tps, master=tab_tp_section)
+        NavigationToolbar2Tk(self.canvas_tps, tab_tp_section).update()
+        self.canvas_tps.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
         # Turbopump 3D (turbopump roadmap E2a/E2b): the whole assembly's casings at TRUE
         # meanline scale (physics/turbopump_layout.py, meshed by gui/turbopump_scene.py,
         # Tk-free, self-tested headless). "Show" isolates one component; its options follow
@@ -1725,6 +1737,7 @@ class EngineDesignerApp:
             "checklist": tab_checklist,
             "turbopump": tab_turbopump,
             "turbopump_detail": tab_tp_detail,
+            "turbopump_section": tab_tp_section,
             "turbopump_3d": tab_tp3d,
         }
         self._tab_redraw_fns = {
@@ -1734,6 +1747,7 @@ class EngineDesignerApp:
             "checklist": self._redraw_checklist,
             "turbopump": self._redraw_turbopump_diagram,
             "turbopump_detail": self._redraw_turbopump_detail,
+            "turbopump_section": self._redraw_turbopump_section,
             "turbopump_3d": self._redraw_turbopump_3d,
         }
         self._tab_dirty = {key: False for key in self._tab_frames}
@@ -2334,6 +2348,10 @@ class EngineDesignerApp:
     def _redraw_turbopump_detail(self, result):
         draw_turbopump_detail(self.fig_tpd, result, self.tp_detail_leg_var.get() or "ox")
         self.canvas_tpd.draw_idle()
+
+    def _redraw_turbopump_section(self, result):
+        draw_turbopump_section(self.fig_tps, result)
+        self.canvas_tps.draw_idle()
 
     def _on_tp_detail_leg(self):
         if getattr(self, "last_result", None) is not None:
