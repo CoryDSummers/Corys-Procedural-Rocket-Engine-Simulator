@@ -40,6 +40,10 @@ CROSSOVER_RISE_D2 = 0.06            # crossover barrel above r2 + clearance, x D
 SHAFT_R_HUB_MULT = 0.35             # shaft radius = this x hub radius + 0.02 D2 (Detail tab)
 BEARING_HOUSING_SHAFT_MULT = 2.0    # bearing/seal housing radius / shaft radius
 BEARING_HOUSING_LEN_D2 = 0.25       # bearing/seal housing length behind the pump, x D2
+BEARING_OD_BORE_MULT = 1.55         # rolling-element bearing OD / bore (catalogue ball bearings
+                                    # ~1.4-1.8); the bore is turbopump_sizing's (torsion shaft x
+                                    # BEARING_BORE_OVER_SHAFT_FACTOR, recovered from its DN) - the
+                                    # bearing housing is never drawn smaller than this OD
 FLANGE_LIP_BORE_MULT = 0.35         # bolted flange lip / bore radius
 FLANGE_WIDTH_BORE_MULT = 0.25       # bolted flange thickness / bore radius
 FLANGE_BOLTS = 8
@@ -142,22 +146,41 @@ def _port(base, pos, direction, dia_m):
 
 
 def _component(key, kind, length_m, r_link_m, od_m, summary, revolves=(), scrolls=(),
-               tori=(), cones=(), flanges=(), ports=None):
+               tori=(), cones=(), flanges=(), ports=None, stations=None):
     """`od_m` = the casing's own OD (volute / torus / barrel, NOT the discharge cones) -
-    what the bearing spans and the dual-shaft unit gap are sized on."""
+    what the bearing spans and the dual-shaft unit gap are sized on. `stations` = the
+    local axial stations / radii the casing was built from (inducer, impeller tip, back
+    wall, bearing housing, turbine torus / scroll ...), so the cross-section drawing
+    (gui/turbopump_section.py) places the internals on the same numbers."""
     return {"key": key, "kind": kind, "length_m": float(length_m), "r_link_m": float(r_link_m),
             "od_m": float(od_m), "summary": summary, "revolves": list(revolves),
             "scrolls": list(scrolls), "tori": list(tori), "cones": list(cones),
-            "flanges": list(flanges), "ports": ports or {}}
+            "flanges": list(flanges), "ports": ports or {}, "stations": stations or {}}
+
+
+def shaft_bearing(sizing, key):
+    """{"shaft_dia_m", "bore_m", "od_m", "rpm"} for a pump's shaft: turbopump_sizing's
+    torsion-sized shaft and bearing bore, recovered exactly from the DN it reports
+    (DN = bore_mm x rpm), + the bearing OD (BEARING_OD_BORE_MULT, Tier 3). Zeros when the
+    sizing carries no DN."""
+    sizing = sizing or {}
+    pump = sizing.get(key) or {}
+    leg = "fuel" if key == "fuel_pump" else "ox"
+    dn = float(sizing.get(f"{leg}_bearing_dn") or 0.0)
+    rpm = float(pump.get("n_rpm") or sizing.get(f"{leg}_shaft_rpm") or 0.0)
+    bore = dn / (rpm * 1000.0) if dn > 0.0 and rpm > 0.0 else 0.0
+    return {"shaft_dia_m": bore / turbopump_sizing.BEARING_BORE_OVER_SHAFT_FACTOR,
+            "bore_m": bore, "od_m": BEARING_OD_BORE_MULT * bore, "rpm": rpm}
 
 
 def _eye_dia(pump):
     return float(pump.get("inlet_eye_dia_m", 0.0) or 0.0)
 
 
-def centrifugal_pump(key, pump, discharge_dia_m, handed=1):
+def centrifugal_pump(key, pump, discharge_dia_m, handed=1, bearing_od_m=0.0):
     """One centrifugal pump in its LOCAL frame: inlet flange face at x = 0 (flow enters
     along +x), casing walked inlet -> back so the housing's outside is the polyline's left.
+    The bearing housing behind the impeller is at least `bearing_od_m` across.
     """
     ml = pump["meanline"]
     st, mer, vol = ml["stage"], ml["meridional"], ml["volute"]
@@ -170,7 +193,7 @@ def centrifugal_pump(key, pump, discharge_dia_m, handed=1):
     lz = mer["axial_length_m"] - b2
     pitch = mer["axial_length_m"] + STAGE_PITCH_EXTRA_D2 * d2
     r_shaft = SHAFT_R_HUB_MULT * 0.5 * st["d_hub_m"] + 0.02 * d2
-    r_bh = min(BEARING_HOUSING_SHAFT_MULT * r_shaft, 0.8 * r_in)
+    r_bh = max(min(BEARING_HOUSING_SHAFT_MULT * r_shaft, 0.8 * r_in), 0.5 * float(bearing_od_m))
 
     xs, rs = [0.0, lead], [r_in, r_in]
     for z, r in mer["shroud"]:
@@ -201,10 +224,14 @@ def centrifugal_pump(key, pump, discharge_dia_m, handed=1):
                       revolves=[(np.array(xs), np.array(rs))], scrolls=[scroll],
                       flanges=[_flange((0.0, 0.0, 0.0), (-1.0, 0.0, 0.0), r_in),
                                _flange(cone["end"], cone["dir"], cone["r1"])],
-                      ports=ports)
+                      ports=ports,
+                      stations={"x_inducer": INLET_LEAD_D2 * d2, "lead": lead, "pitch": pitch,
+                                "x_tip": x_tip, "x_back": x_back, "x_end": x_end,
+                                "x_volute": x_tip + 0.5 * b2, "r_in": r_in, "r_bh": r_bh,
+                                "clearance": c, "inducer_tip_dia": dt})
 
 
-def axial_pump(key, pump, discharge_dia_m, handed=1):
+def axial_pump(key, pump, discharge_dia_m, handed=1, bearing_od_m=0.0):
     """An axial pump (inducer + inlet guide row + n rotor/stator rows, the Detail tab's
     row lengths) in a barrel, discharging through a constant-section collector (the
     meanline designs no volute for an axial pump - the Detail tab's 0.35 x r_tip section)."""
@@ -220,7 +247,8 @@ def axial_pump(key, pump, discharge_dia_m, handed=1):
     r_sec = COLLECTOR_SECTION_TIP_MULT * rt
     x_c = INLET_LEAD_D2 * dt + rows + r_sec
     x_back = x_c + r_sec
-    r_bh = min(BEARING_HOUSING_SHAFT_MULT * 0.6 * 0.5 * ml["d_hub_m"], 0.8 * r_b)
+    r_bh = max(min(BEARING_HOUSING_SHAFT_MULT * 0.6 * 0.5 * ml["d_hub_m"], 0.8 * r_b),
+               0.5 * float(bearing_od_m))
     x_end = x_back + BEARING_HOUSING_LEN_D2 * dt
     xs = np.array([0.0, x_back, x_back, x_end, x_end])
     rs = np.array([r_b, r_b, r_bh, r_bh, 0.0])
@@ -237,7 +265,10 @@ def axial_pump(key, pump, discharge_dia_m, handed=1):
                       revolves=[(xs, rs)], scrolls=[scroll],
                       flanges=[_flange((0.0, 0.0, 0.0), (-1.0, 0.0, 0.0), r_b),
                                _flange(cone["end"], cone["dir"], cone["r1"])],
-                      ports=ports)
+                      ports=ports,
+                      stations={"x_inducer": INLET_LEAD_D2 * dt, "gap": gap, "x_collector": x_c,
+                                "r_collector": r_sec, "x_back": x_back, "x_end": x_end,
+                                "r_barrel": r_b, "r_bh": r_bh, "clearance": c})
 
 
 def _cylinder_polyline(od_m, length_m):
@@ -301,7 +332,10 @@ def turbine(key, tb, exhaust_dia_m, handed=1):
                       cones=[(np.array([x_in, ctr_in, 0.0]), stub_end, stub_r, stub_r)],
                       flanges=[_flange(stub_end, (0.0, 1.0, 0.0), stub_r),
                                _flange(cone["end"], cone["dir"], 0.5 * exh)],
-                      ports=ports)
+                      ports=ports,
+                      stations={"r_housing": r_h, "x_inlet": x_in, "r_inlet_ctr": ctr_in,
+                                "r_inlet_tube": tube_in, "x_exhaust": length - rs_end,
+                                "r_exhaust_end": rs_end, "closed": closed})
 
 
 def motor(motor_body):
@@ -378,9 +412,11 @@ def build_layout(sizing, discharge_dia_by_pump=None, turbine_exhaust_dia_m=0.0):
                 if ml is None:
                     comps[key] = envelope_pump(key, pump, d, handed)
                 elif ml["type"] == "axial":
-                    comps[key] = axial_pump(key, pump, d, handed)
+                    comps[key] = axial_pump(key, pump, d, handed,
+                                            shaft_bearing(sizing, key)["od_m"])
                 else:
-                    comps[key] = centrifugal_pump(key, pump, d, handed)
+                    comps[key] = centrifugal_pump(key, pump, d, handed,
+                                                  shaft_bearing(sizing, key)["od_m"])
             elif key in TURBINE_KEYS:
                 comps[key] = turbine(key, sizing[key], float(turbine_exhaust_dia_m or 0.0), handed)
             else:
@@ -568,6 +604,13 @@ def self_test():
             assert gap < 0.69 * 0.7, gap                          # was 0.69 m of bare shaft
         pts = pump_points_from_layout(lay)
         assert set(pts) == set(PUMP_KEYS), tag
+        for key in PUMP_KEYS:   # the torsion-sized shaft's bearing fits its housing
+            brg = shaft_bearing(sz, key)
+            assert brg["bore_m"] > brg["shaft_dia_m"] > 0.0, (tag, key, brg)
+            st = lay["components"][key]["stations"]
+            if st:
+                assert st["r_bh"] >= 0.5 * brg["od_m"] - 1e-12, (tag, key, st["r_bh"], brg)
+                assert st["x_end"] > st["x_back"] > 0.0, (tag, key)
     # casings mode end to end: design.py takes its ports from the placed layout and every
     # pump-connected run closes onto its casing flange
     import dataclasses
