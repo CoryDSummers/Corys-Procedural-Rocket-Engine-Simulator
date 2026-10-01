@@ -129,10 +129,13 @@ def turbopump_origin_for_result(result):
     """turbopump_origin_xyz from an EngineDesign.compute() result (or any dict
     with profile_xs_m / profile_rs_m / turbopump_sizing) - the ONE placement
     every consumer (both previews, the Shape Lab, design.py's pump-port runs)
-    uses. None when there is no turbopump."""
+    uses. None when there is no turbopump. With turbopump_geometry_model "casings" it is
+    the true-scale casing layout's own origin (physics/turbopump_layout.place_layout)."""
     sizing = result.get("turbopump_sizing") if isinstance(result, dict) else None
     if not sizing or not sizing.get("bodies"):
         return None
+    if result.get("turbopump_layout"):
+        return tuple(result["turbopump_layout"]["origin_xyz"])
     return turbopump_origin_xyz(float(np.max(result["profile_xs_m"])),
                                 float(np.max(result["profile_rs_m"])),
                                 sizing["assembly_od_m"])

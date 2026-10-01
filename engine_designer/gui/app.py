@@ -47,6 +47,8 @@ from .injector_face import draw_injector_face
 from .schematic import draw_schematic
 from .turbopump_diagram import draw_turbopump_diagram
 from .turbopump_detail import draw_turbopump_detail
+from . import turbopump_scene
+from .pieces_preview import PiecesPreview
 
 # 3D preview: prefer the GPU-rendered OpenGL widget (real-time orbit camera);
 # fall back to the older matplotlib renderer if PyOpenGL/pyopengltk aren't
@@ -1679,6 +1681,36 @@ class EngineDesignerApp:
         self.canvas_tpd = FigureCanvasTkAgg(self.fig_tpd, master=tab_tp_detail)
         self.canvas_tpd.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+        # Turbopump 3D (turbopump roadmap E2a/E2b): the whole assembly's casings at TRUE
+        # meanline scale (physics/turbopump_layout.py, meshed by gui/turbopump_scene.py,
+        # Tk-free, self-tested headless). "Show" isolates one component; its options follow
+        # the design. The "Use in main 3D view" checkbox is the SAVED design setting
+        # turbopump_geometry_model (envelope | casings): on, the main 3D Preview and Shape
+        # Lab draw these casings and the pump/turbine ports + plumbing sit on their flanges
+        # (pump-connected line losses follow); off (default) = the mass-sized ghost.
+        tab_tp3d = ttk.Frame(notebook)
+        notebook.add(tab_tp3d, text="Turbopump 3D")
+        self.tp3d_summary = ttk.Label(tab_tp3d, text="", justify=tk.LEFT, anchor="w",
+                                      wraplength=900)
+        self.tp3d_summary.pack(side=tk.BOTTOM, fill=tk.X, padx=4, pady=2)
+        self.tp3d_preview = PiecesPreview(tab_tp3d, name="Turbopump 3D")
+        ttk.Label(self.tp3d_preview.toolbar, text="Show:").pack(side=tk.LEFT, padx=(4, 2))
+        _assembly = turbopump_scene.ISOLATE_LABELS["assembly"]
+        self._tp3d_label_to_key = {_assembly: "assembly"}
+        self.tp3d_isolate_var = tk.StringVar(value=_assembly)
+        self.tp3d_isolate_box = ttk.Combobox(self.tp3d_preview.toolbar,
+                                             textvariable=self.tp3d_isolate_var,
+                                             values=[_assembly], state="readonly", width=14)
+        self.tp3d_isolate_box.pack(side=tk.LEFT, padx=2, pady=2)
+        self.tp3d_isolate_box.bind("<<ComboboxSelected>>", self._on_tp3d_isolate)
+        self.tp_casings_main_var = tk.BooleanVar(
+            value=self.design.turbopump_geometry_model == "casings")
+        ttk.Checkbutton(self.tp3d_preview.toolbar,
+                        text="Use in main 3D view (moves pump/turbine ports + plumbing)",
+                        variable=self.tp_casings_main_var, command=self._on_control_change
+                        ).pack(side=tk.LEFT, padx=(12, 2), pady=2)
+        self.tp3d_preview.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
+
         # Redrawing every result tab (2D schematic, 3D preview, injector face,
         # checklist, turbopump diagram) on every recompute() is most of its
         # cost beyond the physics solve itself - matplotlib/GL redraws for
@@ -1693,6 +1725,7 @@ class EngineDesignerApp:
             "checklist": tab_checklist,
             "turbopump": tab_turbopump,
             "turbopump_detail": tab_tp_detail,
+            "turbopump_3d": tab_tp3d,
         }
         self._tab_redraw_fns = {
             "schematic": self._redraw_schematic,
@@ -1701,6 +1734,7 @@ class EngineDesignerApp:
             "checklist": self._redraw_checklist,
             "turbopump": self._redraw_turbopump_diagram,
             "turbopump_detail": self._redraw_turbopump_detail,
+            "turbopump_3d": self._redraw_turbopump_3d,
         }
         self._tab_dirty = {key: False for key in self._tab_frames}
         notebook.bind("<<NotebookTabChanged>>", self._on_result_tab_changed)
@@ -1993,6 +2027,8 @@ class EngineDesignerApp:
             self.design.turbine_blade_material_key = self.blade_material_display_to_key.get(
                 self.blade_material_var.get(), self.design.turbine_blade_material_key)
             self.design.pump_model = self.pump_model_var.get() or "meanline"
+            self.design.turbopump_geometry_model = ("casings" if self.tp_casings_main_var.get()
+                                                    else "envelope")
             self.design.pump_priority = max(-1.0, min(1.0, float(self.pump_priority_var.get())))
             self.design.pump_head_curve = max(-1.0, min(1.0, float(self.pump_head_curve_var.get())))
             self.design.suction_aggressiveness = max(-1.0, min(1.0, float(self.suction_aggr_var.get())))
@@ -2302,6 +2338,22 @@ class EngineDesignerApp:
     def _on_tp_detail_leg(self):
         if getattr(self, "last_result", None) is not None:
             self._redraw_turbopump_detail(self.last_result)
+
+    def _redraw_turbopump_3d(self, result):
+        key = self._tp3d_label_to_key.get(self.tp3d_isolate_var.get(), "assembly")
+        scene = turbopump_scene.build_turbopump_scene(result, isolate=key)
+        comps = scene["components"]
+        self._tp3d_label_to_key = {label: k for k, label in comps}
+        self.tp3d_isolate_box.configure(values=[label for _, label in comps])
+        if key not in dict(comps):      # e.g. "Ox turbine" after switching off dual-shaft
+            self.tp3d_isolate_var.set(comps[0][1])
+            scene = turbopump_scene.build_turbopump_scene(result)
+        self.tp3d_summary.configure(text="\n".join(scene["summary"]))
+        self.tp3d_preview.show(scene)
+
+    def _on_tp3d_isolate(self, _event=None):
+        if getattr(self, "last_result", None) is not None:
+            self._redraw_turbopump_3d(self.last_result)
 
     def _redraw_checklist(self, result):
         self._populate_checklist(result["checklist"])
@@ -3103,6 +3155,7 @@ class EngineDesignerApp:
         self.tap_tin_var.set(d.tap_off_tin_k)
         self.blade_material_var.set(self._blade_display(d.turbine_blade_material_key))
         self.pump_model_var.set(d.pump_model)
+        self.tp_casings_main_var.set(d.turbopump_geometry_model == "casings")
         self.pump_priority_var.set(d.pump_priority)
         self.pump_head_curve_var.set(d.pump_head_curve)
         self.suction_aggr_var.set(d.suction_aggressiveness)

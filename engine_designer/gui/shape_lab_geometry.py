@@ -42,7 +42,7 @@ from .preview3d_gl_core import (
     revolve_to_buffers,
 )
 from . import mesh_builder
-from ..physics import geometry3d, plumbing
+from ..physics import geometry3d, plumbing, turbopump_layout
 
 # Plumbing scene look: same ring/pipe tints per host as mesh_builder's main
 # preview (jacket rings olive, fuel/ox grey-blue/tan), pale ghost wall.
@@ -186,6 +186,13 @@ def ghost_turbopump_from_result(result):
     sizing = result.get("turbopump_sizing")
     if not sizing or not sizing.get("bodies"):
         return None
+    layout = result.get("turbopump_layout")
+    if layout:   # turbopump_geometry_model "casings": the true-scale casings, ports on their flanges
+        pieces = [p for _key, pcs in mesh_builder.preview3d_gl_core.layout_pieces(
+                      layout, GHOST_TURBOPUMP_RGB, GHOST_TURBOPUMP_RGB, GHOST_TURBOPUMP_RGB,
+                      n_theta=24, n_tube=12)
+                  for p in pcs]
+        return pieces, turbopump_layout.pump_points_from_layout(layout)
     origin = geometry3d.turbopump_origin_for_result(result)
     pieces = [mesh_from_grid(Xt, Yt, Zt, GHOST_TURBOPUMP_RGB)
               for _kind, (Xt, Yt, Zt) in geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin)]
@@ -344,6 +351,19 @@ def self_test():
     conn = build_plumbing_scene(seeded, hook, ring_r, tube_r, ghost_turbopump=ghost_tp, port=port)
     assert conn["ray_target"] is None and conn["resolved"]["closes_on_port"]
     assert np.linalg.norm(conn["resolved"]["waypoints_xyz"][-1] - port["pos"]) < 1e-9
+    # turbopump_geometry_model "casings": the ghost is the true-scale casings and the
+    # connected run closes on the casing's discharge flange
+    cres = EngineDesign(turbopump_geometry_model="casings").compute()
+    c_pieces, c_points = ghost_turbopump_from_result(cres)
+    assert len(c_pieces) > len(tp_pieces) and set(c_points) == {"fuel_pump", "ox_pump"}
+    assert all(np.all(np.isfinite(p.vertices)) for p in c_pieces)
+    c_hook, c_ring_r, c_tube_r = host_ring_from_result(cres, "jacket_inlet")
+    c_port = cres["turbopump_ports"]["fuel_pump"]["discharge"]
+    c_conn = build_plumbing_scene(plumbing.seed_route_to_port(c_hook, c_port, c_ring_r, c_tube_r,
+                                                              "jacket_inlet"),
+                                  c_hook, c_ring_r, c_tube_r, ghost_turbopump=(c_pieces, c_points),
+                                  port=c_port)
+    assert np.linalg.norm(c_conn["resolved"]["waypoints_xyz"][-1] - c_port["pos"]) < 1e-9
     # a pressure-fed design has no turbopump -> no ghost, scene unchanged
     from ..physics import cycles
     pf = EngineDesign(cycle=cycles.PRESSURE_FED, chamber_pressure_pa=2.0e6).compute()

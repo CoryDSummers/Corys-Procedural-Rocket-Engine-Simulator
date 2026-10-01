@@ -4,7 +4,8 @@ Split verbatim out of the former single-file design.py; a value shared
 between stages lives on the PassState `s` (see design/state.py)."""
 import numpy as np
 
-from .. import (cycles, geometry3d, manifold, plumbing, turbine_exhaust, turbopump_sizing)
+from .. import (cycles, geometry3d, manifold, plumbing, turbine_exhaust, turbopump_layout,
+                turbopump_sizing)
 from .constants import (
     EXPANDER_TURBINE_PR,
 )
@@ -103,18 +104,36 @@ def turbopump_and_plumbing(self, s):
                        "jacket_manifold_result": s.jacket_manifold_result,
                        "turbine_exhaust_hardware": s.te_hardware}
     s.turbopump_ports = None
+    s.turbopump_layout = None
     if s.tp_sizing and s.tp_sizing.get("bodies"):
         _fuel_primary = plumbing.hook_for_host(_plumbing_hooks, "jacket_inlet") or \
             plumbing.hook_for_host(_plumbing_hooks, "fuel")
         _ox_hook = plumbing.hook_for_host(_plumbing_hooks, "ox")
         _dis = {"fuel_pump": _fuel_primary["inner_diameter_m"] if _fuel_primary else 0.0,
                 "ox_pump": _ox_hook["inner_diameter_m"] if _ox_hook else 0.0}
-        s.turbopump_ports = geometry3d.turbopump_ports(
-            s.tp_sizing["bodies"],
-            geometry3d.turbopump_origin_xyz(float(np.max(s.xs)), float(np.max(s.rs)),
-                                            s.tp_sizing["assembly_od_m"]),
-            s.tp_sizing, _dis,
-            turbine_exhaust_dia_m=s.te_hardware["duct"]["dia_m"] if s.te_hardware else 0.0)
+        _exhaust_dia = s.te_hardware["duct"]["dia_m"] if s.te_hardware else 0.0
+        if getattr(self, "turbopump_geometry_model", "envelope") == "casings":
+            # true-scale casings (roadmap E2b): the ports sit on the casing flanges, so
+            # every run / duct below closes onto them instead of the ghost envelope's
+            s.turbopump_layout = turbopump_layout.place_layout(
+                turbopump_layout.build_layout(s.tp_sizing, _dis, _exhaust_dia),
+                float(np.max(s.xs)), float(np.max(s.rs)))
+            s.turbopump_ports = turbopump_layout.ports_from_layout(s.turbopump_layout)
+            _meanline_less = [k.replace("_", " ") for k in turbopump_layout.PUMP_KEYS
+                              if s.tp_sizing.get(k) and not s.tp_sizing[k].get("meanline")]
+            _check(s.checklist, s.warnings, "turbopump", "Turbopump casing geometry",
+                   not _meanline_less,
+                   f"Turbopump geometry 'casings' with no meanline design for the "
+                   f"{' and '.join(_meanline_less)} (pump model 'correlation') - drawn as a "
+                   f"true-scale envelope cylinder, its ports on that cylinder.",
+                   "True-scale meanline casings: pump/turbine ports + plumbing on the casing "
+                   "flanges (turbopump mass is still the specific-power estimate).")
+        else:
+            s.turbopump_ports = geometry3d.turbopump_ports(
+                s.tp_sizing["bodies"],
+                geometry3d.turbopump_origin_xyz(float(np.max(s.xs)), float(np.max(s.rs)),
+                                                s.tp_sizing["assembly_od_m"]),
+                s.tp_sizing, _dis, turbine_exhaust_dia_m=_exhaust_dia)
     s.line_loss_computed = {"fuel": None, "ox": None}
     s.plumbing_results = []
     s.plumbing_mass_kg = 0.0

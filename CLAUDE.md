@@ -200,6 +200,8 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.tap_off        # tap-off hot-gas mixer: STBE split back-solve +
                                                      # energy balance (fuel enthalpy from the coolant table)
    python3 -m engine_designer.physics.turbopump_sizing
+   python3 -m engine_designer.physics.turbopump_layout  # true-scale casing layout + casing ports
+                                                     # (turbopump_geometry_model "casings")
    python3 -m engine_designer.physics.flow_network  # flow-visualization data contract: per-
                                                      # stream temperature along feed line ->
                                                      # rings -> jacket pass(es) -> injector, +
@@ -243,6 +245,8 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.gui.injector_face
    python3 -m engine_designer.gui.turbopump_diagram
    python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (Agg, headless)
+   python3 -m engine_designer.gui.turbopump_scene   # Turbopump 3D tab scene: whole-assembly casings at
+                                                     # true meanline scale (pure numpy, no Tk/GL)
    python3 -m engine_designer.gui.project_io   # design save/load round-trip
    python3 -m engine_designer.validation_engines.run_corpus  # corpus bit-identical vs golden/
    python3 -c "import ast; ast.parse(open('engine_designer/gui/app.py').read())"  # GUI: syntax only
@@ -406,7 +410,19 @@ sliders `pump_priority` / `pump_head_curve` / `suction_aggressiveness` / `tip_sp
 by `design/suction_stage.pump_hydraulics` (exact-arg-cached - the staged solvers re-size pumps thousands
 of times); `suction_stage.pump_heating` gives each pump's outlet temperature and the fuel pump's becomes
 the regen jacket inlet (`coolant_inlet_model` "computed" default, up to 3 corrective compute passes);
-drawn by `gui/turbopump_detail.py` in the GUI's Turbopump Detail tab; TAP-OFF drive gas (tap-off
+drawn by `gui/turbopump_detail.py` in the GUI's Turbopump Detail tab; the whole assembly's CASINGS at true
+meanline scale (volutes from the meanline spiral + tangential discharge cone, axial barrel +
+collector, turbine housing/inlet torus/exhaust scroll, motor, tapered bearing/seal housings between
+them) are laid out by `physics/turbopump_layout.py` (mesh-free, the ONE source of the casing geometry
+AND its ports) and meshed by `preview3d_gl_core/turbopump_meshes.layout_pieces`; the **Turbopump 3D**
+tab (`gui/turbopump_scene.py`, widget `gui/pieces_preview.py`) always shows them, and the saved
+`EngineDesign.turbopump_geometry_model` (schema 19; the tab's "Use in main 3D view" checkbox) =
+"envelope" (default, the mass-sized ghost + `geometry3d.turbopump_ports`, bit-identical) | "casings"
+(the main preview / Shape Lab / matplotlib fallback draw the casings, `turbopump_origin_for_result`
+returns the layout's origin, and `design/turbomachinery_stage.py` takes the pump inlet/discharge +
+turbine exhaust ports from `turbopump_layout.ports_from_layout` = the casing flange faces, every
+discharge on the engine side (-y), tangential +-z away from the assembly centre - so pump-connected
+line losses and the exhaust duct follow; turbopump MASS is unchanged, casing walls are E3); TAP-OFF drive gas (tap-off
 accuracy round, `EngineDesign.tap_off_model` "auto" = `physics/tap_off.py`'s hot-gas MIXER for LOX/CH4 +
 LOX/RP-1, legacy for everything else | "mixer" | "legacy" = the old chamber gas at min(Tc x 0.55, 1150 K),
 bit-identical): a small hot chamber tap (effective 0.890 x Tc, back-solved on the P&W STBE split

@@ -1093,13 +1093,22 @@ def turbopump_port_stub_pieces(result, rgb=PORT_STUB_RGB, n_theta=_N_THETA):
 
 
 def build_turbopump_pieces(result):
-    """turbopump assembly meshes + port nozzle stubs."""
+    """turbopump assembly meshes + port nozzle stubs - or, with turbopump_geometry_model
+    "casings" (result["turbopump_layout"]), the true-scale casings, whose flanges ARE the
+    ports (no stubs)."""
     pieces = []
     sizing = result.get("turbopump_sizing")
     if sizing and sizing.get("bodies"):
         tp_mat = turbopump_materials.MATERIALS[result["inputs"]["turbopump_material_key"]]
         pump_rgb = _hex_to_rgb01(tp_mat.color_hex)
         turb_rgb = _darken_rgb01(pump_rgb)
+        layout = result.get("turbopump_layout")
+        if layout:
+            for _key, pcs in preview3d_gl_core.layout_pieces(
+                    layout, pump_rgb, turb_rgb, PLUMBING_FLANGE_RGB,
+                    specular_strength=tp_mat.specular_strength, shininess=tp_mat.shininess):
+                pieces.extend(_stamp_material(pcs, tp_mat))
+            return pieces
         # Placement shared with gui/preview3d's fallback and the Shape Lab's
         # ghost turbopump - see geometry3d.turbopump_origin_xyz.
         origin = geometry3d.turbopump_origin_for_result(result)
@@ -1895,6 +1904,33 @@ def self_test():
         assert any(p.vertices[:, 0].min() - 1e-9 <= _pt[0] <= p.vertices[:, 0].max() + 1e-9
                    for p in _tp_pieces)
     print("turbopump placement (geometry3d.turbopump_origin_xyz) regression: OK")
+
+    # turbopump_geometry_model "casings": the true-scale casings replace the ghost + stubs,
+    # and every port sits on a drawn flange face (the flange's bolt circle surrounds it)
+    import dataclasses as _dc
+    _cas = _dc.replace(design, turbopump_geometry_model="casings").compute()
+    assert _cas["turbopump_layout"] and geometry3d.turbopump_origin_for_result(_cas) == \
+        tuple(_cas["turbopump_layout"]["origin_xyz"])
+    _cas_pcs = build_turbopump_pieces(_cas)
+    _n_ghost = len(_sz["bodies"])
+    assert len(_cas_pcs) > _n_ghost + len(_stubs)            # real casings, not 3 cylinders
+    _cas_v = np.concatenate([p.vertices for p in _cas_pcs]).astype(float)
+    assert np.all(np.isfinite(_cas_v))
+    for _grp in _cas["turbopump_ports"].values():
+        for _port in _grp.values():
+            _r = 0.5 * _port["dia_m"]
+            if _r <= 0:
+                continue
+            _d = np.linalg.norm(_cas_v - _port["pos"], axis=1)
+            _ax = np.abs((_cas_v - _port["pos"]) @ _port["dir"])
+            # a flange-face vertex ring round the bore, in the port plane (an inlet flange's
+            # bore is the eye + the casing clearance, so it sits a little outside dia/2)
+            assert np.any((_ax < 1e-4) & (_d >= 0.99 * _r) & (_d <= 3.0 * _r)), _port
+    # the chamber sits clear of the casing's engine-side reach
+    assert _cas_v[:, 1].min() > float(_cas["profile_rs_m"].max())
+    _cas_tagged = [p for p in build_mesh_data(_cas, False) if p.role == "turbopump"]
+    assert len(_cas_tagged) == len(_cas_pcs)
+    print("turbopump casings (turbopump_geometry_model 'casings') in the main preview: OK")
 
     # Structural hatbands: one revolved section per physics-sized band (+ the
     # continuous-shell sleeve), each sitting OUTSIDE the tube-crest envelope.

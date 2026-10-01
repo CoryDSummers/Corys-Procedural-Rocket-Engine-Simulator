@@ -306,6 +306,9 @@ def checks_and_result(self, s):
         "jacket_manifold_mass_kg": s.jacket_manifold_mass_kg,
         "plumbing_results": s.plumbing_results,
         "turbopump_ports": s.turbopump_ports,
+        # turbopump_geometry_model "casings": the placed true-scale casing layout
+        # (physics/turbopump_layout.py) the ports came from; None for the envelope
+        "turbopump_layout": s.turbopump_layout,
         "turbine_exhaust_hardware": s.te_hardware,
         "turbine_exhaust_hardware_mass_kg": s.te_hardware_mass_kg,
         "line_loss_fuel_pa": s.line_loss_fuel_pa,

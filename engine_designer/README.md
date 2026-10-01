@@ -168,6 +168,8 @@ python3 -m engine_designer.gui.preview3d_gl_core  # OpenGL preview's pure-numpy 
 python3 -m engine_designer.gui.injector_face
 python3 -m engine_designer.gui.turbopump_diagram
 python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (headless)
+python3 -m engine_designer.gui.turbopump_scene   # Turbopump 3D tab scene: true-scale casings (headless)
+python3 -m engine_designer.physics.turbopump_layout  # casing layout + casing ports ("casings" mode)
 ```
 
 `gui/preview3d_gl.py` (the OpenGL widget itself) can only be syntax-checked
@@ -652,7 +654,22 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   face or axial cascade, velocity triangles, where the power goes, suction margin,
   and a head-flow sketch. `pump_model "correlation"` restores Round 1 bit-for-bit;
   `validate` PUMP MEANLINE pins it (real F-1/J-2/H-1/SSME pumps, SP-8109 Table I
-  outlet widths, SSME pump temperatures). Otherwise rotor speed is a preliminary estimate - `validate.py`'s
+  outlet widths, SSME pump temperatures). The **Turbopump 3D** tab (2026-09-27, roadmap E2a) draws the whole assembly's
+  CASINGS at true meanline scale - inlet necks + flanges, impeller shroud housings,
+  multistage crossover barrels, the meanline's spiral volutes with tangential discharge
+  cones, an axial pump's barrel + collector, each turbine's housing, inlet torus with a
+  GG/preburner stub and exhaust scroll, an electric design's motor - with a Show selector
+  to isolate one component, and tapered bearing/seal housings between the components
+  (the layout is `physics/turbopump_layout.py`, meshed by `gui/turbopump_scene.py`).
+  Its **Use in main 3D view** checkbox is a saved design setting,
+  `turbopump_geometry_model` (roadmap E2b): off (default, "envelope") the main 3D
+  Preview draws the specific-power-scaled ghost envelope exactly as before; on
+  ("casings") the main 3D Preview, the Shape Lab and the matplotlib fallback draw the
+  casings, and the pump inlet/discharge and turbine exhaust ports move onto the casing
+  flanges (discharges face the engine), so a pump-connected plumbing run - and its
+  computed line loss - and the exhaust duct follow them. Turbopump mass is unchanged
+  (casing walls are roadmap E3). Casings only; the turbine's are envelope factors until
+  Round 3; a geared set is drawn inline (no gearbox yet). Otherwise rotor speed is a preliminary estimate - `validate.py`'s
   `run_turbopump_sizing_check()` spot-checks it against real J-2 / F-1 /
   RD-0110 numbers with wide bands. Warns (never blocks) on tip-speed over the
   material limit, turbine gas too hot for the material, titanium wetted by an

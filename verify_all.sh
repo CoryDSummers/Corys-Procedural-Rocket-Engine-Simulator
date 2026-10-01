@@ -38,6 +38,7 @@ MODULES=(
   engine_designer.physics.pump_meanline       # centrifugal/axial meanline vs SP-8109 / SP-8125 / real pumps
   engine_designer.physics.tap_off             # tap-off hot-gas mixer (STBE split, energy balance)
   engine_designer.physics.turbopump_sizing
+  engine_designer.physics.turbopump_layout    # true-scale casing layout + casing ports (turbopump_geometry_model "casings")
   engine_designer.physics.validate
   engine_designer.physics.flow_network
   engine_designer.catalog.build_catalog
@@ -52,6 +53,7 @@ MODULES=(
   engine_designer.gui.injector_face
   engine_designer.gui.turbopump_diagram
   engine_designer.gui.turbopump_detail        # Turbopump Detail tab (meanline drawing), Agg headless
+  engine_designer.gui.turbopump_scene         # Turbopump 3D tab scene (true-scale casings), pure numpy
   engine_designer.gui.project_io
   engine_designer.validation_engines.run_corpus   # default --check: every corpus project
                                                   # bit-identical to validation_engines/golden/
@@ -73,7 +75,7 @@ for m in "${MODULES[@]}"; do
   fi
 done
 
-for f in gui/app.py gui/preview3d_gl.py gui/shape_lab.py gui/flow_legend.py; do
+for f in gui/app.py gui/preview3d_gl.py gui/shape_lab.py gui/flow_legend.py gui/pieces_preview.py; do
   path="engine_designer/$f"
   if python3 -c "import ast; ast.parse(open('$path').read())" >> "$LOG" 2>&1; then
     echo "PASS  syntax-check $path"
