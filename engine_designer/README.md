@@ -12,6 +12,10 @@ See `ASSUMPTIONS.md` for an honest, itemized accounting of exactly which
 numbers in this tool are validated vs. calibrated estimates vs. reasonable
 defaults - "how much of this is magic numbers," worked file-by-constant.
 
+See `TURBOPUMP_FLOW.md` (2026-09-27) for flow diagrams (Mermaid) of the turbopump
+calculations. It shows the order they run in, the branches for each cycle and model
+switch, the feedback loops, and where the results go.
+
 See `COOLING_AUDIT.md` (2026-09-23) for the full cooling-physics audit. It covers:
 - **The fix:** one unified per-station thermal solve replacing the old circular wall
   temperature, chemical-equilibrium gas properties, real coolant properties and

@@ -97,6 +97,9 @@ touching any cooling number.** What changed structurally:
 - `engine_designer/ASSUMPTIONS.md` - a full audit of every constant that ISN'T derived,
   tiered by confidence (validated / calibrated estimate / arbitrary-but-reasonable
   default). Read this before trusting or tweaking any specific number.
+- `engine_designer/TURBOPUMP_FLOW.md` - the turbopump calculation order / cycle branches /
+  model switches / feedback loops as Mermaid flow diagrams (file · function per box, plus
+  known quirks). Update it whenever a turbopump round changes the chain.
 
 **Load-bearing conventions - apply these to any future addition to this tool:**
 1. **Any new propellant pair or engine-physics addition gets spot-checked against a real
