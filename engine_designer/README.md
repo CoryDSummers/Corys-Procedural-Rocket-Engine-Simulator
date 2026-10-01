@@ -679,8 +679,14 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   sits the assembly beside the chamber - each part clears the local contour, manifold
   rings and exhaust hardware over its own span (`geometry3d.turbopump_placement`), no
   longer the bell-exit radius - and the exhaust hardware / ring inlets clock with it.
-  Pump-connected runs close onto the ports with orthogonal auto legs (along the pump's
-  axes, warn rows for oblique / through-the-wall / stale routes), and an overboard
+  A **head** mount (2026-10-01) puts the assembly forward of the injector head instead,
+  NK-33 / RD-170 style (stand-off = the axial gap to the dome, an optional offset off the
+  axis; the checklist reports how far it reaches above the injector - not added to the
+  exported model height), and the pump itself can be turned to aim its ports: a radial
+  shaft preset, a roll about its own shaft and a flip of the shaft ends.
+  Pump-connected runs close onto the ports with orthogonal auto legs (squared to the
+  engine at the pump's clock angle, warn rows for oblique / through-the-wall / stale
+  routes; a rolled pump's port stub is the only angled leg), and an overboard
   exhaust nozzle without a baked duct sits on the exhaust port's axis (one-elbow default
   duct). Drawing + port positions only - no mass; mounting struts and a clash check are
   still to come. Otherwise rotor speed is a preliminary estimate - `validate.py`'s

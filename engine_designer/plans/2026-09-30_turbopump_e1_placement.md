@@ -9,7 +9,10 @@ has run the GUI. Approved plan below, then the checklist and the as-built deviat
 - [x] C3 fields (schema 20), span-aware default, clock-together, wiring; report `2026-09-30_e1_placement_before_after.txt`, re-snapshot (3c76193)
 - [x] C4 GUI placement section (cc207af) - syntax/import-checked only, Cory to click through
 - [x] C5 docs (ASSUMPTIONS, roadmap, README, CLAUDE.md, TURBOPUMP_FLOW, this copy)
-- [ ] Cory GUI test: placement sliders, main 3D view, Shape Lab "Route to pump", RS-29.json
+- [x] C6 head mount + pump orientation (roll / flip / radial preset), engine-aligned port frame, stub-aware hull; corpus additions only, report `2026-10-01_e1_head_mount_roll_before_after.txt`, re-snapshot (bb4b61e) - follow-up request 2026-10-01, plan `~/.claude/plans/lets-consider-the-positioning-linked-sunset.md`
+- [x] C7 GUI: mount / head offset / radial / roll / flip controls (aefd644) - syntax/import-checked only
+- [x] C8 docs (ASSUMPTIONS row, README, CLAUDE.md, TURBOPUMP_FLOW, this copy)
+- [ ] Cory GUI test: placement sliders, main 3D view, Shape Lab "Route to pump", RS-29.json, mount dropdown / roll / flip / head offset
 - [ ] Rest of E1 (deferred): mounting struts/brackets + mass, clash check incl. gimbal sweep
 
 ## As built (deviations from the plan)
@@ -26,6 +29,16 @@ has run the GUI. Approved plan below, then the checklist and the as-built deviat
   get `auto_leg_clearance_advisories` against the real contour.
 - A "Turbopump placement" checklist row and a `run_corpus` probe "turbopump wall clearance"
   (all 16 turbopump corpus engines clear, 12-185 mm).
+- C6/C7 follow-up (2026-10-01, Cory: "turbopump above the chamber like the NK-33" + "rotate the
+  turbopump itself for better pipe placement"; chose presets + roll + flip, advisory-only export
+  height, same branch / schema 20): planned as separate orientation and head-mount commits,
+  landed as one (they share the solver rewrite). Not planned: the ghost's port nozzle stubs
+  join the placement hull (an axial inlet stub hit the injector dome on a head mount), but only
+  when aimed AT the obstacle - counting every stub pushed a default side mount ~0.3 m out where
+  an aft inlet stub overlapped the bell; casing boxes now span everything drawn along the shaft
+  (a flipped casings head mount poked 4.5 mm into the dome). Known gap: on a head mount the
+  turbine-exhaust Route-to-pump lands but routes poorly (warn-only rows) - its seeds assume a
+  side-mounted pump.
 - The "was X" Isp values on user_designs/RS-29 in `--report --diff` are a pre-existing report
   quirk (also in the 2026-09-26 tap-off report); `--check` shows Isp unchanged.
 
