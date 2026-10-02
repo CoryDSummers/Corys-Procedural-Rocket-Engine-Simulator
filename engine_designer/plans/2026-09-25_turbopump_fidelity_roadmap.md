@@ -28,6 +28,7 @@ same design file.
 - [ ] Round 3: turbine meanline + blade/disk stress
 - [x] E2a: volute scroll + casings at true scale in a SEPARATE Turbopump 3D tab (2026-09-27, `turbopump/e2a-3d-tab`, plan `plans/2026-09-27_turbopump_3d_tab.md`)
 - [x] E2b (part): the casings in the main 3D preview as an OPT-IN design setting `turbopump_geometry_model` "casings" (ports on the casing flanges -> plumbing line loss follows; default "envelope" bit-identical), tapered bearing/seal housings + tighter spans (2026-09-27, same branch/PR #25, plan `plans/2026-09-27_turbopump_casings_main_view.md`)
+- [x] Turbopump Section tab (2026-09-30, `turbopump/section-view`, plan `plans/2026-09-30_turbopump_section_view.md`): F-1-Mk-10-style shaft cross-section of the E2a layout + meanline internals; bearing housings now sized on the torsion shaft's bearing. Reads the layout/sizing, so E3 walls and Round 3 bearings/turbine meanline upgrade it with no drawing change beyond swapping its placeholders
 - [ ] E2b (rest): gearbox case for geared sets, turbine casings from Round 3's turbine meanline, retiring the envelope default once E3 sizes the casing walls/mass
 - [ ] E3: hoop-stress casing walls (retires `render_scale`)
 - [ ] Round 4: rotor mechanics + geometry-derived mass

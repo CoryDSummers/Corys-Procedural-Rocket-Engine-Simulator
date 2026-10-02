@@ -172,6 +172,7 @@ python3 -m engine_designer.gui.preview3d_gl_core  # OpenGL preview's pure-numpy 
 python3 -m engine_designer.gui.injector_face
 python3 -m engine_designer.gui.turbopump_diagram
 python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (headless)
+python3 -m engine_designer.gui.turbopump_section # Turbopump Section tab: shaft cross-section (headless)
 python3 -m engine_designer.gui.turbopump_scene   # Turbopump 3D tab scene: true-scale casings (headless)
 python3 -m engine_designer.physics.turbopump_layout  # casing layout + casing ports ("casings" mode)
 ```
@@ -673,7 +674,17 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   flanges (discharges face the engine), so a pump-connected plumbing run - and its
   computed line loss - and the exhaust duct follow them. Turbopump mass is unchanged
   (casing walls are roadmap E3). Casings only; the turbine's are envelope factors until
-  Round 3; a geared set is drawn inline (no gearbox yet). **Turbopump Placement (3D)**
+  Round 3; a geared set is drawn inline (no gearbox yet). The **Turbopump Section** tab
+  (2026-09-30) cuts that same layout through the shaft and draws it as an engineering
+  cross-section in the style of the classic F-1 Mk-10 drawing: hatched casing walls, each
+  volute / collector / exhaust scroll cut at the top (+y, mid-wrap) and the bottom (-y, the
+  full discharge section), the meanline inducers and impellers (or an axial pump's rows),
+  the torsion-sized shaft, rolling-element bearings on the sizing's DN bore, labyrinth
+  seals, the turbine inlet torus / GG stub / nozzle duct and its disks and blade rows,
+  leader-line labels and a scale bar (matplotlib toolbar: zoom / pan / save as PNG, SVG or
+  PDF). Wall thickness, bearing placement and OD, seals and the turbine blading are
+  drawing-only placeholders until E3 / Round 3 size them (`gui/turbopump_section.py`).
+  **Turbopump Placement (3D)**
   (Turbopump tab, roadmap E1, 2026-09-30, schema 20): clock angle round the engine,
   axial station, stand-off and shaft orientation (axial / tangential); the auto default
   sits the assembly beside the chamber - each part clears the local contour, manifold
