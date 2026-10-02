@@ -248,6 +248,7 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.gui.injector_face
    python3 -m engine_designer.gui.turbopump_diagram
    python3 -m engine_designer.gui.turbopump_detail  # Turbopump Detail tab drawing (Agg, headless)
+   python3 -m engine_designer.gui.turbopump_section # Turbopump Section tab: shaft cross-section (Agg)
    python3 -m engine_designer.gui.turbopump_scene   # Turbopump 3D tab scene: whole-assembly casings at
                                                      # true meanline scale (pure numpy, no Tk/GL)
    python3 -m engine_designer.gui.project_io   # design save/load round-trip
@@ -418,7 +419,10 @@ meanline scale (volutes from the meanline spiral + tangential discharge cone, ax
 collector, turbine housing/inlet torus/exhaust scroll, motor, tapered bearing/seal housings between
 them) are laid out by `physics/turbopump_layout.py` (mesh-free, the ONE source of the casing geometry
 AND its ports) and meshed by `preview3d_gl_core/turbopump_meshes.layout_pieces`; the **Turbopump 3D**
-tab (`gui/turbopump_scene.py`, widget `gui/pieces_preview.py`) always shows them, and the saved
+tab (`gui/turbopump_scene.py`, widget `gui/pieces_preview.py`) always shows them, the **Turbopump
+Section** tab (`gui/turbopump_section.py`, Agg) cuts the same layout through the shaft as an F-1-Mk-10-
+style hatched cross-section (scrolls cut at u=0 top / u=pi bottom, meanline internals, torsion shaft +
+`turbopump_layout.shaft_bearing` DN bearings, drawing-only walls/seals/turbine rows), and the saved
 `EngineDesign.turbopump_geometry_model` (schema 19; the tab's "Use in main 3D view" checkbox) =
 "envelope" (default, the mass-sized ghost + `geometry3d.turbopump_ports`, bit-identical) | "casings"
 (the main preview / Shape Lab / matplotlib fallback draw the casings, `turbopump_origin_for_result`
@@ -567,3 +571,4 @@ until Cory has tested it. Do this work there, not on `main`. Rounds 0-2 are MERG
 the stacked PRs #18-#20 had merged into each other's branches, leaving main at Round 0 - for a stacked
 round, merge bottom-up and retarget the child PR to main first). Tap-off accuracy round =
 `turbopump/tapoff-accuracy` off main, plan `plans/2026-09-26_tapoff_accuracy.md`, PR #22.
+Turbopump Section tab = `turbopump/section-view` off main, plan `plans/2026-09-30_turbopump_section_view.md`.
