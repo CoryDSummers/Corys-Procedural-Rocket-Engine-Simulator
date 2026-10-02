@@ -2781,11 +2781,14 @@
 "__f__": "0.0"
 },
 "turbopump_geometry_model": "envelope",
-"turbopump_head_offset_m": {
+"turbopump_height_m": {
 "__f__": "0.0"
 },
 "turbopump_material_key": "inconel_718",
 "turbopump_mount": "side",
+"turbopump_offset_m": {
+"__f__": "0.0"
+},
 "turbopump_roll_deg": {
 "__f__": "0.0"
 },

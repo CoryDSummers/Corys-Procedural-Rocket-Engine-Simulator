@@ -119,9 +119,10 @@ def turbopump_and_plumbing(self, s):
     s.turbopump_placement = None
     if s.tp_sizing and s.tp_sizing.get("bodies"):
         # Placement (roadmap E1, geometry3d.turbopump_placement): the user's clock /
-        # station / standoff / shaft orientation / roll / flip and side or head mount;
-        # each box clears the contour + every ring and the exhaust hardware over its own
-        # axial span (side), or sits forward of the injector head (head).
+        # station / standoff / shaft orientation / roll / flip and side, head or free
+        # mount; each box clears the contour + every ring and the exhaust hardware over its
+        # own axial span (side), sits forward of the injector head (head), or stays where
+        # it was put by hand (free - a clash is a warn row, never moved).
         _te_hw = s.te_hardware or {}
         _pl_kw = dict(azimuth_deg=float(self.turbopump_azimuth_deg),
                       axial_station_frac=float(self.turbopump_axial_station_frac),
@@ -130,7 +131,8 @@ def turbopump_and_plumbing(self, s):
                       roll_deg=float(self.turbopump_roll_deg),
                       flip=bool(self.turbopump_shaft_flip),
                       mount=self.turbopump_mount,
-                      head_offset_m=float(self.turbopump_head_offset_m),
+                      offset_m=float(self.turbopump_offset_m),
+                      height_m=float(self.turbopump_height_m),
                       bands=geometry3d.obstacle_bands(
                           [plumbing.hook_for_host(_plumbing_hooks, h) for h in plumbing.HOSTS],
                           _te_hw))
@@ -171,7 +173,27 @@ def turbopump_and_plumbing(self, s):
         _pl = s.turbopump_placement
         _shaft = _pl['shaft_orientation'] + (" flipped" if _pl.get("flip") else "") + (
             f", rolled {_pl['roll_deg']:.0f} deg," if _pl.get("roll_deg") else "")
-        if _pl.get("mount") == "head":
+        _pl_ok, _pl_warn = True, ""
+        if _pl.get("mount") == "free":
+            # placed by hand (Cory, 2026-10-01): report where it is and how clear, warn on
+            # a clash - never move it (warn, don't block)
+            _ext = [f"{v:.2f} m {where}" for v, where in (
+                (_pl["forward_extension_m"], "above the injector head"),
+                (_pl["aft_extension_m"], "past the nozzle exit")) if v > 0.0]
+            _ext = ("; reaches " + " and ".join(_ext) + " - NOT included in the exported "
+                    "model height, so pick a host model with room for it") if _ext else ""
+            _where = (f"placed by hand, {_shaft} shaft at {_pl['azimuth_deg']:.0f} deg, centre "
+                      f"{abs(_pl['height_m']):.2f} m "
+                      f"{'above' if _pl['height_m'] >= 0.0 else 'below'} the injector face and "
+                      f"{_pl['axis_radius_m']:.2f} m off the engine axis")
+            _pl_ok = _pl["clearance_m"] >= 0.0
+            _pl_note = (f"OK - {_where}, {_pl['clearance_m'] * 1e3:.0f} mm clear of the "
+                        f"engine ({_pl['governing_kind']}){_ext}")
+            _pl_warn = (f"Turbopump {_where}: its {_pl['governing_kind']} runs "
+                        f"{-_pl['clearance_m'] * 1e3:.0f} mm into the engine (contour / dome / "
+                        "rings / exhaust hardware, taken as axisymmetric) - raise it above the "
+                        f"injector or move it further off the axis{_ext}.")
+        elif _pl.get("mount") == "head":
             # the advisory Cory chose (2026-10-01): reported, not in the export height
             _pl_note = (f"OK - head-mounted, {_shaft} shaft at {_pl['azimuth_deg']:.0f} deg, "
                         f"axis {_pl['axis_radius_m']:.2f} m off the engine axis, "
@@ -185,7 +207,8 @@ def turbopump_and_plumbing(self, s):
                         f"{_pl['x_span_m'][0]:.2f}-{_pl['x_span_m'][1]:.2f} m, "
                         f"{_pl['standoff_m'] * 1e3:.0f} mm clear of the "
                         f"{_pl['envelope_r_m']:.2f} m local envelope ({_pl['governing_kind']})")
-        _check(s.checklist, s.warnings, "turbopump", "Turbopump placement", True, "", _pl_note)
+        _check(s.checklist, s.warnings, "turbopump", "Turbopump placement", _pl_ok, _pl_warn,
+               _pl_note)
         # An overboard exhaust nozzle with no baked duct run clocks onto the turbine
         # exhaust port's axis (plumbing.overboard_outlet_on_port_axis): the default duct
         # is then one forward pipe + one elbow into the port, not a U round its standoff.

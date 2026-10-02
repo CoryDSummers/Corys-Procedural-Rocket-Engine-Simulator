@@ -463,8 +463,11 @@ class EngineDesign:
     # engine axis) | "tangential" (along the local circumference) | "radial" (along the
     # outboard radial). Mount "side" (beside the contour, as above) | "head" (forward of
     # the injector head, NK-33 / RD-170 style: standoff = the axial gap to the dome / head
-    # rings, the station is ignored, head_offset_m = the centre's offset off the engine
-    # axis toward the clock angle, 0 = on the axis). roll_deg spins the assembly about its
+    # rings, the station is ignored) | "free" (placed BY HAND, no solve: the centre at
+    # height_m above the injector face (x = 0; + = forward / above the chamber, - = down
+    # beside it), any station / standoff ignored; a clash with the engine is a warn row,
+    # never moved). offset_m = the centre's distance off the engine axis toward the
+    # clock angle (head + free; 0 = on the axis). roll_deg spins the assembly about its
     # own shaft (clocks its ports); shaft_flip reverses the shaft ends.
     # (geometry3d.turbopump_placement / turbopump_rotation)
     turbopump_azimuth_deg: float = 0.0
@@ -474,7 +477,8 @@ class EngineDesign:
     turbopump_mount: str = "side"
     turbopump_roll_deg: float = 0.0
     turbopump_shaft_flip: bool = False
-    turbopump_head_offset_m: float = 0.0
+    turbopump_offset_m: float = 0.0
+    turbopump_height_m: float = 0.0
     # Regen coolant (fuel) jacket-inlet temperature: "computed" (default) = the fuel
     # pump's outlet (tank temperature + boost + main-pump heating, suction_stage.
     # pump_heating; applied on a second compute pass) - needs pump_model "meanline";
@@ -529,7 +533,8 @@ class EngineDesign:
     SCHEMA_VERSION = 20  # 20 (2026-09-30): turbopump placement (turbopump_azimuth_deg,
                          # turbopump_axial_station_frac, turbopump_standoff_m,
                          # turbopump_shaft_orientation; + turbopump_mount / _roll_deg /
-                         # _shaft_flip / _head_offset_m, "radial" shaft, 2026-10-01 - same
+                         # _shaft_flip / _offset_m / _height_m, "radial" shaft, "head" /
+                         # "free" mounts, 2026-10-01 - same
                          # unreleased bump) - no key migration; an older file
                          # takes the defaults = auto placement, which is the NEW span-aware
                          # rule (standoff from the local contour/ring radius, not the bell

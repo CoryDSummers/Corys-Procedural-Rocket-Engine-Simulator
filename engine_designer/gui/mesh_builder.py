@@ -1915,7 +1915,7 @@ def self_test():
     _dome = -geometry3d.injector_dome_depth_m(float(_rs_p[0]))
     for _kw in (dict(turbopump_mount="head"),
                 dict(turbopump_mount="head", turbopump_shaft_orientation="radial",
-                     turbopump_roll_deg=45.0, turbopump_head_offset_m=0.3),
+                     turbopump_roll_deg=45.0, turbopump_offset_m=0.3),
                 dict(turbopump_mount="head", turbopump_shaft_flip=True,
                      turbopump_geometry_model="casings"),
                 dict(turbopump_roll_deg=90.0, turbopump_shaft_flip=True)):
@@ -1930,8 +1930,32 @@ def self_test():
         else:
             _bv = _hv[:len(_sz["bodies"])] if False else _hv
             assert np.all(np.hypot(_bv[:, 1], _bv[:, 2]) > np.interp(_bv[:, 0], _xs_p, _rs_p))
+    # free mount (2026-10-01, placed by hand): NK-33-like beside + above the head = an OK
+    # row with the forward reach reported, every drawn vertex clear of the wall or above
+    # the dome; sunk into the chamber = a warn row (never moved)
+    _od = float(_sz["assembly_od_m"])
+    for _kw, _ok in ((dict(turbopump_mount="free", turbopump_height_m=0.5 * _od,
+                           turbopump_offset_m=float(_rs_p[0]) + 1.2 * _od), True),
+                     (dict(turbopump_mount="free", turbopump_height_m=0.5 * _od,
+                           turbopump_offset_m=float(_rs_p[0]) + 2.5 * _od,
+                           turbopump_geometry_model="casings", turbopump_roll_deg=30.0), True),
+                     (dict(turbopump_mount="free", turbopump_height_m=-0.3 * float(_xs_p.max())),
+                      False)):
+        _res_f = _dc.replace(design, **_kw).compute()
+        _pf = _res_f["turbopump_placement"]
+        _fv = np.concatenate([p.vertices for p in build_turbopump_pieces(_res_f)]).astype(float)
+        assert np.all(np.isfinite(_fv)), _kw
+        _row = [row for row in _res_f["checklist"] if row["name"] == "Turbopump placement"][0]
+        assert _row["passed"] is _ok and (_pf["clearance_m"] >= 0.0) is _ok, (_kw, _pf["clearance_m"])
+        if _ok:
+            assert "placed by hand" in _row["detail"] and _pf["forward_extension_m"] > 0.0
+            assert "above the injector head" in _row["detail"]
+            _out = np.hypot(_fv[:, 1], _fv[:, 2]) > np.interp(_fv[:, 0], _xs_p, _rs_p)
+            assert np.all(_out | (_fv[:, 0] < _dome)), _kw
+        else:
+            assert any("runs" in w and "into the engine" in w for w in _res_f["warnings"])
     print("turbopump placement (geometry3d.turbopump_placement, default + clocked tangential "
-          "+ head mount / roll / flip / radial): OK")
+          "+ head mount / roll / flip / radial + free mount): OK")
 
     # turbopump_geometry_model "casings": the true-scale casings replace the ghost + stubs,
     # and every port sits on a drawn flange face (the flange's bolt circle surrounds it)

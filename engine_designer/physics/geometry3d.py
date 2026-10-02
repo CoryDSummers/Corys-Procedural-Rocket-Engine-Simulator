@@ -90,8 +90,10 @@ TURBOPUMP_UNIT_GAP_OD_MULT = 1.15            # dual-shaft unit spacing along Z
 # x / y / z axes in engine coordinates (turbopump_rotation).
 SHAFT_ORIENTATIONS = ("axial", "tangential", "radial")
 # "side" = beside the contour, pushed out radially (turbopump_placement); "head" = forward
-# of the injector head, NK-33 / RD-170 style (turbopump_placement mount="head").
-TURBOPUMP_MOUNTS = ("side", "head")
+# of the injector head, NK-33 / RD-170 style (turbopump_placement mount="head"); "free" =
+# placed by hand at a height above the injector + an offset off the axis, never moved
+# (a clash with the engine is a warn row - free_clearance).
+TURBOPUMP_MOUNTS = ("side", "head", "free")
 
 
 def placement_frame(azimuth_deg=0.0):
@@ -261,6 +263,57 @@ def envelope_r_max(profile_xs_m, profile_rs_m, x_lo, x_hi, bands=()):
     return r
 
 
+def engine_r_over_span(profile_xs_m, profile_rs_m, x_lo, x_hi, bands=()):
+    """The radius the engine ITSELF reaches over [x_lo, x_hi] (the "free" mount's
+    obstacle): the wall contour where the span overlaps it, the domed injector cap (as a
+    full chamber-head-radius band from the dome tip to the contour start) and every
+    overlapping obstacle band - 0 where the span misses the engine (above the dome, past
+    the nozzle exit). Unlike envelope_r_max, which holds the end radii beyond the contour
+    (the side mount's conservative rule), this lets a hand-placed pump sit right over the
+    head."""
+    xs = np.asarray(profile_xs_m, dtype=float)
+    rs = np.asarray(profile_rs_m, dtype=float)
+    r = 0.0
+    if xs.size:
+        a, b = max(x_lo, float(xs[0])), min(x_hi, float(xs[-1]))
+        if a <= b:
+            r = max(float(np.interp(a, xs, rs)), float(np.interp(b, xs, rs)))
+            inside = (xs >= a) & (xs <= b)
+            if np.any(inside):
+                r = max(r, float(rs[inside].max()))
+        dome = injector_dome_depth_m(rs[0])
+        if dome > 0.0 and x_lo <= float(xs[0]) and x_hi >= min(float(xs[0]), -dome):
+            r = max(r, float(rs[0]))
+    for lo, hi, rb in bands:
+        if lo <= x_hi and hi >= x_lo:
+            r = max(r, float(rb))
+    return r
+
+
+def engine_x_aft(profile_xs_m, bands=()):
+    """The aft-most x of the engine: the contour end (nozzle exit) or any band past it."""
+    x = float(np.max(np.asarray(profile_xs_m, dtype=float)))
+    for _lo, hi, _r in bands:
+        x = max(x, float(hi))
+    return x
+
+
+def free_clearance(x_lo, x_hi, inner_r, profile_xs_m, profile_rs_m, bands=(),
+                   x_fwd=None, x_aft=None):
+    """(clearance_m, engine radius over the span) of one hand-placed ("free") box whose
+    world-x span is [x_lo, x_hi] and whose corners' minimum projection on the clocked
+    outboard radial is `inner_r` (a lower bound on their distance from the axis, so
+    conservative): the BEST of clearing it radially (inner_r - engine_r_over_span),
+    sitting wholly above the engine head (head_x_fwd - x_hi) or wholly past the nozzle
+    exit (x_lo - engine_x_aft). Negative = it runs into the engine by that much."""
+    if x_fwd is None:
+        x_fwd = head_x_fwd(profile_xs_m, profile_rs_m, bands)
+    if x_aft is None:
+        x_aft = engine_x_aft(profile_xs_m, bands)
+    r = engine_r_over_span(profile_xs_m, profile_rs_m, x_lo, x_hi, bands)
+    return max(inner_r - r, x_fwd - x_hi, x_lo - x_aft), r
+
+
 def boxes_from_bodies(bodies):
     """The ghost envelope's bodies as LOCAL placement boxes (turbopump_placement): shaft
     span [x0, x1], unit offset dz, half-width in z, the engine-side (-y) reach and the
@@ -311,7 +364,12 @@ def _active_boxes(boxes, rot, e_r, mount):
         aim = b.get("aim")
         if aim is not None:
             w = rot @ np.asarray(aim, dtype=float)
-            toward = float(w[0]) if mount == "head" else -float(np.dot(w, e_r))
+            if mount == "head":
+                toward = float(w[0])
+            elif mount == "free":    # it may sit beside OR above the engine
+                toward = max(float(w[0]), -float(np.dot(w, e_r)))
+            else:
+                toward = -float(np.dot(w, e_r))
             if toward <= STUB_AIM_COS_MIN:
                 continue
         out.append(b)
@@ -352,7 +410,8 @@ def _box_support(rot, c_l, b, g):
 
 def turbopump_placement(boxes, profile_xs_m, profile_rs_m, azimuth_deg=0.0,
                         axial_station_frac=0.0, standoff_m=0.0, shaft_orientation="axial",
-                        bands=(), roll_deg=0.0, flip=False, mount="side", head_offset_m=0.0):
+                        bands=(), roll_deg=0.0, flip=False, mount="side", offset_m=0.0,
+                        height_m=0.0):
     """
     Where the turbopump goes (roadmap E1): the assembly - LOCAL boxes (boxes_from_bodies
     / turbopump_layout.layout_boxes; shaft on local x from 0, engine side -y) - oriented
@@ -368,15 +427,22 @@ def turbopump_placement(boxes, profile_xs_m, profile_rs_m, azimuth_deg=0.0,
       corner's tangential offset only ever adds clearance).
     - "head": forward of the injector head (NK-33 / RD-170 style): its aft-most corner
       `standoff_m` (0 = auto, TURBOPUMP_STANDOFF_R_FRACTION x the chamber head radius)
-      forward of head_x_fwd (dome, contour start, every band); its centre `head_offset_m`
+      forward of head_x_fwd (dome, contour start, every band); its centre `offset_m`
       off the engine axis along the clocked radial (0 = on the axis). axial_station_frac
       is ignored.
+    - "free": placed BY HAND, never moved: its centre `height_m` above the injector face
+      (x = -height_m; + = forward / above the chamber) and `offset_m` off the axis along the
+      clocked radial; station and standoff are ignored. Each box's clearance is
+      free_clearance (radially clear of the engine over its span, or wholly above the head /
+      past the exit); the minimum is "clearance_m" (negative = a clash - the caller warns).
     Returns {"origin_xyz", "rotation", "frame" (placement_frame_rows - the routing frame),
     "mount", "azimuth_deg", "shaft_orientation", "roll_deg", "flip", "axis_radius_m",
     "station_x_m", "x_span_m", "standoff_m", "envelope_r_m", "governing_kind"} (the last
-    three for the governing box; head: envelope_r_m = the chamber head radius) and, head
-    mount only, "head_x_fwd_m" + "forward_extension_m" (how far the assembly reaches
-    forward of the injector head - not in the exported model height).
+    three for the governing box; head: envelope_r_m = the chamber head radius; free:
+    standoff_m = clearance_m, the tightest box) and, head mount only, "head_x_fwd_m" +
+    "forward_extension_m" (how far the assembly reaches forward of the injector head - not
+    in the exported model height); free mount: "height_m", "clearance_m", "head_x_fwd_m",
+    "forward_extension_m" and "aft_extension_m" (past the nozzle exit; both >= 0).
     With a constant contour, no bands, azimuth 0, an axial shaft, no roll / flip and the
     side mount this is exactly the legacy turbopump_origin_xyz.
     """
@@ -403,10 +469,27 @@ def turbopump_placement(boxes, profile_xs_m, profile_rs_m, azimuth_deg=0.0,
             else TURBOPUMP_STANDOFF_R_FRACTION * r_head
         k_gov = max(range(len(boxes)), key=lambda k: offs[k][1])
         c_x = x_fwd - gap - offs[k_gov][1]
-        rho = max(0.0, float(head_offset_m or 0.0))
+        rho = max(0.0, float(offset_m or 0.0))
         gov = (boxes[k_gov], r_head, gap)
         extra = {"head_x_fwd_m": float(x_fwd),
                  "forward_extension_m": float(x_fwd - (c_x + min(o[0] for o in offs)))}
+    elif mount == "free":
+        c_x = -float(height_m or 0.0)
+        rho = max(0.0, float(offset_m or 0.0))
+        x_fwd = head_x_fwd(xs, rs, bands)
+        x_aft = engine_x_aft(xs, bands)
+        gov = None
+        for b, (lo, hi, g_min) in zip(boxes, sup):
+            clr, r_env = free_clearance(c_x + lo, c_x + hi, rho + g_min, xs, rs, bands,
+                                        x_fwd, x_aft)
+            if gov is None or clr < gov[2]:
+                gov = (b, r_env, clr)
+        x_min = c_x + min(o[0] for o in offs)
+        x_hi_all = c_x + max(o[1] for o in offs)
+        extra = {"height_m": float(-c_x), "clearance_m": float(gov[2]),
+                 "head_x_fwd_m": float(x_fwd),
+                 "forward_extension_m": float(max(0.0, x_fwd - x_min)),
+                 "aft_extension_m": float(max(0.0, x_hi_all - x_aft))}
     else:
         if axial_station_frac and axial_station_frac > 0.0:
             c_x = float(axial_station_frac) * x_max
@@ -437,19 +520,27 @@ def placement_clearances(boxes, placement, profile_xs_m, profile_rs_m, bands=())
     """[(kind, clearance_m)] per box of a placed assembly. Side mount: how far its
     engine-side corners sit outside the envelope (envelope_r_max) over its OWN world-x span,
     measured along the clocked outboard radial. Head mount: how far its aft-most corner
-    sits forward of head_x_fwd. >= the resolved standoff for a turbopump_placement solve;
-    negative = it hits the engine. The check every consumer/test shares."""
+    sits forward of head_x_fwd. Free mount: free_clearance. >= the resolved standoff for a
+    turbopump_placement solve; negative = it hits the engine. The check every consumer/test
+    shares."""
     rot = np.asarray(placement["rotation"], dtype=float)
     o = np.asarray(placement["origin_xyz"], dtype=float)
     e_r = placement_frame_of(placement)[1]
-    head = placement.get("mount") == "head"
-    x_fwd = head_x_fwd(profile_xs_m, profile_rs_m, bands) if head else 0.0
+    mount = placement.get("mount", "side")
+    mount = mount if mount in TURBOPUMP_MOUNTS else "side"
+    head = mount == "head"
+    x_fwd = head_x_fwd(profile_xs_m, profile_rs_m, bands) if mount != "side" else 0.0
     zero = np.zeros(3)
     out = []
-    for b in _active_boxes(boxes, rot, e_r, "head" if head else "side"):
+    for b in _active_boxes(boxes, rot, e_r, mount):
         lo, hi, g_min = _box_support(rot, zero, b, e_r)
         if head:
             out.append((b.get("kind", ""), x_fwd - (o[0] + hi)))
+            continue
+        if mount == "free":
+            out.append((b.get("kind", ""), free_clearance(
+                o[0] + lo, o[0] + hi, float(np.dot(o, e_r)) + g_min, profile_xs_m,
+                profile_rs_m, bands, x_fwd)[0]))
             continue
         r_env = envelope_r_max(profile_xs_m, profile_rs_m, o[0] + lo, o[0] + hi, bands)
         out.append((b.get("kind", ""), float(np.dot(o, e_r)) + g_min - r_env))
@@ -882,7 +973,7 @@ if __name__ == "__main__":
                     assert np.isclose(np.degrees(np.arctan2(ctr[2], ctr[1])) % 360.0, az % 360.0)
                     assert np.isclose(np.hypot(ctr[1], ctr[2]), pl["axis_radius_m"])
     # head mount (2026-10-01): wholly forward of the injector dome / contour / bands by the
-    # standoff, centred head_offset_m off the axis along the clocked radial
+    # standoff, centred offset_m off the axis along the clocked radial
     r_head = rs_e[0]
     assert np.isclose(head_x_fwd(xs_e, rs_e), -INJECTOR_DOME_DEPTH_R_FRACTION * r_head)
     assert head_x_fwd(xs_e, rs_e, [(-0.5, 0.1, 0.4)]) == -0.5
@@ -893,7 +984,7 @@ if __name__ == "__main__":
                     pl = turbopump_placement(boxes, xs_e, rs_e, azimuth_deg=az,
                                              shaft_orientation=orient, standoff_m=stand,
                                              bands=band_e, roll_deg=roll, flip=flip,
-                                             mount="head", head_offset_m=off)
+                                             mount="head", offset_m=off)
                     R, o = pl["rotation"], np.asarray(pl["origin_xyz"])
                     gap = stand or TURBOPUMP_STANDOFF_R_FRACTION * r_head
                     x_fwd = head_x_fwd(xs_e, rs_e, band_e)
@@ -905,6 +996,58 @@ if __name__ == "__main__":
                     assert pl["mount"] == "head" and pl["forward_extension_m"] > gap
                     clr = placement_clearances(boxes, pl, xs_e, rs_e, band_e)
                     assert np.isclose(min(c for _, c in clr), gap)
+    # free mount (2026-10-01, Cory: "free height + sideways"): placed by hand, never moved;
+    # the clearance is reported (negative = a clash), not enforced
+    x_fwd_e = head_x_fwd(xs_e, rs_e, band_e)
+    assert engine_r_over_span(xs_e, rs_e, -2.0, x_fwd_e - 0.01) == 0.0     # above the head
+    assert engine_r_over_span(xs_e, rs_e, 3.5, 4.0) == 0.0                # past the exit
+    assert engine_r_over_span(xs_e, rs_e, -0.11, -0.10) == rs_e[0]        # over the dome
+    assert np.isclose(engine_r_over_span(xs_e, rs_e, 0.85, 0.95), 0.175)  # == envelope_r_max inside
+    half = 0.5 * (max(b["x1"] for b in boxes) - min(b["x0"] for b in boxes))
+    for az in (0.0, 120.0):
+        for orient in SHAFT_ORIENTATIONS:
+            for roll, flip in ((0.0, False), (30.0, True)):
+                for h, off in ((0.5, 0.0), (-1.2, 0.9), (0.2, 0.75)):
+                    pl = turbopump_placement(boxes, xs_e, rs_e, azimuth_deg=az,
+                                             shaft_orientation=orient, bands=band_e,
+                                             roll_deg=roll, flip=flip, mount="free",
+                                             height_m=h, offset_m=off,
+                                             axial_station_frac=0.4, standoff_m=0.2)
+                    R, o = pl["rotation"], np.asarray(pl["origin_xyz"])
+                    ctr = o + R @ np.array([c_l, 0.0, 0.0])
+                    assert np.allclose(ctr, np.array([-h, 0.0, 0.0]) + off * placement_frame(az)[:, 1])
+                    assert pl["mount"] == "free" and pl["height_m"] == h
+                    clr = placement_clearances(boxes, pl, xs_e, rs_e, band_e)
+                    assert np.isclose(min(c for _, c in clr), pl["clearance_m"])
+                    assert pl["standoff_m"] == pl["clearance_m"]
+                    assert pl["forward_extension_m"] >= 0.0 and pl["aft_extension_m"] >= 0.0
+    # placed by hand where the side solve put it: at least as clear (the engine radius
+    # never exceeds the side mount's held-end envelope)
+    for orient in SHAFT_ORIENTATIONS:
+        side = turbopump_placement(boxes, xs_e, rs_e, azimuth_deg=60.0, shaft_orientation=orient,
+                                   bands=band_e, standoff_m=0.04)
+        free = turbopump_placement(boxes, xs_e, rs_e, azimuth_deg=60.0, shaft_orientation=orient,
+                                   bands=band_e, mount="free", height_m=-side["station_x_m"],
+                                   offset_m=side["axis_radius_m"])
+        assert np.allclose(free["origin_xyz"], side["origin_xyz"])
+        assert free["clearance_m"] >= 0.04 - 1e-9, (orient, free["clearance_m"])
+    # into the chamber = a negative clearance; wholly above the head = the axial gap
+    sunk = turbopump_placement(boxes, xs_e, rs_e, bands=band_e, mount="free", height_m=-0.9)
+    assert sunk["clearance_m"] < 0.0
+    up = turbopump_placement(boxes, xs_e, rs_e, bands=band_e, mount="free",
+                             height_m=-x_fwd_e + half + 0.25)
+    assert np.isclose(up["clearance_m"], 0.25) and up["x_span_m"][1] < x_fwd_e
+    assert np.isclose(up["forward_extension_m"], x_fwd_e - up["x_span_m"][0])
+    assert up["aft_extension_m"] == 0.0
+    # NK-33-like: beside AND above the head - straddles the dome, radially clear of it
+    nk = turbopump_placement(boxes, xs_e, rs_e, bands=band_e, mount="free",
+                             height_m=half, offset_m=rs_e[0] + 0.5 * od_max + 0.05)
+    assert nk["clearance_m"] > 0.0 and nk["forward_extension_m"] > 0.0
+    assert nk["x_span_m"][0] < x_fwd_e < nk["x_span_m"][1]
+    # below the nozzle exit, on the axis: clear by the axial gap, reported past the exit
+    low = turbopump_placement(boxes, xs_e, rs_e, bands=band_e, mount="free",
+                              height_m=-(3.0 + half + 0.3))
+    assert np.isclose(low["clearance_m"], 0.3) and np.isclose(low["aft_extension_m"], 2 * half + 0.3)
     # an unknown mount / orientation falls back to side / axial
     assert turbopump_placement(boxes, xs_e, rs_e, mount="roof")["mount"] == "side"
     # an explicit axial station centres the assembly there; the ring band pushes it out

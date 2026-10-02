@@ -1021,11 +1021,11 @@ class EngineDesignerApp:
                                    "Stand-off [m] (side: from chamber / rings, head: forward of "
                                    "the injector; 0 = auto, 4 % of local r)",
                                    self.tp_standoff_var, 0.0, 1.0, decimals=3)
-        self.tp_head_offset_var = tk.DoubleVar(value=self.design.turbopump_head_offset_m)
+        self.tp_offset_var = tk.DoubleVar(value=self.design.turbopump_offset_m)
         tpl_row = self._add_slider(tpb, tpl_row,
                                    "Head offset off the engine axis [m] (head mount only; "
                                    "0 = centred, toward the clock angle)",
-                                   self.tp_head_offset_var, 0.0, 1.0, decimals=3)
+                                   self.tp_offset_var, 0.0, 1.0, decimals=3)
         tpl_row = self._add_dropdown(tpb, tpl_row,
                                      "Shaft orientation (axial = parallel to the engine axis, "
                                      "radial = pointing out from it)",
@@ -2089,7 +2089,7 @@ class EngineDesignerApp:
             self.design.turbopump_standoff_m = max(0.0, float(self.tp_standoff_var.get()))
             self.design.turbopump_shaft_orientation = self.tp_shaft_var.get() or "axial"
             self.design.turbopump_mount = self.tp_mount_var.get() or "side"
-            self.design.turbopump_head_offset_m = max(0.0, float(self.tp_head_offset_var.get()))
+            self.design.turbopump_offset_m = max(0.0, float(self.tp_offset_var.get()))
             self.design.turbopump_roll_deg = ((float(self.tp_roll_var.get()) + 180.0) % 360.0) - 180.0
             self.design.turbopump_shaft_flip = bool(self.tp_flip_var.get())
             self.design.pump_priority = max(-1.0, min(1.0, float(self.pump_priority_var.get())))
@@ -3236,7 +3236,7 @@ class EngineDesignerApp:
         self.tp_standoff_var.set(d.turbopump_standoff_m)
         self.tp_shaft_var.set(d.turbopump_shaft_orientation)
         self.tp_mount_var.set(d.turbopump_mount)
-        self.tp_head_offset_var.set(d.turbopump_head_offset_m)
+        self.tp_offset_var.set(d.turbopump_offset_m)
         self.tp_roll_var.set(d.turbopump_roll_deg)
         self.tp_flip_var.set(d.turbopump_shaft_flip)
         self.pump_priority_var.set(d.pump_priority)

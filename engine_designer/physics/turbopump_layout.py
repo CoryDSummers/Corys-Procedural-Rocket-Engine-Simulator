@@ -698,9 +698,13 @@ def self_test():
                                           ("tangential", 215.0, True, "side"),
                                           ("axial", 0.0, False, "head"),
                                           ("radial", 90.0, False, "head"),
-                                          ("axial", 45.0, True, "head")):
+                                          ("axial", 45.0, True, "head"),
+                                          ("axial", 0.0, False, "free"),
+                                          ("radial", 90.0, True, "free")):
+            # free (placed by hand): high enough above the head that every casing clears
+            _len = max(b["x1"] for b in layout_boxes(base)) - min(b["x0"] for b in layout_boxes(base))
             pl_kw = dict(azimuth_deg=120.0, shaft_orientation=orient, roll_deg=roll, flip=flip,
-                         mount=mount, head_offset_m=0.1)
+                         mount=mount, offset_m=0.1, height_m=_len + 0.5)
             ml = place_layout(base, r["profile_xs_m"], r["profile_rs_m"], **pl_kw)
             assert ml["placement"]["mount"] == mount
             for kind, clr in geometry3d.placement_clearances(
