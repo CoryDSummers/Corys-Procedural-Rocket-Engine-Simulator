@@ -251,7 +251,7 @@ flowchart TD
     STP --> CHK["turbopump_material_suitability<br/>no blade alloy: one rule for disk and blades<br/>blade alloy set: blade limit from SP-8110 Fig. 30 + disk at 0.878 Tin<br/>bearing_suitability: shaft d from torque, DN = rpm x bore"]
     CHK --> SC2["suction_checks, hydraulics_checks<br/>NPSH, temperature, boost, head curve, impeller outlet, axial stall"]
     STP --> TEH["turbine_exhaust.size_hardware (open cycles)<br/>duct, scroll, exhaust nozzle, HX"]
-    STP --> PLACE["geometry3d.turbopump_placement (E1)<br/>mount side | head, azimuth / axial station / standoff,<br/>shaft axial | tangential | radial, roll, flip<br/>side: every box clears contour + rings + exhaust hardware over its own span<br/>head: forward of the injector dome / rings, offset off the axis"]
+    STP --> PLACE["geometry3d.turbopump_placement (E1)<br/>mount side | head | free, azimuth / axial station / standoff,<br/>shaft axial | tangential | radial, roll, flip<br/>side: every box clears contour + rings + exhaust hardware over its own span<br/>head: forward of the injector dome / rings, offset off the axis<br/>free: hand-set height + offset, never moved - clearance reported, warn on a clash"]
     TEH --> PLACE
     PLACE --> PORTS["geometry3d.turbopump_ports or turbopump_layout.ports_from_layout<br/>pump inlet / discharge / turbine exhaust hook points + routing frame"]
     PORTS --> TEC["overboard nozzle clocked onto the exhaust port axis<br/>(no baked duct run) - size_hardware again"]

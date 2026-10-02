@@ -683,7 +683,12 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   NK-33 / RD-170 style (stand-off = the axial gap to the dome, an optional offset off the
   axis; the checklist reports how far it reaches above the injector - not added to the
   exported model height), and the pump itself can be turned to aim its ports: a radial
-  shaft preset, a roll about its own shaft and a flip of the shaft ends.
+  shaft preset, a roll about its own shaft and a flip of the shaft ends. A **free** mount
+  places it by hand anywhere - its centre's height above the injector face (+ = above the
+  chamber) and its offset off the axis, in metres, never moved: the checklist shows how far
+  it clears the engine (contour, dome, rings, exhaust hardware) or warns how far it runs
+  into it, and how far it reaches above the head / past the exit (not in the export
+  height). Switching to free starts it where the auto mount had it.
   Pump-connected runs close onto the ports with orthogonal auto legs (squared to the
   engine at the pump's clock angle, warn rows for oblique / through-the-wall / stale
   routes; a rolled pump's port stub is the only angled leg), and an overboard

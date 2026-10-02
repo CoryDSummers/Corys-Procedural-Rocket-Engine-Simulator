@@ -386,11 +386,14 @@ jacket-inlet duct), drawn by `gui/mesh_builder.build_plumbing_pieces` in BOTH th
 3D preview, where a baked jacket_inlet run replaces the legacy auto duct; the Lab also ghosts the
 turbopump (placed by `geometry3d.turbopump_placement` - roadmap E1, schema 20: user
 `turbopump_azimuth_deg` / `_axial_station_frac` / `_standoff_m` / `_shaft_orientation` (axial |
-tangential | radial) / `_roll_deg` / `_shaft_flip` / `_mount` (side | head) / `_head_offset_m`;
+tangential | radial) / `_roll_deg` / `_shaft_flip` / `_mount` (side | head | free) / `_offset_m`
+/ `_height_m`;
 side auto = every assembly box's rotated corners clear the contour + rings + exhaust hardware
 (`obstacle_bands`/`envelope_r_max`) over its OWN span, not the bell-exit radius; head = forward of
 `head_x_fwd` (dome `INJECTOR_DOME_DEPTH_R_FRACTION` + rings), its forward extension reported, NOT in
-the export height; ports carry the ENGINE-ALIGNED `placement_frame_rows`, not the pump's own axes,
+the export height; free = placed BY HAND (centre `_height_m` above the injector face, `_offset_m` off
+the axis), never moved - `free_clearance` (radially clear of `engine_r_over_span`, or wholly above the
+head / past the exit) is a warn row when negative; ports carry the ENGINE-ALIGNED `placement_frame_rows`, not the pump's own axes,
 so a rolled pump's pipes stay square; envelope port stubs join the hull only when aimed at the
 obstacle (`port_boxes`/`_active_boxes`); a placement dict
 {origin_xyz, rotation, frame} pivots the legacy local frame (`split_placement`), consumers read
