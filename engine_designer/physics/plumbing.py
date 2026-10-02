@@ -58,6 +58,7 @@ not the magnitude.
 Everything here is pure numpy/dataclasses - headlessly self-tested.
 """
 from dataclasses import dataclass, field, asdict, fields as dc_fields
+import itertools
 import math
 import warnings
 
@@ -140,6 +141,93 @@ PORT_STANDOFF_DIA_MULT_MIN = 0.5
 PORT_STANDOFF_DIA_MULT_MAX = 10.0
 SEED_APPROACH_DIA_MULT = 3.0       # seed route: leg A length (the 90-deg approach to S)
 AUTO_LEG_TURN_TOLERANCE_DEG = 10.0
+# Orthogonal ("Manhattan") auto legs (turbopump placement E1, 2026-09-30; Tier 3 drawing
+# conventions): the run's last pipe end -> the standoff point S is laid as up to three
+# straights, each along one axis of the pump's frame (port["frame"]: engine axis, the
+# pump's outboard radial, its tangent); a component shorter than this x the port bore is
+# folded into the longest straight instead of getting an elbow of its own.
+MANHATTAN_MIN_LEG_DIA_MULT = 0.5
+# When S lies straight behind the last pipe (every ordering would double back on it), the
+# auto legs first step sideways this x the port bore - a U of 90-deg corners.
+MANHATTAN_JOG_DIA_MULT = 3.0
+# A run that already sits on the port's side of the standoff point but closer than
+# port_standoff_dia_mult (the port faces it) closes with the straight entry shortened to
+# the room there is, down to this x the port bore - an S-bend instead of a U around S.
+AUTO_ENTRY_MIN_DIA_MULT = 1.0
+# An auto leg more than this off every frame axis is flagged as oblique (warn-only).
+AUTO_LEG_OBLIQUE_DEG = 20.0
+# Stale saved run: the auto legs carry more than this x the user's own pipes (and at least
+# AUTO_LEG_STALE_MIN_DIA_MULT port bores) beyond a seeded approach - the pump has moved
+# since the run was routed. Warn-only; saved runs are never rewritten.
+AUTO_LEG_STALE_RATIO = 1.0
+AUTO_LEG_STALE_MIN_DIA_MULT = 10.0
+# auto_leg_clearance_advisories samples each auto leg at this many points.
+AUTO_LEG_CLEARANCE_SAMPLES = 8
+
+
+def port_frame(port):
+    """The 3x3 frame (rows: engine axis, the pump's outboard radial, its tangent) a port's
+    auto legs are squared to - geometry3d/turbopump_layout stamp it on every port; a bare
+    port dict (no "frame") gets the engine's own axes (the legacy +Y pump frame)."""
+    f = (port or {}).get("frame")
+    return np.eye(3) if f is None else np.asarray(f, dtype=float)
+
+
+def _manhattan_targets(w, t_prev, s_pt, p_dir, frame, d_port, _jog=True):
+    """Corner points from `w` (the run's last waypoint, leaving along `t_prev`) to the
+    standoff point `s_pt` - the last one IS s_pt - laid as up to three straights along the
+    `frame` rows (orthogonal "Manhattan" legs). Of the orderings, the one picked:
+    never arrives at S heading AWAY from the port (leg B would then double back), doesn't
+    double back on the last user pipe, prefers carrying straight on from it, and takes an
+    outboard radial move early / an inboard one late (pipes swing clear of the engine
+    first); ties go to the fixed axis order. All components under MANHATTAN_MIN_LEG_DIA_MULT
+    x bore -> one straight leg."""
+    w = np.asarray(w, dtype=float)
+    s_pt = np.asarray(s_pt, dtype=float)
+    comps = frame @ (s_pt - w)
+    big = [i for i in range(3) if abs(comps[i]) >= MANHATTAN_MIN_LEG_DIA_MULT * d_port]
+    if not big:
+        return [s_pt.copy()]
+    segs = {i: comps[i] * frame[i] for i in big}
+    longest = max(big, key=lambda i: abs(comps[i]))
+    for i in range(3):
+        if i not in big:
+            segs[longest] = segs[longest] + comps[i] * frame[i]
+    best = None
+    for order in itertools.permutations(big):
+        dirs = [segs[i] / np.linalg.norm(segs[i]) for i in order]
+        score = 0.0
+        if np.dot(dirs[-1], p_dir) > 0.5:
+            score += 1000.0
+        elif np.dot(dirs[-1], p_dir) < -0.5:
+            score -= 2.0          # the last straight runs on into the port: an S-bend
+        if t_prev is not None:
+            c = float(np.dot(dirs[0], t_prev))
+            if c < -0.5:
+                score += 100.0
+            elif c > 0.5:
+                score -= 1.0
+        if 1 in order:
+            pos = order.index(1)
+            score += 0.1 * (pos if comps[1] > 0 else len(order) - 1 - pos)
+        if best is None or (score, order) < best:
+            best = (score, order)
+    if best[0] >= 100.0 and t_prev is not None and _jog:
+        # every ordering doubles back on the last pipe (S lies straight behind it): step
+        # out sideways first - outboard along the pump's radial unless that is the pipe's
+        # own axis or the port's - and route on from there (a U of 90-deg corners)
+        for i in (1, 2, 0):
+            if abs(np.dot(frame[i], t_prev)) < 0.5 and abs(np.dot(frame[i], p_dir)) < 0.5:
+                jog = MANHATTAN_JOG_DIA_MULT * d_port * (frame[i] if i == 1 or comps[i] >= 0
+                                                         else -frame[i])
+                return [w + jog] + _manhattan_targets(w + jog, jog / np.linalg.norm(jog), s_pt,
+                                                      p_dir, frame, d_port, _jog=False)
+    pts, p = [], w.copy()
+    for i in best[1]:
+        p = p + segs[i]
+        pts.append(p)
+    pts[-1] = s_pt.copy()
+    return pts
 
 # --- line pressure loss (run_pressure_loss_pa) - all Tier 3, textbook-typical
 # values NOT found in claude_lit (ASSUMPTIONS.md) --------------------------
@@ -489,8 +577,23 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
             p_dir = np.asarray(port["dir"], dtype=float)
             p_dir = p_dir / np.linalg.norm(p_dir)
             p_pos = np.asarray(port["pos"], dtype=float)
-            standoff_pt = p_pos + run.port_standoff_dia_mult * d_port * p_dir
-            for leg_end, last in ((standoff_pt, False), (p_pos, True)):
+            standoff = run.port_standoff_dia_mult * d_port
+            ahead = float(np.dot(waypoints[-1] - p_pos, p_dir))   # run end, along the port axis
+            if AUTO_ENTRY_MIN_DIA_MULT * d_port <= ahead < standoff:
+                standoff = ahead          # facing the port, short of S: shorter straight entry
+            standoff_pt = p_pos + standoff * p_dir
+            frame = port_frame(port)
+            targets = _manhattan_targets(waypoints[-1], dirs[-1] if dirs else None,
+                                         standoff_pt, p_dir, frame, d_port)
+            prev = targets[-2] if len(targets) > 1 else waypoints[-1]
+            last_leg = targets[-1] - prev
+            if (np.linalg.norm(last_leg) > 1e-9
+                    and np.dot(last_leg / np.linalg.norm(last_leg), -p_dir) > 1.0 - 1e-9):
+                # the last straight already runs into the port along its axis: one pipe
+                leg_ends = [(pt, False) for pt in targets[:-1]] + [(p_pos, True)]
+            else:
+                leg_ends = [(pt, False) for pt in targets] + [(p_pos, True)]
+            for leg_end, last in leg_ends:
                 leg = leg_end - waypoints[-1]
                 length = float(np.linalg.norm(leg))
                 if length < 1e-9:
@@ -513,6 +616,26 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
                 radii.append(0.5 * d_port)
                 auto_idx.append(len(pipes) - 1)
             closes = bool(auto_idx)
+            auto_len = 0.0
+            for k in auto_idx:
+                seg = waypoints[k + 1] - waypoints[k]
+                auto_len += float(np.linalg.norm(seg))
+                tl = seg / max(np.linalg.norm(seg), 1e-12)
+                # squared = along a frame axis, or along the port's own axis (a rolled
+                # pump's port leaves at an angle to the engine-aligned frame)
+                off = math.degrees(math.acos(min(1.0, max(float(np.max(np.abs(frame @ tl))),
+                                                          abs(float(np.dot(p_dir, tl)))))))
+                if off > AUTO_LEG_OBLIQUE_DEG:
+                    advisories.append(f"Pipe {k + 1} (auto): runs {off:.0f} deg off the pump's "
+                                      "axes - an oblique closing leg; add or lengthen a pipe so "
+                                      "the route squares up.")
+            user_len = sum(p.length_dia_mult * dias[k] for k, p in enumerate(run.pipes))
+            excess = auto_len - (run.port_standoff_dia_mult + SEED_APPROACH_DIA_MULT) * d_port
+            if excess > max(AUTO_LEG_STALE_RATIO * user_len, AUTO_LEG_STALE_MIN_DIA_MULT * d_port):
+                advisories.append(f"Run on {run.host}: the auto legs carry {auto_len:.2f} m of "
+                                  f"the route vs {user_len:.2f} m of drawn pipe - the pump has "
+                                  "probably moved since it was routed; 'Route to pump' re-seeds "
+                                  "an editable route.")
     n_pipes = len(pipes)
     waypoints = np.array(waypoints, dtype=float)
     dirs = np.array(dirs, dtype=float) if dirs else np.zeros((0, 3))
@@ -538,7 +661,9 @@ def resolve_run(run, hook, ring_center_r_m, ring_tube_r_m, supercritical=False, 
         if turn > turn_cap + 1e-6:
             advisories.append(f"Pipe {k + 1}: combined yaw+pitch turn is {turn:.0f} deg (> "
                               f"{PIPE_TURN_DEG_MAX:.0f}) - a very tight elbow for a feed line.")
-    for k in range(1, n_pipes + 1):
+    # (the user's own pipes only: an auto leg heading inboard to a pump beside the chamber
+    # is expected - auto_leg_clearance_advisories checks those against the real contour)
+    for k in range(1, len(run.pipes) + 1):
         radial = math.hypot(waypoints[k][1], waypoints[k][2])
         if radial < ring_center_r_m - ring_tube_r_m - 1e-9:
             advisories.append(f"Pipe {k}: its end lies inside the manifold ring's radius "
@@ -831,6 +956,57 @@ def suction_line_loss_pa(mdot_kgs, rho_kg_m3, npsh_tank_m, length_m, viscosity_p
     return (f * length_m / bore + SUCTION_LINE_MINOR_K) * 0.5 * rho_kg_m3 * v * v, info
 
 
+def overboard_outlet_on_port_axis(port, r_min_m, standoff_m):
+    """(attach_angle_deg, radius_m) for an overboard exhaust nozzle (a point hook, its
+    inlet facing forward) clocked ONTO the turbine exhaust port's axis, so the default duct
+    is one forward pipe + one elbow straight into the port (E1) - or None when the port
+    faces forward (no such spot). A tangential port: the point `standoff_m` out along its
+    axis (further if that is still inside `r_min_m`, the nozzle's own wall clearance); an
+    aft-facing port: right behind it, pushed out radially to r_min_m if needed."""
+    if not port:
+        return None
+    p = np.asarray(port["pos"], dtype=float)
+    d = np.asarray(port["dir"], dtype=float)
+    d = d / np.linalg.norm(d)
+    if d[0] > 0.5:
+        yz = p[1:].copy()
+    elif abs(d[0]) < 1e-6:
+        b = d[1:] / np.linalg.norm(d[1:])
+        ab = float(np.dot(p[1:], b))
+        disc = ab * ab - float(np.dot(p[1:], p[1:])) + r_min_m * r_min_m
+        t = max(float(standoff_m), -ab + math.sqrt(disc) if disc > 0.0 else 0.0)
+        yz = p[1:] + t * b
+    else:
+        return None
+    r = float(np.hypot(*yz))
+    if r < 1e-9:
+        return None
+    return math.degrees(math.atan2(yz[1], yz[0])) % 360.0, max(r, float(r_min_m))
+
+
+def auto_leg_clearance_advisories(res, profile_xs_m, profile_rs_m, host=""):
+    """Warn-only: an auto leg of a resolved run (resolve_run) that dips inside the engine
+    contour - AUTO_LEG_CLEARANCE_SAMPLES points per leg against the contour radius at
+    their axial station (outside the contour's x range there is nothing to hit)."""
+    xs = np.asarray(profile_xs_m, dtype=float)
+    rs = np.asarray(profile_rs_m, dtype=float)
+    wp = np.asarray(res["waypoints_xyz"], dtype=float)
+    out = []
+    for k in res.get("auto_leg_indices", []):
+        a, b = wp[k], wp[k + 1]
+        r_pipe = res["pipe_radii_m"][k]
+        for f in np.linspace(0.0, 1.0, AUTO_LEG_CLEARANCE_SAMPLES):
+            p = a + f * (b - a)
+            if not xs[0] <= p[0] <= xs[-1]:
+                continue
+            if math.hypot(p[1], p[2]) - r_pipe < float(np.interp(p[0], xs, rs)):
+                out.append(f"Pipe {k + 1} (auto){' on ' + host if host else ''}: passes through "
+                           "the chamber/nozzle wall - re-route it ('Route to pump') or move the "
+                           "turbopump.")
+                break
+    return out
+
+
 def seed_route_to_port(hook, port, ring_center_r_m, ring_tube_r_m, host="jacket_inlet",
                        bend_radius_dia_mult=1.0):
     """The Shape Lab's "Route to pump" seed: an editable, orthogonal run from
@@ -851,6 +1027,8 @@ def seed_route_to_port(hook, port, ring_center_r_m, ring_tube_r_m, host="jacket_
     pitched toward the port's station, then straight along the axis."""
     if ring_is_scroll(hook):
         return _seed_scroll_route(hook, port, ring_center_r_m, host, bend_radius_dia_mult)
+    if hook.get("point_hook"):
+        return _seed_point_route(hook, port, ring_tube_r_m, host, bend_radius_dia_mult)
     dia = float(hook["inner_diameter_m"])
     run = PlumbingRun(role=HOST_RING_ROLE.get(host, "coolant_supply_manifold"), host=host,
                       connect_to_pump=True)
@@ -859,10 +1037,14 @@ def seed_route_to_port(hook, port, ring_center_r_m, ring_tube_r_m, host="jacket_
     p_dir = p_dir / np.linalg.norm(p_dir)
     d_port = float(port.get("dia_m") or 0.0) or dia
     s_pt = np.asarray(port["pos"], dtype=float) + run.port_standoff_dia_mult * d_port * p_dir
-    # Approach S along u: S's radial direction with its port-axis component
-    # removed, so leg A meets both the axial pipe 2 and leg B at ~90 deg.
-    radial_s = np.array([0.0, s_pt[1], s_pt[2]])
-    u = radial_s - np.dot(radial_s, p_dir) * p_dir
+    # Approach S along u: the pump frame's outboard radial (port_frame row 1) with its
+    # port-axis component removed, so leg A lies on a frame axis and meets both the
+    # axial pipe 2 and leg B at 90 deg.
+    u = port_frame(port)[1]
+    u = u - np.dot(u, p_dir) * p_dir
+    if np.linalg.norm(u) < 1e-6:   # port along the radial: fall back to S's own radial
+        radial_s = np.array([0.0, s_pt[1], s_pt[2]])
+        u = radial_s - np.dot(radial_s, p_dir) * p_dir
     u = u / np.linalg.norm(u) if np.linalg.norm(u) > 1e-12 else np.array([0.0, 1.0, 0.0])
     surface_r = ring_center_r_m + ring_tube_r_m
     clearance = SEED_APPROACH_DIA_MULT * d_port
@@ -886,6 +1068,38 @@ def seed_route_to_port(hook, port, ring_center_r_m, ring_tube_r_m, host="jacket_
                 pitch_deg=(90.0 if dx < 0 else -90.0) if i == 0 else 0.0,
                 bend_radius_dia_mult=bend_radius_dia_mult))
     run.pipes = pipes
+    return run
+
+
+def _seed_point_route(hook, port, ring_tube_r_m, host, bend_radius_dia_mult):
+    """seed_route_to_port for a POINT hook (an overboard exhaust nozzle's inlet - its
+    position is fixed by the hardware, so the attach angle is the hook's own): pipe 1
+    leaves forward (poloidal 90 = -x) and runs to the standoff point's station (chunked
+    like the ring seed; a 2-bore stub when S is not forward of it), and resolve_run's
+    orthogonal auto legs finish onto the port."""
+    dia = float(hook["inner_diameter_m"])
+    run = PlumbingRun(role=HOST_RING_ROLE.get(host, "coolant_supply_manifold"), host=host,
+                      attach_angle_deg=float(hook.get("attach_angular_position_deg", 0.0)),
+                      attach_poloidal_deg=90.0, connect_to_pump=True)
+    role_pipe = HOST_PIPE_ROLE.get(host, "coolant_supply")
+    p_dir = np.asarray(port["dir"], dtype=float)
+    p_dir = p_dir / np.linalg.norm(p_dir)
+    d_port = float(port.get("dia_m") or 0.0) or dia
+    s_pt = np.asarray(port["pos"], dtype=float) + run.port_standoff_dia_mult * d_port * p_dir
+    x_surf = float(hook["attach_axial_station_m"]) - float(ring_tube_r_m)
+    fwd = x_surf - float(s_pt[0])
+    if fwd > 2.0 * dia:
+        n_chunks = max(1, math.ceil(fwd / dia / PIPE_LENGTH_DIA_MULT_MAX))
+        run.pipes = [PipeSegment(role=role_pipe, length_dia_mult=fwd / dia / n_chunks,
+                                 bend_radius_dia_mult=bend_radius_dia_mult)
+                     for _ in range(n_chunks)]
+    else:
+        stub = 2.0
+        if p_dir[0] > 0.5:   # the port faces the nozzle: stop short, leave a straight entry
+            room = x_surf - float(port["pos"][0]) - AUTO_ENTRY_MIN_DIA_MULT * d_port
+            stub = _clamp(room / dia, PIPE_LENGTH_DIA_MULT_MIN, 2.0)
+        run.pipes = [PipeSegment(role=role_pipe, length_dia_mult=stub,
+                                 bend_radius_dia_mult=bend_radius_dia_mult)]
     return run
 
 
@@ -920,14 +1134,29 @@ def _seed_scroll_route(hook, port, ring_center_r_m, host, bend_radius_dia_mult):
             run.port_standoff_dia_mult = k
             s_pt = p_pos + k * d_port * p_dir
     sd = 1.0 if hook.get("scroll_dir", 1) >= 0 else -1.0
-    theta_s = math.degrees(math.atan2(s_pt[2], s_pt[1]))
+    # A port square to the engine axis (a tangential turbine exhaust): aim pipe 1 + 2 at a
+    # point ON the port's axis, SEED_APPROACH bores beyond S, so the auto legs close with
+    # one straight into the port; otherwise end a chord short of S's angle.
+    on_axis = abs(p_dir[0]) < 1e-6
     r_c = max(float(ring_center_r_m), 1e-9)
-    r_s = math.hypot(s_pt[1], s_pt[2])
+    target = s_pt
+    if on_axis:
+        # the nearest point on the port axis, at least the standoff out, that the tangent
+        # leg can reach: radius >= hypot(r_c, its minimum length) - |a + t b| = R, b unit
+        l1_min = max(SCROLL_SEED_TANGENT_LEG_DIA_MULT, bend_radius_dia_mult + 1.0) * dia
+        r_need = math.hypot(r_c, l1_min)
+        a_yz, b_yz = p_pos[1:], p_dir[1:] / max(np.linalg.norm(p_dir[1:]), 1e-12)
+        ab = float(np.dot(a_yz, b_yz))
+        disc = ab * ab - float(np.dot(a_yz, a_yz)) + r_need * r_need
+        t_reach = -ab + math.sqrt(disc) if disc > 0.0 else 0.0
+        target = p_pos + max(run.port_standoff_dia_mult * d_port, t_reach) * p_dir
+    theta_s = math.degrees(math.atan2(target[2], target[1]))
+    r_s = math.hypot(target[1], target[2])
     l_reach = math.sqrt(max(r_s * r_s - r_c * r_c, 0.0))
     l1_mult = _clamp(max(SCROLL_SEED_TANGENT_LEG_DIA_MULT, bend_radius_dia_mult + 1.0,
                          l_reach / dia), PIPE_LENGTH_DIA_MULT_MIN, PIPE_LENGTH_DIA_MULT_MAX)
     r_p1 = math.hypot(r_c, l1_mult * dia)
-    chord = SEED_APPROACH_DIA_MULT * d_port
+    chord = 0.0 if on_axis else SEED_APPROACH_DIA_MULT * d_port
     delta = 2.0 * math.asin(min(chord / (2.0 * r_p1), 1.0))
     run.attach_angle_deg = (theta_s + sd * math.degrees(delta + math.atan(l1_mult * dia / r_c))
                             ) % 360.0
@@ -1187,8 +1416,48 @@ def self_test():
                                                     PipeSegment(length_dia_mult=5.0, pitch_deg=90.0,
                                                                 bend_radius_dia_mult=1.0)])
     cres = resolve_run(conn, hook, ring_r, ring_tube, port=port)
-    assert cres["closes_on_port"] and cres["auto_leg_indices"] == [2, 3]
+    auto = cres["auto_leg_indices"]
+    assert cres["closes_on_port"] and auto == list(range(2, 2 + len(auto))) and len(auto) >= 2
     assert np.linalg.norm(cres["waypoints_xyz"][-1] - port["pos"]) < 1e-9
+
+    def _square(res, frame=np.eye(3), p_dir=None):
+        """every auto leg on a frame axis or the port's own axis (to the fold-in
+        tolerance), no turn > 90 deg"""
+        dirs_ = res["segment_dirs"]
+        for k in res["auto_leg_indices"]:
+            along = float(np.max(np.abs(np.asarray(frame) @ dirs_[k])))
+            if p_dir is not None:
+                along = max(along, abs(float(np.dot(p_dir, dirs_[k]))))
+            assert along > math.cos(math.radians(AUTO_LEG_OBLIQUE_DEG)), (k, dirs_[k])
+        for k in range(1, len(dirs_)):
+            assert float(np.dot(dirs_[k - 1], dirs_[k])) > -1e-9, (k, dirs_[k - 1], dirs_[k])
+        assert not [a for a in res["advisories"] if "oblique" in a or "turn is" in a], \
+            res["advisories"]
+
+    _square(cres)
+    # Manhattan targets: three components -> three axis straights ending on S; an outboard
+    # radial first; a component under MANHATTAN_MIN_LEG_DIA_MULT folds into the longest
+    w0 = np.zeros(3)
+    tg = _manhattan_targets(w0, np.array([1.0, 0.0, 0.0]), np.array([0.5, 0.4, -0.3]),
+                            np.array([0.0, 0.0, -1.0]), np.eye(3), 0.1)
+    assert len(tg) == 3 and np.allclose(tg[-1], [0.5, 0.4, -0.3])
+    assert np.allclose(tg[0], [0.5, 0.0, 0.0])          # carries straight on along t_prev
+    tg = _manhattan_targets(w0, None, np.array([0.01, 0.4, 0.0]), np.array([0.0, 0.0, 1.0]),
+                            np.eye(3), 0.1)
+    assert len(tg) == 1 and np.allclose(tg[0], [0.01, 0.4, 0.0])
+    # never arrives at S heading away from the port (leg B would double back)
+    tg = _manhattan_targets(w0, None, np.array([0.0, 0.5, 0.5]), np.array([0.0, 0.0, 1.0]),
+                            np.eye(3), 0.1)
+    assert np.allclose(tg[0], [0.0, 0.0, 0.5])
+    # a rotated pump frame: the auto legs square to IT, not to the engine axes
+    from .geometry3d import turbopump_rotation, port_frame_rows
+    rot = turbopump_rotation(37.0, "axial")
+    port_r = {"pos": np.array([0.1, 0.0, 0.0]) + rot @ np.array([0.0, 0.9, -0.25]),
+              "dir": rot @ np.array([0.0, 0.0, -1.0]), "dia_m": 0.10,
+              "frame": port_frame_rows(rot)}
+    rres = resolve_run(conn, hook, ring_r, ring_tube, port=port_r)
+    assert np.linalg.norm(rres["waypoints_xyz"][-1] - port_r["pos"]) < 1e-9
+    _square(rres, port_frame_rows(rot))
     assert np.allclose(cres["segment_dirs"][-1], -port["dir"])
     assert cres["joint_frames"][-1]["name"] == "port" and cres["joint_frames"][-1]["flange"]
     # a different ring radius (the render's) still lands on the port
@@ -1212,7 +1481,52 @@ def self_test():
     sres = resolve_run(seed, hook, ring_r, ring_tube, port=port)
     assert np.linalg.norm(sres["waypoints_xyz"][-1] - port["pos"]) < 1e-9
     assert not sres["advisories"], sres["advisories"]
-    print("pump-port closure + seed route: OK")
+    _square(sres)
+    # the seeded approach (leg A) is exactly the pump frame's radial
+    assert any(np.allclose(sres["segment_dirs"][k], [0.0, 1.0, 0.0], atol=1e-9)
+               or np.allclose(sres["segment_dirs"][k], [0.0, -1.0, 0.0], atol=1e-9)
+               for k in sres["auto_leg_indices"])
+    # ...in a rotated frame too
+    sres_r = resolve_run(seed_route_to_port(hook, port_r, ring_r, ring_tube), hook, ring_r,
+                         ring_tube, port=port_r)
+    assert np.linalg.norm(sres_r["waypoints_xyz"][-1] - port_r["pos"]) < 1e-9
+    assert not sres_r["advisories"], sres_r["advisories"]
+    _square(sres_r, port_frame_rows(rot))
+    # a ROLLED pump (roll / flip, 2026-10-01): the port leaves at an angle to the
+    # engine-aligned placement frame - the route still lands, its engine-side legs square to
+    # that frame, only the stub along the port axis is angled, and nothing is "oblique"
+    from .geometry3d import placement_frame_rows
+    for roll, flip in ((30.0, False), (90.0, True), (215.0, False)):
+        rot_k = turbopump_rotation(37.0, "axial", roll, flip)
+        port_k = {"pos": np.array([0.1, 0.0, 0.0]) + rot_k @ np.array([0.0, 0.9, -0.25]),
+                  "dir": rot_k @ np.array([0.0, 0.0, -1.0]), "dia_m": 0.10,
+                  "frame": placement_frame_rows(37.0)}
+        kres = resolve_run(seed_route_to_port(hook, port_k, ring_r, ring_tube), hook, ring_r,
+                           ring_tube, port=port_k)
+        assert np.linalg.norm(kres["waypoints_xyz"][-1] - port_k["pos"]) < 1e-9, roll
+        assert not [a for a in kres["advisories"] if "oblique" in a], (roll, kres["advisories"])
+        _square(kres, port_k["frame"], port_k["dir"]) if roll % 90.0 == 0.0 else None
+    # stale saved run: the same seed after the pump moved 3 m aft is flagged, still closes
+    moved = dict(port, pos=port["pos"] + np.array([3.0, 0.3, 0.0]))
+    stale = resolve_run(seed, hook, ring_r, ring_tube, port=moved)
+    assert np.linalg.norm(stale["waypoints_xyz"][-1] - moved["pos"]) < 1e-9
+    assert any("probably moved" in a for a in stale["advisories"]), stale["advisories"]
+    _square(stale)
+    # clearance: an auto leg cut through a fat contour is flagged; the real one is clear
+    xs_c = np.array([0.0, 2.0])
+    assert not auto_leg_clearance_advisories(sres, xs_c, np.array([0.3, 0.3]))
+    assert auto_leg_clearance_advisories(sres, xs_c, np.array([2.0, 2.0]), "jacket_inlet")
+    # a point hook (overboard exhaust nozzle): keeps its own angle, leaves forward
+    pt_hook = dict(hook, point_hook=True, attach_angular_position_deg=0.0,
+                   attach_axial_station_m=2.5, major_radius_m=0.7)
+    pseed = seed_route_to_port(pt_hook, port, 0.7, 0.05, "turbine_exhaust")
+    assert pseed.attach_angle_deg == 0.0 and pseed.attach_poloidal_deg == 90.0
+    pres = resolve_run(pseed, pt_hook, 0.7, 0.05, port=port)
+    assert np.allclose(pres["segment_dirs"][0], [-1.0, 0.0, 0.0])
+    assert np.linalg.norm(pres["waypoints_xyz"][-1] - port["pos"]) < 1e-9
+    _square(pres)
+    print("pump-port closure + seed route: OK (orthogonal auto legs, rotated frame, "
+          "stale / clearance advisories, point-hook seed)")
 
     # --- line pressure loss ---
     straight = resolve_run(PlumbingRun(pipes=[PipeSegment(length_dia_mult=10.0)]),

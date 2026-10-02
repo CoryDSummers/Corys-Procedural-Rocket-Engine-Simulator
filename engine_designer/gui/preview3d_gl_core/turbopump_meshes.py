@@ -156,6 +156,21 @@ def place_pieces(pieces, x0_m=0.0, sx=1.0, dy_m=0.0, dz_m=0.0):
     return out
 
 
+def transform_pieces(pieces, origin_xyz, rotation):
+    """Copies of `pieces` rotated by the proper 3x3 `rotation` and moved to `origin_xyz`:
+    v' = O + R v, n' = R n. det R = +1, so the winding is kept (turbopump placement,
+    geometry3d.turbopump_rotation)."""
+    o = np.asarray(origin_xyz, dtype=float)
+    rot = np.asarray(rotation, dtype=float)
+    out = []
+    for p in pieces:
+        v = p.vertices.astype(float) @ rot.T + o
+        n = p.normals.astype(float) @ rot.T
+        out.append(dataclasses.replace(p, vertices=v.astype(np.float32),
+                                       normals=n.astype(p.normals.dtype)))
+    return out
+
+
 def flange_pieces(face_xyz, direction_xyz, bore_r_m, rgb, n_tube=LAYOUT_N_TUBE, **kw):
     """A turbopump_layout flange spec as a bolted pipe flange: OUTER face at `face_xyz`
     (the port plane), its body FLANGE_WIDTH_BORE_MULT x bore behind it along -dir."""
@@ -199,6 +214,9 @@ def layout_pieces(layout, pump_rgb, turbine_rgb, flange_rgb, n_theta=LAYOUT_N_TH
     from one neighbour's link radius to the other's, pump_rgb).
     """
     ox, oy, oz = layout["origin_xyz"]
+    rot = turbopump_layout._rotation(layout)
+    if rot is not None:   # strung at the local origin, then rotated + moved as one
+        ox = oy = oz = 0.0
     out = []
     for key, comp in layout["components"].items():
         pl = layout["placements"][key]
@@ -210,6 +228,8 @@ def layout_pieces(layout, pump_rgb, turbine_rgb, flange_rgb, n_theta=LAYOUT_N_TH
         housing = revolve_polyline_pieces([link["x0"], link["x1"]], [link["r0"], link["r1"]],
                                           n_theta, pump_rgb, **kw)
         out.append(("shaft", place_pieces(housing, x0_m=ox, dy_m=oy, dz_m=oz + link["dz"])))
+    if rot is not None:
+        out = [(key, transform_pieces(pcs, layout["origin_xyz"], rot)) for key, pcs in out]
     return out
 
 
@@ -280,7 +300,20 @@ def self_test():
     big = np.linalg.norm(face, axis=1) > 1e-12
     assert np.all(np.sum(face[big] * vn[big], axis=1) > 0.0)
     assert base[0].vertices[0, 0] == 0.0                 # original untouched
-    print("turbopump_meshes self-test: OK (polyline revolve, volute sections/scroll, placement)")
+    # --- rotation (turbopump placement E1): rigid, winding still agrees with normals ---
+    from ...physics import geometry3d
+    rot = geometry3d.turbopump_rotation(215.0, "tangential")
+    o = np.array([0.3, 1.2, -0.4])
+    t = transform_pieces([m], o, rot)[0]
+    assert np.allclose(t.vertices, m.vertices.astype(float) @ rot.T + o, atol=1e-6)
+    assert np.allclose(np.linalg.norm(t.normals, axis=1), 1.0, atol=1e-5)
+    tri = t.vertices[t.indices].astype(float)
+    face = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
+    vn = t.normals[t.indices].astype(float).sum(axis=1)
+    big = np.linalg.norm(face, axis=1) > 1e-12
+    assert np.all(np.sum(face[big] * vn[big], axis=1) > 0.0)
+    print("turbopump_meshes self-test: OK (polyline revolve, volute sections/scroll, placement, "
+          "rotation)")
 
 
 if __name__ == "__main__":

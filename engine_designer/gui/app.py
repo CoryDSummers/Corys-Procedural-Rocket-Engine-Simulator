@@ -35,7 +35,7 @@ from matplotlib.figure import Figure
 from ..catalog import load_roengines_models
 from ..export.cfg_writer import write_cfg
 from ..physics import (combustion, controller_tech, cooling, cost_model, cycles, flow_network,
-                        ignition,
+                        geometry3d, ignition,
                         hatbands, injectors, materials, plumbing, reliability,
                         tech_tree,
                         tap_off, turbine_exhaust, turbopump_materials, turbopump_sizing, turbopump_tech)
@@ -990,6 +990,74 @@ class EngineDesignerApp:
         tc_row = 0
         self._register_gate(tcb, lambda: CYCLE_FROM_DISPLAY.get(self.cycle_var.get()) != cycles.PRESSURE_FED)
 
+        # --- turbopump placement (roadmap E1, geometry3d.turbopump_placement): where the
+        # assembly sits round / along the engine. Drawing + port positions (so pump-connected
+        # line losses and the exhaust duct follow) - no mass. Syntax/import-checked only
+        # here (no $DISPLAY) - click-through is Cory's to check.
+        sec_tp_place = CollapsibleSection(tab_turbopump_left, "Turbopump Placement (3D)",
+                                          start_open=False)
+        sec_tp_place.grid(row=tp_row, column=0, columnspan=2, sticky="ew")
+        tp_row += 1
+        tpb = sec_tp_place.body_parent()
+        self._register_gate(tpb, lambda: CYCLE_FROM_DISPLAY.get(self.cycle_var.get()) != cycles.PRESSURE_FED)
+        tpl_row = 0
+        # mount (2026-10-01): "side" = auto, beside the contour; "head" = auto, forward of the
+        # injector head, NK-33 / RD-170 style; "free" = placed by hand (height + offset
+        # sliders below), never moved - a clash is a warn row. The checklist reports how far
+        # it reaches above the head / past the exit - not in the exported model height.
+        tpl_row = self._add_dropdown(tpb, tpl_row,
+                                     "Mount (side = auto beside the chamber, head = auto on top of "
+                                     "the injector, free = set its height + offset by hand)",
+                                     "tp_mount_var", list(geometry3d.TURBOPUMP_MOUNTS),
+                                     self.design.turbopump_mount, width=12,
+                                     on_select=self._on_tp_mount_select)
+        self.tp_azimuth_var = tk.DoubleVar(value=self.design.turbopump_azimuth_deg)
+        tpl_row = self._add_slider(tpb, tpl_row,
+                                   "Clock angle round the engine [deg] (0 = +Y)",
+                                   self.tp_azimuth_var, 0.0, 360.0, decimals=0)
+        self.tp_station_var = tk.DoubleVar(value=self.design.turbopump_axial_station_frac)
+        tpl_row = self._add_slider(tpb, tpl_row,
+                                   "Axial station, x engine length (side mount only; 0 = auto, "
+                                   "at the injector end)",
+                                   self.tp_station_var, 0.0, 1.0, decimals=2)
+        self.tp_standoff_var = tk.DoubleVar(value=self.design.turbopump_standoff_m)
+        tpl_row = self._add_slider(tpb, tpl_row,
+                                   "Stand-off [m] (side: from chamber / rings, head: forward of "
+                                   "the injector; 0 = auto, 4 % of local r; free: unused)",
+                                   self.tp_standoff_var, 0.0, 1.0, decimals=3)
+        # free mount: height + offset in metres; both ranges follow the engine's size after
+        # every compute (_update_tp_place_ranges)
+        self.tp_height_var = tk.DoubleVar(value=self.design.turbopump_height_m)
+        _lbl_row = tpl_row
+        tpl_row, self.tp_height_scale = self._add_slider(
+            tpb, tpl_row, "Height of its centre above the injector face [m] (free mount only; "
+            "+ = above the chamber, - = down beside it)",
+            self.tp_height_var, -4.0, 4.0, decimals=3, return_scale=True)
+        self.tp_height_label = tpb.grid_slaves(row=_lbl_row, column=0)[0]
+        self.tp_offset_var = tk.DoubleVar(value=self.design.turbopump_offset_m)
+        _lbl_row = tpl_row
+        tpl_row, self.tp_offset_scale = self._add_slider(
+            tpb, tpl_row, "Offset of its centre off the engine axis [m] (head + free mounts; "
+            "0 = on the axis, toward the clock angle)",
+            self.tp_offset_var, 0.0, 3.0, decimals=3, return_scale=True)
+        self.tp_offset_label = tpb.grid_slaves(row=_lbl_row, column=0)[0]
+        tpl_row = self._add_dropdown(tpb, tpl_row,
+                                     "Shaft orientation (axial = parallel to the engine axis, "
+                                     "radial = pointing out from it)",
+                                     "tp_shaft_var", list(geometry3d.SHAFT_ORIENTATIONS),
+                                     self.design.turbopump_shaft_orientation, width=12)
+        # roll / flip: turn the pump itself to aim its ports (pipes stay squared to the
+        # engine; only the port stubs lean)
+        self.tp_roll_var = tk.DoubleVar(value=self.design.turbopump_roll_deg)
+        tpl_row = self._add_slider(tpb, tpl_row,
+                                   "Roll about its own shaft [deg] (clocks the ports)",
+                                   self.tp_roll_var, -180.0, 180.0, decimals=0)
+        self.tp_flip_var = tk.BooleanVar(value=self.design.turbopump_shaft_flip)
+        ttk.Checkbutton(tpb, text="Flip shaft ends (turbine / pump ends swap)",
+                        variable=self.tp_flip_var, command=self._on_control_change).grid(
+            row=tpl_row, column=0, columnspan=2, sticky="w")
+        tpl_row += 1
+
         # --- turbine exhaust disposal (physics/turbine_exhaust.py) - open cycles
         # only: overboard duct (RS-68/LR-87/LR-91/H-1C), H-1D aspirator, or
         # F-1/J-2 injection into the nozzle. Syntax/import-checked only here
@@ -1758,6 +1826,50 @@ class EngineDesignerApp:
         blade = turbopump_materials.BLADE_MATERIALS.get(key or "")
         return blade.display_name if blade else BLADE_SAME_AS_ROTOR
 
+    def _on_tp_mount_select(self, _event=None):
+        """Mount dropdown: switching to "free" with the height / offset still at 0 seeds
+        them from where the pump sits now (the last solve's placement), so it doesn't
+        jump into the chamber. Then the usual design read + recompute."""
+        pl = (self.last_result or {}).get("turbopump_placement") if hasattr(
+            self, "last_result") else None
+        if (self.tp_mount_var.get() == "free" and self.design.turbopump_mount != "free"
+                and pl and float(self.tp_height_var.get() or 0.0) == 0.0
+                and float(self.tp_offset_var.get() or 0.0) == 0.0):
+            self._loading = True          # one recompute below, not one per var
+            try:
+                self._update_tp_place_ranges(self.last_result, include=(
+                    -pl["station_x_m"], pl["axis_radius_m"]))
+                self.tp_height_var.set(round(-float(pl["station_x_m"]), 3))
+                self.tp_offset_var.set(round(float(pl["axis_radius_m"]), 3))
+            finally:
+                self._loading = False
+        self._on_control_change()
+
+    def _update_tp_place_ranges(self, result, include=None):
+        """Size the free-mount height / offset sliders to the engine: height -(L + 0.5) ..
+        +(L + 0.5) m, offset 0 .. 2 x max radius + 1 m (L = contour length), widened to
+        keep the current (or `include`d) values reachable."""
+        if not result or not hasattr(self, "tp_height_scale"):
+            return
+        try:
+            length = float(max(result["profile_xs_m"]))
+            r_max = float(max(result["profile_rs_m"]))
+            h_now, o_now = (include if include is not None else
+                            (float(self.tp_height_var.get()), float(self.tp_offset_var.get())))
+        except (KeyError, ValueError, tk.TclError):
+            return
+        h_lim = max(length + 0.5, abs(h_now))
+        o_hi = max(2.0 * r_max + 1.0, o_now)
+        for scale, label, lo, hi, text in (
+                (self.tp_height_scale, self.tp_height_label, -h_lim, h_lim,
+                 "Height of its centre above the injector face [m] (free mount only; "
+                 "+ = above the chamber, - = down beside it)"),
+                (self.tp_offset_scale, self.tp_offset_label, 0.0, o_hi,
+                 "Offset of its centre off the engine axis [m] (head + free mounts; "
+                 "0 = on the axis, toward the clock angle)")):
+            scale.configure(from_=round(lo, 2), to=round(hi, 2))
+            label.configure(text=f"{text}  [{lo:.2f}-{hi:.2f}]")
+
     def _add_dropdown(self, parent, row, label, attr_name, values, initial_value,
                        on_select=None, width=None):
         ttk.Label(parent, text=label).grid(row=row, column=0, columnspan=2, sticky="w")
@@ -2043,6 +2155,16 @@ class EngineDesignerApp:
             self.design.pump_model = self.pump_model_var.get() or "meanline"
             self.design.turbopump_geometry_model = ("casings" if self.tp_casings_main_var.get()
                                                     else "envelope")
+            self.design.turbopump_azimuth_deg = float(self.tp_azimuth_var.get()) % 360.0
+            self.design.turbopump_axial_station_frac = max(0.0, min(1.0, float(
+                self.tp_station_var.get())))
+            self.design.turbopump_standoff_m = max(0.0, float(self.tp_standoff_var.get()))
+            self.design.turbopump_shaft_orientation = self.tp_shaft_var.get() or "axial"
+            self.design.turbopump_mount = self.tp_mount_var.get() or "side"
+            self.design.turbopump_offset_m = max(0.0, float(self.tp_offset_var.get()))
+            self.design.turbopump_height_m = float(self.tp_height_var.get())
+            self.design.turbopump_roll_deg = ((float(self.tp_roll_var.get()) + 180.0) % 360.0) - 180.0
+            self.design.turbopump_shaft_flip = bool(self.tp_flip_var.get())
             self.design.pump_priority = max(-1.0, min(1.0, float(self.pump_priority_var.get())))
             self.design.pump_head_curve = max(-1.0, min(1.0, float(self.pump_head_curve_var.get())))
             self.design.suction_aggressiveness = max(-1.0, min(1.0, float(self.suction_aggr_var.get())))
@@ -2601,6 +2723,7 @@ class EngineDesignerApp:
                 self._tab_dirty[key] = True
 
         self._refresh_plumbing_rows(result)
+        self._update_tp_place_ranges(result)
 
         if self._is_combustion_tab_visible():
             self._mr_peak_stale = False
@@ -3011,6 +3134,29 @@ class EngineDesignerApp:
                     f"(SP-8107 mass-vs-power trend; envelope x-check {sizing['mass_geometry_kg']:.0f} kg)")
                 tp_lines.append(f"Dry-mass modifier: x{sizing['mass_modifier']:.3f}  "
                                 f"({'FEASIBLE' if sizing['feasible'] else 'MARGINAL'})")
+                _pl = result.get("turbopump_placement")
+                if _pl:
+                    _turn = ((" flipped" if _pl.get("flip") else "")
+                             + (f", roll {_pl['roll_deg']:.0f} deg" if _pl.get("roll_deg") else ""))
+                    tp_lines.append(
+                        f"Placement ({_pl.get('mount', 'side')} mount): {_pl['shaft_orientation']}"
+                        f"{_turn} shaft at {_pl['azimuth_deg']:.0f} deg, "
+                        f"axis {_pl['axis_radius_m']:.2f} m out, x {_pl['x_span_m'][0]:.2f}-"
+                        f"{_pl['x_span_m'][1]:.2f} m, {_pl['standoff_m'] * 1e3:.0f} mm clear "
+                        f"({_pl['governing_kind']})"
+                        + (f"; {_pl['forward_extension_m']:.2f} m above the injector head "
+                           "(not in the export height)" if _pl.get("mount") == "head" else ""))
+                    if _pl.get("mount") == "free":
+                        _h = _pl["height_m"]
+                        tp_lines.append(
+                            f"  placed by hand: centre {abs(_h):.2f} m "
+                            f"{'above' if _h >= 0 else 'below'} the injector face"
+                            + (f"; CLASH - runs {-_pl['clearance_m'] * 1e3:.0f} mm into the engine"
+                               if _pl["clearance_m"] < 0 else "")
+                            + (f"; {_pl['forward_extension_m']:.2f} m above the injector head"
+                               if _pl["forward_extension_m"] > 0 else "")
+                            + (f"; {_pl['aft_extension_m']:.2f} m past the nozzle exit"
+                               if _pl["aft_extension_m"] > 0 else ""))
                 for w in sizing["warnings"]:
                     tp_lines.append(f"  [!] {w}")
         else:
@@ -3174,6 +3320,15 @@ class EngineDesignerApp:
         self.blade_material_var.set(self._blade_display(d.turbine_blade_material_key))
         self.pump_model_var.set(d.pump_model)
         self.tp_casings_main_var.set(d.turbopump_geometry_model == "casings")
+        self.tp_azimuth_var.set(d.turbopump_azimuth_deg)
+        self.tp_station_var.set(d.turbopump_axial_station_frac)
+        self.tp_standoff_var.set(d.turbopump_standoff_m)
+        self.tp_shaft_var.set(d.turbopump_shaft_orientation)
+        self.tp_mount_var.set(d.turbopump_mount)
+        self.tp_offset_var.set(d.turbopump_offset_m)
+        self.tp_height_var.set(d.turbopump_height_m)
+        self.tp_roll_var.set(d.turbopump_roll_deg)
+        self.tp_flip_var.set(d.turbopump_shaft_flip)
         self.pump_priority_var.set(d.pump_priority)
         self.pump_head_curve_var.set(d.pump_head_curve)
         self.suction_aggr_var.set(d.suction_aggressiveness)

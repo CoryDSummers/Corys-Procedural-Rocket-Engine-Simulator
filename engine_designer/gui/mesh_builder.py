@@ -544,7 +544,7 @@ def build_injector_head_pieces(body_rs, result, chamber_rgb, construction, n_cha
     # surfaces; a follow-on could add a GL_LINES/GL_POINTS path for them.
     chamber_head_r = float(body_rs[0]) if len(body_rs) else float(result["profile_rs_m"].max())
     if chamber_head_r > 0:
-        dome_depth = 0.42 * chamber_head_r
+        dome_depth = geometry3d.injector_dome_depth_m(chamber_head_r)
         t = np.linspace(0.0, np.pi / 2.0, 16)
         dome_xs = -dome_depth * np.sin(t)
         dome_rs = chamber_head_r * np.cos(t)
@@ -1110,8 +1110,8 @@ def build_turbopump_pieces(result):
                 pieces.extend(_stamp_material(pcs, tp_mat))
             return pieces
         # Placement shared with gui/preview3d's fallback and the Shape Lab's
-        # ghost turbopump - see geometry3d.turbopump_origin_xyz.
-        origin = geometry3d.turbopump_origin_for_result(result)
+        # ghost turbopump - see geometry3d.turbopump_placement_for_result.
+        origin = geometry3d.turbopump_placement_for_result(result)
         for kind, (Xt, Yt, Zt) in geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin):
             rgb = turb_rgb if kind == "turbine" else pump_rgb
             pieces.extend(_stamp_material([preview3d_gl_core.mesh_from_grid(
@@ -1885,29 +1885,80 @@ def self_test():
                            tube_hatbands=True, chamber_tube_jacket=True)
     result = design.compute()
 
-    # Turbopump placement refactor regression: the shared geometry3d helper
-    # must put the assembly exactly where the previous inline formula did.
+    # Turbopump placement (E1, geometry3d.turbopump_placement): the drawn ghost sits where
+    # the result's placement says - every body vertex outside the wall contour at its own
+    # station, each pump point inside its drawn body - for the default placement and a
+    # clocked, tangential-shaft one.
+    import dataclasses as _dc
     _sz = result["turbopump_sizing"]
-    _cr = float(result["profile_rs_m"].max())
-    _old_origin = (0.03 * float(result["profile_xs_m"].max()),
-                   _cr + 0.5 * _sz["assembly_od_m"] + 0.04 * _cr, 0.0)
-    _new_origin = geometry3d.turbopump_origin_xyz(
-        float(result["profile_xs_m"].max()), _cr, _sz["assembly_od_m"])
-    assert np.allclose(_old_origin, _new_origin), (_old_origin, _new_origin)
-    _tp_pieces = build_turbopump_pieces(result)
-    _stubs = turbopump_port_stub_pieces(result)
-    assert _tp_pieces and len(_tp_pieces) == len(_sz["bodies"]) + len(_stubs)
-    assert len(_stubs) == 3 * sum(len(g) for g in result["turbopump_ports"].values())  # ray_mesh = body + 2 disks
-    _pump_pts = geometry3d.turbopump_pump_points(_sz["bodies"], _new_origin)
-    # each pump point sits inside the x-span of some turbopump piece's vertices
-    for _pt in _pump_pts.values():
-        assert any(p.vertices[:, 0].min() - 1e-9 <= _pt[0] <= p.vertices[:, 0].max() + 1e-9
-                   for p in _tp_pieces)
-    print("turbopump placement (geometry3d.turbopump_origin_xyz) regression: OK")
+    _xs_p, _rs_p = result["profile_xs_m"], result["profile_rs_m"]
+    for _res_p in (result, _dc.replace(design, turbopump_azimuth_deg=120.0,
+                                       turbopump_shaft_orientation="tangential").compute()):
+        _pl = geometry3d.turbopump_placement_for_result(_res_p)
+        assert _pl and tuple(_pl["origin_xyz"]) == tuple(_res_p["turbopump_placement"]["origin_xyz"])
+        _tp_pieces = build_turbopump_pieces(_res_p)
+        _stubs = turbopump_port_stub_pieces(_res_p)
+        assert _tp_pieces and len(_tp_pieces) == len(_sz["bodies"]) + len(_stubs)
+        assert len(_stubs) == 3 * sum(len(g) for g in _res_p["turbopump_ports"].values())  # ray_mesh = body + 2 disks
+        _bv = np.concatenate([p.vertices for p in _tp_pieces[:len(_sz["bodies"])]]).astype(float)
+        assert np.all(np.hypot(_bv[:, 1], _bv[:, 2]) > np.interp(_bv[:, 0], _xs_p, _rs_p))
+        for _pt in geometry3d.turbopump_pump_points(_res_p["turbopump_sizing"]["bodies"],
+                                                    _pl).values():
+            assert any(np.all(p.vertices.min(axis=0) - 1e-6 <= _pt)
+                       and np.all(_pt <= p.vertices.max(axis=0) + 1e-6) for p in _tp_pieces)
+    # beside the chamber now, not beyond the bell exit (the pre-E1 rule)
+    assert result["turbopump_placement"]["axis_radius_m"] < geometry3d.turbopump_origin_xyz(
+        float(_xs_p.max()), float(_rs_p.max()), _sz["assembly_od_m"])[1]
+    # head mount (2026-10-01), envelope + casings, plain and rolled / flipped / radial: every
+    # drawn turbopump vertex sits forward of the injector dome (and of every ring); a
+    # rolled side mount still keeps every vertex outside the wall
+    _dome = -geometry3d.injector_dome_depth_m(float(_rs_p[0]))
+    for _kw in (dict(turbopump_mount="head"),
+                dict(turbopump_mount="head", turbopump_shaft_orientation="radial",
+                     turbopump_roll_deg=45.0, turbopump_offset_m=0.3),
+                dict(turbopump_mount="head", turbopump_shaft_flip=True,
+                     turbopump_geometry_model="casings"),
+                dict(turbopump_roll_deg=90.0, turbopump_shaft_flip=True)):
+        _res_h = _dc.replace(design, **_kw).compute()
+        _hv = np.concatenate([p.vertices for p in build_turbopump_pieces(_res_h)]).astype(float)
+        assert np.all(np.isfinite(_hv)), _kw
+        if _kw.get("turbopump_mount") == "head":
+            assert _hv[:, 0].max() < min(_dome, _res_h["turbopump_placement"]["head_x_fwd_m"]) \
+                + 1e-9, (_kw, _hv[:, 0].max(), _dome)
+            assert _res_h["turbopump_placement"]["forward_extension_m"] > 0.0
+            assert any("head-mounted" in str(row) for row in _res_h["checklist"]), _kw
+        else:
+            _bv = _hv[:len(_sz["bodies"])] if False else _hv
+            assert np.all(np.hypot(_bv[:, 1], _bv[:, 2]) > np.interp(_bv[:, 0], _xs_p, _rs_p))
+    # free mount (2026-10-01, placed by hand): NK-33-like beside + above the head = an OK
+    # row with the forward reach reported, every drawn vertex clear of the wall or above
+    # the dome; sunk into the chamber = a warn row (never moved)
+    _od = float(_sz["assembly_od_m"])
+    for _kw, _ok in ((dict(turbopump_mount="free", turbopump_height_m=0.5 * _od,
+                           turbopump_offset_m=float(_rs_p[0]) + 1.2 * _od), True),
+                     (dict(turbopump_mount="free", turbopump_height_m=0.5 * _od,
+                           turbopump_offset_m=float(_rs_p[0]) + 2.5 * _od,
+                           turbopump_geometry_model="casings", turbopump_roll_deg=30.0), True),
+                     (dict(turbopump_mount="free", turbopump_height_m=-0.3 * float(_xs_p.max())),
+                      False)):
+        _res_f = _dc.replace(design, **_kw).compute()
+        _pf = _res_f["turbopump_placement"]
+        _fv = np.concatenate([p.vertices for p in build_turbopump_pieces(_res_f)]).astype(float)
+        assert np.all(np.isfinite(_fv)), _kw
+        _row = [row for row in _res_f["checklist"] if row["name"] == "Turbopump placement"][0]
+        assert _row["passed"] is _ok and (_pf["clearance_m"] >= 0.0) is _ok, (_kw, _pf["clearance_m"])
+        if _ok:
+            assert "placed by hand" in _row["detail"] and _pf["forward_extension_m"] > 0.0
+            assert "above the injector head" in _row["detail"]
+            _out = np.hypot(_fv[:, 1], _fv[:, 2]) > np.interp(_fv[:, 0], _xs_p, _rs_p)
+            assert np.all(_out | (_fv[:, 0] < _dome)), _kw
+        else:
+            assert any("runs" in w and "into the engine" in w for w in _res_f["warnings"])
+    print("turbopump placement (geometry3d.turbopump_placement, default + clocked tangential "
+          "+ head mount / roll / flip / radial + free mount): OK")
 
     # turbopump_geometry_model "casings": the true-scale casings replace the ghost + stubs,
     # and every port sits on a drawn flange face (the flange's bolt circle surrounds it)
-    import dataclasses as _dc
     _cas = _dc.replace(design, turbopump_geometry_model="casings").compute()
     assert _cas["turbopump_layout"] and geometry3d.turbopump_origin_for_result(_cas) == \
         tuple(_cas["turbopump_layout"]["origin_xyz"])
@@ -1926,8 +1977,9 @@ def self_test():
             # a flange-face vertex ring round the bore, in the port plane (an inlet flange's
             # bore is the eye + the casing clearance, so it sits a little outside dia/2)
             assert np.any((_ax < 1e-4) & (_d >= 0.99 * _r) & (_d <= 3.0 * _r)), _port
-    # the chamber sits clear of the casing's engine-side reach
-    assert _cas_v[:, 1].min() > float(_cas["profile_rs_m"].max())
+    # the casing clears the wall contour at every station it spans
+    assert np.all(np.hypot(_cas_v[:, 1], _cas_v[:, 2])
+                  > np.interp(_cas_v[:, 0], _cas["profile_xs_m"], _cas["profile_rs_m"]))
     _cas_tagged = [p for p in build_mesh_data(_cas, False) if p.role == "turbopump"]
     assert len(_cas_tagged) == len(_cas_pcs)
     print("turbopump casings (turbopump_geometry_model 'casings') in the main preview: OK")

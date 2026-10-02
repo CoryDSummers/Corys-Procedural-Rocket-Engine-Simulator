@@ -684,7 +684,28 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   leader-line labels and a scale bar (matplotlib toolbar: zoom / pan / save as PNG, SVG or
   PDF). Wall thickness, bearing placement and OD, seals and the turbine blading are
   drawing-only placeholders until E3 / Round 3 size them (`gui/turbopump_section.py`).
-  Otherwise rotor speed is a preliminary estimate - `validate.py`'s
+  **Turbopump Placement (3D)**
+  (Turbopump tab, roadmap E1, 2026-09-30, schema 20): clock angle round the engine,
+  axial station, stand-off and shaft orientation (axial / tangential); the auto default
+  sits the assembly beside the chamber - each part clears the local contour, manifold
+  rings and exhaust hardware over its own span (`geometry3d.turbopump_placement`), no
+  longer the bell-exit radius - and the exhaust hardware / ring inlets clock with it.
+  A **head** mount (2026-10-01) puts the assembly forward of the injector head instead,
+  NK-33 / RD-170 style (stand-off = the axial gap to the dome, an optional offset off the
+  axis; the checklist reports how far it reaches above the injector - not added to the
+  exported model height), and the pump itself can be turned to aim its ports: a radial
+  shaft preset, a roll about its own shaft and a flip of the shaft ends. A **free** mount
+  places it by hand anywhere - its centre's height above the injector face (+ = above the
+  chamber) and its offset off the axis, in metres, never moved: the checklist shows how far
+  it clears the engine (contour, dome, rings, exhaust hardware) or warns how far it runs
+  into it, and how far it reaches above the head / past the exit (not in the export
+  height). Switching to free starts it where the auto mount had it.
+  Pump-connected runs close onto the ports with orthogonal auto legs (squared to the
+  engine at the pump's clock angle, warn rows for oblique / through-the-wall / stale
+  routes; a rolled pump's port stub is the only angled leg), and an overboard
+  exhaust nozzle without a baked duct sits on the exhaust port's axis (one-elbow default
+  duct). Drawing + port positions only - no mass; mounting struts and a clash check are
+  still to come. Otherwise rotor speed is a preliminary estimate - `validate.py`'s
   `run_turbopump_sizing_check()` spot-checks it against real J-2 / F-1 /
   RD-0110 numbers with wide bands. Warns (never blocks) on tip-speed over the
   material limit, turbine gas too hot for the material, titanium wetted by an

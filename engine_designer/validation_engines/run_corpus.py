@@ -255,6 +255,16 @@ def _consistency(r):
     dpd = _get(r, "cooling", "jacket_dp_down_pa")
     if None not in (dp, dpd) and dp > 0 and dpd > 0:
         out.append(("dP_down/dP_total", f"{dpd / dp:.2f}", dpd <= dp))
+    # 6. the placed turbopump clears the wall contour over every box's own span (E1)
+    pl = r.get("turbopump_placement")
+    if pl and (r.get("turbopump_sizing") or {}).get("bodies"):
+        from engine_designer.physics import geometry3d, turbopump_layout
+        lay = r.get("turbopump_layout")
+        boxes = (turbopump_layout.layout_boxes(lay) if lay
+                 else geometry3d.boxes_from_bodies(r["turbopump_sizing"]["bodies"]))
+        clr = min(c for _, c in geometry3d.placement_clearances(
+            boxes, pl, r["profile_xs_m"], r["profile_rs_m"]))
+        out.append(("turbopump wall clearance", f"{clr * 1e3:.0f} mm", clr > 0.0))
     return out
 
 

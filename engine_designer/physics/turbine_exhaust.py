@@ -483,7 +483,7 @@ def _station_at_eps(xs, rs, throat_r, eps):
 
 def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
                   aspirator_fwd_length_frac=0.30, aspirator_overhang_frac=0.05,
-                  nozzle_eps=1.0, cant_deg=0.0, attach_angle_deg=0.0):
+                  nozzle_eps=1.0, cant_deg=0.0, attach_angle_deg=0.0, outlet_radius_m=0.0):
     """Exhaust hardware for the stream `exh` (exhaust_stream's dict + its
     "mode") on the main contour (xs, rs; engine axis +x, injector at x=0).
     Returns a dict with:
@@ -503,6 +503,9 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
       hx          {"dia_m", "length_m", "mass_kg"} or None
       mass_kg     termination + heat-exchanger mass (the duct run is massed
                   by plumbing.py)
+    `outlet_radius_m` > 0 (overboard only) moves the exhaust nozzle further out than
+    its minimum wall clearance - design.py clocks it onto the turbine exhaust port's
+    axis (E1) so the default duct is one elbow; never closer in than that clearance.
     """
     from . import manifold
     mode = effective_mode(exh.get("mode"))
@@ -586,7 +589,8 @@ def size_hardware(exh, *, xs, rs, throat_dia_m, inject_eps=10.0,
         a_t = exh["throat_area_m2"]
         d_t = 2.0 * math.sqrt(max(a_t, 0.0) / math.pi)
         d_ex = d_t * math.sqrt(max(1.0, float(nozzle_eps)))
-        r_hook = r_wall + OUTLET_STANDOFF_EXIT_DIA_MULT * max(d_ex, d_duct) + 0.5 * d_duct
+        r_hook = max(r_wall + OUTLET_STANDOFF_EXIT_DIA_MULT * max(d_ex, d_duct) + 0.5 * d_duct,
+                     float(outlet_radius_m or 0.0))
         cant = math.radians(cant_deg)
         u_r = (0.0, math.cos(ang), math.sin(ang))
         ndir = (math.cos(cant), math.sin(cant) * u_r[1], math.sin(cant) * u_r[2])
