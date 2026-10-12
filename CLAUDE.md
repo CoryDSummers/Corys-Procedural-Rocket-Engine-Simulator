@@ -560,6 +560,10 @@ fully captured in the code plus this file plus `engine_designer/README.md`/`ASSU
 **In-flight rounds**: `engine_designer/plans/*.md` are committed copies of approved plans for
 work in progress, each with a per-commit checklist. Check there first when resuming a round
 that may have been cut off mid-way (unticked boxes = not landed yet).
+**MASTER ROADMAP (2026-10-11)**: `plans/2026-10-11_weakness_audit_roadmap.md` - ranked weakness
+audit (physics trust / architecture / export+UX) + Phases 0-5 (unblock -> trustworthy numbers ->
+KSP export -> port contract + field registry -> turbopump workspace + turbine meanline -> depth).
+Read it before picking the next round; it orders the turbopump roadmap below.
 **Turbopump fidelity** (`plans/2026-09-25_turbopump_fidelity_roadmap.md`): a multi-round roadmap
 (Rounds 0-5 internal + E1-E5 exterior). EACH ROUND is developed on its OWN test branch off
 `origin/main` (Round 0 = `turbopump/round-0`, plan `plans/2026-09-26_turbopump_round0.md`, PR
