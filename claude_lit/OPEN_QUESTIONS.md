@@ -408,6 +408,24 @@ into that and makes no claims about it.
     - **MON-1 for Aerozine-50.** RO's LMDE / LMAE / AJ10-137 / LE-3 burn A-50 with MON1
       (~= NTO); a MON-1 variant of Aerozine-50/NTO would only change their export resource.
 
+- **Copper-liner creep / hold-time life (wanted — TestFlight burn-time round, 2026-10-16).**
+  A design-derived `ratedBurnTime` needs a *time-at-temperature* life for the chamber liner.
+  `[Quentmeyer-TMX73665]` gives cycles only, with 1.7 s holds. `[CR134806-Props]` was expected
+  to supply creep data and has **none**. `[ASR72-238]` covers Ni/Fe liners only. Its own
+  references point to:
+  1. Conway, Stentz & Berling, *High-Temperature Low-Cycle Fatigue of Copper-Base Alloys in
+     Argon, Part III — Thermal-Mechanical Strain Cycling, Hold-Time and Notch Fatigue*,
+     Mar-Test MTI-R003-2-3 (NAS3-16753), Dec 1973. This is the NASA CR-121259 series; look for
+     the Part III CR number on NTRS.
+  2. Jerome & Armstrong, *NARloy Z Creep Test Report*, Boeing memo 5-9430-H-1357, 1973. It is
+     internal, so any public NARloy-Z / GRCop-84 stress-rupture curve is a fair substitute. The
+     GRCop-84 TMs already held may carry creep; check `[GRCop84-TM2005]` first.
+  3. Hannum, Kasper & Pavli, AIAA 76-685 (1976): the creep-rupture + ratcheting
+     interpretation and 13 more chamber lives.
+  Also still wanted for that round: superalloy turbine-blade Larson-Miller curves (IN-713C,
+  IN-718, MAR-M-246), Zaretsky NASA/TP-2013-215305 (bearing L10), and silicide / Ir-Re
+  coating oxidation life.
+
 ## Pending `ASSUMPTIONS.md` citation upgrades
 
 Real citations now exist for the following, but no `engine_designer/ASSUMPTIONS.md` or code
@@ -499,6 +517,25 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   engine this cooling topology is sourced from. Previously an uncited Tier-3 value. See
   `topics/12b-structures-manifolds-and-hardware.md`. **APPLIED 2026-09-25** — `ASSUMPTIONS.md`'s
   `cooling_flow_topology` / `manifold_bypass_fraction` row now cites `[F1-Man §1-16]` directly.
+
+- **`materials.py` `narloy_z` vs `[CR134806-Props §2.2]` (2026-10-16).**
+
+  | Property | Catalog | Cited typical RT (solution treated + aged) |
+  |---|---|---|
+  | k (W/m·K) | 325 | 295 |
+  | E (GPa) | 115 | 127 |
+  | ρ (kg/m³) | 9000 | 9134 |
+  | CTE (10⁻⁶/K) | 18.5 | 17.2 (294-533 K) |
+  | UTS (MPa) | — | 314 |
+  | YS (MPa) | — | 192 |
+
+  Check whether the catalog's k and CTE are meant as hot-wall values before replacing them. The
+  temperature curves are in the PDF (Figs. 14-16), not digitized yet.
+- **`mass_model` throat LCF coefficients vs `[Quentmeyer-TMX73665]` (2026-10-16).** Generic
+  Coffin-Manson coefficients (Tier 3), against a real OFHC/Amzirc chamber correlation:
+  T_gw = 2511·N_f^-0.205 K for OFHC and 3139·N_f^-0.229 K for Amzirc. Candidate validate
+  plausibility row: the tool's cycles within about 3× of the line at its solved hot-wall
+  temperature.
 
 ## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
 
