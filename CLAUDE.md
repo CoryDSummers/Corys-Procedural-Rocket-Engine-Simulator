@@ -215,7 +215,8 @@ touching any cooling number.** What changed structurally:
                                                      # (incl. Raptor-2 methalox, Sprite HTP,
                                                      # RD-119/RD-112 LOX/UDMH, RD-253/RD-0210
                                                      # N2O4/UDMH, Merlin 1D+ subcooled; RD-111A
-                                                     # reported only - `gated=False`),
+                                                     # and the MON-x/MMH AJ10-190/R-40/TD-339/
+                                                     # Aestus rows reported only - `gated=False`),
                                                      # both isolated and full-pipeline;
                                                      # also GG-bleed, wall-heat-flux (Bartz
                                                      # h_g + computed wall temp), injector-
@@ -291,8 +292,8 @@ touching any cooling number.** What changed structurally:
    and "ALL FILM-OVERLAY CHECKS OK" (two-site post-jacket film overlay - plausibility incl. an
    [EUCASS-2023] regen+7%-film analog, not a spot check; both 2026-09-23) and "ALL PUMP
    PRESSURE-CHAIN CHECKS OK" (solved staged-combustion power balance vs SSME/RD-0124/NK-33 +
-   RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (280
-   pair x method x construction combos since the 2026-10-15 new pairs (was 193) compute finite + converged - the cooling audit's
+   RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (361
+   pair x method x construction combos since the 2026-10-16 MON variants (280 after the 2026-10-15 pairs, 193 before) compute finite + converged - the cooling audit's
    crash/NaN guard, 2026-09-23) and "ALL TURBINE-EXHAUST CHECKS OK" (H-1 back pressure/aspirator
    slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24;
    F-1 back pressure / GG share / duct bore [F1-Man] + J-2 gas-film slot area + F-1 scroll
@@ -600,3 +601,7 @@ STACKED on `export/rp1-identity` (both touch cfg_writer / cost_model), plan
 the generator, `--merge-pairs` (old pairs stay byte-identical), then an entry in every per-pair
 dict (grep an existing key, e.g. `"N2O4/MMH"`) + a SPOT_CHECKS anchor; a different-STATE copy of
 an existing pair is a VARIANT (`physics/propellant_pairs.py`: `alias_variants` / `base_pair`).
+MON-3/10/25 variants of N2O4/MMH = `propellants/mon-variants` STACKED on `propellants/new-pairs`,
+plan `plans/2026-10-16_mon_variants.md`. A variant aliases every per-pair dict that has no own
+entry - check a NEW per-pair dict gets `alias_variants(...)` too, or variants silently take its
+fallback.

@@ -33,6 +33,10 @@ PUMPED_PROPELLANTS = {
     "LOX/UDMH": ("UDMH", "LOX"),
     "N2O4/UDMH": ("UDMH", "N2O4"),
     "LOX/RP-1 (subcooled)": ("RP-1", "LOX"),
+    # MON-x: no saturation table (storable, like N2O4) - the name only labels tanks
+    "MON-3/MMH": ("MMH", "MON-3"),
+    "MON-10/MMH": ("MMH", "MON-10"),
+    "MON-25/MMH": ("MMH", "MON-25"),
     "Hydrazine": ("N2H4", ""),
     "H2O2": ("", "H2O2"),
 }

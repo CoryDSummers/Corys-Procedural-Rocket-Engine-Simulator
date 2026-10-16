@@ -6,8 +6,8 @@ interpolated over mixture ratio, with Pc-dependence neglected (small over
 the pressure ranges these engines run at). The practical accuracy guardrail
 is the per-pair spot-check in validate.py, not this table's precision.
 
-Propellant pairs: LOX/RP-1, LOX/LH2, N2O4/MMH (storable hypergolic, MON3
-treated as chemically equivalent to pure N2O4), Aerozine-50/NTO (storable
+Propellant pairs: LOX/RP-1, LOX/LH2, N2O4/MMH (storable hypergolic, pure N2O4;
+its MON-3/10/25 variants have their own tables since 2026-10-16), Aerozine-50/NTO (storable
 hypergolic, MON1 treated the same way - shares N2O4/MMH's table, see below),
 and Hydrazine (a MONOPROPELLANT - see the note on `_TABLES["Hydrazine"]` and
 `MONOPROPELLANT_PAIRS` for how that's represented without a parallel code path).
@@ -15,6 +15,8 @@ and Hydrazine (a MONOPROPELLANT - see the note on `_TABLES["Hydrazine"]` and
 (RD-253 / Proton) and "LOX/RP-1 (subcooled)" - a VARIANT of LOX/RP-1 at
 densified temperatures (propellant_pairs.PAIR_VARIANT_OF), with its own baked
 tables and densities but LOX/RP-1's combustion/nozzle efficiencies.
+2026-10-16: MON-3/MMH, MON-10/MMH, MON-25/MMH - variants of N2O4/MMH (N2O4 +
+3/10/25 % NO by mass), own tables + oxidizer density, N2O4/MMH's efficiencies.
 """
 import numpy as np
 
@@ -129,6 +131,12 @@ PROPELLANT_DENSITIES = {
     # (1.0271) = 831.9 - the surrogate's absolute density is ~8 % light, its
     # thermal expansion is what is borrowed. Pinned by thermo_tables' self-test.
     "LOX/RP-1 (subcooled)": (831.9, 1255.2),
+    # MON-x oxidizer = N2O4/MMH's 1440 x RealFuels' MONx/NTO density ratio
+    # (RO_Resources.cfg: NTO 1433, MON3 1436.3, MON10 1444.1, MON25 1455.4) -
+    # the dissolved NO densifies the liquid slightly. Fuel = MMH, unchanged.
+    "MON-3/MMH": (880.0, 1443.3),
+    "MON-10/MMH": (880.0, 1451.2),
+    "MON-25/MMH": (880.0, 1462.5),
     "Hydrazine": (1021.0, 1021.0),
     "H2O2": (1390.0, 1390.0),            # ~85% HTP; "ox" slot is the harmless monoprop duplicate
 }

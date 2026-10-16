@@ -450,6 +450,16 @@ if __name__ == "__main__":
         ip = int(np.argmin(abs(np.exp(g["lnp"]) - 7e6)))
         mr_peak = g["mr"][int(np.argmax(g["tc_k"][ip]))]
         assert mr_peak_window[0] <= mr_peak <= mr_peak_window[1], (pair, mr_peak)
+    # 11. MON-x/MMH (2026-10-16): N2O4 + x % NO. Oxidizer-rich of the real MRs the
+    #     dissolved NO adds energy, so Isp rises monotonically N2O4 -> MON-3 -> -10 -> -25,
+    #     but only slightly (MON is chosen for its freezing point, not performance); the
+    #     oxidizer densities are 1440 x RealFuels' MONx/NTO ratio (combustion.py).
+    for pc in (1e6, 7e6):
+        isps = [isp_vac_ideal_s(p, 2.0, pc, 55.0)[0]
+                for p in ("N2O4/MMH", "MON-3/MMH", "MON-10/MMH", "MON-25/MMH")]
+        assert all(b > a for a, b in zip(isps, isps[1:])) and isps[-1] - isps[0] < 2.0, (pc, isps)
+    for pair, rf in (("MON-3/MMH", 1436.3), ("MON-10/MMH", 1444.1), ("MON-25/MMH", 1455.4)):
+        assert abs(combustion.PROPELLANT_DENSITIES[pair][1] - 1440.0 * rf / 1433.0) < 0.1, pair
     for prop in nbp_ref:
         s = saturation(prop, sdb[prop]["nbp"])
         print(f"  {prop:4s} NBP {sdb[prop]['nbp']:6.2f} K  rho_l {s['rho_l_kg_m3']:7.1f}  "

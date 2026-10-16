@@ -61,6 +61,26 @@ SPOT_CHECKS = [
     dict(name="RD-111A 8D716A (subcooled LOX / T-1, real RO engine) - reported only",
          pair="LOX/RP-1 (subcooled)", pc_pa=7.85e6, eps=18.0, mr=2.39,
          actual_vac_isp=318.0, actual_sl_isp=276.0, sl_meaningful=True, gated=False),
+    # --- 2026-10-16 MON variants of N2O4/MMH ----------------------------------------
+    # N2O4/MMH's ETA_CF (Aestus) is INHERITED, not re-solved. The MON chemistry moves Isp
+    # by <0.1 s at these points (N2O4/MMH predicts the same numbers), so these rows
+    # measure the spread ONE ETA_CF per pair carries across MMH engines: AJ10-190 -6 %,
+    # R-40 +1.6 %, TD-339 +3.4 % - engine-to-engine efficiency, not chemistry. Reported,
+    # not gated (re-tuning to one of them would just move the miss to another);
+    # OPEN_QUESTIONS "N2O4/MMH efficiency spread". Header rows of the named configs.
+    dict(name="AJ10-190 (MON-3/MMH, real RO engine, Shuttle OMS) - reported only",
+         pair="MON-3/MMH", pc_pa=0.86e6, eps=55.0, mr=1.65,
+         actual_vac_isp=316.0, actual_sl_isp=None, sl_meaningful=False, gated=False),
+    dict(name="R-40 (MON-3/MMH, real RO engine, Marquardt R-40) - reported only",
+         pair="MON-3/MMH", pc_pa=0.99e6, eps=22.0, mr=1.65,
+         actual_vac_isp=281.0, actual_sl_isp=None, sl_meaningful=False, gated=False),
+    dict(name="TD-339 (MON-10/MMH, real RO engine, Surveyor vernier) - reported only",
+         pair="MON-10/MMH", pc_pa=1.72e6, eps=85.0, mr=1.5,
+         actual_vac_isp=287.0, actual_sl_isp=None, sl_meaningful=False, gated=False),
+    # The anchor itself re-run on its real MON-3: the residual is the N2O4 -> MON-3 shift.
+    dict(name="Aestus as MON-3/MMH (its real oxidizer) - reported only",
+         pair="MON-3/MMH", pc_pa=1.1e6, eps=84.0, mr=1.9,
+         actual_vac_isp=306.0, actual_sl_isp=113.0, sl_meaningful=False, gated=False),
 ]
 
 

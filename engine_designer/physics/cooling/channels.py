@@ -6,6 +6,7 @@ import math
 
 import numpy as np
 
+from ..propellant_pairs import alias_variants
 from .coolant_props import (
     COOLANT_DENSITY_KG_M3,
     COOLANT_TRANSPORT,
@@ -54,6 +55,7 @@ TARGET_COOLANT_VELOCITY_MS = {
     "N2O4/UDMH": 28.0,
     "LOX/RP-1 (subcooled)": 35.0,
 }
+alias_variants(TARGET_COOLANT_VELOCITY_MS)   # MON-x/MMH -> N2O4/MMH's 28
 _TARGET_COOLANT_VELOCITY_FALLBACK = 35.0
 CHANNEL_ASPECT_RATIO_MAX = 8.0         # cap on the derived height/width
 # Coolant-side Nusselt number (2026-09-23 audit, C1): Sieder-Tate turbulent

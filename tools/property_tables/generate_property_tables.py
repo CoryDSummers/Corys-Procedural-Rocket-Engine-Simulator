@@ -68,7 +68,8 @@ two tables byte-for-byte untouched), ``--merge-pairs "P1,P2"`` (compute ONLY tho
 pairs - gas table, plus a coolant table where COOLANTS has one - and splice them into
 the existing JSON; every other pair stays byte-identical. How the 2026-10-15 pairs
 LOX/UDMH, N2O4/UDMH and "LOX/RP-1 (subcooled)" were added, with cantera==3.2.0 /
-CoolProp==8.0.0 pinned to match the existing meta).
+CoolProp==8.0.0 pinned to match the existing meta; the 2026-10-16 MON-3/10/25/MMH
+variants were merged the same way).
 
 Subcooled reactants (SUBCOOLED_REACTANTS, e.g. "O2(L,66K)") need CoolProp for their
 sensible-heat drop, so a gas-table run needs CoolProp too since 2026-10-15.
@@ -105,6 +106,13 @@ REACTANTS = {
     "N2H4(L)": ({"N": 2, "H": 4}, 50630.0, "298.15 K"),
     "H2O2(L)": ({"H": 2, "O": 2}, -187780.0, "298.15 K"),
     "H2O(L)":  ({"H": 2, "O": 1}, -285830.0, "298.15 K"),
+    # 2026-10-16 MON variants: the nitric oxide dissolved in MON-x. It sits in
+    # the N2O4 as N2O3 (NO + NO2), so its effective enthalpy is
+    # dHf N2O3(l) - 1/2 dHf N2O4(l) = 50,300 + 9,782 = 60,082 J/mol
+    # [CRC Handbook / NBS N2O3(l) +50.3 kJ/mol; N2O4(l) as above]. Neglects
+    # the N2O3-in-N2O4 heat of mixing. Bounds (ASSUMPTIONS.md): NO(g) 90,291
+    # [NIST-JANAF], NO(g) - dHvap 13.8 kJ/mol = ~76,500.
+    "NO(L)":   ({"N": 1, "O": 1}, 60082.0, "298.15 K, dissolved in N2O4 (as N2O3)"),
 }
 
 # SUBCOOLED (densified) reactants (2026-10-15, new-pairs round): the same
@@ -137,6 +145,12 @@ PAIRS = {
     "LOX/UDMH": ({"UDMH(L)": 1.0}, {"O2(L)": 1.0}, np.arange(0.8, 3.01, 0.1)),
     "N2O4/UDMH": ({"UDMH(L)": 1.0}, {"N2O4(L)": 1.0}, np.arange(1.4, 4.01, 0.1)),
     "LOX/RP-1 (subcooled)": ({"RP-1(266K)": 1.0}, {"O2(L,66K)": 1.0}, np.arange(1.6, 3.41, 0.1)),
+    # 2026-10-16 MON variants of N2O4/MMH (--merge-pairs): MON-x = x % NO by
+    # mass in N2O4. MR grid = N2O4/MMH's. No COOLANTS entry (MMH is not in
+    # CoolProp - same fallback as the base pair).
+    "MON-3/MMH": ({"MMH(L)": 1.0}, {"N2O4(L)": 0.97, "NO(L)": 0.03}, np.arange(1.2, 3.01, 0.1)),
+    "MON-10/MMH": ({"MMH(L)": 1.0}, {"N2O4(L)": 0.90, "NO(L)": 0.10}, np.arange(1.2, 3.01, 0.1)),
+    "MON-25/MMH": ({"MMH(L)": 1.0}, {"N2O4(L)": 0.75, "NO(L)": 0.25}, np.arange(1.2, 3.01, 0.1)),
 }
 PC_GRID_MPA = [0.5, 1.0, 2.0, 4.0, 7.0, 12.0, 20.0, 30.0]
 # 2026-09-25 (P1 performance re-anchor): widened from [10, 40, 100] so the
