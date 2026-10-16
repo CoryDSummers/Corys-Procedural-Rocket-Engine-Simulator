@@ -40,6 +40,7 @@ cycle R&D factor. A clean-sheet engine with no ECM parents arguably deserves
 more - the GUI lets the user override it.
 """
 from . import controller_tech, injectors, materials, turbopump_tech
+from .propellant_pairs import alias_variants
 
 # --- fitted on catalog/rp1_snapshot.json (RP-1 @ 4055038, 2026-10-15) -----------
 FIT_A = 3.085                  # ln(cost) intercept
@@ -60,9 +61,15 @@ PAIR_CLASS = {
     "LOX/CH4": "methalox",
     "N2O4/MMH": "storable",
     "Aerozine-50/NTO": "storable",
+    "N2O4/UDMH": "storable",    # what _snapshot_class calls RD-253 / RD-0210 in the fit
+    # LOX/UDMH: the fit files RD-109/RD-119 under "other" (LOX + a non-kerosene fuel),
+    # which has no coefficient = the kerolox baseline. Fitted 200-201 vs their real
+    # 196 / 238 at ~101 kN (the storable class would give 163-164).
+    "LOX/UDMH": "kerolox",
     "Hydrazine": "storable",
     "H2O2": "storable",
 }
+alias_variants(PAIR_CLASS)
 
 # --- Tier-3 relative modifiers (neutral 1.0) ------------------------------------
 # Pump-fed cycle complexity relative to a gas generator; pressure-fed's own

@@ -257,6 +257,10 @@ into that and makes no claims about it.
     covers them. Look first at `[Sutton]` Ch. 7 propellant tables and `[Huzel]`.
     **Round 1 (2026-09-26) status:** the computed suction model takes their vapor pressure as
     ZERO (NPSH available optimistic, said so on the checklist row) until a curve is baked.
+    **2026-10-15 pointer:** `[Sutton Table 7-1 p.245]` (PDF page 260) has two vapor-pressure
+    points each - UDMH 0.0384 MPa at 289 K / 0.1093 MPa at 339 K, N2O4 0.01014 (printed;
+    suspicious - N2O4 is ~1 atm at 294 K) / 0.2013 MPa at 328 K - enough for a 2-point
+    Clausius-Clapeyron fit once the N2O4 value is cross-checked against `[Huzel]`.
   - **Pump-suction model follow-ups (2026-09-26, turbopump Round 1).** Wanted:
     - **TSH for CH4 and N2O4.** `inducer.TSH_ANCHORS` has only `[SP-8052]`'s F-1 LOX
       (11 ft) and J-2 LH2 (250 ft). SP-8052 names N2O4 as a thermodynamic-effect fluid and
@@ -372,6 +376,25 @@ into that and makes no claims about it.
     one dimensioned can is not enough to scale by duty. `[H1-Man]`'s H-1 exchanger (3 LOX coils,
     no He) has no dimensions to give a second anchor.
   Anything left unfound is calibrated purely by reverse-solving against RO headers (say which).
+
+  - **New propellant pairs 2026-10-15 (LOX/UDMH, N2O4/UDMH, subcooled LOX/RP-1).**
+    - **Densified-propellant temperatures.** `"LOX/RP-1 (subcooled)"` uses LOX 66 K / RP-1
+      266 K (Falcon 9 FT practice, widely published but not in `literature/`). Wanted: a
+      citable densified-propellant source (e.g. a NASA densified LOX/RP-1 or SLI propellant-
+      densification report) to move them to Tier 2, and RD-111A's real subcooled-LOX
+      temperature (its RO header says "-203 C?").
+    - **UDMH liquid thermal conductivity.** Not in `[Sutton Table 7-1]`; MMH's 0.20 W/m-K is
+      carried over (`cooling.COOLANT_TRANSPORT`). Wanted: a measured value (~0.17-0.2?).
+    - **RD-253 / RD-119 turbomachinery.** The N2O4/UDMH ox-rich preburner temperature (Tier-3
+      1100 K) and the LOX/UDMH GG gas are storable transfers; RD-253 preburner Tin / MR and
+      RD-119's turbine-drive arrangement would anchor them.
+    - **Storable ox-rich preburner gas, N2O4/MMH + A-50.** Cantera at 1100 K gives cp 1197 /
+      gamma 1.303 vs the entries' older 1400 / 1.25 estimate. Updating them would move the
+      corpus storable ORSC designs (none today) - a deliberate change for its own round.
+    - **Export densities of the older pairs.** `cfg_writer` exports RP-1 / CH4 / NTO / A-50
+      pairs with the physics densities rather than RO's resource densities
+      (`RF_RESOURCE_DENSITY_KG_M3`), an in-game MR error <= 1 %. Switching changes every
+      existing export - Cory's call.
 
 ## Pending `ASSUMPTIONS.md` citation upgrades
 

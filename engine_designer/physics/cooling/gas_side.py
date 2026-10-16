@@ -138,6 +138,9 @@ BARTZ_ABS_FLUX_CALIBRATION = {
     "LOX/CH4": 1.00,
     "N2O4/MMH": 1.00,
     "Aerozine-50/NTO": 1.00,
+    "LOX/UDMH": 1.00,          # no cited throat-flux anchor (like every pair but LH2)
+    "N2O4/UDMH": 1.00,
+    "LOX/RP-1 (subcooled)": 1.00,
     "Hydrazine": 1.00,
     "H2O2": 1.00,
 }

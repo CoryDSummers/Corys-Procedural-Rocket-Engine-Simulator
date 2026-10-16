@@ -78,7 +78,7 @@ TAP_OFF_TIN_MIN_K = 600.0
 # Pairs whose tap-off defaults to the mixer model ("auto"): the hydrocarbons, per the STBE
 # precedent. LOX/LH2 stays legacy until a J-2S tap-off gas source is in hand (OPEN_QUESTIONS);
 # storables have no tap-off precedent at all.
-MIXER_PAIRS = ("LOX/CH4", "LOX/RP-1")
+MIXER_PAIRS = ("LOX/CH4", "LOX/RP-1", "LOX/RP-1 (subcooled)")
 TAP_OFF_MODELS = ("auto", "mixer", "legacy")
 
 

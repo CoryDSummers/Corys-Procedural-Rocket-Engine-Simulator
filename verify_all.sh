@@ -16,6 +16,7 @@ MODULES=(
   engine_designer.physics.isentropic
   engine_designer.physics.nozzle_shapes
   engine_designer.physics.geometry3d
+  engine_designer.physics.propellant_pairs   # pair variants (subcooled LOX/RP-1) -> base-pair aliasing
   engine_designer.physics.combustion
   engine_designer.physics.thermo_tables   # baked Cantera/CoolProp property tables load + sanity
   engine_designer.physics.mixture_ratio

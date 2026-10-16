@@ -80,14 +80,46 @@ _RF_PROPELLANTS = {
     "LOX/CH4": {"fuel": "LqdMethane", "ox": "LqdOxygen"},
     "N2O4/MMH": {"fuel": "MMH", "ox": "NTO"},
     "Aerozine-50/NTO": {"fuel": "Aerozine50", "ox": "NTO"},
+    "LOX/UDMH": {"fuel": "UDMH", "ox": "LqdOxygen"},
+    "N2O4/UDMH": {"fuel": "UDMH", "ox": "NTO"},
+    # RO's densified resources (RO_Resources.cfg), as Merlin 1D+ / NK-33 use them
+    "LOX/RP-1 (subcooled)": {"fuel": "CooledRP-1", "ox": "CooledLqdOxygen"},
     "Hydrazine": {"fuel": "Hydrazine", "ox": None},
     "H2O2": {"fuel": "HTP", "ox": None},
 }
 
+# The game converts a CONFIG's volumetric PROPELLANT ratios back to a mass MR with
+# ITS OWN resource densities, not this tool's physics densities - so a pair whose
+# volume ratio is computed from these lands on exactly the designed MR in KSP.
+# kg/m3 = RESOURCE_DEFINITION density (t/L) x 1e6. Sources: RealismOverhaul
+# GameData/RealismOverhaul/RO_Resources.cfg (upstream/RealismOverhaul @ 25a536b -
+# defines/overrides RP-1, NTO and the Cooled* resources) and Community Resource Pack
+# CommonResources.cfg (commit b329680, 2021-01-22 - LqdOxygen, UDMH, the rest).
+# Cross-check: Merlin 1D+ (CooledRP-1/CooledLqdOxygen, MR 2.36) -> 0.3877/0.6123 and
+# RD-253 (UDMH/NTO, MR 2.67) -> 0.4042/0.5958, both exactly as in Engine_Configs/.
+RF_RESOURCE_DENSITY_KG_M3 = {
+    "LqdOxygen": 1141.0, "CooledLqdOxygen": 1236.0,
+    "RP-1": 807.0, "CooledRP-1": 827.0,
+    "LqdHydrogen": 70.85, "LqdMethane": 425.61,
+    "NTO": 1433.0, "MMH": 880.0, "Aerozine50": 900.0, "UDMH": 791.0,
+    "Hydrazine": 1004.0, "HTP": 1431.0,
+}
+# Pairs whose export volume ratio uses the RF densities above. The five pre-2026-10-15
+# bipropellants still use the physics densities (combustion.PROPELLANT_DENSITIES) so
+# their exported configs stay byte-identical - that costs them up to ~1 % of MR in game
+# (RP-1 810 vs 807, NTO 1440 vs 1433, CH4 422 vs 425.6); switching them is a separate,
+# deliberate change (OPEN_QUESTIONS).
+_RF_DENSITY_PAIRS = ("LOX/UDMH", "N2O4/UDMH", "LOX/RP-1 (subcooled)")
+
 
 def _propellant_ratios(pair, mr):
     """Volumetric PROPELLANT ratio fields (RF convention) from a mass mixture ratio."""
-    rho_fuel, rho_ox = propellant_densities(pair)
+    if pair in _RF_DENSITY_PAIRS:
+        rf = _RF_PROPELLANTS[pair]
+        rho_fuel = RF_RESOURCE_DENSITY_KG_M3[rf["fuel"]]
+        rho_ox = RF_RESOURCE_DENSITY_KG_M3[rf["ox"]]
+    else:
+        rho_fuel, rho_ox = propellant_densities(pair)
     # ratio_ox / ratio_fuel = MR * rho_fuel / rho_ox ; normalize to sum to 1.
     raw_ox = mr * rho_fuel / rho_ox
     total = 1.0 + raw_ox
@@ -1049,5 +1081,20 @@ if __name__ == "__main__":
     f = render_cfg(dmp, dmp_res, "DumpTest-1M", output_mode="additional_config")
     assert "Nozzle cooling: dump (explicit)" in f
     assert "Dump-cooled nozzle slice:" in f and "Isp penalty" in f
+
+    # New pairs (2026-10-15): every dropdown pair has RF resources, and the RF-density
+    # volume ratios reproduce real RO configs exactly (RD-253, Merlin 1D+, RD-119).
+    from ..physics.combustion import available_pairs
+    assert all(p in _RF_PROPELLANTS for p in available_pairs()), "pair without RF resources"
+    for pair, mr, want_fuel in (("N2O4/UDMH", 2.67, 0.4042), ("LOX/RP-1 (subcooled)", 2.36, 0.3877),
+                                ("LOX/UDMH", 1.49, 0.4919)):
+        assert abs(_propellant_ratios(pair, mr)[0] - want_fuel) < 5e-5, (pair, _propellant_ratios(pair, mr))
+    for pair, mr, fuel, ox in (("LOX/UDMH", 1.5, "UDMH", "LqdOxygen"), ("N2O4/UDMH", 2.67, "UDMH", "NTO"),
+                               ("LOX/RP-1 (subcooled)", 2.36, "CooledRP-1", "CooledLqdOxygen")):
+        npd = EngineDesign(host_model_engine_type="F1", propellant_pair=pair, mixture_ratio=mr,
+                           chamber_pressure_pa=10.0e6, expansion_ratio=25.0)
+        g = render_cfg(npd, npd.compute(), "PairTest-1M", output_mode="additional_config")
+        assert _balanced(g), pair
+        assert f"name = {fuel}\n" in g and f"name = {ox}\n" in g, pair
 
     print("cfg_writer.py self-checks: OK")
