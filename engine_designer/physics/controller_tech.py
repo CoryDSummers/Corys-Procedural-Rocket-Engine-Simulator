@@ -12,13 +12,16 @@ existing RF/TestFlight scalar fields. This catalog is Tier 3
 except where a tier directly cites H3/H4's own values (flagged in that
 tier's notes).
 
-Purely an EXPORT-time catalog: none of these fields feed
-EngineDesign.compute()'s physics, so choosing a tier never changes Isp/
-thrust/warnings - only the exported .cfg's TESTFLIGHT block and 3 new
-fields (throttleResponseRate, varyIsp/varyMixture, residualsThresholdBase).
-Zero regression risk to physics/validate.py.
+Almost purely an EXPORT-time catalog: choosing a tier never changes Isp/
+thrust/mass - only the exported .cfg's TESTFLIGHT block and 3 fields
+(throttleResponseRate, varyIsp/varyMixture, residualsThresholdBase). The one
+exception (2026-10-16): `era_year` dates a design that has no RP-1 tech node,
+and the default rated-burn duty (physics/burn_time.py, inside compute()) has an
+era term - so with no tech node and no explicit duty target, the tier moves
+rated_burn_time_s (and, for an ablative or electric-pump design, the liner /
+battery sized to it).
 
-The four `*_reliability_*` values and `tested_to_rated_multiplier` are now the
+The four `*_reliability_*` values and `era_year` are now the
 ANCHOR / build-quality inputs to physics/reliability.py, which derives the
 actually-exported TESTFLIGHT numbers from the design (cycle complexity,
 chamber pressure, oxidiser-rich turbomachinery, throttle depth, restart count,
@@ -31,23 +34,18 @@ almost exactly those numbers - matching every .cfg exported before this catalog
 existed - while a modern FFSC/ORSC design at the same tier exports meaningfully
 lower reliability.
 
-tested_to_rated_multiplier: how many multiples of the computed rated burn
-time a design's testedBurnTime gets (testedBurnTime = ratedBurnTime *
-this), replacing what used to be a flat rated*20 constant in
-export/cfg_writer.py regardless of anything. Grounded in 4 real,
-well-documented engines researched this session: Saturn V F-1 ~13.6x
-(2250s tested / 165s rated), RD-180 ~6.2x (1590s/255s), SpaceX Merlin 1D
-~10.6x (1970s cumulative qual test time / 185s rated flight burn), Ariane 5
-Vulcain 2 ~16.5x (10,000s qualification / 605s nominal flight). The real
-data does NOT show a clean correlation between control-system era and this
-ratio (RD-180 is 1990s staged-combustion tech at the LOW end; Vulcain 2's
-16.5x is the high end) - it's driven more by each program's own test/QA
-philosophy than by controller electronics sophistication. The 4 tiers below
-are a reasoned progression SPANNING the real observed 6-17x range as a
-design-choice spectrum, not a claim that any one tier literally reproduces
-a specific historical engine's program. Ablative-cooled designs override
-this entirely (tested = rated, matching the real "ablative, no extra time"
-pattern - see physics/design.py) regardless of controller tier.
+era_year: the year a tier stands for when the design has no RP-1 tech node -
+physics/burn_time.design_year uses it for the era terms of the RO-corpus duty and
+tested/rated fits (catalog/testflight_corpus.json). It replaces the old
+`tested_to_rated_multiplier` (6/10/14/17 x rated), whose anchors were cumulative
+QUALIFICATION time (Merlin 1D 1970 s, Vulcain 2 10,000 s) - but RO's TestFlight
+reads testedBurnTime as the longest SINGLE burn, and the real RO corpus has
+tested/rated median 3.0 (10-90 %: 1.5-9.6), rising with era, not 6-17x. The
+tiers' reliability values were checked against the same corpus' per-decade
+medians (pump-fed cycleReliabilityStart/End: 1950s 0.87/0.979, 1960s 0.96/0.994,
+1970s+ 0.98/0.997): electromechanical ~ 1950s, baseline ~ 1960s, FADEC ~ 1970s+;
+dual_redundant sits above the corpus median (its 0.999 end is inside the corpus
+range, max 0.9997).
 """
 from dataclasses import dataclass
 
@@ -64,7 +62,7 @@ class ControllerTech:
     ignition_reliability_end: float
     cycle_reliability_start: float
     cycle_reliability_end: float
-    tested_to_rated_multiplier: float
+    era_year: int
     relative_cost_factor: float
     tech_era_hint: str
     notes: str
@@ -78,7 +76,7 @@ CONTROLLER_TECHS = {
         vary_isp=0.02, vary_mixture=0.01, residuals_threshold_base=0.02,
         ignition_reliability_start=0.900, ignition_reliability_end=0.970,
         cycle_reliability_start=0.900, cycle_reliability_end=0.970,
-        tested_to_rated_multiplier=6.0,
+        era_year=1958,
         relative_cost_factor=0.6,
         tech_era_hint="Early (1950s-60s, relay/analog electromechanical sequencers)",
         notes="Slow throttle response and loose build tolerances relative to "
@@ -93,7 +91,7 @@ CONTROLLER_TECHS = {
         vary_isp=0.01, vary_mixture=0.005, residuals_threshold_base=0.01,
         ignition_reliability_start=0.970, ignition_reliability_end=0.995,
         cycle_reliability_start=0.970, cycle_reliability_end=0.995,
-        tested_to_rated_multiplier=10.0,
+        era_year=1966,
         relative_cost_factor=1.0,
         tech_era_hint="Mature (1960s-70s)",
         notes="Reproduces this tool's ORIGINAL hardcoded TESTFLIGHT numbers "
@@ -110,7 +108,7 @@ CONTROLLER_TECHS = {
         vary_isp=0.008, vary_mixture=0.004, residuals_threshold_base=0.008,
         ignition_reliability_start=0.980, ignition_reliability_end=0.997,
         cycle_reliability_start=0.980, cycle_reliability_end=0.997,
-        tested_to_rated_multiplier=14.0,
+        era_year=1980,
         relative_cost_factor=1.4,
         tech_era_hint="Modern (1970s+)",
         notes="throttle_response_rate=0.6 is cited directly from this "
@@ -124,7 +122,7 @@ CONTROLLER_TECHS = {
         vary_isp=0.004, vary_mixture=0.001, residuals_threshold_base=0.005,
         ignition_reliability_start=0.990, ignition_reliability_end=0.999,
         cycle_reliability_start=0.990, cycle_reliability_end=0.999,
-        tested_to_rated_multiplier=17.0,
+        era_year=1990,
         relative_cost_factor=2.0,
         tech_era_hint="Modern (1980s+)",
         notes="vary_isp=0.004/vary_mixture=0.001/residuals_threshold_base="

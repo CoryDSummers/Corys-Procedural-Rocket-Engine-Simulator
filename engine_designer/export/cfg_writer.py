@@ -293,6 +293,10 @@ def resolve_export(design, result, config_name=None, manufacturer=None, tech_nod
             cfg_delta = int(round(abs_cost - host_cost))
     parents_raw = ecm_parents if ecm_parents is not None else d.rp1_ecm_parents
     parents = [_cfg_token(p) for p in (parents_raw or "").split(",") if p.strip()]
+    # TestFlight matches the RAW config name (RO writes `F-1-1.5M,F-1-1.52M:50`) -
+    # only the ENTRYCOSTMODS key is RealFuels-sanitized (`.`/`_` -> `-`).
+    tf_parents = [q for q in (re.sub(r"[^A-Za-z0-9._+\-]", "", p) for p in (parents_raw or "").split(","))
+                  if q]
     icon = tree_icon if tree_icon is not None else d.rp1_tree_icon
     pumped = d.cycle != cycles_mod.PRESSURE_FED
     tag = "EngineLiquidTurbo" if pumped else "EngineLiquidPF"
@@ -313,6 +317,7 @@ def resolve_export(design, result, config_name=None, manufacturer=None, tech_nod
         "tech_node": tn, "tech_title": titles.get(tn, "") if tn else "",
         "cost": abs_cost, "part_cost": part_cost, "config_cost_delta": cfg_delta,
         "host_part_cost": host_cost, "entry_cost": ent, "ecm_parents": parents,
+        "testflight_parents": tf_parents,
         "tree_icon": bool(icon and tn and (standalone or host_part_name) and not standalone),
         "engine_tag": tag,
         "config_tag": tag if (not standalone and host_tags and tag not in host_tags) else None,
@@ -480,7 +485,13 @@ def render_cfg(design, result, config_name=None, manufacturer=None, mass_mult=1.
         + (f" + plumbing {result['plumbing_mass_kg']:.1f} kg" if result.get('plumbing_mass_kg', 0.0) > 0.0 else "")
         + (f" + stability aids {result['stability_aid_mass_kg']:.1f} kg" if result.get('stability_aid_mass_kg', 0.0) > 0.0 else "")
         + " - a LOWER BOUND, see physics/mass_model.py: no valves/actuators/mounting structure)",
-        f"//\tRated / tested burn time: {rated_burn_time_s:.0f} / {tested_burn_time_s:.0f} s",
+        f"//\tRated / tested burn time: {rated_burn_time_s:.0f} / {tested_burn_time_s:.0f} s"
+        + (f" (duty target {result['rated_burn_time_target_s']:.0f} s, "
+           + ("carried" if result.get("rated_limited_by", "target") == "target"
+              else f"capped by {result['rated_limited_by'].replace('_', ' ')}")
+           + (f"; life {result['burn_life_s']:.0f} s" if result.get("burn_life_s", float("inf"))
+              != float("inf") else "") + ")"
+           if "rated_burn_time_target_s" in result else ""),
         "//",
     ]
     _sizing = result.get("turbopump_sizing")
@@ -655,6 +666,11 @@ def render_cfg(design, result, config_name=None, manufacturer=None, mass_mult=1.
         f"{design.chamber_pressure_pa/1e6:.2f} MPa, {nozzle_desc.lower()} nozzle, throttles "
         f"{design.throttle_floor*100:.0f}-100%.")
     _config_cost = 0 if _standalone else ex["config_cost_delta"]
+    # TestFlight techTransfer: the ECM tech-transfer parents also hand down a share
+    # of their flight data (RO format `A,B:50`; TestFlight_Generic_Engines.cfg).
+    _xfer = max(0.0, min(100.0, float(getattr(design, "testflight_transfer_pct", 0.0) or 0.0)))
+    tech_transfer_line = (f"\t\t\t\ttechTransfer = {','.join(ex['testflight_parents'])}:{_xfer:.0f}\n"
+                          if ex["testflight_parents"] and _xfer > 0 else "")
 
     # The CONFIG body (fields at 3-tab indent) - identical whether it sits inside
     # an `@MODULE[ModuleEngineConfigs]` patch (additional_config / in-place) or a
@@ -693,7 +709,7 @@ def render_cfg(design, result, config_name=None, manufacturer=None, mass_mult=1.
 \t\t\t\tignitionReliabilityEnd = {rel['ignition_reliability_end']:.6f}
 \t\t\t\tcycleReliabilityStart = {rel['cycle_reliability_start']:.6f}
 \t\t\t\tcycleReliabilityEnd = {rel['cycle_reliability_end']:.6f}
-\t\t\t}}"""
+{tech_transfer_line}\t\t\t}}"""
 
     if _standalone:
         _rescale_line = f"\t@rescaleFactor *= {model_scale:.4f}\n" if _scaling else ""
@@ -986,6 +1002,9 @@ if __name__ == "__main__":
     par = render_cfg(base, res, "TestEngine-1M", output_mode="additional_config",
                      ecm_parents="F-1, F-1A_v2")
     assert f"\tTestEngine-1M = {ab['entry_cost']}, F-1, F-1A-v2\n" in par
+    # ... and hand down TestFlight data (techTransfer, RO's `A,B:pct` format).
+    assert "\t\t\t\ttechTransfer = F-1,F-1A_v2:50\n" in par
+    assert "techTransfer" not in render_cfg(base, res, "TestEngine-1M", output_mode="additional_config")
     # No tech node: no gating at all, and the issues say what RP-1 will do.
     ungated = EngineDesign(host_model_engine_type="F1", output_mode="new_part_standalone",
                            config_name="Ungated-1", new_part_name="Ungated 1")

@@ -31,6 +31,7 @@ MODULES=(
   engine_designer.physics.turbine_exhaust   # GG/tap-off exhaust: back pressure, exhaust Isp, modes
   engine_designer.physics.electric_pump
   engine_designer.physics.reliability
+  engine_designer.physics.burn_time
   engine_designer.physics.cost_model
   engine_designer.physics.turbopump_materials
   engine_designer.physics.turbopump_efficiency
@@ -46,6 +47,7 @@ MODULES=(
   engine_designer.catalog.build_roengines_models
   engine_designer.catalog.mmcfg
   engine_designer.catalog.build_rp1_snapshot
+  engine_designer.catalog.build_testflight_corpus
   engine_designer.export.cfg_writer
   engine_designer.gui.schematic
   engine_designer.gui.preview3d

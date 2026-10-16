@@ -2,8 +2,10 @@
 Scraper for the RP-1 career data the exporter needs - a committed snapshot,
 like roengines_models.json:
 
-  tech_nodes    every RP0TechTree.cfg RDNode: id, title, parent ids. Feeds the
-                GUI's tech-node combobox labels (`id - title`).
+  tech_nodes    every RP0TechTree.cfg RDNode: id, title, start year (from the
+                node's own "(1972-1980)" description), parent ids. Feeds the
+                GUI's tech-node combobox labels (`id - title`) and the era of a
+                design / an RO config (physics/reliability.py).
   engine_parts  RP-1's own TREE-Parts.cfg placement of every ENGINE part
                 (tagged EngineLiquidTurbo / EngineLiquidPF / EngineSolid):
                 TechRequired, cost, entryCost, tags.
@@ -35,6 +37,7 @@ derived numbers are stored here, never verbatim config text.
 """
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -73,9 +76,20 @@ def parse_tech_nodes(path):
         for n in top.walk():
             if n.type_name == "RDNode" and n.get("id"):
                 nodes.append({"id": n.get("id"), "title": n.get("title", ""),
+                              "year": _node_year(n.get("description", ""), n.get("title", "")),
                               "parents": [p.get("parentID") for p in n.find("Parent")
                                           if p.get("parentID")]})
     return nodes
+
+
+def _node_year(description, title):
+    """First 4-digit year in the node's description ("... (1972-1980)") or title
+    ("1976-1980 Orbital Rocketry"); None for undated nodes (start, unlockParts)."""
+    for text in (description or "", title or ""):
+        m = re.search(r"\b(19[0-9]{2}|2[01][0-9]{2})\b", text)
+        if m:
+            return int(m.group(1))
+    return None
 
 
 def parse_tree_parts(path):
@@ -268,6 +282,9 @@ def _validate(data):
     ids = {n["id"]: n for n in data["tech_nodes"]}
     assert len(ids) > 200, len(ids)
     assert ids["orbitalRocketry1976"]["title"] == "1976-1980 Orbital Rocketry", ids["orbitalRocketry1976"]
+    assert ids["orbitalRocketry1976"].get("year") == 1976, ids["orbitalRocketry1976"]
+    assert ids["start"].get("year") is None
+    assert sum(1 for n in ids.values() if n.get("year")) > 250
     parts = data["engine_parts"]
     assert parts["ROE-AJ10-transtar"]["cost"] == 138, parts.get("ROE-AJ10-transtar")
     assert parts["ROE-AJ10-transtar"]["tags"] == ["EngineLiquidTurbo"]
@@ -308,6 +325,14 @@ def load():
 def tech_node_titles():
     """{node id: title} (empty if no snapshot)."""
     return {n["id"]: n.get("title", "") for n in load().get("tech_nodes", [])}
+
+
+def tech_node_year(node_id):
+    """Start year of an RP-1 tech node, or None (unknown / undated / no snapshot)."""
+    for n in load().get("tech_nodes", []):
+        if n["id"] == node_id:
+            return n.get("year")
+    return None
 
 
 def host_part_names(engine_type):

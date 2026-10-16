@@ -55,6 +55,26 @@ _SSME_Q = {"value": round(72 * BTU_IN2_S_TO_MW_M2, 1),
 
 _BELL = dict(nozzle_type="bell", bell_percent_length=80.0)
 
+# Each engine's real DUTY (2026-10-16, physics/burn_time.py): RO's own TESTFLIGHT
+# ratedBurnTime for the cited config and the RP-1 tech node RP-1 gates that config
+# at (catalog/testflight_corpus.json + rp1_snapshot.json) - real inputs, so the
+# corpus exercises the life cap at real duties. The same number is a plausibility
+# metric: if the wall-temperature life cap ever bites a real engine, it flags.
+RO_DUTY = {   # engine: (RO config, ratedBurnTime s, RP-1 tech node)
+    "F-1": ("F-1-1.5M", 165.0, "orbitalRocketry1967"),
+    "J-2": ("J-2-200K", 500.0, "improvedHydrolox"),
+    "RS-25": ("RS-25", 480.0, "FRSC1981"),
+    "RD-180": ("RD-180", 255.0, "stagedCombustion1998"),
+    "Merlin-1D": ("Merlin1D", 180.0, "orbitalRocketry2009"),
+    "RL10A-3-3": ("RL10A-3-3", 470.0, "improvedHydrolox"),
+    "Rutherford": ("Rutherford-SL", 150.0, "orbitalRocketry2014"),
+    "Vulcain": ("Vulcain", 580.0, "hydrolox1992"),
+    "Aestus": ("Aestus", 1110.0, "orbitalRocketry1992"),
+    "Raptor-2": ("Raptor-2", 360.0, ""),          # RP-1 gates Raptor at no node
+    "AJ10-137": ("AJ10-137", 750.0, "orbitalRocketry1966"),
+    "LMAE": ("LMAE", 560.0, "lunarLanding"),
+}
+
 ENGINES = {
     "F-1": dict(
         design=dict(propellant_pair="LOX/RP-1", mixture_ratio=2.40, chamber_pressure_pa=6.77e6,
@@ -243,7 +263,9 @@ ENGINES = {
 def build():
     os.makedirs(OUT_DIR, exist_ok=True)
     for name, e in ENGINES.items():
-        d = EngineDesign(**e["design"])
+        duty = RO_DUTY.get(name)
+        d = EngineDesign(**e["design"], **({"rated_burn_time_target_s": duty[1],
+                                             "tech_node": duty[2]} if duty else {}))
         cite = e["cite"]
         metrics = {"isp_vac_s": _isp(e["isp"][0], cite),
                    "thrust_vac_kn": _thrust_kn(e["design"]["target_vac_thrust_n"], cite)}
@@ -251,6 +273,10 @@ def build():
             m = _isp(e["isp"][1], cite)
             m["kind"] = "plausibility"   # tool's SL Isp is a separation-naive estimate
             metrics["isp_sl_s"] = m
+        if duty:
+            metrics["rated_burn_time_s"] = {
+                "value": duty[1], "lo": duty[1], "hi": duty[1], "unit": "s", "kind": "plausibility",
+                "cite": f'[RO {duty[0]} TESTFLIGHT ratedBurnTime] - carried uncapped by the life limit'}
         metrics.update(e.get("extra", {}))
         doc = d.to_dict()
         doc["reference"] = {"source": cite, "notes": e["notes"], "gaps": e.get("gaps", []),

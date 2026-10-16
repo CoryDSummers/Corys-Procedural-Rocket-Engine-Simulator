@@ -75,6 +75,32 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "137213.3366374079"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "34303.33415935197"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin",
+"lever": "cooler wall: chamber material, coolant velocity / channels, film cooling, a thermal-barrier liner, or a lower Pc",
+"life_s": {
+"__f__": "137213.3366374079"
+},
+"margin": {
+"__f__": "1.4797862569949682"
+}
+},
+{
+"allowable_rated_s": null,
+"key": "extension_char",
+"label": "Ablative nozzle-extension char depth",
+"lever": "extension liner is sized to the duty target - a longer target costs liner mass",
+"life_s": null
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.966372745057933"
 },
@@ -345,6 +371,12 @@
 "category": "turbopump",
 "detail": "n/a - no turbopump (pressure-fed)",
 "name": "Feed-system pump plausibility",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 200 s duty, life limit 137213 s",
+"name": "Rated burn time vs. life limit",
 "passed": true
 },
 {
@@ -2233,6 +2265,12 @@
 },
 "turbopump": null
 },
+"design_year": 1970,
+"design_year_source": "tech node improvedLandingEngines",
+"duty_default_s": {
+"__f__": "829.8419084376607"
+},
+"engine_role": "pressure_fed",
 "eps_for_transition": {
 "__f__": "2.0"
 },
@@ -2523,9 +2561,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -2713,6 +2748,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "200.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -2760,6 +2798,9 @@
 "__f__": "12000.0"
 },
 "tech_node": "improvedLandingEngines",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.1"
 },
@@ -3479,6 +3520,10 @@
 "rated_burn_time_s": {
 "__f__": "200.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "200.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "9.974284013133629e-06"
 },

@@ -87,6 +87,25 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "1500.624489629767"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "375.1561224074417"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin",
+"lever": "cooler wall: chamber material, coolant velocity / channels, film cooling, a thermal-barrier liner, or a lower Pc",
+"life_s": {
+"__f__": "1500.624489629767"
+},
+"margin": {
+"__f__": "0.8146522538284923"
+}
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.9617098846157603"
 },
@@ -424,6 +443,12 @@
 "detail": "[turbopump] required head/tip-speed combination implies wanting ~9 pump stages, beyond this tool's 8-stage modeled ceiling (real historical practice tops out around the J-2's 7 axial LH2 stages) - the design is being sized at 8 stages anyway, which likely understates real head-per-stage/tip-speed demand rather than representing genuinely buildable hardware.; Cronidur 30 (15Cr-N stainless): bearing DN 1,732,680 mm*rpm exceeds this material's ~1,500,000 limit (engineering-estimate threshold, not independently sourced) - real turbopumps this fast either use a lower-DN bearing arrangement or a higher-DN material.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
+},
+{
+"category": "cooling",
+"detail": "OK - 360 s duty, life limit 1501 s",
+"name": "Rated burn time vs. life limit",
+"passed": true
 },
 {
 "category": "injector",
@@ -3153,6 +3178,12 @@
 }
 }
 },
+"design_year": 1966,
+"design_year_source": "controller tier (Baseline Analog/Early Digital (previous default))",
+"duty_default_s": {
+"__f__": "166.87515574449714"
+},
+"engine_role": "booster",
 "eps_for_transition": {
 "__f__": "6.0"
 },
@@ -3419,9 +3450,6 @@
 },
 "injector_stiffness_ok_at_floor": false,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -3609,6 +3637,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "360.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -3656,6 +3687,9 @@
 "__f__": "2255530.0"
 },
 "tech_node": "",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.6"
 },
@@ -4422,8 +4456,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "141.6786528397378"
+"__f__": "360.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "360.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "8.892167431140511e-06"
 },
