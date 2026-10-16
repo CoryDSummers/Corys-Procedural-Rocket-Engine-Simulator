@@ -718,16 +718,15 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   design at the `baseline` tier still exports ~0.970, matching every `.cfg`
   written before; a fresh FFSC exports ~0.84. `testedBurnTime` is
   `rated x` a controller-tier multiplier nudged by a reusability signal.
-- **Cost model** (`physics/cost_model.py`, export-time only): a CER-style
-  `cost` / `entryCost` estimate from the computed dry mass (`mass^0.55`),
-  chamber pressure, cycle complexity, chamber count, and the blended
-  `relative_cost_factor`s of the chosen material / injector / turbopump tier /
-  controller tier (previously tracked but never combined). Calibrated so a
-  ~1.4 MN kerolox GG lands near this project's own `H3-250K` gating values
-  (`cost` 20 / `entryCost` 15000). The GUI shows the estimate and auto-fills the
-  export fields; typing a value overrides it (a "Reset cost to estimate" button
-  hands it back). `cost` is written on the CONFIG block; `entryCost` only in the
-  RP-1 gating patch.
+- **Cost model** (`physics/cost_model.py`, export-time only): the ABSOLUTE
+  engine cost RP-1 would charge (its PART cost + the CONFIG delta), fitted in log
+  space to RP-1's own prices for 487 RO engine configs (`catalog/rp1_snapshot.json`):
+  `~22 x F_vac[kN]^0.48`, x3.9 for hydrolox, x0.81 storables, x0.91 pressure-fed,
+  scatter ~x1.7. Tier-3 multipliers on top for cycle complexity, chamber pressure,
+  the catalog `relative_cost_factor`s and clustering. Entry cost = 28 x cost (the
+  median ratio of RP-1's ECM rows) x a cycle R&D factor. The GUI shows the estimate
+  and auto-fills the fields; typing overrides it ("Reset costs to estimate" hands it
+  back; 0 = estimate). See "Export" below for how the number is split.
 - **Gimbal**: inherit the host part's existing gimbal untouched (default,
   matches `H3-250K`/`H4-250K`), set a custom `gimbalRange`/response speed
   (matches `H3-250K-V`/`TR341_Config.cfg`), or go explicitly ungimballed
@@ -735,11 +734,35 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   separate vernier chambers for TVC). A soft plausibility check warns if a
   custom range falls outside the ~2-11.5 deg band real engines cluster in -
   note real gimbal range does NOT scale with thrust. See `physics/gimbal.py`.
-- **RP-1 tech-tree gating**: an editable combobox (type any node, or pick
-  from real RP-1 engine-tech-node suggestions fetched from RP-1's own
-  `TREE-Engines.cfg`, contextually ordered by propellant/cycle) plus entry
-  cost/cost fields, wired into the export's existing `%techRequired`/
-  `%entryCost`/`%cost` patch. See `physics/tech_tree.py`.
+- **Export (KSP / RP-1)** (Model tab; `export/cfg_writer.py`, verified 2026-10-15
+  against RealFuels' C# source and RP-1 / ROEngines' cfgs in `upstream/`). What
+  each field is FOR in game:
+
+  | Field | Game use |
+  |---|---|
+  | Config name | The RealFuels engine-config picker entry, and the GLOBAL key for RP-1's `techRequired`, its entry cost (ENTRYCOSTMODS), the RF unlock database and TestFlight - must be unique across every installed engine (the default `MyEngine-100K` is flagged) |
+  | Config description | Picker text |
+  | Part name | KSP's internal part ID (`@PART[...]`), standalone mode only; players never see it |
+  | Title / Manufacturer / Part description | What the VAB shows, standalone mode only (a config added to a host keeps the host's) |
+  | Tech node | The config's `techRequired` - and, standalone, the PART's `TechRequired` |
+  | Engine cost | Absolute: standalone -> the PART cost (config delta 0); on a host -> CONFIG `cost` = this - the host part's RP-1 cost (RP-1 treats a config `cost` as a delta: H-1 part 392, configs +0/+21/+67) |
+  | Entry cost (+ parents) | An `ENTRYCOSTMODS { <config> = cost, parents }` row - the ONLY place RealFuels reads a config's unlock cost from (a CONFIG-level `entryCost` is never read; older exports' were dead). Parents = tech-transfer configs that discount it once owned |
+  | Tree icon | A `PARTUPGRADE RFUpgrade_<config>` so a config added to a host shows in its node (RP-1 writes these by hand; RF doesn't create them). Cosmetic |
+  | Host part / model variant | Which ROEngines part to borrow (several can share an engineType, e.g. `ROE-LR105` / `ROE-LR105_2`) and which of its B9PartSwitch model subtypes the config selects (`LinkB9PSModule[<id>] { subtype }` - e.g. the XLR-11 RM-5 model, LR105 NA-3/NA-6 nozzles). A variant that moves the bottom attach node also sets the model-scale height; a mesh-only variant keeps the part's height (the GUI says so - use the reference-height override) |
+
+  ModuleManager order used: `+PART[<host part>]` clone `:BEFORE[RealismOverhaulEngines]`
+  (so RO's own engineType-keyed title / config patches skip it) -> engine definition
+  `:AFTER[RealismOverhaulEngines]` -> model-variant link and RP-1 config gating
+  `:BEFORE[RealismOverhaulEnginesPost]` (after ROEngines' own `@CONFIG,*` default
+  links) -> standalone RP-1 PART placement `:AFTER[xxxRP0]` (`TechRequired`, `cost`,
+  `entryCost = 0`, `RP0conf = true`, ModuleTagList `EngineLiquidTurbo`/`EngineLiquidPF`),
+  before RP-1's `NonRP0.cfg :FOR[zzzRP-0]` would relabel the clone "non RP-0" and leave
+  it in ROEngines' default `start` node. Names are sanitized to `[A-Za-z0-9-]`
+  (spaces break selectors, KSP turns `_` into `.`, RF keys `.`/`_` as `-`); free text
+  to one line without braces or `//`. Every such change, a missing tech node, an
+  unknown host cost or variant shows in the live **Export notes** box and in a
+  Continue/Cancel dialog on export - warn-only. Tech-node suggestions are labelled
+  with RP-1's own node titles (`physics/tech_tree.py` + the snapshot).
 - **Checklist tab**: every design check's pass/warn status (not just
   currently-failing ones), grouped by category in a `ttk.Treeview`, with
   plain PASS/WARN text (not color alone) for accessibility.

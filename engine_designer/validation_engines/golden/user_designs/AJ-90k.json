@@ -2700,6 +2700,7 @@
 "chamber_wall_fillet_r_over_rt": {
 "__f__": "0.0"
 },
+"config_description": "",
 "config_name": "AJ-90k",
 "contraction_ratio": {
 "__f__": "3.8"
@@ -2714,7 +2715,7 @@
 "__f__": "16.0"
 },
 "cost": {
-"__f__": "71.0"
+"__f__": "0.0"
 },
 "cycle": "frsc",
 "diffuser_type": "auto",
@@ -2723,7 +2724,7 @@
 },
 "enforce_suction_limit": false,
 "entry_cost": {
-"__f__": "77496.0"
+"__f__": "0.0"
 },
 "eta_pump_fuel": {
 "__f__": "0.0"
@@ -2758,9 +2759,11 @@
 "__f__": "0.0"
 },
 "host_model_engine_type": "J2",
+"host_model_part": "",
 "host_model_reference_height_m": {
 "__f__": "0.0"
 },
+"host_model_variants": {},
 "ignition_system": "spark_torch",
 "ignitions": 8,
 "impingement_angle_deg": {
@@ -2863,6 +2866,8 @@
 "regen_nozzle_end_eps": {
 "__f__": "0.0"
 },
+"rp1_ecm_parents": "",
+"rp1_tree_icon": true,
 "suction_accel_g": {
 "__f__": "1.0"
 },

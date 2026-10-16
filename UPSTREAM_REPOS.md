@@ -113,6 +113,15 @@ Secondary files that *reference* (don't define) these IDs:
 `GameData/RP-1/SCMData/TechNodeData.cfg`, `GameData/RP-1/Tree/TREE-Engines.cfg`,
 `GameData/RP-1/Tree/TREE-Parts.cfg`.
 
+Since 2026-10-15 `engine_designer/catalog/build_rp1_snapshot.py` scrapes the node
+list (ids + titles), `TREE-Parts.cfg` (engine part cost / tech / tags),
+`TREE-Engines.cfg` (config tech + cost DELTA) and `ECM-Engines.cfg` (config entry
+cost + tech-transfer parents) into `rp1_snapshot.json` - read that instead of
+these large files for any cost / node question. How RP-1 + RealFuels actually use
+those fields (config `cost` is a delta, entry cost lives only in ENTRYCOSTMODS,
+`NonRP0.cfg` relabels parts with no `RP0conf`) is in `engine_designer/README.md`
+"Export".
+
 Out of scope for this project (present but not studied): `GameData/RP-1/Contracts/`
 and `GameData/RP-1/Programs/` (contract packs / Mission Control), both siblings of
 `GameData/RP-1/Tree/`.

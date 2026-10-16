@@ -3501,6 +3501,7 @@
 "chamber_wall_fillet_r_over_rt": {
 "__f__": "0.0"
 },
+"config_description": "",
 "config_name": "RS-30",
 "contraction_ratio": {
 "__f__": "2.8"
@@ -3515,7 +3516,7 @@
 "__f__": "6.0"
 },
 "cost": {
-"__f__": "240.0"
+"__f__": "0.0"
 },
 "cycle": "tap_off",
 "diffuser_type": "auto",
@@ -3524,7 +3525,7 @@
 },
 "enforce_suction_limit": false,
 "entry_cost": {
-"__f__": "55000.0"
+"__f__": "0.0"
 },
 "eta_pump_fuel": {
 "__f__": "0.0"
@@ -3559,9 +3560,11 @@
 "__f__": "0.0"
 },
 "host_model_engine_type": "E1",
+"host_model_part": "",
 "host_model_reference_height_m": {
 "__f__": "0.0"
 },
+"host_model_variants": {},
 "ignition_system": "tea_teb",
 "ignitions": 2,
 "impingement_angle_deg": {
@@ -3664,6 +3667,8 @@
 "regen_nozzle_end_eps": {
 "__f__": "0.0"
 },
+"rp1_ecm_parents": "",
+"rp1_tree_icon": true,
 "suction_accel_g": {
 "__f__": "1.0"
 },
