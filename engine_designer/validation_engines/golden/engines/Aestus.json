@@ -90,14 +90,15 @@
 "__f__": "4836.078061536619"
 },
 "key": "wall_temperature",
-"label": "Hot-wall temperature margin",
-"lever": "cooler wall: chamber material, coolant velocity / channels, film cooling, a thermal-barrier liner, or a lower Pc",
+"label": "Hot-wall temperature margin (nozzle)",
+"lever": "cooler extension: a higher-temperature extension material, nozzle film, extending regen (regen_nozzle_end_eps) or a thermal-barrier liner",
 "life_s": {
 "__f__": "19344.312246146477"
 },
 "margin": {
 "__f__": "0.9013653351756163"
-}
+},
+"zone": "nozzle"
 }
 ],
 "cf_vac_ideal": {

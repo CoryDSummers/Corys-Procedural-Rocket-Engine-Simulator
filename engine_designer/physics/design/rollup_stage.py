@@ -60,12 +60,19 @@ def burn_time_and_mass(self, s):
     else:
         # the WORST of the throat row and the full-length peak row (the throat
         # alone used to set it even when another station ran hotter - audit W7)
-        _margin = min(s.margin["margin_ratio"], s.peak_wall_margin_ratio or float("inf"))
+        _peak = s.peak_wall_margin_ratio
+        _margin = min(s.margin["margin_ratio"], _peak or float("inf"))
+        _zone = (s.peak_wall_temp_zone if _peak is not None and _peak < s.margin["margin_ratio"]
+                 else "throat")
+        _lever = ("cooler extension: a higher-temperature extension material, nozzle film, "
+                  "extending regen (regen_nozzle_end_eps) or a thermal-barrier liner"
+                  if _zone == "nozzle" else
+                  "cooler chamber wall: chamber material, coolant velocity / channels, "
+                  "chamber film (or a convergent film ring), or a lower Pc")
         s.burn_time_limits.append({
-            "key": "wall_temperature", "label": "Hot-wall temperature margin", "margin": _margin,
-            "life_s": burn_time.thermal_life_s(s.duty_default_s, _margin),
-            "lever": "cooler wall: chamber material, coolant velocity / channels, film "
-                     "cooling, a thermal-barrier liner, or a lower Pc"})
+            "key": "wall_temperature", "label": f"Hot-wall temperature margin ({_zone})",
+            "margin": _margin, "zone": _zone,
+            "life_s": burn_time.thermal_life_s(s.duty_default_s, _margin), "lever": _lever})
 
     # Ablative NOZZLE EXTENSION: the same char-depth sizing, per station. The
     # char rate is the throat-referenced material rate scaled by the local

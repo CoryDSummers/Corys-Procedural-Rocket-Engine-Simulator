@@ -105,14 +105,15 @@
 "__f__": "16990.46147743246"
 },
 "key": "wall_temperature",
-"label": "Hot-wall temperature margin",
-"lever": "cooler wall: chamber material, coolant velocity / channels, film cooling, a thermal-barrier liner, or a lower Pc",
+"label": "Hot-wall temperature margin (convergent section)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
 "life_s": {
 "__f__": "67961.84590972983"
 },
 "margin": {
 "__f__": "1.6646841269811343"
-}
+},
+"zone": "convergent section"
 }
 ],
 "cf_vac_ideal": {

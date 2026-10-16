@@ -308,9 +308,10 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
     **mass**: a battery sized for the whole burn plus the motors, added to the
     dry mass. Only pays off at small scale / short burn (battery mass scales
     with burn *time*); the tool warns when the electric hardware dominates.
-  ORSC and FFSC also carry a standing reliability caveat (oxidiser-rich
+  ORSC and FFSC also carry a development-complexity caveat (oxidiser-rich
   turbomachinery is historically hard - late-Soviet/Russian ORSC, and only
-  Raptor/BE-4-era FFSC). Per-cycle behaviour is spot-checked end-to-end against
+  Raptor/BE-4-era FFSC); their exported TestFlight reliability follows RO's own
+  staged-engine numbers (see "Design-derived TestFlight reliability"). Per-cycle behaviour is spot-checked end-to-end against
   RD-180, SSME, RD-0124, J-2X, Rutherford and a Raptor-like design in
   `validate.py::run_cycle_model_check()`.
 - **Nozzle shape**: Conical (adjustable half-angle) or **Bell** (Rao
@@ -719,18 +720,43 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   `varyIsp`/`varyMixture`, `residualsThresholdBase` on export - purely
   export-time, never affects computed Isp/thrust. See
   `physics/controller_tech.py`.
+- **Rated / tested burn time** (`physics/burn_time.py`, 2026-10-16). RO's
+  TestFlight (`TestFlight_Generic_Engines.cfg`) reads `ratedBurnTime` as the duty:
+  the per-second failure chance is (1 - cycleReliability) / rated, the `cycle` curve
+  is flat to rated + 5 s, 2x at `testedBurnTime` (the longest SINGLE demonstrated
+  burn) and 100x at 2.5 x tested.
+  - **Rated** = the duty target `rated_burn_time_target_s` (Cooling > Burn Time;
+    0 = the RO-corpus median for this role - sea-level booster / upper stage /
+    pressure-fed - thrust and era, fitted over the real ratedBurnTime of every dated
+    RO liquid-biprop config, `catalog/testflight_corpus.json`), **capped** by the
+    shortest physical life limit / 4 ([SP-8110] / [ASR72-238] life factor). Round A
+    has one mechanism: the hot-wall temperature margin at the worst station,
+    life ~ margin^(1/0.205) ([Quentmeyer-TMX73665] copper-liner exponent, a Tier-3
+    transfer), anchored at margin 0.69 - reverse-solved so every real engine in the
+    validation corpus carries its real RO rating uncapped (`validate/
+    burn_time_checks.py`, "ALL BURN-TIME CHECKS OK"). Ablative sections size their
+    char liner to the target, so they carry it by construction; an electric-pump
+    battery is sized to the rating. The table under the slider names each limit,
+    what it allows and the lever that raises it; a capped target is a warn row.
+  - **Tested** = rated x the RO-corpus tested/rated ratio (ln-fit over 426 configs:
+    +0.19 per decade from 1970, x0.56 pressure-fed, x1.12 restartable, x0.70 upper
+    stage; 1960s booster ~3.5x, 2000s ~8x), never past the life limit, never below
+    rated; ablative = rated. The era is the RP-1 tech node's start year, else the
+    controller tier's `era_year`. (The old 6-17x tier multipliers came from
+    cumulative qualification time and over-stated it.)
 - **Design-derived TestFlight reliability** (`physics/reliability.py`,
   export-time only): the exported `ignitionReliability*` / `cycleReliability*`
-  are DERIVED from the design - the controller tier is the anchor, then the
-  failure gap `1 - value` is scaled by the cycle's inherent difficulty
-  (pressure-fed easy -> FFSC/ORSC hard) and inflated for high chamber pressure,
-  oxidiser-rich turbomachinery, deep throttling, many restarts, a
-  tip-speed-marginal or fatigue-marginal design, and multi-chamber layouts.
-  Clamped into the real RO-corpus band (cycleReliabilityStart runs 0.63 min /
-  0.97 median / 0.9997 max across ~300 configs). A low-complexity GG/pressure-fed
-  design at the `baseline` tier still exports ~0.970, matching every `.cfg`
-  written before; a fresh FFSC exports ~0.84. `testedBurnTime` is
-  `rated x` a controller-tier multiplier nudged by a reusability signal.
+  are DERIVED from the design - the controller tier is the anchor (its values
+  match the RO corpus' per-decade medians), then the failure gap `1 - value` is
+  scaled by the cycle family FITTED on RO (pressure-fed x0.66, expander x0.70,
+  staged x1.13 on top of the chamber-pressure term - RO rates ORSC like FRSC, so
+  the old ox-rich penalty is retired; tap-off / electric stay Tier 3) and
+  inflated for high chamber pressure (the staged fleet's extra gap is mostly this
+  term), deep throttling, many restarts, a tip-speed- or fatigue-marginal design
+  (the fatigue term fires below 4 x ignitions - the cited life factor) and
+  multi-chamber layouts. Clamped into the RO band (0.63 min / 0.97 median /
+  0.9997 max). `techTransfer = <parents>:<pct>` is written from the tech-transfer
+  parents (raw config names, `testflight_transfer_pct`, default 50 - RO's usual).
 - **Cost model** (`physics/cost_model.py`, export-time only): the ABSOLUTE
   engine cost RP-1 would charge (its PART cost + the CONFIG delta), fitted in log
   space to RP-1's own prices for 487 RO engine configs (`catalog/rp1_snapshot.json`):
@@ -839,10 +865,8 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   real, cited char-consumption rate (matching the "ablative, no extra time"
   pattern found in real RealismOverhaul configs, where tested burn time is
   essentially equal to rated for ablative engines); every other material
-  scales a baseline by chamber thermal margin. Tested burn time uses a new
-  per-controller-tier `tested_to_rated_multiplier` (6-17x, spanning 4 real
-  cited engines: Saturn V F-1, RD-180, Merlin 1D, Vulcain 2) instead of a
-  flat rated x20.
+  scaled a baseline by chamber thermal margin. (Superseded 2026-10-16 by the duty
+  target + life cap above.)
 - **Number of ignitions**: exposed as a real design choice (Model tab),
   forced to 1 for single-shot igniters (matching `ignition.py`'s
   `forces_single_ignition`) - real RO configs show this varies enormously by

@@ -194,6 +194,9 @@ touching any cooling number.** What changed structurally:
                                                      # back pressure (turbine PR), exhaust Isp, HX
    python3 -m engine_designer.physics.electric_pump
    python3 -m engine_designer.physics.reliability
+   python3 -m engine_designer.physics.burn_time      # rated = duty target capped by wall life / 4;
+                                                     # RO-corpus duty + tested/rated fits (re-fit
+                                                     # from testflight_corpus.json and pinned)
    python3 -m engine_designer.physics.cost_model
    python3 -m engine_designer.physics.turbopump_materials
    python3 -m engine_designer.physics.turbopump_efficiency
@@ -234,6 +237,9 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.catalog.build_rp1_snapshot  # RP-1 tech nodes / engine part +
                                                      # config costs / ECM rows joined to RO configs
                                                      # (rp1_snapshot.json; auto-finds upstream/RP-1)
+   python3 -m engine_designer.catalog.build_testflight_corpus  # every RO TESTFLIGHT block (rated/
+                                                     # tested burn time, reliabilities, cycle family,
+                                                     # RP-1 era) -> testflight_corpus.json
    python3 -m engine_designer.export.cfg_writer  # 3 output-mode renders + brace/token checks,
                                                      # RP-1 gating, sanitizing, model variants
    python3 -m engine_designer.gui.schematic
@@ -317,8 +323,12 @@ touching any cooling number.** What changed structurally:
    CHECKS OK" (tap-off accuracy round, 2026-09-26: STBE-like LOX/CH4 tap-off total turbine flow
    vs the P&W study's 132/2462 lbm/s within 25 %, 1,000 K at 0.955 x Pc, legacy/LH2 unchanged,
    Tin direction, kerolox mixer, turbine blade/disk split vs the real F-1 hardware;
-   `validate/tap_off_checks.py`)
-   (32 banners
+   `validate/tap_off_checks.py`) and "ALL BURN-TIME CHECKS OK" (TestFlight burn-time round,
+   2026-10-16: every real corpus engine carries its real RO ratedBurnTime uncapped by the wall-
+   temperature life cap - the anchor THERMAL_LIFE_MARGIN_REF was reverse-solved on them -, life
+   follows the hottest station, a target past the life is capped + flagged, ablative carries its
+   target; `validate/burn_time_checks.py`)
+   (33 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -531,7 +541,7 @@ generated `TR341_Config.cfg`); uniform model scale = design length / host native
 is the distilled, cited reference actually consulted when trusting or adding physics in
 `engine_designer/`. **Read `claude_lit/README.md` first** — it has the citation-key table
 (one row per source, tagged `[Huzel]`/`[Sutton]`/`[Bazarov]`/etc.), the topic-file index
-(16 files under `claude_lit/topics/`, one per physics domain — injectors, cooling, engine
+(19 files under `claude_lit/topics/`, one per physics domain — injectors, cooling, engine
 cycles, turbopumps, materials, combustion stability, ...) and the lookup-budget rules
 (section-targeted reads, 40 KB topic-file cap). `claude_lit/PROVENANCE.md` records when each
 source was extracted and by what method (moved out of the README index 2026-09-22). `claude_lit/sources/*.md` has
@@ -605,3 +615,9 @@ MON-3/10/25 variants of N2O4/MMH = `propellants/mon-variants` STACKED on `propel
 plan `plans/2026-10-16_mon_variants.md`. A variant aliases every per-pair dict that has no own
 entry - check a NEW per-pair dict gets `alias_variants(...)` too, or variants silently take its
 fallback.
+TestFlight burn-time round = `testflight/burn-time` STACKED on `propellants/mon-variants`, plan
+`plans/2026-10-16_testflight_burn_time.md` (schema 22: `rated_burn_time_target_s` replaces
+`ablative_target_burn_time_s`; `physics/burn_time.py`; read README "Rated / tested burn time"
+first). Round A (corpus fits, duty target + wall-life cap, techTransfer) done; Round B (more
+life mechanisms - liner creep, coking, turbine blade, bearings, seals, coatings) waits on
+literature listed in `claude_lit/OPEN_QUESTIONS.md` and `claude_lit/topics/17-engine-life-and-duty.md`.

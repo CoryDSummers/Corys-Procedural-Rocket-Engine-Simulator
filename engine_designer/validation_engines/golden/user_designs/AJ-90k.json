@@ -117,14 +117,15 @@
 "__f__": "206.5062850712303"
 },
 "key": "wall_temperature",
-"label": "Hot-wall temperature margin",
-"lever": "cooler wall: chamber material, coolant velocity / channels, film cooling, a thermal-barrier liner, or a lower Pc",
+"label": "Hot-wall temperature margin (throat)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
 "life_s": {
 "__f__": "826.0251402849212"
 },
 "margin": {
 "__f__": "0.598117658168913"
-}
+},
+"zone": "throat"
 }
 ],
 "cf_vac_ideal": {
@@ -461,7 +462,7 @@
 },
 {
 "category": "cooling",
-"detail": "Duty target 415 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 207 s by hot-wall temperature margin (life 826 s). Cooler wall: chamber material, coolant velocity / channels, film cooling, a thermal-barrier liner, or a lower Pc.",
+"detail": "Duty target 415 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 207 s by hot-wall temperature margin (throat) (life 826 s). Cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc.",
 "name": "Rated burn time vs. life limit",
 "passed": false
 },
@@ -8296,7 +8297,7 @@
 "Fuel pump: impeller outlet 0.18 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).",
-"Duty target 415 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 207 s by hot-wall temperature margin (life 826 s). Cooler wall: chamber material, coolant velocity / channels, film cooling, a thermal-barrier liner, or a lower Pc.",
+"Duty target 415 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 207 s by hot-wall temperature margin (throat) (life 826 s). Cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc.",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.038) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]
 }

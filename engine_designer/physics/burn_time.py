@@ -156,6 +156,38 @@ def is_restartable(ignitions):
     return ignitions is None or ignitions <= 0 or ignitions > 1
 
 
+def tested_ratio_band(ratio):
+    """(10th, 90th percentile) of the RO corpus around a fitted tested/rated ratio."""
+    k = 1.2816 * TESTED_FIT_RMS_LOG
+    return max(TESTED_RATIO_MIN, ratio * math.exp(-k)), ratio * math.exp(k)
+
+
+def limits_summary_lines(result, tested_s=None, target_is_auto=True):
+    """The GUI's "Burn-time limits" table as text lines (pure, headless-testable)."""
+    role = {"booster": "sea-level booster", "upper": "upper stage",
+            "pressure_fed": "pressure-fed"}.get(result.get("engine_role"), "?")
+    lines = [f"Duty target {result['rated_burn_time_target_s']:.0f} s"
+             + (f" (auto: RO median for a {role}, {result['design_year']}, "
+                f"dated by {result['design_year_source']})" if target_is_auto
+                else f" (set; the RO median here is {result['duty_default_s']:.0f} s)")]
+    for lim in result.get("burn_time_limits", []):
+        if lim.get("life_s") is None:
+            lines.append(f"  {lim['label']}: sized to the target")
+        else:
+            m = f", margin {lim['margin']:.2f}" if lim.get("margin") is not None else ""
+            lines.append(f"  {lim['label']}{m}: life {lim['life_s']:.0f} s -> allows "
+                         f"{lim['allowable_rated_s']:.0f} s rated (/{LIFE_FACTOR:.0f})")
+        lines.append(f"      lever: {lim['lever']}")
+    gov = result.get("rated_limited_by", "target")
+    lines.append(f"Rated {result['rated_burn_time_s']:.0f} s - "
+                 + ("the target is carried" if gov == "target"
+                    else f"CAPPED by {gov.replace('_', ' ')}"))
+    if tested_s is not None:
+        lines.append(f"Tested {tested_s:.0f} s (x{tested_s / max(result['rated_burn_time_s'], 1e-9):.1f} "
+                     f"rated; the longest single burn TestFlight treats as demonstrated)")
+    return lines
+
+
 # --- the corpus fits -------------------------------------------------------------
 
 def corpus_rows(rows=None):
@@ -245,4 +277,14 @@ if __name__ == "__main__":
     assert tested_burn_time_s(200.0, 150.0, 3.0) == 200.0
     assert tested_burn_time_s(200.0, None, 3.0, ablative=True) == 200.0
     assert engine_role(311.0, 265.0, False) == "booster" and engine_role(444.0, 150.0, False) == "upper"
+    lo, hi = tested_ratio_band(3.0)
+    assert 1.0 <= lo < 3.0 < hi, (lo, hi)
+
+    # The GUI table, on a real compute() result.
+    from .design import EngineDesign
+    res = EngineDesign(cycle="gas_generator").compute()
+    txt = limits_summary_lines(res, tested_s=3.0 * res["rated_burn_time_s"])
+    assert txt[0].startswith("Duty target") and any("lever:" in x for x in txt)
+    assert txt[-1].startswith("Tested"), txt
+    print("  " + "\n  ".join(txt))
     print("burn_time self-checks: OK")
