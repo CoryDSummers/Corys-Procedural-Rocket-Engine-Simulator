@@ -45,9 +45,11 @@ MODULES=(
   engine_designer.physics.flow_network
   engine_designer.catalog.build_catalog
   engine_designer.catalog.build_roengines_models
+  engine_designer.catalog.build_roengines_plumes
   engine_designer.catalog.mmcfg
   engine_designer.catalog.build_rp1_snapshot
   engine_designer.catalog.build_testflight_corpus
+  engine_designer.export.plume
   engine_designer.export.cfg_writer
   engine_designer.gui.schematic
   engine_designer.gui.preview3d

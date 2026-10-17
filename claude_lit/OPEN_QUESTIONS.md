@@ -35,6 +35,23 @@ into that and makes no claims about it.
 
 ## Open literature gaps
 
+- **Physically shaped exhaust plumes (wanted — export plume Round P2, 2026-10-16).** The export
+  now writes a Waterfall plume (`engine_designer/export/plume.py`: host's recolored, or
+  "generated" = template + scale from propellant / regime / exit diameter), but the plume
+  SHAPE is still a stock template's. Shaping it from the design (expansion vs altitude, Mach
+  disc / shock-cell spacing, afterburning and soot colour) needs, in priority order:
+  1. **Love, Grigsby, Lee & Woodling, NASA TR R-6 (1959)**, "Experimental and theoretical
+     studies of axisymmetric free jets" — jet boundary and Mach-disc location vs pressure
+     ratio and exit Mach (the under-expanded vacuum/high-altitude plume).
+  2. **Pack, D.C. (1950)**, "A note on Prandtl's formula for the wave-length of a supersonic
+     gas jet", *Q. J. Mech. Appl. Math.* 3 — shock-cell spacing (over-/under-expanded).
+  3. **Simmons, F.S., *Rocket Exhaust Plume Phenomenology* (Aerospace Press, 2000)** and/or
+     **JANNAF Rocket Exhaust Plume Technology handbook, CPIA Publication 263** — afterburning,
+     radiation colour by propellant (soot for kerolox, H2O for hydrolox), plume length scaling.
+  Not literature but also needed: Waterfall's own base templates
+  (`post-kerbin-mining-corporation/Waterfall`, `GameData/Waterfall/Templates`) as a reference
+  clone in `upstream/`, to know which shader parameters a generated EFFECTTEMPLATE can drive.
+
 - **Nozzle-loss split for the performance path (wanted — P1 re-anchor, 2026-09-25).** Isp now
   runs on the equilibrium tables with ONE fitted nozzle efficiency per pair (`combustion.
   ETA_CF`); Merlin-1D (−4.8 %) and Rutherford (−4.3 %) show the spread one number can't carry.

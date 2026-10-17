@@ -61,6 +61,7 @@ import re
 
 from .. import catalog as catalog_mod
 from ..catalog import build_rp1_snapshot as rp1_mod
+from . import plume as plume_mod
 from ..physics import controller_tech as controller_tech_mod
 from ..physics import cost_model as cost_model_mod
 from ..physics import cycles as cycles_mod
@@ -189,10 +190,11 @@ DEFAULT_CONFIG_NAME = "MyEngine-100K"   # EngineDesign.config_name's default
 def resolve_export(design, result, config_name=None, manufacturer=None, tech_node=None,
                    entry_cost=None, cost=None, output_mode=None, new_part=None,
                    config_description=None, ecm_parents=None, tree_icon=None,
-                   host_part=None, variants=None):
+                   host_part=None, variants=None, model_scale=None):
     """Every exported identifier / text / RP-1 number, resolved and sanitized,
     plus `issues` (warn-only strings). Shared by render_cfg and export_issues.
-    Any argument left None comes from the design's own field."""
+    Any argument left None comes from the design's own field. `model_scale`
+    (the rescaleFactor multiplier) only sizes a generated plume."""
     d = design
     issues = []
     mode = output_mode or d.output_mode
@@ -309,7 +311,7 @@ def resolve_export(design, result, config_name=None, manufacturer=None, tech_nod
     if icon and tn and not standalone and not host_part_name:
         issues.append("Tech-tree icon skipped: no ROEngines part name for the host to draw it with.")
 
-    return {
+    out = {
         "mode": mode, "standalone": standalone, "host": host,
         "config_name": cfg, "config_description": cfg_desc,
         "part_name": new_name, "title": title, "manufacturer": mfr, "part_description": part_desc,
@@ -323,6 +325,11 @@ def resolve_export(design, result, config_name=None, manufacturer=None, tech_nod
         "config_tag": tag if (not standalone and host_tags and tag not in host_tags) else None,
         "estimate": est, "issues": issues,
     }
+    # --- exhaust plume (export/plume.py; plume_mode host / generated / none)
+    out["plume"] = plume_mod.resolve_plume(d, result, _RF_PROPELLANTS[d.propellant_pair], out,
+                                           model_scale=model_scale)
+    issues.extend(out["plume"]["issues"])
+    return out
 
 
 def export_issues(design, result, **kwargs):
@@ -378,7 +385,8 @@ def render_cfg(design, result, config_name=None, manufacturer=None, mass_mult=1.
                         tech_node=tech_node, entry_cost=entry_cost, cost=cost,
                         output_mode=output_mode, new_part=new_part,
                         config_description=config_description, ecm_parents=ecm_parents,
-                        tree_icon=tree_icon, host_part=host_part, variants=variants)
+                        tree_icon=tree_icon, host_part=host_part, variants=variants,
+                        model_scale=model_scale)
     config_name = ex["config_name"]
     tech_node = ex["tech_node"]
     entry_cost = ex["entry_cost"]
@@ -586,6 +594,7 @@ def render_cfg(design, result, config_name=None, manufacturer=None, mass_mult=1.
             + (f" (tech-transfer parents: {', '.join(ex['ecm_parents'])})" if ex["ecm_parents"] else ""))
     else:
         header_lines.append("//\tRP-1: no tech node - not gated in a career save")
+    header_lines.append(f"//\tPlume: {ex['plume']['summary']}")
     if ex["issues"]:
         header_lines.append("//\tEXPORT NOTES (warn-only):")
         for _iss in ex["issues"]:
@@ -899,7 +908,8 @@ PARTUPGRADE:NEEDS[RP-0]
 }}
 """
 
-    return header + "\n\n" + engine_patch + variant_patch + gimbal_patch + gating_patch
+    plume_patch = plume_mod.render_blocks(ex["plume"], ex, config_name, target_selector)
+    return header + "\n\n" + engine_patch + plume_patch + variant_patch + gimbal_patch + gating_patch
 
 
 def write_cfg(path, *args, **kwargs):
@@ -1123,5 +1133,45 @@ if __name__ == "__main__":
         g = render_cfg(npd, npd.compute(), "PairTest-1M", output_mode="additional_config")
         assert _balanced(g), pair
         assert f"name = {fuel}\n" in g and f"name = {ox}\n" in g, pair
+
+    # Plume (export/plume.py). A standalone clone used to get NO plume: ROEngines
+    # attaches it by the donor's part name, after the clone is made.
+    f1_wf = "@PART[TestEngine-1M]:NEEDS[Waterfall]:BEFORE[ROWaterfall]"
+    # The F-1's hybrid Waterfall+SmokeScreen plume uses useRelativeScaling = true: it
+    # already follows the model, so its scale is copied unchanged.
+    assert f1_wf in c and "template = rowaterfall-hybrid-kerolox-f1" in c, "F-1 donor plume"
+    assert "scale = 4.125, 4.125, 4.125" in c and "useRelativeScaling = true" in c
+    assert "MainPlumeVariant" not in c and "Plume: ROE-F1's own plume, verbatim" in c
+    assert "ROWaterfall" not in a.split("ENTRYCOSTMODS")[0].split("//\tPlume")[1].split("\n", 1)[1]
+    tt = EngineDesign(host_model_engine_type="AJ10_Transtar", host_model_part="ROE-AJ10-transtar",
+                      output_mode="new_part_standalone", expansion_ratio=100.0,
+                      chamber_pressure_pa=5.0e6)
+    tt_res = tt.compute()
+    k_ratio = (plume_mod.template_scale_per_m("waterfall-kerolox-upper-3")[0]
+               / plume_mod.template_scale_per_m("waterfall-hypergolic-white-upper-1")[0])
+    h = render_cfg(tt, tt_res, "PlumeTest-1", model_scale=0.8)
+    assert _balanced(h)
+    assert "template = waterfall-kerolox-upper-3" in h, "recolored hypergolic -> kerolox"
+    # k-ratio recolor x the model scale (Waterfall plume sizes ignore rescaleFactor).
+    assert f"scale = {plume_mod._fmt3([0.82 * k_ratio * 0.8] * 3)}" in h, "recolor scale"
+    assert "transform = AJ10-190-ThrustTransform" in h and "position = 0,0,0.91" in h
+    assert ":NEEDS[RealPlume&!Waterfall]:BEFORE[RealPlume]" in h
+    tt.plume_mode = "generated"
+    gen = resolve_export(tt, tt_res, config_name="PlumeTest-1", model_scale=0.8)["plume"]
+    want = (plume_mod.template_scale_per_m("waterfall-kerolox-upper-3")[0]
+            * tt_res["geometry"]["exit_dia_m"])    # a world size: no rescaleFactor
+    assert gen["template"] == "waterfall-kerolox-upper-3" and abs(gen["scale"] - want) < 1e-9, gen
+    tt.plume_mode = "none"
+    n = render_cfg(tt, tt_res, "PlumeTest-1", model_scale=0.8)
+    assert "ROWaterfall" not in n and "PLUME" not in n and _balanced(n)
+    # additional_config: the host keeps its plume; a different propellant gets RO's own
+    # per-CONFIG MainPlumeVariant + rowaterfallVariant.
+    lh = EngineDesign(host_model_engine_type="F1", propellant_pair="LOX/LH2", mixture_ratio=5.5)
+    v = render_cfg(lh, lh.compute(), "PlumeTest-2", output_mode="additional_config")
+    assert _balanced(v)
+    assert ("@PART[*]:HAS[#engineType[F1],@ROWaterfall]:NEEDS[Waterfall&B9PartSwitch]:AFTER[ROWaterfall]"
+            in v)
+    assert "name = engdes-PlumeTest-2" in v and "%rowaterfallVariant = engdes-PlumeTest-2" in v
+    assert "template = waterfall-hydrolox-lower-4" in v
 
     print("cfg_writer.py self-checks: OK")

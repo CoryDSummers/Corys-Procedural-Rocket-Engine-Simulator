@@ -196,4 +196,10 @@ if __name__ == "__main__":
     assert EngineDesign.from_dict(json.loads(json.dumps(tf.to_dict()))) == tf
     assert EngineDesign().to_dict()["schema_version"] >= 22
 
+    # v23 export plume: an older file takes "host" (the host's plume, recolored).
+    assert v21().plume_mode == "host"
+    pl = EngineDesign(plume_mode="generated")
+    assert EngineDesign.from_dict(json.loads(json.dumps(pl.to_dict()))).plume_mode == "generated"
+    assert EngineDesign().to_dict()["schema_version"] >= 23
+
     print("project_io.py self-checks: OK")

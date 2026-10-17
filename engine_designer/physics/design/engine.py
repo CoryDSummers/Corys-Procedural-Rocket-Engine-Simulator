@@ -514,9 +514,17 @@ class EngineDesign:
     # the XLR-11's RM-5 model); empty = the part's own default subtype.
     host_model_part: str = ""
     host_model_variants: dict = field(default_factory=dict)
+    # Exhaust plume written into the export (export/plume.py): "host" = the host part's
+    # ROEngines plume, recolored to this propellant family | "generated" = template,
+    # scale and audio from the design (propellant, nozzle regime, exit diameter,
+    # thrust) on the host model's plume anchor | "none".
+    plume_mode: str = "host"
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 22  # 22 (2026-10-16): TestFlight burn-time round - testflight_transfer_pct
+    SCHEMA_VERSION = 23  # 23 (2026-10-16): plume_mode ("host" | "generated" | "none") - no
+                         # key migration; an older file takes "host" (the host's plume,
+                         # recolored - before this, a standalone clone had NO plume).
+                         # 22 (2026-10-16): TestFlight burn-time round - testflight_transfer_pct
                          # added; ablative_target_burn_time_s
                          # became rated_burn_time_target_s (every cooling type; 0 = the RO-
                          # corpus duty). from_dict keeps an old value only where it meant
