@@ -187,8 +187,9 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 
 ## What this tool covers
 
-- **Propellant pairs**: LOX/RP-1, LOX/LH2, **LOX/CH4** (methalox), N2O4/MMH,
-  Aerozine-50/NTO (storable hypergolics), and two monopropellants —
+- **Propellant pairs**: LOX/RP-1, **LOX/RP-1 (subcooled)**, LOX/LH2, **LOX/CH4**
+  (methalox), N2O4/MMH, Aerozine-50/NTO, **N2O4/UDMH** (storable hypergolics),
+  **LOX/UDMH** (the RD-119 / RD-112 family), and two monopropellants —
   **Hydrazine** and **H2O2** (high-test peroxide) — no mixture ratio, one
   `PROPELLANT` block, always pressure-fed, decomposed over a catalyst bed
   instead of combusted. Since the 2026-09-25 P1 re-anchor the five bipropellants
@@ -200,6 +201,12 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   Sprite/de Havilland HTP JATO respectively — see `physics/validate/`); the other
   corpus engines' residuals (RS-25 −1.8 %, RD-180 −3.7 %, Merlin −4.8 %, ...) are in
   `validation_engines/reports/2026-09-25_performance_reanchor_before_after.txt`.
+  The 2026-10-15 pairs: LOX/UDMH is anchored on RD-119 (RD-112 cross-check +1.8 %),
+  N2O4/UDMH on RD-253 (RD-0210 +1.1 %); the subcooled pair (LOX 66 K / RP-1 266 K)
+  has its own colder-reactant table, densities and inlet temperatures but LOX/RP-1's
+  efficiencies un-retuned, and reproduces Merlin 1D+ to +0.2 %. Its export uses RO's
+  `CooledRP-1` / `CooledLqdOxygen`, and the new pairs' volume ratios use the game's
+  own resource densities (`cfg_writer.RF_RESOURCE_DENSITY_KG_M3`).
   The two monopropellants reuse the entire bipropellant pipeline via a deliberate
   trick (a single-point combustion table that always returns the same
   decomposition state) rather than a parallel code path — see
@@ -838,9 +845,13 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 
 ## What this tool does NOT cover (phase 2)
 
-- Propellant pairs beyond the current seven (e.g. HAN- or ADN-based "green"
-  monopropellants, subcooled/densified variants as distinct resources, 98% HTP
-  as its own hotter pair). LOX/CH4 and H2O2 are now real (calibrated against
+- Propellant pairs beyond the current ten (e.g. HAN- or ADN-based "green"
+  monopropellants, LOX/ethanol, LOX/Syntin, 98% HTP as its own hotter pair).
+  Subcooling is a fixed-temperature pair VARIANT ("LOX/RP-1 (subcooled)",
+  `physics/propellant_pairs.py`), not a continuous propellant-temperature input:
+  the `propellant_temp_*_k` fields still only move pump suction / pump heating,
+  not density or combustion enthalpy, and there is no tank model, so the
+  vehicle-level payoff of densification shows only in the exported volume ratio. LOX/CH4 and H2O2 are now real (calibrated against
   Raptor-2/BE-4 and Sprite); the methalox cycles no longer use a LOX/LH2
   stand-in.
 - A dual-nozzle SUBCONFIG export workflow (only one CONFIG per export).

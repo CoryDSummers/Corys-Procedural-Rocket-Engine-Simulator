@@ -41,6 +41,7 @@ solve. Pinned by validate.py::run_staged_power_balance_check() (SSME, RD-0124,
 NK-33) and run_cycle_model_check().
 """
 from . import turbopump as tp
+from .propellant_pairs import alias_variants
 
 # --- preburner drive-gas thermodynamic properties -----------------------------
 # FUEL-RICH preburner gas (FRSC, and the fuel side of FFSC). Distinct from the
@@ -56,6 +57,8 @@ PREBURNER_GAS_PROPERTIES = {
     "LOX/CH4":         dict(tin_k=900.0,  cp=3400.0, gamma=1.22),  # fuel-rich methane preburner
     "N2O4/MMH":        dict(tin_k=950.0,  cp=2900.0, gamma=1.20),
     "Aerozine-50/NTO": dict(tin_k=950.0,  cp=2900.0, gamma=1.20),
+    "LOX/UDMH":        dict(tin_k=950.0,  cp=2900.0, gamma=1.20),  # storable transfer (Tier 3)
+    "N2O4/UDMH":       dict(tin_k=950.0,  cp=2900.0, gamma=1.20),  # storable transfer (Tier 3)
     "Hydrazine":       dict(tin_k=950.0,  cp=2900.0, gamma=1.20),  # unused (monoprop = pressure-fed)
     "H2O2":            dict(tin_k=950.0,  cp=2900.0, gamma=1.20),  # unused (monoprop = pressure-fed)
 }
@@ -86,9 +89,22 @@ ORSC_GAS_PROPERTIES = {
     "LOX/CH4":         dict(tin_k=628.0,  cp=1050.0, gamma=1.35),
     "N2O4/MMH":        dict(tin_k=1100.0, cp=1400.0, gamma=1.25),
     "Aerozine-50/NTO": dict(tin_k=1100.0, cp=1400.0, gamma=1.25),
+    # LOX/UDMH: the same O2-dominated gas as the other LOX pairs. Cantera equilibrium
+    # at 628 K gives MR 40.5, cp 1044 / gamma 1.338 (the same method reproduces
+    # LOX/RP-1's entry: MR 58.8 = NK-33's real 58, cp 1037 / gamma 1.335).
+    "LOX/UDMH":        dict(tin_k=628.0,  cp=1050.0, gamma=1.35),
+    # N2O4/UDMH (RD-253 class): tin 1100 K kept from the storable Tier-3 estimate;
+    # cp/gamma DERIVED - Cantera equilibrium of NTO-rich N2O4/UDMH at 1100 K / 5 MPa
+    # (MR 26.6) gives cp 1190 / gamma 1.302 (Tier 2 for cp/gamma, Tier 3 for tin).
+    # (The same run gives N2O4/MMH 1197 / 1.303 - the older 1400 / 1.25 estimate
+    # above is left unchanged so no existing design moves; see OPEN_QUESTIONS.)
+    "N2O4/UDMH":       dict(tin_k=1100.0, cp=1190.0, gamma=1.302),
     "Hydrazine":       dict(tin_k=1100.0, cp=1400.0, gamma=1.25),  # unused
     "H2O2":            dict(tin_k=1100.0, cp=1400.0, gamma=1.25),  # unused
 }
+
+alias_variants(PREBURNER_GAS_PROPERTIES)
+alias_variants(ORSC_GAS_PROPERTIES)
 
 # --- turbine pressure-ratio search bounds ------------------------------------
 TURBINE_PR_MIN = 1.05          # numerical floor of the PR search - not a physical claim

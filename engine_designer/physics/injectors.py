@@ -12,6 +12,8 @@ so impinging is ~1.00 (the baseline) and the others are relative to that.
 import math
 from dataclasses import dataclass
 
+from .propellant_pairs import alias_variants, base_pair
+
 
 @dataclass(frozen=True)
 class Injector:
@@ -249,7 +251,7 @@ def available_injectors():
 
 def suitability_warning(injector_key, propellant_pair):
     inj = INJECTORS[injector_key]
-    if inj.suited_pairs and propellant_pair not in inj.suited_pairs:
+    if inj.suited_pairs and base_pair(propellant_pair) not in inj.suited_pairs:
         return (f"{inj.display_name} is unusual for {propellant_pair}; it's typically used "
                 f"for {', '.join(inj.suited_pairs)}. Efficiency numbers may be optimistic.")
     return None
@@ -348,12 +350,16 @@ def beta_angle_deg(momentum_ratio, included_angle_deg, symmetric):
 _BETA_BAND_DEG = {
     "N2O4/MMH": (1.0, 6.0),
     "Aerozine-50/NTO": (1.0, 6.0),
+    "N2O4/UDMH": (1.0, 6.0),
+    # LOX/UDMH: liquid-liquid, not hypergolic - the kerolox band (Tier 3 transfer)
+    "LOX/UDMH": (-2.0, 6.0),
     "LOX/LH2": (-4.0, 1.5),
     "LOX/CH4": (-3.0, 3.0),     # cryogenic gas/liquid, between hydrolox and kerolox
     "LOX/RP-1": (-2.0, 6.0),
     "Hydrazine": (-6.0, 6.0),   # monopropellant - not really impinging; wide band
     "H2O2": (-6.0, 6.0),        # monopropellant - not really impinging; wide band
 }
+alias_variants(_BETA_BAND_DEG)
 
 
 def beta_warning(beta_deg, propellant_pair):

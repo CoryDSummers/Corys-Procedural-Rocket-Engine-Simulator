@@ -1182,10 +1182,10 @@ class EngineDesignerApp:
         tc_row = self._add_slider(tcb, tc_row, "Ox tank pressure [bar] (0 = auto, 3 bar net)",
                                    self.tank_p_ox_var, 0.0, 10.0, decimals=2)
         self.prop_t_fuel_var = tk.DoubleVar(value=self.design.propellant_temp_fuel_k)
-        tc_row = self._add_slider(tcb, tc_row, "Fuel inlet temperature [K] (0 = auto: NBP / 293 K)",
+        tc_row = self._add_slider(tcb, tc_row, "Fuel inlet temperature [K] (0 = auto: NBP / 293 K / subcooled pair temp)",
                                    self.prop_t_fuel_var, 0.0, 400.0, decimals=1)
         self.prop_t_ox_var = tk.DoubleVar(value=self.design.propellant_temp_ox_k)
-        tc_row = self._add_slider(tcb, tc_row, "Ox inlet temperature [K] (0 = auto: NBP / 293 K)",
+        tc_row = self._add_slider(tcb, tc_row, "Ox inlet temperature [K] (0 = auto: NBP / 293 K / subcooled pair temp)",
                                    self.prop_t_ox_var, 0.0, 400.0, decimals=1)
         self.suc_head_fuel_var = tk.DoubleVar(value=self.design.suction_head_fuel_m)
         tc_row = self._add_slider(tcb, tc_row, "Fuel liquid head above pump [m]",

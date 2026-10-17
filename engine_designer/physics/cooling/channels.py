@@ -50,6 +50,9 @@ TARGET_COOLANT_VELOCITY_MS = {
     "LOX/LH2": 95.0,
     "LOX/CH4": 45.0,
     "N2O4/MMH": 28.0,
+    "LOX/UDMH": 28.0,          # hydrazine-family storable - MMH's value (Tier 3 transfer)
+    "N2O4/UDMH": 28.0,
+    "LOX/RP-1 (subcooled)": 35.0,
 }
 _TARGET_COOLANT_VELOCITY_FALLBACK = 35.0
 CHANNEL_ASPECT_RATIO_MAX = 8.0         # cap on the derived height/width

@@ -170,6 +170,8 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.isentropic
    python3 -m engine_designer.physics.nozzle_shapes
    python3 -m engine_designer.physics.geometry3d
+   python3 -m engine_designer.physics.propellant_pairs  # pair VARIANTS (subcooled LOX/RP-1) ->
+                                                     # base-pair aliasing of per-pair constants
    python3 -m engine_designer.physics.combustion
    python3 -m engine_designer.physics.thermo_tables  # baked equilibrium/coolant/saturation tables
                                                      # load + sanity (mass balance, gamma trend,
@@ -209,8 +211,11 @@ touching any cooling number.** What changed structurally:
                                                      # stream temperature along feed line ->
                                                      # rings -> jacket pass(es) -> injector, +
                                                      # hot gas (Tc + isentropic static T)
-   python3 -m engine_designer.physics.validate      # the important one - 7 real engines
-                                                     # (incl. Raptor-2 methalox, Sprite HTP),
+   python3 -m engine_designer.physics.validate      # the important one - 13 real engines
+                                                     # (incl. Raptor-2 methalox, Sprite HTP,
+                                                     # RD-119/RD-112 LOX/UDMH, RD-253/RD-0210
+                                                     # N2O4/UDMH, Merlin 1D+ subcooled; RD-111A
+                                                     # reported only - `gated=False`),
                                                      # both isolated and full-pipeline;
                                                      # also GG-bleed, wall-heat-flux (Bartz
                                                      # h_g + computed wall temp), injector-
@@ -286,8 +291,8 @@ touching any cooling number.** What changed structurally:
    and "ALL FILM-OVERLAY CHECKS OK" (two-site post-jacket film overlay - plausibility incl. an
    [EUCASS-2023] regen+7%-film analog, not a spot check; both 2026-09-23) and "ALL PUMP
    PRESSURE-CHAIN CHECKS OK" (solved staged-combustion power balance vs SSME/RD-0124/NK-33 +
-   RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (193
-   pair x method x construction combos compute finite + converged - the cooling audit's
+   RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (280
+   pair x method x construction combos since the 2026-10-15 new pairs (was 193) compute finite + converged - the cooling audit's
    crash/NaN guard, 2026-09-23) and "ALL TURBINE-EXHAUST CHECKS OK" (H-1 back pressure/aspirator
    slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24;
    F-1 back pressure / GG share / duct bore [F1-Man] + J-2 gas-film slot area + F-1 scroll
@@ -589,3 +594,9 @@ round, merge bottom-up and retarget the child PR to main first). Tap-off accurac
 Turbopump Section tab = `turbopump/section-view` off main, plan `plans/2026-09-30_turbopump_section_view.md`.
 Export identity / RP-1 round (schema 21 - 20 skipped, claimed by two unmerged branches) =
 `export/rp1-identity` off main, plan `plans/2026-10-15_export_rp1_identity.md`.
+New propellant pairs (LOX/UDMH, N2O4/UDMH, "LOX/RP-1 (subcooled)") = `propellants/new-pairs`
+STACKED on `export/rp1-identity` (both touch cfg_writer / cost_model), plan
+`plans/2026-10-15_new_propellant_pairs.md`. Adding a pair: one `PAIRS` (+ `COOLANTS`) entry in
+the generator, `--merge-pairs` (old pairs stay byte-identical), then an entry in every per-pair
+dict (grep an existing key, e.g. `"N2O4/MMH"`) + a SPOT_CHECKS anchor; a different-STATE copy of
+an existing pair is a VARIANT (`physics/propellant_pairs.py`: `alias_variants` / `base_pair`).
