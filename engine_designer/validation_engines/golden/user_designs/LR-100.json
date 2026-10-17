@@ -96,6 +96,33 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "14633.966971117688"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "3658.491742779422"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (convergent section)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
+"life_s": {
+"__f__": "14633.966971117688"
+},
+"margin": {
+"__f__": "1.1246117267245859"
+},
+"zone": "convergent section"
+},
+{
+"allowable_rated_s": null,
+"key": "extension_char",
+"label": "Ablative nozzle-extension char depth",
+"lever": "extension liner is sized to the duty target - a longer target costs liner mass",
+"life_s": null
+}
+],
 "cf_vac_ideal": {
 "__f__": "2.0373192548293275"
 },
@@ -438,6 +465,12 @@
 "category": "plumbing",
 "detail": "OK - 2.48 m, 25.4 kg, -> turbine, line loss 18 kPa",
 "name": "Plumbing run on 'turbine_exhaust' geometry (2 pipes) (default exhaust duct)",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 200 s duty, life limit 14634 s",
+"name": "Rated burn time vs. life limit",
 "passed": true
 },
 {
@@ -3650,6 +3683,12 @@
 }
 }
 },
+"design_year": 1976,
+"design_year_source": "tech node orbitalRocketry1976",
+"duty_default_s": {
+"__f__": "337.6034486074854"
+},
+"engine_role": "upper",
 "eps_for_transition": {
 "__f__": "14.0"
 },
@@ -3898,9 +3937,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -4088,6 +4124,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "200.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -4135,6 +4174,9 @@
 "__f__": "600000.0"
 },
 "tech_node": "orbitalRocketry1976",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "1.0"
 },
@@ -4974,8 +5016,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "195.58464812601494"
+"__f__": "200.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "200.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "1.5187034663501218e-05"
 },

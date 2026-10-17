@@ -135,6 +135,26 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "180.64480040071214"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "45.161200100178036"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (nozzle)",
+"lever": "cooler extension: a higher-temperature extension material, nozzle film, extending regen (regen_nozzle_end_eps) or a thermal-barrier liner",
+"life_s": {
+"__f__": "180.64480040071214"
+},
+"margin": {
+"__f__": "0.5109255006276131"
+},
+"zone": "nozzle"
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.8355749668296895"
 },
@@ -502,6 +522,12 @@
 "detail": "OK - 2.67 m, 56.1 kg, -> turbine, line loss 68 kPa",
 "name": "Plumbing run on 'turbine_exhaust' geometry (1 pipes) (default exhaust duct)",
 "passed": true
+},
+{
+"category": "cooling",
+"detail": "Duty target 196 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 45 s by hot-wall temperature margin (nozzle) (life 181 s). Cooler extension: a higher-temperature extension material, nozzle film, extending regen (regen_nozzle_end_eps) or a thermal-barrier liner.",
+"name": "Rated burn time vs. life limit",
+"passed": false
 },
 {
 "category": "injector",
@@ -3772,6 +3798,12 @@
 }
 }
 },
+"design_year": 1976,
+"design_year_source": "tech node orbitalRocketry1976",
+"duty_default_s": {
+"__f__": "195.57324115238214"
+},
+"engine_role": "booster",
 "eps_for_transition": {
 "__f__": "12.0"
 },
@@ -3942,9 +3974,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -4132,6 +4161,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "0.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -4179,6 +4211,9 @@
 "__f__": "1600000.0"
 },
 "tech_node": "orbitalRocketry1976",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.65"
 },
@@ -5081,8 +5116,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "88.85660880480228"
+"__f__": "45.161200100178036"
 },
+"rated_burn_time_target_s": {
+"__f__": "195.57324115238214"
+},
+"rated_limited_by": "wall_temperature",
 "required_time_s": {
 "__f__": "1.4883482741835775e-05"
 },
@@ -9893,6 +9932,7 @@
 "Inconel 718 Nickel Superalloy: computed wall temp 1305 K EXCEEDS its 1250 K max service temp (Tc 3681 K, regenerative cooling). Marginal/unsuitable as designed. Basis: coupled throat wall balance: gas h_g ~10.9 kW/m2K incl. carbon-deposit credit, T_aw ~3623 K, coolant ~36 m/s (coolant-side wall ~969 K), 0.20 mm wall. Levers that lower it: faster coolant (Coolant velocity; SP-8087 caps liquids at ~61 m/s, at a jacket-dP cost), a thinner wall, a liner rated hotter or more conductive (e.g. GRCop-84), or more film cooling.",
 "Hottest wall station is in the nozzle (area ratio ~12.6, radiative): wall ~2153 K, 0.51x that section's material limit (warns below 1.15x, like the throat row). Levers: more chamber film (or a convergent film ring for the throat region), faster coolant, a thinner or more conductive liner, or extend active cooling.",
 "Ox pump SUCTION-LIMITED: 58 ft NPSH available (TSH credit 11 ft) holds it to 12,294 rpm instead of its specific-speed optimum 17,972 rpm - a larger, heavier, less efficient pump. About 1.5 bar more at the pump inlet (tank pressure, liquid head or a boost pump) restores the optimum [SP-8052 / SP-8107 2.1.1.2].",
-"Fuel pump: impeller outlet 0.20 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it."
+"Fuel pump: impeller outlet 0.20 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
+"Duty target 196 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 45 s by hot-wall temperature margin (nozzle) (life 181 s). Cooler extension: a higher-temperature extension material, nozzle film, extending regen (regen_nozzle_end_eps) or a thermal-barrier liner."
 ]
 }

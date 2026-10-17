@@ -90,6 +90,26 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "1132.9531605225286"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "283.23829013063215"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (convergent section)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
+"life_s": {
+"__f__": "1132.9531605225286"
+},
+"margin": {
+"__f__": "0.7147702254004505"
+},
+"zone": "convergent section"
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.9428487814845066"
 },
@@ -421,6 +441,12 @@
 "detail": "[turbopump] Staged combustion drives pump discharge pressure well above 2x chamber pressure; Monel K-500 (Ni-Cu) (medium strength class) is under-strength for the housings/impellers - real staged-combustion turbopumps use HIP powder-metallurgy superalloys.",
 "name": "Turbopump sizing / material feasibility",
 "passed": false
+},
+{
+"category": "cooling",
+"detail": "OK - 255 s duty, life limit 1133 s",
+"name": "Rated burn time vs. life limit",
+"passed": true
 },
 {
 "category": "injector",
@@ -3106,6 +3132,12 @@
 }
 }
 },
+"design_year": 1998,
+"design_year_source": "tech node stagedCombustion1998",
+"duty_default_s": {
+"__f__": "238.46965470538416"
+},
+"engine_role": "booster",
 "eps_for_transition": {
 "__f__": "6.0"
 },
@@ -3366,9 +3398,6 @@
 },
 "injector_stiffness_ok_at_floor": false,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -3556,6 +3585,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "255.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -3602,7 +3634,10 @@
 "target_vac_thrust_n": {
 "__f__": "4152000.0"
 },
-"tech_node": "",
+"tech_node": "stagedCombustion1998",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.6"
 },
@@ -4369,8 +4404,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "124.30786528703489"
+"__f__": "255.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "255.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "1.2429750587169235e-05"
 },

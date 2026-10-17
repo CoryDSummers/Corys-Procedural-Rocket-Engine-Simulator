@@ -47,7 +47,7 @@ if __name__ == "__main__":
                            chamber_residence_time_ms=1.6,
                            chamber_wall_fillet_r_over_rt=1.2,
                            chamber_cooling_method="uncooled", nozzle_cooling_method="radiative",
-                           ablative_target_burn_time_s=350.0,
+                           rated_burn_time_target_s=350.0,
                            nozzle_liner_material_key="zirconia",
                            nozzle_extension_stiffening_style="orthogrid",
                            film_cooling_fraction=0.06, chamber_film_inject_area_ratio=1.8,
@@ -176,5 +176,24 @@ if __name__ == "__main__":
     back = EngineDesign.from_dict(json.loads(json.dumps(ident.to_dict())))
     assert back == ident and back.host_model_variants == {"model": "rm5"} and back.cost == 650.0
     assert EngineDesign().to_dict()["schema_version"] >= 21
+
+    # v22 TestFlight burn time: ablative_target_burn_time_s -> rated_burn_time_target_s.
+    # The old 200 s default on a non-ablative design meant nothing -> 0 (auto duty);
+    # an ablative design or a value the user changed is kept.
+    def v21(**kw):
+        return EngineDesign.from_dict({"schema_version": 21, "design": kw})
+    assert v21(ablative_target_burn_time_s=200.0).rated_burn_time_target_s == 0.0
+    assert v21(ablative_target_burn_time_s=200.0,
+               material_key="ablative_phenolic").rated_burn_time_target_s == 200.0
+    assert v21(ablative_target_burn_time_s=200.0, bell_material_key="ablative_phenolic",
+               material_key="narloy_z").rated_burn_time_target_s == 200.0
+    assert v21(ablative_target_burn_time_s=350.0).rated_burn_time_target_s == 350.0
+    # A file older than the ablative-target field (schema < 11) ran on the same 200 s.
+    assert v21(material_key="ablative_phenolic").rated_burn_time_target_s == 200.0
+    assert v21().rated_burn_time_target_s == 0.0
+    assert not hasattr(v21(ablative_target_burn_time_s=350.0), "ablative_target_burn_time_s")
+    tf = EngineDesign(rated_burn_time_target_s=480.0, testflight_transfer_pct=25.0)
+    assert EngineDesign.from_dict(json.loads(json.dumps(tf.to_dict()))) == tf
+    assert EngineDesign().to_dict()["schema_version"] >= 22
 
     print("project_io.py self-checks: OK")

@@ -224,12 +224,14 @@ def run_film_overlay_check():
                  f"{face['t_wg_throat_k']:.0f} -> {ring['t_wg_throat_k']:.0f} K", e_ok))
 
     # Since 2026-09-25, ablative rated burn time is a design INPUT
-    # (ablative_target_burn_time_s), not derived - so film's char-rate credit
+    # (rated_burn_time_target_s), not derived - so film's char-rate credit
     # (lower consumption rate -> thinner liner needed for the SAME target burn
     # time) now shows up in ablative_liner_thickness_m instead of
     # rated_burn_time_s (which is unchanged by construction, both cases below).
-    ab0_r = EngineDesign(material_key="ablative_phenolic").compute()
-    ab1_r = EngineDesign(material_key="ablative_phenolic",
+    # (An explicit duty target: the 0 = auto duty follows thrust / Isp, which the
+    # film's own Isp cost moves - 2026-10-16.)
+    ab0_r = EngineDesign(material_key="ablative_phenolic", rated_burn_time_target_s=200.0).compute()
+    ab1_r = EngineDesign(material_key="ablative_phenolic", rated_burn_time_target_s=200.0,
                          film_cooling_fraction=0.06).compute()
     ab0, ab1 = ab0_r["ablative_liner_thickness_m"], ab1_r["ablative_liner_thickness_m"]
     f_ok = (ab1 < ab0 and ab0_r["rated_burn_time_s"] == ab1_r["rated_burn_time_s"])

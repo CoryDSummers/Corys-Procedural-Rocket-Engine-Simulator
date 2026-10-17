@@ -156,6 +156,26 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "6857.46133443062"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "1714.365333607655"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (convergent section)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
+"life_s": {
+"__f__": "6857.46133443062"
+},
+"margin": {
+"__f__": "1.0767672796871854"
+},
+"zone": "convergent section"
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.7930857767283965"
 },
@@ -522,6 +542,12 @@
 "category": "plumbing",
 "detail": "OK - 2.73 m, 60.7 kg, -> turbine, line loss 69 kPa",
 "name": "Plumbing run on 'turbine_exhaust' geometry (1 pipes) (default exhaust duct)",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 196 s duty, life limit 6857 s",
+"name": "Rated burn time vs. life limit",
 "passed": true
 },
 {
@@ -3965,6 +3991,12 @@
 }
 }
 },
+"design_year": 1976,
+"design_year_source": "tech node orbitalRocketry1976",
+"duty_default_s": {
+"__f__": "195.57323920820087"
+},
+"engine_role": "booster",
 "eps_for_transition": {
 "__f__": "18.0"
 },
@@ -4083,9 +4115,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -4273,6 +4302,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "0.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -4320,6 +4352,9 @@
 "__f__": "1600000.0"
 },
 "tech_node": "orbitalRocketry1976",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.65"
 },
@@ -5222,8 +5257,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "187.2638747282062"
+"__f__": "195.57323920820087"
 },
+"rated_burn_time_target_s": {
+"__f__": "195.57323920820087"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "1.5055168326933261e-05"
 },

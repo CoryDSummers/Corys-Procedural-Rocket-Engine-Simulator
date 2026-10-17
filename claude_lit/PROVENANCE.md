@@ -739,3 +739,28 @@ What was read and where it went:
   23.7 → 51.5 K, etc.), the first pump-heating anchors in the set.
 - **Searched with no discharge-temperature anchor found:** J-2, RL10 (no RL10 PDF in
   `literature/`), M-1, H-1, F-1 RP-1, KBKhA.
+
+## 2026-10-16 — two new PDFs: copper-liner fatigue test + nozzle-material properties (TestFlight burn-time round, Step 0)
+
+Cory added these two the same day. Text was pulled with the project `v/` pymupdf venv into the
+job tmp dir. Figure pages (Quentmeyer Figs. 15-17 and 19; CR-134806 Figs. 10, 19 and 27) were
+rendered at 90 dpi and read visually.
+
+- **`[Quentmeyer-TMX73665]`** (NASA TM X-73665, 1977; was `literature/19770024295.pdf`, renamed).
+  - Read in full.
+  - Table I (22 liners), the T_gw / ΔT vs N_f fits (in °R; converted to K in the note and the
+    topic file), the failure mechanism and the SSME/OTV cycle requirements.
+  - It is the primary source behind `[Quentmeyer-CR185257]`'s 393-cycle uncoated Amzirc baseline.
+- **`[CR134806-Props]`** (NASA CR-134806, 1975; renamed with its title).
+  - Read in full (text).
+  - Room-temperature property tables for 6 metals. OCR'd MPa digits for annealed and ¼-hard OFHC
+    UTS were replaced by the ksi values.
+  - 810 K LCF curves digitized for 3 alloys, to about ±10 %.
+  - **Expected creep data was not there.** The gap was logged in `OPEN_QUESTIONS.md` with the
+    report's own creep and hold-time references.
+- **New topic file `topics/17-engine-life-and-duty.md`** rather than folding into `topics/12`,
+  which is already over the 40 KB cap. It also pulls together life content already distilled
+  in `[ASR72-238]`, `[SP-8110]`, `[Miller-CuFatigue]`, `[SP-8048]` and `[SP-8121]`.
+- Two pending `ASSUMPTIONS.md` upgrades were added: the `narloy_z` properties and an LCF anchor.
+  No engine_designer code changed.
+

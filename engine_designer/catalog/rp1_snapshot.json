@@ -9,26 +9,31 @@
 {
 "id":"start",
 "title":"Start",
+"year":null,
 "parents":[]
 },
 {
 "id":"unlockParts",
 "title":"Starting Parts",
+"year":null,
 "parents":[]
 },
 {
 "id":"orphanParts",
 "title":"Non RP-1 Parts",
+"year":null,
 "parents":[]
 },
 {
 "id":"ORPHANS",
 "title":"ORPHANS",
+"year":null,
 "parents":[]
 },
 {
 "id":"supersonicDev",
 "title":"Supersonic Plane Development",
+"year":null,
 "parents":[
 "start"
 ]
@@ -36,6 +41,7 @@
 {
 "id":"supersonicFlightRP0",
 "title":"Supersonic Flight",
+"year":1950,
 "parents":[
 "supersonicDev"
 ]
@@ -43,6 +49,7 @@
 {
 "id":"matureSupersonic",
 "title":"Mature Supersonic Flight",
+"year":1952,
 "parents":[
 "supersonicFlightRP0",
 "earlyMaterialsScience"
@@ -51,6 +58,7 @@
 {
 "id":"highSpeedFlight",
 "title":"High Speed Flight",
+"year":1958,
 "parents":[
 "matureSupersonic",
 "materialsScienceSatellite"
@@ -59,6 +67,7 @@
 {
 "id":"advancedJetEngines",
 "title":"Advanced Jet Engines",
+"year":1964,
 "parents":[
 "highSpeedFlight",
 "materialsScienceAdvCapsules"
@@ -67,6 +76,7 @@
 {
 "id":"efficientSupersonic",
 "title":"Efficient Supersonic Engines",
+"year":1970,
 "parents":[
 "advancedJetEngines",
 "materialsScienceLunar"
@@ -75,6 +85,7 @@
 {
 "id":"matureTurbofans",
 "title":"Mature Turbofans",
+"year":1981,
 "parents":[
 "efficientSupersonic",
 "materialsScienceSpaceplanes"
@@ -83,6 +94,7 @@
 {
 "id":"refinedTurbofans",
 "title":"Refined Turbofans",
+"year":1986,
 "parents":[
 "matureTurbofans",
 "materialsScienceLongTerm"
@@ -91,6 +103,7 @@
 {
 "id":"scramjetEngines",
 "title":"Scramjet Engines",
+"year":1998,
 "parents":[
 "refinedTurbofans",
 "materialsScienceInternational"
@@ -99,6 +112,7 @@
 {
 "id":"advancedTurbofans",
 "title":"Advanced Turbofans",
+"year":2009,
 "parents":[
 "scramjetEngines",
 "materialsScienceCommercial"
@@ -107,6 +121,7 @@
 {
 "id":"experimentalAircraft",
 "title":"Experimental Aircraft Engines",
+"year":2028,
 "parents":[
 "advancedTurbofans",
 "materialsScienceNF"
@@ -115,6 +130,7 @@
 {
 "id":"colonization2051Flight",
 "title":"2051-2099 Regular Flight",
+"year":2051,
 "parents":[
 "experimentalAircraft",
 "materialsScienceColonization"
@@ -123,6 +139,7 @@
 {
 "id":"colonization2100Flight",
 "title":"2100-2149 Regular Flight",
+"year":2100,
 "parents":[
 "colonization2051Flight"
 ]
@@ -130,6 +147,7 @@
 {
 "id":"colonization2150Flight",
 "title":"2150+ Regular Flight",
+"year":2150,
 "parents":[
 "colonization2100Flight"
 ]
@@ -137,6 +155,7 @@
 {
 "id":"hypersonicFlightRP0",
 "title":"Hypersonic Flight",
+"year":1959,
 "parents":[
 "matureSupersonic",
 "materialsScienceSatellite"
@@ -145,6 +164,7 @@
 {
 "id":"prototypeSpaceplanes",
 "title":"Prototype Spaceplanes",
+"year":1965,
 "parents":[
 "hypersonicFlightRP0",
 "materialsScienceAdvCapsules"
@@ -153,6 +173,7 @@
 {
 "id":"effectiveSpaceplanes",
 "title":"Effective Spaceplanes",
+"year":1970,
 "parents":[
 "prototypeSpaceplanes",
 "materialsScienceLunar"
@@ -161,6 +182,7 @@
 {
 "id":"spaceShuttles",
 "title":"Space Shuttles",
+"year":1981,
 "parents":[
 "effectiveSpaceplanes",
 "materialsScienceSpaceplanes"
@@ -169,6 +191,7 @@
 {
 "id":"improvedSpaceplanes",
 "title":"Improved Spaceplanes",
+"year":1986,
 "parents":[
 "spaceShuttles",
 "materialsScienceLongTerm"
@@ -177,6 +200,7 @@
 {
 "id":"advancedSpaceplanes",
 "title":"Advanced Spaceplanes",
+"year":1998,
 "parents":[
 "improvedSpaceplanes",
 "materialsScienceInternational"
@@ -185,6 +209,7 @@
 {
 "id":"highTechSpaceplanes",
 "title":"High-Tech Spaceplanes",
+"year":2009,
 "parents":[
 "advancedSpaceplanes",
 "materialsScienceCommercial"
@@ -193,6 +218,7 @@
 {
 "id":"commercialSpaceplanes",
 "title":"Commercial Spaceplanes",
+"year":2019,
 "parents":[
 "highTechSpaceplanes",
 "materialsScienceMatureCommercial"
@@ -201,6 +227,7 @@
 {
 "id":"experimentalSpaceplanes",
 "title":"Experimental Spaceplanes",
+"year":2029,
 "parents":[
 "commercialSpaceplanes",
 "materialsScienceNF"
@@ -209,6 +236,7 @@
 {
 "id":"sstoSpaceplanes",
 "title":"SSTO Spaceplanes",
+"year":2051,
 "parents":[
 "experimentalSpaceplanes",
 "materialsScienceColonization"
@@ -217,6 +245,7 @@
 {
 "id":"colonization2100Spaceplanes",
 "title":"2100-2149 Spaceplanes",
+"year":2100,
 "parents":[
 "sstoSpaceplanes"
 ]
@@ -224,6 +253,7 @@
 {
 "id":"colonization2150Spaceplanes",
 "title":"2150+ Spaceplanes",
+"year":2150,
 "parents":[
 "colonization2100Spaceplanes"
 ]
@@ -231,6 +261,7 @@
 {
 "id":"basicCapsules",
 "title":"Basic Capsules",
+"year":1961,
 "parents":[
 "crewSurvivability",
 "earlyFlightControl",
@@ -241,6 +272,7 @@
 {
 "id":"secondGenCapsules",
 "title":"Second Generation Capsules",
+"year":1964,
 "parents":[
 "basicCapsules",
 "materialsScienceAdvCapsules"
@@ -249,6 +281,7 @@
 {
 "id":"lunarOrbiterCapsules",
 "title":"Lunar Orbiter Capsules",
+"year":1966,
 "parents":[
 "secondGenCapsules",
 "earlyDocking"
@@ -257,6 +290,7 @@
 {
 "id":"matureCapsules",
 "title":"Mature Capsules",
+"year":1967,
 "parents":[
 "lunarOrbiterCapsules",
 "materialsScienceLunar",
@@ -266,6 +300,7 @@
 {
 "id":"improvedCapsules",
 "title":"Improved Capsules",
+"year":1975,
 "parents":[
 "matureCapsules",
 "materialsScienceSpaceStation"
@@ -274,6 +309,7 @@
 {
 "id":"advancedCapsules",
 "title":"Advanced Capsules",
+"year":1986,
 "parents":[
 "improvedCapsules",
 "materialsScienceLongTerm"
@@ -282,6 +318,7 @@
 {
 "id":"modernCapsules",
 "title":"Modern Capsules",
+"year":2009,
 "parents":[
 "advancedCapsules",
 "materialsScienceCommercial"
@@ -290,6 +327,7 @@
 {
 "id":"commercialCapsules",
 "title":"Commercial Capsules",
+"year":2019,
 "parents":[
 "modernCapsules",
 "materialsScienceMatureCommercial"
@@ -298,6 +336,7 @@
 {
 "id":"capsulesNF",
 "title":"Near Future Capsules",
+"year":2029,
 "parents":[
 "commercialCapsules",
 "materialsScienceNF"
@@ -306,6 +345,7 @@
 {
 "id":"highTechCapsules",
 "title":"High-Tech Capsules",
+"year":2051,
 "parents":[
 "capsulesNF",
 "materialsScienceColonization"
@@ -314,6 +354,7 @@
 {
 "id":"colonization2100Command",
 "title":"2100-2149 Command Modules",
+"year":2100,
 "parents":[
 "highTechCapsules"
 ]
@@ -321,6 +362,7 @@
 {
 "id":"colonization2150Command",
 "title":"2150+ Command Modules",
+"year":2150,
 "parents":[
 "colonization2100Command"
 ]
@@ -328,6 +370,7 @@
 {
 "id":"spaceStationPrototypes",
 "title":"Space Station Prototypes",
+"year":1967,
 "parents":[
 "secondGenCapsules",
 "materialsScienceLunar",
@@ -337,6 +380,7 @@
 {
 "id":"spaceStationDev",
 "title":"Space Station Development",
+"year":1970,
 "parents":[
 "spaceStationPrototypes"
 ]
@@ -344,6 +388,7 @@
 {
 "id":"earlySpaceStations",
 "title":"Early Space Stations",
+"year":1972,
 "parents":[
 "spaceStationDev",
 "materialsScienceSpaceStation"
@@ -352,6 +397,7 @@
 {
 "id":"modularSpaceStations",
 "title":"Modular Space Stations",
+"year":1986,
 "parents":[
 "earlySpaceStations",
 "materialsScienceLongTerm"
@@ -360,6 +406,7 @@
 {
 "id":"largeScaleOrbitalCon",
 "title":"Large Scale Orbital Construction",
+"year":1998,
 "parents":[
 "modularSpaceStations",
 "materialsScienceInternational"
@@ -368,6 +415,7 @@
 {
 "id":"improvedOrbitalConstruction",
 "title":"Improved Orbital Construction",
+"year":2004,
 "parents":[
 "largeScaleOrbitalCon"
 ]
@@ -375,6 +423,7 @@
 {
 "id":"inflatableHabitats",
 "title":"Inflatable Habitats",
+"year":2014,
 "parents":[
 "improvedOrbitalConstruction",
 "materialsScienceCommercial"
@@ -383,6 +432,7 @@
 {
 "id":"improvedHabitats",
 "title":"Improved Habitats",
+"year":2019,
 "parents":[
 "inflatableHabitats",
 "materialsScienceMatureCommercial"
@@ -391,6 +441,7 @@
 {
 "id":"advancedHabitats",
 "title":"Advanced Habitats",
+"year":2029,
 "parents":[
 "improvedHabitats",
 "materialsScienceNF"
@@ -399,6 +450,7 @@
 {
 "id":"largeScaleHabitats",
 "title":"Large Scale Habitats",
+"year":2051,
 "parents":[
 "advancedHabitats",
 "materialsScienceColonization"
@@ -407,6 +459,7 @@
 {
 "id":"colonization2100SpaceStations",
 "title":"2100-2149 Space Stations",
+"year":2100,
 "parents":[
 "largeScaleHabitats"
 ]
@@ -414,6 +467,7 @@
 {
 "id":"colonization2150SpaceStations",
 "title":"2150+ Space Stations",
+"year":2150,
 "parents":[
 "colonization2100SpaceStations"
 ]
@@ -421,6 +475,7 @@
 {
 "id":"earlyFlightControl",
 "title":"Early Flight Control",
+"year":1959,
 "parents":[
 "materialsScienceSatellite"
 ]
@@ -428,6 +483,7 @@
 {
 "id":"stabilityRP0",
 "title":"Stability",
+"year":1961,
 "parents":[
 "earlyFlightControl",
 "materialsScienceHuman"
@@ -436,6 +492,7 @@
 {
 "id":"improvedFlightControl",
 "title":"Improved Flight Control",
+"year":1963,
 "parents":[
 "stabilityRP0"
 ]
@@ -443,6 +500,7 @@
 {
 "id":"earlyDocking",
 "title":"Early Docking Procedures",
+"year":1964,
 "parents":[
 "improvedFlightControl",
 "materialsScienceAdvCapsules"
@@ -451,6 +509,7 @@
 {
 "id":"dockingCrewTransfer",
 "title":"Docking and Crew Transfer",
+"year":1966,
 "parents":[
 "earlyDocking"
 ]
@@ -458,6 +517,7 @@
 {
 "id":"spaceStationControl",
 "title":"Space Station Attitude Control",
+"year":1972,
 "parents":[
 "dockingCrewTransfer",
 "materialsScienceSpaceStation"
@@ -466,6 +526,7 @@
 {
 "id":"largeSpaceplaneControl",
 "title":"Large Spaceplane Control",
+"year":1981,
 "parents":[
 "spaceStationControl",
 "materialsScienceSpaceplanes"
@@ -474,6 +535,7 @@
 {
 "id":"standardDockingPorts",
 "title":"Standardized Docking Ports",
+"year":1986,
 "parents":[
 "largeSpaceplaneControl",
 "materialsScienceLongTerm"
@@ -482,6 +544,7 @@
 {
 "id":"largeStationControl",
 "title":"Large Station Attitude Control",
+"year":1998,
 "parents":[
 "standardDockingPorts",
 "materialsScienceInternational"
@@ -490,6 +553,7 @@
 {
 "id":"largeDockingPorts",
 "title":"Large Docking Ports",
+"year":2004,
 "parents":[
 "largeStationControl"
 ]
@@ -497,6 +561,7 @@
 {
 "id":"gridFins",
 "title":"Grid Fins",
+"year":2009,
 "parents":[
 "largeDockingPorts",
 "materialsScienceCommercial"
@@ -505,6 +570,7 @@
 {
 "id":"reusableControl",
 "title":"Reusable Attitude Control",
+"year":2019,
 "parents":[
 "gridFins",
 "materialsScienceMatureCommercial"
@@ -513,6 +579,7 @@
 {
 "id":"flightControlNF",
 "title":"Near Future Flight Control",
+"year":2029,
 "parents":[
 "reusableControl",
 "materialsScienceNF"
@@ -521,6 +588,7 @@
 {
 "id":"colonization2051Control",
 "title":"2051-2099 Control",
+"year":2051,
 "parents":[
 "flightControlNF",
 "materialsScienceColonization"
@@ -529,6 +597,7 @@
 {
 "id":"colonization2100Control",
 "title":"2100-2149 Control",
+"year":2100,
 "parents":[
 "colonization2051Control"
 ]
@@ -536,6 +605,7 @@
 {
 "id":"colonization2150Control",
 "title":"2150+ Control",
+"year":2150,
 "parents":[
 "colonization2100Control"
 ]
@@ -543,6 +613,7 @@
 {
 "id":"entryDescentLanding",
 "title":"Entry, Descent and Landing",
+"year":1959,
 "parents":[
 "materialsScienceSatellite"
 ]
@@ -550,6 +621,7 @@
 {
 "id":"humanRatedEDL",
 "title":"Human Rated EDL",
+"year":1960,
 "parents":[
 "entryDescentLanding"
 ]
@@ -557,6 +629,7 @@
 {
 "id":"earlyLanding",
 "title":"Early Landing",
+"year":1964,
 "parents":[
 "humanRatedEDL",
 "materialsScienceAdvCapsules"
@@ -565,6 +638,7 @@
 {
 "id":"lunarRatedHeatshields",
 "title":"Lunar Rated Heatshields",
+"year":1966,
 "parents":[
 "earlyLanding"
 ]
@@ -572,6 +646,7 @@
 {
 "id":"lunarLanding",
 "title":"Lunar Landing",
+"year":1968,
 "parents":[
 "lunarRatedHeatshields",
 "materialsScienceLunar"
@@ -580,6 +655,7 @@
 {
 "id":"improvedLandingEngines",
 "title":"Improved Landing Engines",
+"year":1970,
 "parents":[
 "lunarLanding"
 ]
@@ -587,6 +663,7 @@
 {
 "id":"advancedUncrewedLanding",
 "title":"Advanced Uncrewed Landing",
+"year":1972,
 "parents":[
 "improvedLandingEngines",
 "materialsScienceSpaceStation"
@@ -595,6 +672,7 @@
 {
 "id":"interplanetaryRovers",
 "title":"Interplanetary Rovers",
+"year":1992,
 "parents":[
 "advancedUncrewedLanding",
 "materialsScienceLongTerm"
@@ -603,6 +681,7 @@
 {
 "id":"largeRoverDesigns",
 "title":"Large Rover Designs",
+"year":2004,
 "parents":[
 "interplanetaryRovers",
 "materialsScienceInternational"
@@ -611,6 +690,7 @@
 {
 "id":"reusability",
 "title":"Reusability",
+"year":2009,
 "parents":[
 "largeRoverDesigns",
 "materialsScienceCommercial"
@@ -619,6 +699,7 @@
 {
 "id":"advancedLanding",
 "title":"Advanced Landing",
+"year":2014,
 "parents":[
 "reusability"
 ]
@@ -626,6 +707,7 @@
 {
 "id":"SIAD",
 "title":"Supersonic Inflatable Aerodynamic Decelerator",
+"year":2019,
 "parents":[
 "advancedLanding",
 "materialsScienceMatureCommercial"
@@ -634,6 +716,7 @@
 {
 "id":"HIAD",
 "title":"Hypersonic Inflatable Aerodynamic Decelerator",
+"year":null,
 "parents":[
 "SIAD",
 "materialsScienceNF"
@@ -642,6 +725,7 @@
 {
 "id":"colonization2051EDL",
 "title":"2051-2099 EDL",
+"year":2051,
 "parents":[
 "HIAD",
 "materialsScienceColonization"
@@ -650,6 +734,7 @@
 {
 "id":"colonization2100EDL",
 "title":"2100-2149 EDL",
+"year":2100,
 "parents":[
 "colonization2051EDL"
 ]
@@ -657,6 +742,7 @@
 {
 "id":"colonization2150EDL",
 "title":"2150+ EDL",
+"year":2150,
 "parents":[
 "colonization2100EDL"
 ]
@@ -664,6 +750,7 @@
 {
 "id":"prototypeHydrolox",
 "title":"Prototype Hydrolox Engines",
+"year":1962,
 "parents":[
 "materialsScienceHuman",
 "orbitalRocketry1961"
@@ -672,6 +759,7 @@
 {
 "id":"earlyHydrolox",
 "title":"Early Hydrolox Engines",
+"year":1963,
 "parents":[
 "prototypeHydrolox",
 "orbitalRocketry1962"
@@ -680,6 +768,7 @@
 {
 "id":"improvedHydrolox",
 "title":"Improved Hydrolox Engines",
+"year":1966,
 "parents":[
 "earlyHydrolox",
 "materialsScienceAdvCapsules",
@@ -689,6 +778,7 @@
 {
 "id":"largeHydrolox",
 "title":"Large Hydrolox Engines",
+"year":1967,
 "parents":[
 "improvedHydrolox",
 "materialsScienceLunar",
@@ -698,6 +788,7 @@
 {
 "id":"hydrolox1968",
 "title":"1968 Hydrolox Engines",
+"year":1968,
 "parents":[
 "largeHydrolox",
 "orbitalRocketry1967"
@@ -706,6 +797,7 @@
 {
 "id":"hydrolox1969",
 "title":"1969 Hydrolox Engines",
+"year":1969,
 "parents":[
 "hydrolox1968",
 "orbitalRocketry1968"
@@ -714,6 +806,7 @@
 {
 "id":"hydrolox1972",
 "title":"1972-1975 Hydrolox Engines",
+"year":1972,
 "parents":[
 "hydrolox1969",
 "materialsScienceSpaceStation",
@@ -723,6 +816,7 @@
 {
 "id":"hydrolox1976",
 "title":"1976-1980 Hydrolox Engines",
+"year":1976,
 "parents":[
 "hydrolox1972",
 "orbitalRocketry1972"
@@ -731,6 +825,7 @@
 {
 "id":"hydrolox1981",
 "title":"1981-1985 Hydrolox Engines",
+"year":1981,
 "parents":[
 "hydrolox1976",
 "materialsScienceSpaceplanes",
@@ -740,6 +835,7 @@
 {
 "id":"hydrolox1986",
 "title":"1986-1991 Hydrolox Engines",
+"year":1986,
 "parents":[
 "hydrolox1981",
 "materialsScienceLongTerm",
@@ -749,6 +845,7 @@
 {
 "id":"hydrolox1992",
 "title":"1992-1997 Hydrolox Engines",
+"year":1992,
 "parents":[
 "hydrolox1986",
 "orbitalRocketry1986"
@@ -757,6 +854,7 @@
 {
 "id":"hydrolox1998",
 "title":"1998-2003 Hydrolox Engines",
+"year":1998,
 "parents":[
 "hydrolox1992",
 "materialsScienceInternational",
@@ -766,6 +864,7 @@
 {
 "id":"hydrolox2004",
 "title":"2004-2008 Hydrolox Engines",
+"year":2004,
 "parents":[
 "hydrolox1998",
 "orbitalRocketry1998"
@@ -774,6 +873,7 @@
 {
 "id":"hydrolox2009",
 "title":"2009-2013 Hydrolox Engines",
+"year":2009,
 "parents":[
 "hydrolox2004",
 "materialsScienceCommercial",
@@ -783,6 +883,7 @@
 {
 "id":"hydrolox2014",
 "title":"2014-2018 Hydrolox Engines",
+"year":2014,
 "parents":[
 "hydrolox2009",
 "orbitalRocketry2009"
@@ -791,6 +892,7 @@
 {
 "id":"hydrolox2019",
 "title":"2019-2028 Hydrolox Engines",
+"year":2019,
 "parents":[
 "hydrolox2014",
 "materialsScienceMatureCommercial",
@@ -800,6 +902,7 @@
 {
 "id":"hydroloxNF",
 "title":"Near Future Hydrolox Engines",
+"year":null,
 "parents":[
 "hydrolox2019",
 "materialsScienceNF",
@@ -809,6 +912,7 @@
 {
 "id":"colonization2051Hydrolox",
 "title":"2051-2099 Hydrolox Engines",
+"year":2051,
 "parents":[
 "hydroloxNF",
 "materialsScienceColonization",
@@ -818,6 +922,7 @@
 {
 "id":"colonization2100Hydrolox",
 "title":"2100-2149  Hydrolox Engines",
+"year":2100,
 "parents":[
 "colonization2051Hydrolox",
 "colonization2051Orbital"
@@ -826,6 +931,7 @@
 {
 "id":"colonization2150Hydrolox",
 "title":"2150+  Hydrolox Engines",
+"year":2150,
 "parents":[
 "colonization2100Hydrolox",
 "colonization2100Orbital"
@@ -834,6 +940,7 @@
 {
 "id":"prototypeFRSC",
 "title":"Prototype FRSC Engines",
+"year":1972,
 "parents":[
 "hydrolox1969",
 "stagedCombustion1969"
@@ -842,6 +949,7 @@
 {
 "id":"FRSC1976",
 "title":"1976-1980 FRSC Engines",
+"year":1976,
 "parents":[
 "prototypeFRSC",
 "orbitalRocketry1972",
@@ -851,6 +959,7 @@
 {
 "id":"FRSC1981",
 "title":"1981-1985 FRSC Engines",
+"year":1981,
 "parents":[
 "FRSC1976",
 "orbitalRocketry1976",
@@ -860,6 +969,7 @@
 {
 "id":"FRSC1986",
 "title":"1986-1991 FRSC Engines",
+"year":1986,
 "parents":[
 "FRSC1981",
 "orbitalRocketry1981",
@@ -869,6 +979,7 @@
 {
 "id":"FRSC1992",
 "title":"1992-1997 FRSC Engines",
+"year":1992,
 "parents":[
 "FRSC1986",
 "orbitalRocketry1986"
@@ -877,6 +988,7 @@
 {
 "id":"FRSC1998",
 "title":"1998-2008 FRSC Engines",
+"year":1998,
 "parents":[
 "FRSC1992",
 "orbitalRocketry1992",
@@ -886,6 +998,7 @@
 {
 "id":"FRSC2009",
 "title":"2009-2013 FRSC Engines",
+"year":2009,
 "parents":[
 "FRSC1998",
 "orbitalRocketry2004",
@@ -895,6 +1008,7 @@
 {
 "id":"FRSC2014",
 "title":"2014-2018 FRSC Engines",
+"year":2014,
 "parents":[
 "FRSC2009",
 "orbitalRocketry2009"
@@ -903,6 +1017,7 @@
 {
 "id":"FRSC2019",
 "title":"2019-2028 FRSC Engines",
+"year":2019,
 "parents":[
 "FRSC2014",
 "materialsScienceMatureCommercial",
@@ -912,6 +1027,7 @@
 {
 "id":"FRSCNF",
 "title":"Near Future FRSC Engines",
+"year":null,
 "parents":[
 "FRSC2019",
 "orbitalRocketry2019",
@@ -921,6 +1037,7 @@
 {
 "id":"colonization2051FRSC",
 "title":"2051-2099 FRSC Engines",
+"year":2051,
 "parents":[
 "FRSCNF",
 "orbitalRocketryNF",
@@ -930,6 +1047,7 @@
 {
 "id":"colonization2100FRSC",
 "title":"2100-2149 FRSC Engines",
+"year":2100,
 "parents":[
 "colonization2051FRSC",
 "colonization2051Orbital"
@@ -938,6 +1056,7 @@
 {
 "id":"colonization2150FRSC",
 "title":"2150+ FRSC Engines",
+"year":2150,
 "parents":[
 "colonization2100FRSC",
 "colonization2100Orbital"
@@ -946,6 +1065,7 @@
 {
 "id":"rocketryTesting",
 "title":"Post-War Rocketry Testing",
+"year":null,
 "parents":[
 "start"
 ]
@@ -953,6 +1073,7 @@
 {
 "id":"earlyRocketry",
 "title":"Early Rocketry",
+"year":1950,
 "parents":[
 "rocketryTesting"
 ]
@@ -960,6 +1081,7 @@
 {
 "id":"basicRocketryRP0",
 "title":"Basic Rocketry",
+"year":1952,
 "parents":[
 "earlyRocketry",
 "earlyMaterialsScience"
@@ -968,6 +1090,7 @@
 {
 "id":"orbitalRocketry1956",
 "title":"1956-1957 Orbital Rocketry",
+"year":1956,
 "parents":[
 "basicRocketryRP0",
 "materialsScienceSatellite"
@@ -976,6 +1099,7 @@
 {
 "id":"orbitalRocketry1958",
 "title":"1958 Orbital Rocketry",
+"year":1958,
 "parents":[
 "orbitalRocketry1956"
 ]
@@ -983,6 +1107,7 @@
 {
 "id":"orbitalRocketry1959",
 "title":"1959 Orbital Rocketry",
+"year":1959,
 "parents":[
 "orbitalRocketry1958"
 ]
@@ -990,6 +1115,7 @@
 {
 "id":"orbitalRocketry1960",
 "title":"1960 Orbital Rocketry",
+"year":1960,
 "parents":[
 "orbitalRocketry1959"
 ]
@@ -997,6 +1123,7 @@
 {
 "id":"orbitalRocketry1961",
 "title":"1961 Orbital Rocketry",
+"year":1961,
 "parents":[
 "orbitalRocketry1960",
 "materialsScienceHuman"
@@ -1005,6 +1132,7 @@
 {
 "id":"orbitalRocketry1962",
 "title":"1962 Orbital Rocketry",
+"year":1962,
 "parents":[
 "orbitalRocketry1961"
 ]
@@ -1012,6 +1140,7 @@
 {
 "id":"orbitalRocketry1963",
 "title":"1963 Orbital Rocketry",
+"year":1963,
 "parents":[
 "orbitalRocketry1962"
 ]
@@ -1019,6 +1148,7 @@
 {
 "id":"orbitalRocketry1964",
 "title":"1964 Orbital Rocketry",
+"year":1964,
 "parents":[
 "orbitalRocketry1963",
 "materialsScienceAdvCapsules"
@@ -1027,6 +1157,7 @@
 {
 "id":"orbitalRocketry1965",
 "title":"1965 Orbital Rocketry",
+"year":1965,
 "parents":[
 "orbitalRocketry1964"
 ]
@@ -1034,6 +1165,7 @@
 {
 "id":"orbitalRocketry1966",
 "title":"1966 Orbital Rocketry",
+"year":1966,
 "parents":[
 "orbitalRocketry1965"
 ]
@@ -1041,6 +1173,7 @@
 {
 "id":"orbitalRocketry1967",
 "title":"1967 Orbital Rocketry",
+"year":1967,
 "parents":[
 "orbitalRocketry1966",
 "materialsScienceLunar"
@@ -1049,6 +1182,7 @@
 {
 "id":"orbitalRocketry1968",
 "title":"1968 Orbital Rocketry",
+"year":1968,
 "parents":[
 "orbitalRocketry1967"
 ]
@@ -1056,6 +1190,7 @@
 {
 "id":"orbitalRocketry1969",
 "title":"1969 Orbital Rocketry",
+"year":1969,
 "parents":[
 "orbitalRocketry1968"
 ]
@@ -1063,6 +1198,7 @@
 {
 "id":"orbitalRocketry1970",
 "title":"1970-1971 Orbital Rocketry",
+"year":1970,
 "parents":[
 "orbitalRocketry1969"
 ]
@@ -1070,6 +1206,7 @@
 {
 "id":"orbitalRocketry1972",
 "title":"1972-1975 Orbital Rocketry",
+"year":1972,
 "parents":[
 "orbitalRocketry1970",
 "materialsScienceSpaceStation"
@@ -1078,6 +1215,7 @@
 {
 "id":"orbitalRocketry1976",
 "title":"1976-1980 Orbital Rocketry",
+"year":1976,
 "parents":[
 "orbitalRocketry1972"
 ]
@@ -1085,6 +1223,7 @@
 {
 "id":"orbitalRocketry1981",
 "title":"1981-1985 Orbital Rocketry",
+"year":1981,
 "parents":[
 "orbitalRocketry1976",
 "materialsScienceSpaceplanes"
@@ -1093,6 +1232,7 @@
 {
 "id":"orbitalRocketry1986",
 "title":"1986-1991 Orbital Rocketry",
+"year":1986,
 "parents":[
 "orbitalRocketry1981",
 "materialsScienceLongTerm"
@@ -1101,6 +1241,7 @@
 {
 "id":"orbitalRocketry1992",
 "title":"1992-1997 Orbital Rocketry",
+"year":1992,
 "parents":[
 "orbitalRocketry1986"
 ]
@@ -1108,6 +1249,7 @@
 {
 "id":"orbitalRocketry1998",
 "title":"1998-2003 Orbital Rocketry",
+"year":1998,
 "parents":[
 "orbitalRocketry1992",
 "materialsScienceInternational"
@@ -1116,6 +1258,7 @@
 {
 "id":"orbitalRocketry2004",
 "title":"2004-2008 Orbital Rocketry",
+"year":2004,
 "parents":[
 "orbitalRocketry1998"
 ]
@@ -1123,6 +1266,7 @@
 {
 "id":"orbitalRocketry2009",
 "title":"2009-2013 Orbital Rocketry",
+"year":2009,
 "parents":[
 "orbitalRocketry2004",
 "materialsScienceCommercial"
@@ -1131,6 +1275,7 @@
 {
 "id":"orbitalRocketry2014",
 "title":"2014-2018 Orbital Rocketry",
+"year":2014,
 "parents":[
 "orbitalRocketry2009"
 ]
@@ -1138,6 +1283,7 @@
 {
 "id":"orbitalRocketry2019",
 "title":"2019-2028 Orbital Rocketry",
+"year":2019,
 "parents":[
 "orbitalRocketry2014",
 "materialsScienceMatureCommercial"
@@ -1146,6 +1292,7 @@
 {
 "id":"orbitalRocketryNF",
 "title":"Near Future Orbital Rocketry",
+"year":null,
 "parents":[
 "orbitalRocketry2019",
 "materialsScienceNF"
@@ -1154,6 +1301,7 @@
 {
 "id":"colonization2051Orbital",
 "title":"2051-2099 Orbital Rocketry",
+"year":2051,
 "parents":[
 "orbitalRocketryNF",
 "materialsScienceColonization"
@@ -1162,6 +1310,7 @@
 {
 "id":"colonization2100Orbital",
 "title":"2100-2149  Orbital Rocketry",
+"year":2100,
 "parents":[
 "colonization2051Orbital"
 ]
@@ -1169,6 +1318,7 @@
 {
 "id":"colonization2150Orbital",
 "title":"2150+  Orbital Rocketry",
+"year":2150,
 "parents":[
 "colonization2100Orbital"
 ]
@@ -1176,6 +1326,7 @@
 {
 "id":"firstStagedCombustion",
 "title":"First ORSC Engines",
+"year":1961,
 "parents":[
 "materialsScienceHuman",
 "orbitalRocketry1959"
@@ -1184,6 +1335,7 @@
 {
 "id":"stagedCombustion1963",
 "title":"1963 ORSC Engines",
+"year":1963,
 "parents":[
 "firstStagedCombustion",
 "orbitalRocketry1962"
@@ -1192,6 +1344,7 @@
 {
 "id":"stagedCombustion1965",
 "title":"1965 ORSC Engines",
+"year":1965,
 "parents":[
 "stagedCombustion1963",
 "materialsScienceAdvCapsules",
@@ -1201,6 +1354,7 @@
 {
 "id":"stagedCombustion1966",
 "title":"1966 ORSC Engines",
+"year":1966,
 "parents":[
 "stagedCombustion1965",
 "orbitalRocketry1965"
@@ -1209,6 +1363,7 @@
 {
 "id":"stagedCombustion1967",
 "title":"1967 ORSC Engines",
+"year":1967,
 "parents":[
 "stagedCombustion1966",
 "materialsScienceLunar",
@@ -1218,6 +1373,7 @@
 {
 "id":"stagedCombustion1968",
 "title":"1968 ORSC Engines",
+"year":1968,
 "parents":[
 "stagedCombustion1967",
 "orbitalRocketry1967"
@@ -1226,6 +1382,7 @@
 {
 "id":"stagedCombustion1969",
 "title":"1969 ORSC Engines",
+"year":1969,
 "parents":[
 "stagedCombustion1968",
 "orbitalRocketry1968"
@@ -1234,6 +1391,7 @@
 {
 "id":"stagedCombustion1972",
 "title":"1972-1975 ORSC Engines",
+"year":1972,
 "parents":[
 "stagedCombustion1969",
 "materialsScienceSpaceStation",
@@ -1243,6 +1401,7 @@
 {
 "id":"stagedCombustion1976",
 "title":"1976-1980 ORSC Engines",
+"year":1976,
 "parents":[
 "stagedCombustion1972",
 "orbitalRocketry1972"
@@ -1251,6 +1410,7 @@
 {
 "id":"stagedCombustion1981",
 "title":"1981-1985 ORSC Engines",
+"year":1981,
 "parents":[
 "stagedCombustion1976",
 "materialsScienceSpaceplanes",
@@ -1260,6 +1420,7 @@
 {
 "id":"stagedCombustion1986",
 "title":"1986-1991 ORSC Engines",
+"year":1986,
 "parents":[
 "stagedCombustion1981",
 "materialsScienceLongTerm",
@@ -1269,6 +1430,7 @@
 {
 "id":"stagedCombustion1992",
 "title":"1992-1997 ORSC Engines",
+"year":1992,
 "parents":[
 "stagedCombustion1986",
 "orbitalRocketry1986"
@@ -1277,6 +1439,7 @@
 {
 "id":"stagedCombustion1998",
 "title":"1998-2003 ORSC Engines",
+"year":1998,
 "parents":[
 "stagedCombustion1992",
 "materialsScienceInternational",
@@ -1286,6 +1449,7 @@
 {
 "id":"stagedCombustion2004",
 "title":"2004-2008 ORSC Engines",
+"year":2004,
 "parents":[
 "stagedCombustion1998",
 "orbitalRocketry1998"
@@ -1294,6 +1458,7 @@
 {
 "id":"stagedCombustion2009",
 "title":"2009-2013 ORSC Engines",
+"year":2009,
 "parents":[
 "stagedCombustion2004",
 "materialsScienceCommercial",
@@ -1303,6 +1468,7 @@
 {
 "id":"stagedCombustion2014",
 "title":"2014-2018 ORSC Engines",
+"year":2014,
 "parents":[
 "stagedCombustion2009",
 "orbitalRocketry2009"
@@ -1311,6 +1477,7 @@
 {
 "id":"stagedCombustion2019",
 "title":"2019-2028 ORSC Engines",
+"year":2019,
 "parents":[
 "stagedCombustion2014",
 "materialsScienceMatureCommercial",
@@ -1320,6 +1487,7 @@
 {
 "id":"stagedCombustionNF",
 "title":"Near Future ORSC Engines",
+"year":null,
 "parents":[
 "stagedCombustion2019",
 "materialsScienceNF",
@@ -1329,6 +1497,7 @@
 {
 "id":"colonization2051Staged",
 "title":"2051-2099 ORSC",
+"year":2051,
 "parents":[
 "stagedCombustionNF",
 "materialsScienceColonization",
@@ -1338,6 +1507,7 @@
 {
 "id":"colonization2100Staged",
 "title":"2100-2149  ORSC",
+"year":2100,
 "parents":[
 "colonization2051Staged",
 "colonization2051Orbital"
@@ -1346,6 +1516,7 @@
 {
 "id":"colonization2150Staged",
 "title":"2150+  ORSC",
+"year":2150,
 "parents":[
 "colonization2100Staged",
 "colonization2100Orbital"
@@ -1354,6 +1525,7 @@
 {
 "id":"earlySolids",
 "title":"Early Solid Rocket Engines",
+"year":null,
 "parents":[
 "start"
 ]
@@ -1361,6 +1533,7 @@
 {
 "id":"basicSolids",
 "title":"Basic Solid Rocket Engines",
+"year":1952,
 "parents":[
 "earlySolids",
 "postWarMaterialsScience"
@@ -1369,6 +1542,7 @@
 {
 "id":"solids1956",
 "title":"1956-1957 Solid Rocket Engines",
+"year":1956,
 "parents":[
 "earlyMaterialsScience",
 "basicSolids"
@@ -1377,6 +1551,7 @@
 {
 "id":"solids1958",
 "title":"1958 Solid Rocket Engines",
+"year":1958,
 "parents":[
 "materialsScienceSatellite",
 "solids1956"
@@ -1385,6 +1560,7 @@
 {
 "id":"solids1959",
 "title":"1959-1960 Solid Rocket Engines",
+"year":1959,
 "parents":[
 "solids1958"
 ]
@@ -1392,6 +1568,7 @@
 {
 "id":"solids1962",
 "title":"1962-1963 Solid Rocket Engines",
+"year":1962,
 "parents":[
 "solids1959",
 "materialsScienceHuman"
@@ -1400,6 +1577,7 @@
 {
 "id":"solids1964",
 "title":"1964-1965 Solid Rocket Engines",
+"year":1964,
 "parents":[
 "solids1962",
 "materialsScienceAdvCapsules"
@@ -1408,6 +1586,7 @@
 {
 "id":"solids1966",
 "title":"1966 Solid Rocket Engines",
+"year":1966,
 "parents":[
 "solids1964"
 ]
@@ -1415,6 +1594,7 @@
 {
 "id":"solids1967",
 "title":"1967-1968 Solid Rocket Engines",
+"year":1967,
 "parents":[
 "solids1966",
 "materialsScienceLunar"
@@ -1423,6 +1603,7 @@
 {
 "id":"solids1969",
 "title":"1969-1971 Solid Rocket Engines",
+"year":1969,
 "parents":[
 "solids1967"
 ]
@@ -1430,6 +1611,7 @@
 {
 "id":"solids1972",
 "title":"1972-1975 Solid Rocket Engines",
+"year":1972,
 "parents":[
 "solids1969",
 "materialsScienceSpaceStation"
@@ -1438,6 +1620,7 @@
 {
 "id":"solids1976",
 "title":"1976-1980 Solid Rocket Engines",
+"year":1976,
 "parents":[
 "solids1972"
 ]
@@ -1445,6 +1628,7 @@
 {
 "id":"solids1981",
 "title":"1981-1985 Solid Rocket Engines",
+"year":1981,
 "parents":[
 "solids1976",
 "materialsScienceSpaceplanes"
@@ -1453,6 +1637,7 @@
 {
 "id":"solids1986",
 "title":"1986-1991 Solid Rocket Engines",
+"year":1986,
 "parents":[
 "solids1981",
 "materialsScienceLongTerm"
@@ -1461,6 +1646,7 @@
 {
 "id":"solids1992",
 "title":"1992-1997 Solid Rocket Engines",
+"year":1992,
 "parents":[
 "solids1986"
 ]
@@ -1468,6 +1654,7 @@
 {
 "id":"solids1998",
 "title":"1998-2008 Solid Rocket Engines",
+"year":1998,
 "parents":[
 "solids1992",
 "materialsScienceInternational"
@@ -1476,6 +1663,7 @@
 {
 "id":"solids2009",
 "title":"2009-2018 Solid Rocket Engines",
+"year":2009,
 "parents":[
 "solids1998",
 "materialsScienceCommercial"
@@ -1484,6 +1672,7 @@
 {
 "id":"solids2019",
 "title":"2019-2028 Solid Rocket Engines",
+"year":2019,
 "parents":[
 "solids2009",
 "materialsScienceMatureCommercial"
@@ -1492,6 +1681,7 @@
 {
 "id":"solidsNF",
 "title":"Near Future Solid Rocket Engines",
+"year":null,
 "parents":[
 "solids2019",
 "materialsScienceNF"
@@ -1500,6 +1690,7 @@
 {
 "id":"colonization2051Solid",
 "title":"2051-2099 Solids",
+"year":2051,
 "parents":[
 "solidsNF",
 "materialsScienceColonization"
@@ -1508,6 +1699,7 @@
 {
 "id":"colonization2100Solid",
 "title":"2100-2149 Solids",
+"year":2100,
 "parents":[
 "colonization2051Solid"
 ]
@@ -1515,6 +1707,7 @@
 {
 "id":"colonization2150Solid",
 "title":"2150+ Solids",
+"year":2150,
 "parents":[
 "colonization2100Solid"
 ]
@@ -1522,6 +1715,7 @@
 {
 "id":"earlyElecPropulsion",
 "title":"Early Electric Propulsion",
+"year":1972,
 "parents":[
 "materialsScienceSpaceStation",
 "electronicsSpaceStation"
@@ -1530,6 +1724,7 @@
 {
 "id":"elecPropulsion1981",
 "title":"1981-1985 Electric Propulsion",
+"year":1981,
 "parents":[
 "earlyElecPropulsion",
 "materialsScienceSpaceplanes"
@@ -1538,6 +1733,7 @@
 {
 "id":"elecPropulsion1986",
 "title":"1986-1997 Electric Propulsion",
+"year":1986,
 "parents":[
 "elecPropulsion1981",
 "materialsScienceLongTerm"
@@ -1546,6 +1742,7 @@
 {
 "id":"elecPropulsion1998",
 "title":"1998-2008 Electric Propulsion",
+"year":1998,
 "parents":[
 "elecPropulsion1986",
 "materialsScienceInternational"
@@ -1554,6 +1751,7 @@
 {
 "id":"elecPropulsion2009",
 "title":"2009-2018 Electric Propulsion",
+"year":2009,
 "parents":[
 "elecPropulsion1998",
 "materialsScienceCommercial"
@@ -1562,6 +1760,7 @@
 {
 "id":"elecPropulsion2019",
 "title":"2019-2028 Electric Propulsion",
+"year":2019,
 "parents":[
 "elecPropulsion2009",
 "materialsScienceMatureCommercial"
@@ -1570,6 +1769,7 @@
 {
 "id":"elecPropulsionNF",
 "title":"Near Future Electric Propulsion",
+"year":null,
 "parents":[
 "elecPropulsion2019",
 "materialsScienceNF",
@@ -1579,6 +1779,7 @@
 {
 "id":"colonization2051ElecProp",
 "title":"2051-2099 Electric Propulsion",
+"year":2051,
 "parents":[
 "elecPropulsionNF"
 ]
@@ -1586,6 +1787,7 @@
 {
 "id":"colonization2100ElecProp",
 "title":"2100-2149 Electric Propulsion",
+"year":2100,
 "parents":[
 "colonization2051ElecProp"
 ]
@@ -1593,6 +1795,7 @@
 {
 "id":"colonization2150ElecProp",
 "title":"2150+ Electric Propulsion",
+"year":2150,
 "parents":[
 "colonization2100ElecProp"
 ]
@@ -1600,6 +1803,7 @@
 {
 "id":"prototypeNuclearPropulsion",
 "title":"Prototype Nuclear Propulsion",
+"year":1967,
 "parents":[
 "materialsScienceLunar"
 ]
@@ -1607,6 +1811,7 @@
 {
 "id":"earlyNuclearPropulsion",
 "title":"Early Nuclear Propulsion",
+"year":1972,
 "parents":[
 "prototypeNuclearPropulsion",
 "materialsScienceSpaceStation"
@@ -1615,6 +1820,7 @@
 {
 "id":"basicNuclearPropulsion",
 "title":"Basic Nuclear Propulsion",
+"year":1981,
 "parents":[
 "earlyNuclearPropulsion",
 "materialsScienceSpaceplanes"
@@ -1623,6 +1829,7 @@
 {
 "id":"improvedNuclearPropulsion",
 "title":"Improved Nuclear Propulsion",
+"year":1986,
 "parents":[
 "basicNuclearPropulsion",
 "materialsScienceLongTerm"
@@ -1631,6 +1838,7 @@
 {
 "id":"advancedNuclearPropulsion",
 "title":"Advanced Nuclear Propulsion",
+"year":1998,
 "parents":[
 "improvedNuclearPropulsion",
 "materialsScienceInternational"
@@ -1639,6 +1847,7 @@
 {
 "id":"efficientNuclearPropulsion",
 "title":"Efficient Nuclear Propulsion",
+"year":2009,
 "parents":[
 "advancedNuclearPropulsion",
 "materialsScienceCommercial"
@@ -1647,6 +1856,7 @@
 {
 "id":"nuclearPropulsionNF",
 "title":"Bimodal Nuclear Propulsion",
+"year":2019,
 "parents":[
 "efficientNuclearPropulsion",
 "materialsScienceMatureCommercial"
@@ -1655,6 +1865,7 @@
 {
 "id":"nuclearPropulsionNF2",
 "title":"Near Future Nuclear Propulsion",
+"year":2029,
 "parents":[
 "nuclearPropulsionNF",
 "materialsScienceNF"
@@ -1663,6 +1874,7 @@
 {
 "id":"colonization2051NuclearProp",
 "title":"2051-2099 Nuclear Propulsion",
+"year":2051,
 "parents":[
 "nuclearPropulsionNF2",
 "materialsScienceColonization"
@@ -1671,6 +1883,7 @@
 {
 "id":"colonization2100NuclearProp",
 "title":"2100-2149 Nuclear Propulsion",
+"year":2100,
 "parents":[
 "colonization2051NuclearProp"
 ]
@@ -1678,6 +1891,7 @@
 {
 "id":"colonization2150NuclearProp",
 "title":"2150+ Nuclear Propulsion",
+"year":2150,
 "parents":[
 "colonization2100NuclearProp"
 ]
@@ -1685,6 +1899,7 @@
 {
 "id":"crewSurvivability",
 "title":"Crew Survivability",
+"year":1960,
 "parents":[
 "materialsScienceSatellite"
 ]
@@ -1692,6 +1907,7 @@
 {
 "id":"earlyLifeSupport",
 "title":"Early Life Support and ISRU",
+"year":1964,
 "parents":[
 "crewSurvivability",
 "materialsScienceAdvCapsules"
@@ -1700,6 +1916,7 @@
 {
 "id":"lifeSupportISRU",
 "title":"Life Support and ISRU",
+"year":1967,
 "parents":[
 "earlyLifeSupport",
 "materialsScienceLunar"
@@ -1708,6 +1925,7 @@
 {
 "id":"basicLifeSupport",
 "title":"Basic Life Support and ISRU",
+"year":1972,
 "parents":[
 "lifeSupportISRU",
 "materialsScienceSpaceStation"
@@ -1716,6 +1934,7 @@
 {
 "id":"improvedLifeSupport",
 "title":"Improved Life Support and ISRU",
+"year":1981,
 "parents":[
 "basicLifeSupport",
 "materialsScienceSpaceplanes"
@@ -1724,6 +1943,7 @@
 {
 "id":"longTermLifeSupport",
 "title":"Long-Term Life Support and ISRU",
+"year":1986,
 "parents":[
 "improvedLifeSupport",
 "materialsScienceLongTerm"
@@ -1732,6 +1952,7 @@
 {
 "id":"advancedLifeSupport",
 "title":"Advanced Life Support and ISRU",
+"year":1998,
 "parents":[
 "longTermLifeSupport",
 "materialsScienceInternational"
@@ -1740,6 +1961,7 @@
 {
 "id":"efficientLifeSupport",
 "title":"Efficient Life Support and ISRU",
+"year":2009,
 "parents":[
 "advancedLifeSupport",
 "materialsScienceCommercial"
@@ -1748,6 +1970,7 @@
 {
 "id":"commercialLifeSupport",
 "title":"Commercial Life Support and ISRU",
+"year":2019,
 "parents":[
 "efficientLifeSupport",
 "materialsScienceMatureCommercial"
@@ -1756,6 +1979,7 @@
 {
 "id":"lifeSupportNF",
 "title":"Near Future Life Support and ISRU",
+"year":2028,
 "parents":[
 "commercialLifeSupport",
 "materialsScienceNF"
@@ -1764,6 +1988,7 @@
 {
 "id":"colonization2051LifeSupport",
 "title":"2051-2099 Life Support and ISRU",
+"year":2051,
 "parents":[
 "lifeSupportNF",
 "materialsScienceColonization"
@@ -1772,6 +1997,7 @@
 {
 "id":"colonization2100LifeSupport",
 "title":"2100-2149 Life Support and ISRU",
+"year":2100,
 "parents":[
 "colonization2051LifeSupport"
 ]
@@ -1779,6 +2005,7 @@
 {
 "id":"colonization2150LifeSupport",
 "title":"2150+ Life Support and ISRU",
+"year":2150,
 "parents":[
 "colonization2100LifeSupport"
 ]
@@ -1786,6 +2013,7 @@
 {
 "id":"postWarMaterialsScience",
 "title":"Post-War Materials Science",
+"year":null,
 "parents":[
 "start"
 ]
@@ -1793,6 +2021,7 @@
 {
 "id":"earlyMaterialsScience",
 "title":"Early Materials Science",
+"year":1952,
 "parents":[
 "postWarMaterialsScience"
 ]
@@ -1800,6 +2029,7 @@
 {
 "id":"materialsScienceSatellite",
 "title":"Satellite Era Materials Science",
+"year":1956,
 "parents":[
 "earlyMaterialsScience"
 ]
@@ -1807,6 +2037,7 @@
 {
 "id":"materialsScienceHuman",
 "title":"Early Human Spaceflight Materials Science",
+"year":1961,
 "parents":[
 "materialsScienceSatellite"
 ]
@@ -1814,6 +2045,7 @@
 {
 "id":"materialsScienceAdvCapsules",
 "title":"Advanced Capsules Era Materials Science",
+"year":1964,
 "parents":[
 "materialsScienceHuman"
 ]
@@ -1821,6 +2053,7 @@
 {
 "id":"materialsScienceLunar",
 "title":"Lunar Exploration Era Materials Science",
+"year":1967,
 "parents":[
 "materialsScienceAdvCapsules"
 ]
@@ -1828,6 +2061,7 @@
 {
 "id":"materialsScienceSpaceStation",
 "title":"Space Station Era Materials Science",
+"year":1972,
 "parents":[
 "materialsScienceLunar"
 ]
@@ -1835,6 +2069,7 @@
 {
 "id":"materialsScienceSpaceplanes",
 "title":"Spaceplanes Era Materials Science",
+"year":1981,
 "parents":[
 "materialsScienceSpaceStation"
 ]
@@ -1842,6 +2077,7 @@
 {
 "id":"materialsScienceLongTerm",
 "title":"Long-Term Space Habitation Era Materials Science",
+"year":1986,
 "parents":[
 "materialsScienceSpaceplanes"
 ]
@@ -1849,6 +2085,7 @@
 {
 "id":"materialsScienceInternational",
 "title":"International Cooperation Era Materials Science",
+"year":1998,
 "parents":[
 "materialsScienceLongTerm"
 ]
@@ -1856,6 +2093,7 @@
 {
 "id":"materialsScienceCommercial",
 "title":"Commercial Spaceflight Era Materials Science",
+"year":2009,
 "parents":[
 "materialsScienceInternational"
 ]
@@ -1863,6 +2101,7 @@
 {
 "id":"materialsScienceMatureCommercial",
 "title":"Mature Commercial Spaceflight Era Materials Science",
+"year":2019,
 "parents":[
 "materialsScienceCommercial"
 ]
@@ -1870,6 +2109,7 @@
 {
 "id":"materialsScienceNF",
 "title":"Near Future Era Materials Science",
+"year":2028,
 "parents":[
 "materialsScienceMatureCommercial"
 ]
@@ -1877,6 +2117,7 @@
 {
 "id":"materialsScienceColonization",
 "title":"Colonization Era Materials Science",
+"year":2051,
 "parents":[
 "materialsScienceNF"
 ]
@@ -1884,6 +2125,7 @@
 {
 "id":"electronicsSatellite",
 "title":"Satellite Era Electronics Research",
+"year":1956,
 "parents":[
 "avionicsPrototypes"
 ]
@@ -1891,6 +2133,7 @@
 {
 "id":"electronicsHuman",
 "title":"Early Human Spaceflight Electronics Research",
+"year":1961,
 "parents":[
 "electronicsSatellite"
 ]
@@ -1898,6 +2141,7 @@
 {
 "id":"electronicsAdvCapsules",
 "title":"Advanced Capsules Era Electronics Research",
+"year":1964,
 "parents":[
 "electronicsHuman"
 ]
@@ -1905,6 +2149,7 @@
 {
 "id":"electronicsLunar",
 "title":"Lunar Exploration Era Electronics Research",
+"year":1967,
 "parents":[
 "electronicsAdvCapsules"
 ]
@@ -1912,6 +2157,7 @@
 {
 "id":"electronicsSpaceStation",
 "title":"Space Station Era Electronics Research",
+"year":1972,
 "parents":[
 "electronicsLunar"
 ]
@@ -1919,6 +2165,7 @@
 {
 "id":"electronicsSpaceplanes",
 "title":"Spaceplanes Era Electronics Research",
+"year":1981,
 "parents":[
 "electronicsSpaceStation"
 ]
@@ -1926,6 +2173,7 @@
 {
 "id":"electronicsLongTerm",
 "title":"Long-Term Space Habitation Era Electronics Research",
+"year":1986,
 "parents":[
 "electronicsSpaceplanes"
 ]
@@ -1933,6 +2181,7 @@
 {
 "id":"electronicsInternational",
 "title":"International Cooperation Era Electronics Research",
+"year":1998,
 "parents":[
 "electronicsLongTerm"
 ]
@@ -1940,6 +2189,7 @@
 {
 "id":"electronicsCommercial",
 "title":"Commercial Spaceflight Era Electronics Research",
+"year":2009,
 "parents":[
 "electronicsInternational"
 ]
@@ -1947,6 +2197,7 @@
 {
 "id":"electronicsMatureCommercial",
 "title":"Mature Commercial Spaceflight Era Electronics Research",
+"year":2019,
 "parents":[
 "electronicsCommercial"
 ]
@@ -1954,6 +2205,7 @@
 {
 "id":"electronicsNF",
 "title":"Near Future Era Electronics Research",
+"year":2019,
 "parents":[
 "electronicsMatureCommercial"
 ]
@@ -1961,6 +2213,7 @@
 {
 "id":"electronicsColonization",
 "title":"Colonization Era Electronics Research",
+"year":2051,
 "parents":[
 "electronicsNF"
 ]
@@ -1968,6 +2221,7 @@
 {
 "id":"firstRTG",
 "title":"First RTGs",
+"year":1961,
 "parents":[
 "electronicsHuman"
 ]
@@ -1975,6 +2229,7 @@
 {
 "id":"earlyRTG",
 "title":"Early RTGs",
+"year":1963,
 "parents":[
 "firstRTG"
 ]
@@ -1982,6 +2237,7 @@
 {
 "id":"nuclearFissionReactors",
 "title":"Small Nuclear Fission Reactors",
+"year":1965,
 "parents":[
 "earlyRTG",
 "electronicsAdvCapsules"
@@ -1990,6 +2246,7 @@
 {
 "id":"improvedRTG",
 "title":"Improved RTGs",
+"year":1967,
 "parents":[
 "nuclearFissionReactors",
 "electronicsLunar"
@@ -1998,6 +2255,7 @@
 {
 "id":"multihundredWattRTG",
 "title":"Multi-Hundred Watt RTGs",
+"year":1976,
 "parents":[
 "improvedRTG",
 "electronicsSpaceStation"
@@ -2006,6 +2264,7 @@
 {
 "id":"gphsRTG",
 "title":"GPHS-RTGs",
+"year":1981,
 "parents":[
 "multihundredWattRTG",
 "electronicsSpaceplanes"
@@ -2014,6 +2273,7 @@
 {
 "id":"improvedNuclearPower",
 "title":"Improved Nuclear Power Generation",
+"year":1986,
 "parents":[
 "gphsRTG",
 "electronicsLongTerm"
@@ -2022,6 +2282,7 @@
 {
 "id":"advancedNuclearPower",
 "title":"Advanced Nuclear Power Generation",
+"year":1998,
 "parents":[
 "improvedNuclearPower",
 "electronicsInternational"
@@ -2030,6 +2291,7 @@
 {
 "id":"modernNuclearPower",
 "title":"Modern Nuclear Power Generation",
+"year":2009,
 "parents":[
 "advancedNuclearPower",
 "electronicsCommercial"
@@ -2038,6 +2300,7 @@
 {
 "id":"advModernNuclearPower",
 "title":"Advanced Modern Nuclear Power Generation",
+"year":2019,
 "parents":[
 "modernNuclearPower",
 "electronicsMatureCommercial"
@@ -2046,6 +2309,7 @@
 {
 "id":"nuclearPowerNF",
 "title":"Near Future Nuclear Power Generation",
+"year":2029,
 "parents":[
 "advModernNuclearPower",
 "electronicsNF"
@@ -2054,6 +2318,7 @@
 {
 "id":"colonization2051NuclearPower",
 "title":"2051-2099 Nuclear Power",
+"year":2051,
 "parents":[
 "nuclearPowerNF",
 "electronicsColonization"
@@ -2062,6 +2327,7 @@
 {
 "id":"colonization2100NuclearPower",
 "title":"2100-2149 Nuclear Power",
+"year":2100,
 "parents":[
 "colonization2051NuclearPower"
 ]
@@ -2069,6 +2335,7 @@
 {
 "id":"colonization2150NuclearPower",
 "title":"2150+ Nuclear Power",
+"year":2150,
 "parents":[
 "colonization2100NuclearPower"
 ]
@@ -2076,6 +2343,7 @@
 {
 "id":"primitiveSolarPanels",
 "title":"Primitive Solar Panels",
+"year":1958,
 "parents":[
 "electronicsSatellite"
 ]
@@ -2083,6 +2351,7 @@
 {
 "id":"earlyPower",
 "title":"Early Power Generation and Storage",
+"year":1961,
 "parents":[
 "primitiveSolarPanels",
 "electronicsHuman"
@@ -2091,6 +2360,7 @@
 {
 "id":"basicPower",
 "title":"Basic Power Generation and Storage",
+"year":1963,
 "parents":[
 "earlyPower"
 ]
@@ -2098,6 +2368,7 @@
 {
 "id":"improvedPower",
 "title":"Improved Power Generation and Storage",
+"year":1964,
 "parents":[
 "basicPower",
 "electronicsAdvCapsules"
@@ -2106,6 +2377,7 @@
 {
 "id":"lunarRatedPower",
 "title":"Lunar Rated Power Generation",
+"year":1967,
 "parents":[
 "improvedPower",
 "electronicsLunar"
@@ -2114,6 +2386,7 @@
 {
 "id":"spaceStationSolarPanels",
 "title":"Space Station Solar Panels",
+"year":1972,
 "parents":[
 "lunarRatedPower",
 "electronicsSpaceStation"
@@ -2122,6 +2395,7 @@
 {
 "id":"maturePower",
 "title":"Mature Power Generation and Storage",
+"year":1981,
 "parents":[
 "spaceStationSolarPanels",
 "electronicsSpaceplanes"
@@ -2130,6 +2404,7 @@
 {
 "id":"largeScaleSolarArrays",
 "title":"Large Scale Solar Arrays",
+"year":1986,
 "parents":[
 "maturePower",
 "electronicsLongTerm"
@@ -2138,6 +2413,7 @@
 {
 "id":"advancedPower",
 "title":"Advanced Power Generation and Storage",
+"year":1998,
 "parents":[
 "largeScaleSolarArrays",
 "electronicsInternational"
@@ -2146,6 +2422,7 @@
 {
 "id":"modernPower",
 "title":"Modern Power Generation and Storage",
+"year":2009,
 "parents":[
 "advancedPower",
 "electronicsCommercial"
@@ -2154,6 +2431,7 @@
 {
 "id":"advModernPower",
 "title":"Advanced Modern Power Generation and Storage",
+"year":2019,
 "parents":[
 "modernPower",
 "electronicsMatureCommercial"
@@ -2162,6 +2440,7 @@
 {
 "id":"powerNF",
 "title":"Near Future Power Generation and Storage",
+"year":2029,
 "parents":[
 "advModernPower",
 "electronicsNF"
@@ -2170,6 +2449,7 @@
 {
 "id":"colonization2051Power",
 "title":"2051-2099 Power Generation and Storage",
+"year":2051,
 "parents":[
 "powerNF",
 "electronicsColonization"
@@ -2178,6 +2458,7 @@
 {
 "id":"colonization2100Power",
 "title":"2100-2149 Power Generation and Storage",
+"year":2100,
 "parents":[
 "colonization2051Power"
 ]
@@ -2185,6 +2466,7 @@
 {
 "id":"colonization2150Power",
 "title":"2150+ Power Generation and Storage",
+"year":2150,
 "parents":[
 "colonization2100Power"
 ]
@@ -2192,6 +2474,7 @@
 {
 "id":"lunarRangeComms",
 "title":"Lunar Range Communications",
+"year":1957,
 "parents":[
 "electronicsSatellite"
 ]
@@ -2199,6 +2482,7 @@
 {
 "id":"digitalComms",
 "title":"Digital Communications",
+"year":1959,
 "parents":[
 "lunarRangeComms"
 ]
@@ -2206,6 +2490,7 @@
 {
 "id":"interplanetaryComms",
 "title":"Interplanetary Communications",
+"year":1961,
 "parents":[
 "digitalComms",
 "electronicsHuman"
@@ -2214,6 +2499,7 @@
 {
 "id":"improvedComms",
 "title":"Improved Communications",
+"year":1964,
 "parents":[
 "interplanetaryComms",
 "electronicsAdvCapsules"
@@ -2222,6 +2508,7 @@
 {
 "id":"advancedComms",
 "title":"Advanced Communications",
+"year":1967,
 "parents":[
 "improvedComms",
 "electronicsLunar"
@@ -2230,6 +2517,7 @@
 {
 "id":"deepSpaceComms",
 "title":"Deep Space Communications",
+"year":1972,
 "parents":[
 "advancedComms",
 "electronicsSpaceStation"
@@ -2238,6 +2526,7 @@
 {
 "id":"highDataRateComms",
 "title":"High Data Rate Communications",
+"year":1976,
 "parents":[
 "deepSpaceComms"
 ]
@@ -2245,6 +2534,7 @@
 {
 "id":"largeScaleComms",
 "title":"Large Scale Communications",
+"year":1981,
 "parents":[
 "highDataRateComms",
 "electronicsSpaceplanes"
@@ -2253,6 +2543,7 @@
 {
 "id":"massiveScaleComms",
 "title":"Massive Scale Communications",
+"year":1986,
 "parents":[
 "largeScaleComms",
 "electronicsLongTerm"
@@ -2261,6 +2552,7 @@
 {
 "id":"efficientComms",
 "title":"Efficient Communications",
+"year":1998,
 "parents":[
 "massiveScaleComms",
 "electronicsInternational"
@@ -2269,6 +2561,7 @@
 {
 "id":"modernComms",
 "title":"Modern Communications",
+"year":2009,
 "parents":[
 "efficientComms",
 "electronicsCommercial"
@@ -2277,6 +2570,7 @@
 {
 "id":"advModernComms",
 "title":"Advanced Modern Communications",
+"year":2019,
 "parents":[
 "modernComms",
 "electronicsMatureCommercial"
@@ -2285,6 +2579,7 @@
 {
 "id":"commsNF",
 "title":"Near Future Communications",
+"year":2029,
 "parents":[
 "advModernComms",
 "electronicsNF"
@@ -2293,6 +2588,7 @@
 {
 "id":"colonization2051Comms",
 "title":"2051-2099 Communications",
+"year":2051,
 "parents":[
 "commsNF",
 "electronicsColonization"
@@ -2301,6 +2597,7 @@
 {
 "id":"colonization2100Comms",
 "title":"2100-2149 Communications",
+"year":2100,
 "parents":[
 "colonization2051Comms"
 ]
@@ -2308,6 +2605,7 @@
 {
 "id":"colonization2150Comms",
 "title":"2150+ Communications",
+"year":2150,
 "parents":[
 "colonization2100Comms"
 ]
@@ -2315,6 +2613,7 @@
 {
 "id":"postWarAvionics",
 "title":"Early Tracking Systems",
+"year":null,
 "parents":[
 "start"
 ]
@@ -2322,6 +2621,7 @@
 {
 "id":"avionicsPrototypes",
 "title":"Avionics Prototypes",
+"year":1952,
 "parents":[
 "postWarAvionics"
 ]
@@ -2329,6 +2629,7 @@
 {
 "id":"earlyAvionics",
 "title":"Early Avionics and Probes",
+"year":1956,
 "parents":[
 "avionicsPrototypes",
 "electronicsSatellite"
@@ -2337,6 +2638,7 @@
 {
 "id":"basicAvionics",
 "title":"Basic Avionics and Probes",
+"year":1959,
 "parents":[
 "earlyAvionics"
 ]
@@ -2344,6 +2646,7 @@
 {
 "id":"interplanetaryProbes",
 "title":"Early Interplanetary Avionics and Probes",
+"year":1961,
 "parents":[
 "basicAvionics",
 "electronicsHuman"
@@ -2352,6 +2655,7 @@
 {
 "id":"improvedAvionics",
 "title":"Improved Avionics",
+"year":1962,
 "parents":[
 "interplanetaryProbes"
 ]
@@ -2359,6 +2663,7 @@
 {
 "id":"matureAvionics",
 "title":"Mature Avionics and Probes",
+"year":1964,
 "parents":[
 "improvedAvionics",
 "electronicsAdvCapsules"
@@ -2367,6 +2672,7 @@
 {
 "id":"largeScaleAvionics",
 "title":"Large Scale Avionics",
+"year":1967,
 "parents":[
 "matureAvionics",
 "electronicsLunar"
@@ -2375,6 +2681,7 @@
 {
 "id":"advancedAvionics",
 "title":"Advanced Avionics and Probes",
+"year":1972,
 "parents":[
 "largeScaleAvionics",
 "electronicsSpaceStation"
@@ -2383,6 +2690,7 @@
 {
 "id":"nextGenAvionics",
 "title":"Next Generation Avionics and Probes",
+"year":1981,
 "parents":[
 "advancedAvionics",
 "electronicsSpaceplanes"
@@ -2391,6 +2699,7 @@
 {
 "id":"longTermAvionics",
 "title":"Long-Term Space Habitation Era Avionics and Probes",
+"year":1986,
 "parents":[
 "nextGenAvionics",
 "electronicsLongTerm"
@@ -2399,6 +2708,7 @@
 {
 "id":"internationalAvionics",
 "title":"International Era Avionics and Probes",
+"year":1997,
 "parents":[
 "longTermAvionics",
 "electronicsInternational"
@@ -2407,6 +2717,7 @@
 {
 "id":"modernAvionics",
 "title":"Modern Avionics and Probes",
+"year":2009,
 "parents":[
 "internationalAvionics",
 "electronicsCommercial"
@@ -2415,6 +2726,7 @@
 {
 "id":"advModernAvionics",
 "title":"Advanced Modern Avionics and Probes",
+"year":2019,
 "parents":[
 "modernAvionics",
 "electronicsMatureCommercial"
@@ -2423,6 +2735,7 @@
 {
 "id":"avionicsNF",
 "title":"Near Future Avionics and Probes",
+"year":2029,
 "parents":[
 "advModernAvionics",
 "electronicsNF"
@@ -2431,6 +2744,7 @@
 {
 "id":"colonization2051Avionics",
 "title":"2051-2099 Avionics and Probes",
+"year":2051,
 "parents":[
 "avionicsNF",
 "electronicsColonization"
@@ -2439,6 +2753,7 @@
 {
 "id":"colonization2100Avionics",
 "title":"2100-2149 Avionics and Probes",
+"year":2100,
 "parents":[
 "colonization2051Avionics"
 ]
@@ -2446,6 +2761,7 @@
 {
 "id":"colonization2150Avionics",
 "title":"2150+ Avionics and Probes",
+"year":2150,
 "parents":[
 "colonization2100Avionics"
 ]
@@ -2453,6 +2769,7 @@
 {
 "id":"earlyScience",
 "title":"Early Science",
+"year":1952,
 "parents":[
 "postWarAvionics"
 ]
@@ -2460,6 +2777,7 @@
 {
 "id":"scienceSatellite",
 "title":"Satellite Era Science",
+"year":1956,
 "parents":[
 "earlyScience",
 "electronicsSatellite"
@@ -2468,6 +2786,7 @@
 {
 "id":"scienceHuman",
 "title":"Early Human Spaceflight Era Science",
+"year":1961,
 "parents":[
 "scienceSatellite",
 "electronicsHuman"
@@ -2476,6 +2795,7 @@
 {
 "id":"scienceAdvCapsules",
 "title":"Interplanetary Era Science",
+"year":1964,
 "parents":[
 "scienceHuman",
 "electronicsAdvCapsules"
@@ -2484,6 +2804,7 @@
 {
 "id":"scienceLunar",
 "title":"Lunar Exploration Era Science",
+"year":1967,
 "parents":[
 "scienceAdvCapsules",
 "electronicsLunar"
@@ -2492,6 +2813,7 @@
 {
 "id":"surfaceScience",
 "title":"Surface Science",
+"year":1969,
 "parents":[
 "scienceLunar"
 ]
@@ -2499,6 +2821,7 @@
 {
 "id":"deepSpaceScience",
 "title":"Deep Space Science Experiments",
+"year":1972,
 "parents":[
 "surfaceScience",
 "electronicsSpaceStation"
@@ -2507,6 +2830,7 @@
 {
 "id":"scienceExploration",
 "title":"Exploration Era Science",
+"year":1981,
 "parents":[
 "deepSpaceScience",
 "electronicsSpaceplanes"
@@ -2515,6 +2839,7 @@
 {
 "id":"sampleReturnScience",
 "title":"Sample Return Science Experiments",
+"year":1986,
 "parents":[
 "scienceExploration",
 "electronicsLongTerm"
@@ -2523,6 +2848,7 @@
 {
 "id":"advancedScience",
 "title":"Advanced Science Experiments",
+"year":1997,
 "parents":[
 "sampleReturnScience",
 "electronicsInternational"
@@ -2531,6 +2857,7 @@
 {
 "id":"advancedSurfaceScience",
 "title":"Advanced Surface Experiments",
+"year":2009,
 "parents":[
 "advancedScience",
 "electronicsCommercial"
@@ -2539,6 +2866,7 @@
 {
 "id":"advModernScience",
 "title":"Advanced Modern Science",
+"year":2019,
 "parents":[
 "advancedSurfaceScience",
 "electronicsMatureCommercial"
@@ -2547,6 +2875,7 @@
 {
 "id":"scienceNF",
 "title":"Near Future Science",
+"year":2029,
 "parents":[
 "advModernScience",
 "electronicsNF"
@@ -2555,6 +2884,7 @@
 {
 "id":"colonization2051Science",
 "title":"2051-2099 Science",
+"year":2051,
 "parents":[
 "scienceNF",
 "electronicsColonization"
@@ -2563,6 +2893,7 @@
 {
 "id":"colonization2100Science",
 "title":"2100-2149 Science",
+"year":2100,
 "parents":[
 "colonization2051Science"
 ]
@@ -2570,6 +2901,7 @@
 {
 "id":"colonization2150Science",
 "title":"2150+ Science",
+"year":2150,
 "parents":[
 "colonization2100Science"
 ]

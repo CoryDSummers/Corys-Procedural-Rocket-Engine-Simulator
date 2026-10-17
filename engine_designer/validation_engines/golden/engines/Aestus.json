@@ -81,6 +81,26 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "19344.312246146477"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "4836.078061536619"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (nozzle)",
+"lever": "cooler extension: a higher-temperature extension material, nozzle film, extending regen (regen_nozzle_end_eps) or a thermal-barrier liner",
+"life_s": {
+"__f__": "19344.312246146477"
+},
+"margin": {
+"__f__": "0.9013653351756163"
+},
+"zone": "nozzle"
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.9510259855996903"
 },
@@ -351,6 +371,12 @@
 "category": "turbopump",
 "detail": "n/a - no turbopump (pressure-fed)",
 "name": "Feed-system pump plausibility",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 1110 s duty, life limit 19344 s",
+"name": "Rated burn time vs. life limit",
 "passed": true
 },
 {
@@ -2928,6 +2954,12 @@
 },
 "turbopump": null
 },
+"design_year": 1992,
+"design_year_source": "tech node orbitalRocketry1992",
+"duty_default_s": {
+"__f__": "1313.3701768253516"
+},
+"engine_role": "pressure_fed",
 "eps_for_transition": {
 "__f__": "6.0"
 },
@@ -3206,9 +3238,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -3396,6 +3425,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "1110.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -3442,7 +3474,10 @@
 "target_vac_thrust_n": {
 "__f__": "27800.0"
 },
-"tech_node": "",
+"tech_node": "orbitalRocketry1992",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.6"
 },
@@ -4168,8 +4203,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "156.75918872619417"
+"__f__": "1110.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "1110.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "8.641057130037276e-06"
 },

@@ -34,7 +34,8 @@ from matplotlib.figure import Figure
 
 from ..catalog import load_roengines_models, host_model_parts, host_native_height_m
 from ..export.cfg_writer import write_cfg, resolve_export
-from ..physics import (combustion, controller_tech, cooling, cost_model, cycles, flow_network,
+from ..physics import (burn_time, combustion, controller_tech, cooling, cost_model, cycles,
+                        flow_network,
                         ignition,
                         hatbands, injectors, materials, plumbing, reliability,
                         tech_tree,
@@ -609,18 +610,30 @@ class EngineDesignerApp:
         # pass - now follows "Cooling jacket flow topology" automatically:
         # design.REGEN_CIRCUIT_STYLE_BY_TOPOLOGY. No separate dropdown.)
 
-        # Ablative sections (chamber and/or nozzle extension) TARGET a burn time
-        # - a design input - which sizes each one's char-depth liner (SP-8124's
-        # 1.25 char-depth factor; the extension's tapers with local heat flux).
-        # The thicknesses themselves are outputs, shown read-only below.
+        # Rated burn time (2026-10-16, physics/burn_time.py): the DUTY the engine is
+        # qualified for (0 = the RealismOverhaul-corpus duty for its role / thrust /
+        # era), capped by the shortest physical life limit / 4. The table under the
+        # slider names each limit, what it allows and the design lever that raises it.
+        sec_burn = CollapsibleSection(tab_cooling, "Burn Time (duty & life)")
+        sec_burn.grid(row=cool_tab_row, column=0, columnspan=2, sticky="ew")
+        cool_tab_row += 1
+        bub = sec_burn.body_parent()
+        self.rated_target_var = tk.DoubleVar(value=self.design.rated_burn_time_target_s)
+        _bt_row = self._add_slider(bub, 0, "Duty target [s] (0 = RO default)",
+                                   self.rated_target_var, 0.0, 3000.0, decimals=0)
+        self.burn_limits_var = tk.StringVar(value="")
+        ttk.Label(bub, textvariable=self.burn_limits_var, wraplength=300, justify="left",
+                  foreground="#444444", font=("TkDefaultFont", 8)).grid(
+            row=_bt_row, column=0, columnspan=2, sticky="w")
+
+        # Ablative sections (chamber and/or nozzle extension) size a char-depth liner
+        # to that duty target (SP-8124's 1.25 char-depth factor; the extension's
+        # tapers with local heat flux). The thicknesses are outputs, shown read-only.
         sec_ablative = CollapsibleSection(tab_cooling, "Ablative Liner")
         sec_ablative.grid(row=cool_tab_row, column=0, columnspan=2, sticky="ew")
         cool_tab_row += 1
         abb = sec_ablative.body_parent()
-        self.ablative_target_burn_time_var = tk.DoubleVar(
-            value=self.design.ablative_target_burn_time_s)
-        _abl_row = self._add_slider(abb, 0, "Ablative target burn time [s]",
-                                    self.ablative_target_burn_time_var, 0.0, 600.0, decimals=0)
+        _abl_row = 0
         self.ablative_liner_readout_var = tk.StringVar(value="")
         ttk.Label(abb, textvariable=self.ablative_liner_readout_var, wraplength=260,
                   foreground="#666666").grid(row=_abl_row, column=0, columnspan=2, sticky="w")
@@ -1502,6 +1515,10 @@ class EngineDesignerApp:
         _field("Tech-transfer parent configs (comma list, optional)", self.ecm_parents_var,
                hint="Entry cost is discounted once you own these configs (RP-1 ENTRYCOSTMODS), "
                     "e.g. H-1-200K for an uprated H-1.")
+        self.tf_transfer_var = tk.StringVar(value=f"{self.design.testflight_transfer_pct:g}")
+        _field("TestFlight data inherited from those parents [%]", self.tf_transfer_var,
+               hint="Written as TESTFLIGHT techTransfer = parents:% (RO's usual value is 50; "
+                    "0 = none). Needs the parent configs above.")
         self.rp1_icon_var = tk.BooleanVar(value=self.design.rp1_tree_icon)
         ttk.Checkbutton(idb, text="Show the config as an icon in its tech node "
                                   "(config-on-host modes)",
@@ -2146,7 +2163,7 @@ class EngineDesignerApp:
             self.design.jacket_inlet_velocity_mult = self.jacket_inlet_vmult_var.get()
             self.design.cooling_transition_eps = self.cooling_transition_var.get()
             self.design.chamber_cooling_method = self.chamber_cooling_method_var.get()
-            self.design.ablative_target_burn_time_s = self.ablative_target_burn_time_var.get()
+            self.design.rated_burn_time_target_s = self.rated_target_var.get()
             self.design.nozzle_cooling_method = self.nozzle_cooling_method_var.get()
             self.design.regen_nozzle_end_eps = self.regen_nozzle_end_var.get()
             self.design.nozzle_liner_material_key = self.liner_display_to_key.get(
@@ -2245,6 +2262,10 @@ class EngineDesignerApp:
         self.design.new_part_description = self.new_part_desc_text.get("1.0", "end").strip()
         self.design.rp1_ecm_parents = self.ecm_parents_var.get().strip()
         self.design.rp1_tree_icon = bool(self.rp1_icon_var.get())
+        try:
+            self.design.testflight_transfer_pct = max(0.0, min(100.0, float(self.tf_transfer_var.get())))
+        except ValueError:
+            pass
         try:
             self.design.entry_cost = float(self.entry_cost_var.get())
         except ValueError:
@@ -3196,15 +3217,32 @@ class EngineDesignerApp:
         self._set_text(self.turbopump_details, "\n".join(tp_lines))
 
         ctrl_tech = controller_tech.CONTROLLER_TECHS[self.design.controller_tech_key]
-        is_ablative = materials.MATERIALS[self.design.material_key].cooling_method == "ablative"
+        # the RESOLVED chamber method, as export/cfg_writer does
+        is_ablative = (result["cooling"].get("chamber_cooling_method")
+                       or materials.MATERIALS[self.design.material_key].cooling_method) == "ablative"
         _rated, tested_burn_time_s = reliability.derived_burn_times(
             self.design, result, ctrl_tech, is_ablative=is_ablative)
-        rated_line = (f"Rated burn time: {result['rated_burn_time_s']:.0f} s "
-                      f"(ablative char-consumption limited)" if is_ablative else
-                      f"Rated burn time: {result['rated_burn_time_s']:.0f} s")
-        tested_line = ("Tested burn time: same as rated (ablative, no extra time)" if is_ablative else
-                       f"Tested burn time: {tested_burn_time_s:.0f} s "
-                       f"(x{tested_burn_time_s/max(result['rated_burn_time_s'],1e-9):.1f})")
+        _gov = result.get("rated_limited_by", "target")
+        rated_line = (f"Rated burn time: {result['rated_burn_time_s']:.0f} s (duty target "
+                      f"{result['rated_burn_time_target_s']:.0f} s"
+                      + (", carried)" if _gov == "target"
+                         else f", CAPPED by {_gov.replace('_', ' ')} - see Cooling > Burn Time)"))
+        if is_ablative:
+            tested_line = "Tested burn time: same as rated (ablative, no extra time)"
+        else:
+            _ratio = burn_time.tested_ratio(
+                result["design_year"], result["engine_role"] == "pressure_fed",
+                burn_time.is_restartable(self.design.ignitions), result["engine_role"] != "booster")
+            _lo, _hi = burn_time.tested_ratio_band(_ratio)
+            tested_line = (f"Tested burn time: {tested_burn_time_s:.0f} s "
+                           f"(x{tested_burn_time_s/max(result['rated_burn_time_s'],1e-9):.1f}; "
+                           f"RO engines like this: x{_lo:.1f}-x{_hi:.1f}, median x{_ratio:.1f}"
+                           + ("; held to the life limit" if result.get("burn_life_s", float("inf"))
+                              <= result["rated_burn_time_s"] * _ratio else "") + ")")
+        if getattr(self, "burn_limits_var", None) is not None:
+            self.burn_limits_var.set("\n".join(burn_time.limits_summary_lines(
+                result, tested_s=tested_burn_time_s,
+                target_is_auto=self.design.rated_burn_time_target_s <= 0)))
 
         # Cost estimate (physics/cost_model.py). Pushed into the export fields
         # unless the user has manually edited them (self._cost_overridden).
@@ -3375,7 +3413,7 @@ class EngineDesignerApp:
         self.stiffness_var.set(d.injector_stiffness)
         self.chamber_sizing_method_var.set(d.chamber_sizing_method)
         self.chamber_cooling_method_var.set(d.chamber_cooling_method)
-        self.ablative_target_burn_time_var.set(d.ablative_target_burn_time_s)
+        self.rated_target_var.set(d.rated_burn_time_target_s)
         self.nozzle_cooling_method_var.set(d.nozzle_cooling_method)
         self.regen_nozzle_end_var.set(d.regen_nozzle_end_eps)
         self.nozzle_liner_material_var.set(next(
@@ -3453,6 +3491,7 @@ class EngineDesignerApp:
         self.config_desc_var.set(d.config_description)
         self.ecm_parents_var.set(d.rp1_ecm_parents)
         self.rp1_icon_var.set(bool(d.rp1_tree_icon))
+        self.tf_transfer_var.set(f"{d.testflight_transfer_pct:g}")
         self.new_part_desc_text.configure(state="normal")
         self.new_part_desc_text.delete("1.0", "end")
         self.new_part_desc_text.insert("1.0", d.new_part_description)
@@ -3532,6 +3571,16 @@ class EngineDesignerApp:
                     "Costs re-estimated",
                     "This project was saved before the RP-1 cost re-fit: its cost / entry cost "
                     "were on the old scale and have been reset to the new estimate.")
+            if project_io.file_schema_version(path) < 22:
+                messagebox.showinfo(
+                    "Rated burn time is now a duty target",
+                    "Rated burn time is now the duty you target (Cooling > Burn Time; 0 = the "
+                    "RealismOverhaul median for this kind of engine), capped by the wall's "
+                    f"temperature life. This project's target: "
+                    f"{_loaded.rated_burn_time_target_s:.0f} s"
+                    + (" (auto)." if _loaded.rated_burn_time_target_s <= 0 else
+                       " (kept from its old ablative target).")
+                    + " Exported ratedBurnTime / testedBurnTime will differ from older exports.")
             self._load_into_gui(_loaded)
             self._current_project_path = path
             self._set_title()
