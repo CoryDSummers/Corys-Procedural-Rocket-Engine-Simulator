@@ -189,6 +189,7 @@ COOLANT_INLET_TEMP_K = {
     "Hydrazine": 290.0,
     "H2O2": 290.0,
 }
+alias_variants(COOLANT_INLET_TEMP_K)   # MON-x/MMH: same MMH at ambient
 # Turbopump Round 2: with EngineDesign.coolant_inlet_model "computed" (default) the
 # table above is only pass 1's seed - the jacket inlet becomes the fuel pump's
 # computed outlet temperature (design/suction_stage.pump_heating) on a second compute
@@ -211,6 +212,7 @@ OXIDIZER_INLET_TEMP_K = {
     "N2O4/UDMH": 290.0,
     "LOX/RP-1 (subcooled)": 66.0,     # densified LOX
 }
+alias_variants(OXIDIZER_INLET_TEMP_K)  # MON-x stored at ambient like N2O4
 CONTRACTION_RATIO_TYPICAL = (1.3, 6.0)
 LSTAR_TYPICAL_M = (0.02, 3.0)   # widened from (0.5, 3.0) - verified: a 100N-class thruster needs
                                 # L*~0.02m for a sane chamber aspect ratio, a 10kN-class needs

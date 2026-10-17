@@ -72,6 +72,7 @@ COOLANT_DENSITY_KG_M3 = {              # fuel density in the jacket (kept local 
     # chilled RP-1 at 266 K (has a coolant table; this is only the no-table path)
     "LOX/RP-1 (subcooled)": 831.9,
 }
+alias_variants(COOLANT_DENSITY_KG_M3)   # MON-x/MMH: same MMH coolant
 # Subcooled LOX/RP-1: same fuel, so the same limits/cp/transport (its density above
 # and its own coolant table differ).
 for _t in (MAX_COOLANT_DELTA_T_K, FUEL_CP_J_KGK, COOLANT_TRANSPORT):

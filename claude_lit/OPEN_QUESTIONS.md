@@ -395,6 +395,18 @@ into that and makes no claims about it.
       pairs with the physics densities rather than RO's resource densities
       (`RF_RESOURCE_DENSITY_KG_M3`), an in-game MR error <= 1 %. Switching changes every
       existing export - Cory's call.
+  - **MON variants 2026-10-16 (MON-3/10/25/MMH).**
+    - **N2O4/MMH efficiency spread.** One `ETA_CF` (0.9088, Aestus) gives AJ10-190 -6.3 %,
+      R-40 +1.5 %, TD-339 +3.2 % (identical on N2O4 or MON - not chemistry). AJ10-190's 316 s
+      at Pc 0.86 MPa / eps 55 would need ETA_CF ~0.97. Wanted: real OMS / R-4D / Surveyor-
+      vernier test Isp + nozzle data to tell a header-number problem from a real
+      size/Pc/cooling-dependent nozzle loss (the option-C kinetic/boundary-layer split).
+    - **Dissolved-NO enthalpy.** `NO(L)` = dHf N2O3(l) - 1/2 dHf N2O4(l) = 60.1 kJ/mol, heat
+      of mixing neglected, N2O3(l) value from CRC/NBS (not in `literature/`). Bounds move
+      MON-25 Isp up to 3.5 s. Wanted: a cited MON-x heat of formation (CPIA / Air Force
+      propellant handbook, or the CEA "MON-x" reactant definitions).
+    - **MON-1 for Aerozine-50.** RO's LMDE / LMAE / AJ10-137 / LE-3 burn A-50 with MON1
+      (~= NTO); a MON-1 variant of Aerozine-50/NTO would only change their export resource.
 
 ## Pending `ASSUMPTIONS.md` citation upgrades
 

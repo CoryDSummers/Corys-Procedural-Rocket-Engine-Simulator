@@ -4,6 +4,7 @@ Part of the physics/cooling/ package (split verbatim out of the former
 single-file cooling.py - see cooling/__init__.py for the package overview)."""
 import numpy as np
 
+from ..propellant_pairs import alias_variants
 from .profile import BARTZ_AREA_RATIO_EXPONENT, INJECTOR_FLUX_FRACTION, _local_area_ratio
 
 # Stefan-Boltzmann constant [W/m^2/K^4], for the radiation-cooled
@@ -144,6 +145,7 @@ BARTZ_ABS_FLUX_CALIBRATION = {
     "Hydrazine": 1.00,
     "H2O2": 1.00,
 }
+alias_variants(BARTZ_ABS_FLUX_CALIBRATION)   # MON-x/MMH -> N2O4/MMH
 _BARTZ_ABS_FLUX_CALIBRATION_FALLBACK = 1.00
 
 

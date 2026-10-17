@@ -342,7 +342,8 @@ def run_cooling_robustness_sweep():
     combos = [(p, ch, nz, "milled_channel", "channels")
               for p, ch, nz in itertools.product(combustion.available_pairs(), mats, mats)]
     combos += [(p, "regenerative", "regenerative", wc, model)
-               for p in ("LOX/RP-1", "LOX/LH2", "Aerozine-50/NTO", "N2O4/UDMH", "LOX/RP-1 (subcooled)")
+               for p in ("LOX/RP-1", "LOX/LH2", "Aerozine-50/NTO", "N2O4/UDMH", "LOX/RP-1 (subcooled)",
+                         "MON-3/MMH")
                for wc, model in itertools.product(cooling.WALL_CONSTRUCTIONS, ("flat", "channels"))]
     bad = []
     for pair, ch, nz, wc, model in combos:

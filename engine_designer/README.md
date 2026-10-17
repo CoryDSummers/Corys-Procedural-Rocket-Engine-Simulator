@@ -188,7 +188,8 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 ## What this tool covers
 
 - **Propellant pairs**: LOX/RP-1, **LOX/RP-1 (subcooled)**, LOX/LH2, **LOX/CH4**
-  (methalox), N2O4/MMH, Aerozine-50/NTO, **N2O4/UDMH** (storable hypergolics),
+  (methalox), N2O4/MMH with its **MON-3 / MON-10 / MON-25** variants,
+  Aerozine-50/NTO, **N2O4/UDMH** (storable hypergolics),
   **LOX/UDMH** (the RD-119 / RD-112 family), and two monopropellants —
   **Hydrazine** and **H2O2** (high-test peroxide) — no mixture ratio, one
   `PROPELLANT` block, always pressure-fed, decomposed over a catalyst bed
@@ -207,6 +208,11 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   efficiencies un-retuned, and reproduces Merlin 1D+ to +0.2 %. Its export uses RO's
   `CooledRP-1` / `CooledLqdOxygen`, and the new pairs' volume ratios use the game's
   own resource densities (`cfg_writer.RF_RESOURCE_DENSITY_KG_M3`).
+  The 2026-10-16 MON-x/MMH variants (N2O4 + 3/10/25 % NO, as AJ10-190, R-4D, Aestus
+  and TD-339 really burn) have their own tables and oxidizer densities and export
+  `MON3`/`MON10`/`MON25`, on N2O4/MMH's efficiencies: MON barely moves Isp
+  (<1 s), so AJ10-190 / R-40 / TD-339 (-6.3 / +1.5 / +3.2 %) are reported, not
+  gated - they show one Aestus-anchored efficiency's spread across MMH engines.
   The two monopropellants reuse the entire bipropellant pipeline via a deliberate
   trick (a single-point combustion table that always returns the same
   decomposition state) rather than a parallel code path — see
@@ -845,7 +851,7 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 
 ## What this tool does NOT cover (phase 2)
 
-- Propellant pairs beyond the current ten (e.g. HAN- or ADN-based "green"
+- Propellant pairs beyond the current thirteen (e.g. HAN- or ADN-based "green"
   monopropellants, LOX/ethanol, LOX/Syntin, 98% HTP as its own hotter pair).
   Subcooling is a fixed-temperature pair VARIANT ("LOX/RP-1 (subcooled)",
   `physics/propellant_pairs.py`), not a continuous propellant-temperature input:
