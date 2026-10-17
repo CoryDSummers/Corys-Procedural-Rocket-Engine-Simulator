@@ -233,6 +233,9 @@ touching any cooling number.** What changed structurally:
                                                      # roengines_models.json model-height
                                                      # snapshot (auto-finds upstream/ROEngines;
                                                      # falls back to ROENGINES_DIR/../ROEngines)
+   python3 -m engine_designer.catalog.build_roengines_plumes  # ROEngines Waterfall/RealPlume plume
+                                                     # per part + template-by-propellant / scale-per-
+                                                     # metre-of-exit / audio tables (roengines_plumes.json)
    python3 -m engine_designer.catalog.mmcfg     # tiny KSP/MM cfg parser the scrapers share
    python3 -m engine_designer.catalog.build_rp1_snapshot  # RP-1 tech nodes / engine part +
                                                      # config costs / ECM rows joined to RO configs
@@ -240,6 +243,7 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.catalog.build_testflight_corpus  # every RO TESTFLIGHT block (rated/
                                                      # tested burn time, reliabilities, cycle family,
                                                      # RP-1 era) -> testflight_corpus.json
+   python3 -m engine_designer.export.plume       # export plume: recolor template + k-ratio scale
    python3 -m engine_designer.export.cfg_writer  # 3 output-mode renders + brace/token checks,
                                                      # RP-1 gating, sanitizing, model variants
    python3 -m engine_designer.gui.schematic
@@ -621,3 +625,8 @@ TestFlight burn-time round = `testflight/burn-time` STACKED on `propellants/mon-
 first). Round A (corpus fits, duty target + wall-life cap, techTransfer) done; Round B (more
 life mechanisms - liner creep, coking, turbine blade, bearings, seals, coatings) waits on
 literature listed in `claude_lit/OPEN_QUESTIONS.md` and `claude_lit/topics/17-engine-life-and-duty.md`.
+Export plumes = `export/plumes` STACKED on `testflight/burn-time`, plan
+`plans/2026-10-16_export_plumes.md` (schema 23: `plume_mode` host / generated / none;
+`export/plume.py`, `catalog/build_roengines_plumes.py`; read README "Plume" first - Waterfall
+plume `scale` is a WORLD size that ignores rescaleFactor unless useRelativeScaling). Round P2
+(physically shaped plumes) waits on the plume literature in `claude_lit/OPEN_QUESTIONS.md`.

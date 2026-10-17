@@ -34,6 +34,7 @@ from matplotlib.figure import Figure
 
 from ..catalog import load_roengines_models, host_model_parts, host_native_height_m
 from ..export.cfg_writer import write_cfg, resolve_export
+from ..export.plume import PLUME_MODE_DISPLAY
 from ..physics import (burn_time, combustion, controller_tech, cooling, cost_model, cycles,
                         flow_network,
                         ignition,
@@ -105,6 +106,7 @@ OUTPUT_MODE_DISPLAY = {
     "new_part_standalone": "New standalone part (borrow host model)",
 }
 OUTPUT_MODE_FROM_DISPLAY = {v: k for k, v in OUTPUT_MODE_DISPLAY.items()}
+PLUME_MODE_FROM_DISPLAY = {v: k for k, v in PLUME_MODE_DISPLAY.items()}
 
 # Fixed display order for the Checklist tab's category groups - a category
 # with no applicable checks for the current cycle/injector (e.g. "expander"
@@ -1404,6 +1406,17 @@ class EngineDesignerApp:
             list(OUTPUT_MODE_DISPLAY.values()),
             OUTPUT_MODE_DISPLAY[self.design.output_mode], width=34)
 
+        # --- exhaust plume (export/plume.py): the host's ROEngines plume recolored to
+        # this propellant, or one generated from the design; preview below.
+        h_row = self._add_dropdown(
+            hb, h_row, "Plume", "plume_mode_var",
+            list(PLUME_MODE_DISPLAY.values()),
+            PLUME_MODE_DISPLAY.get(self.design.plume_mode, PLUME_MODE_DISPLAY["host"]), width=34)
+        self.plume_preview = ttk.Label(hb, text="", foreground="#606060", wraplength=330,
+                                       justify="left")
+        self.plume_preview.grid(row=h_row, column=0, columnspan=2, sticky="w")
+        h_row += 1
+
         ttk.Label(hb, text="Host model reference height [m] (0 = auto from ROEngines data)").grid(
             row=h_row, column=0, columnspan=2, sticky="w")
         h_row += 1
@@ -2210,6 +2223,8 @@ class EngineDesignerApp:
             self.design.target_vac_thrust_n = float(self.thrust_var.get()) * 1e3
             self.design.output_mode = OUTPUT_MODE_FROM_DISPLAY.get(
                 self.output_mode_var.get(), self.design.output_mode)
+            self.design.plume_mode = PLUME_MODE_FROM_DISPLAY.get(
+                self.plume_mode_var.get(), self.design.plume_mode)
             try:
                 self.design.host_model_reference_height_m = max(
                     0.0, float(self.host_ref_height_var.get()))
@@ -2366,7 +2381,8 @@ class EngineDesignerApp:
         if self.last_result is None or not hasattr(self, "export_notes"):
             return
         try:
-            ex = resolve_export(self.design, self.last_result)
+            ex = resolve_export(self.design, self.last_result,
+                                model_scale=self._compute_model_scale())
         except Exception as exc:     # never let a preview break the GUI
             ex = {"issues": [f"(export preview failed: {exc})"]}
         if "config_name" in ex:
@@ -2387,6 +2403,8 @@ class EngineDesignerApp:
                 text=f"{split}.  Estimate {est['cost']} / entry {est['entry_cost']} "
                      f"(fit to RP-1's own engines, ~x1.7 scatter)"
                      + ("" if not self._cost_overridden else " - fields overridden"))
+        if "plume" in ex and hasattr(self, "plume_preview"):
+            self.plume_preview.configure(text=f"plume: {ex['plume']['summary']}")
         self._set_text(self.export_notes, "\n".join(f"- {i}" for i in ex["issues"]) or "(none)")
 
     def _on_xray_change(self):
@@ -3441,6 +3459,7 @@ class EngineDesignerApp:
         self.flange_bolt_count_var.set(float(d.flange_bolt_count))
         self.regen_channel_model_var.set(d.regen_channel_model)
         self.output_mode_var.set(OUTPUT_MODE_DISPLAY.get(d.output_mode, self.output_mode_var.get()))
+        self.plume_mode_var.set(PLUME_MODE_DISPLAY.get(d.plume_mode, self.plume_mode_var.get()))
         if d.host_model_engine_type in host_type_to_disp:
             self.host_var.set(host_type_to_disp[d.host_model_engine_type])
 
@@ -3593,7 +3612,7 @@ class EngineDesignerApp:
             return
         self._on_export_field_change()
         d = self.design
-        ex = resolve_export(d, self.last_result)
+        ex = resolve_export(d, self.last_result, model_scale=self._compute_model_scale())
         if ex["issues"] and not messagebox.askokcancel(
                 "Export notes",
                 "The export will be written, but check these first:\n\n"

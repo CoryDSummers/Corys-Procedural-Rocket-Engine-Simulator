@@ -802,6 +802,45 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   unknown host cost or variant shows in the live **Export notes** box and in a
   Continue/Cancel dialog on export - warn-only. Tech-node suggestions are labelled
   with RP-1's own node titles (`physics/tech_tree.py` + the snapshot).
+- **Plume** (Model tab → "Plume", `export/plume.py`, 2026-10-16;
+  `EngineDesign.plume_mode`). Before this a standalone clone had NO plume: ROEngines
+  attaches plumes by part NAME (`@PART[ROE-xxx]:BEFORE[ROWaterfall]` /
+  `:BEFORE[RealPlume]`), a later pass than the `:BEFORE[RealismOverhaulEngines]` clone.
+  RO's processor (`RealismOverhaul/Waterfall_Configs/_Processor/`) builds the Waterfall
+  module for ANY part with a `ROWaterfall` node from `:FOR[ROWaterfall]` on, so the
+  export now writes that node itself.
+  - *Host plume, recolored* (default): the host part's own ROWaterfall values
+    (`catalog/roengines_plumes.json`, scraped from ROEngines `Waterfall/` +
+    `RealPlume/` by `catalog/build_roengines_plumes.py`). Same propellant family →
+    verbatim. Different family → the template + glow ROEngines uses most for real
+    engines of that family and role (sea-level vs vacuum nozzle), rescaled by
+    k_new / k_old (below); its ExtraTemplates are dropped. Without Waterfall the
+    host's RealPlume PLUMEs are written verbatim (not recolored).
+  - *Generated from design*: template from the propellant family + nozzle regime
+    (Isp_sl / Isp_vac > 0.80 and attached at sea level → the "lower" template),
+    `scale` = k_template × the computed exit diameter, audio from the cycle
+    (pressure-fed) or thrust (pump-fed bands fitted on ROEngines' own audio vs real
+    thrust), on the host model's plume anchor (transform + position). The plume
+    then matches the DESIGNED nozzle, not the borrowed model's.
+  - *None*: no plume written.
+  - **k_template** = plume `scale` per metre of exit diameter, fitted per template
+    over the ROEngines parts whose RO config header gives thrust / Pc / eps (exit
+    diameter from At = F / (Pc CF_vac), γ 1.2). Templates are NOT scale-compatible
+    (kerolox-lower-1 0.85 vs kerolox-upper-3 2.26 per metre). Against RO's own 23
+    hand-tuned MainPlumeVariants the k-ratio recolor misses by a median 17 %
+    (keeping the donor scale: 68 %), reported by the scraper.
+  - **Scale convention** (Waterfall `WaterfallEffect.InitializeEffect`): an effect
+    is parented with `SetParent(parent, true)`, so its world size is `scale` and
+    ignores the part's `rescaleFactor` unless `useRelativeScaling = true`; position is
+    local and follows the model. A rescaled copy therefore multiplies a non-relative
+    plume's scale by the model scale.
+  - In *Additional CONFIG* / *rescale in place* the host keeps its own plume; a
+    recolored, generated or rescaled one is added the way RO does it per config: a
+    `MainPlumeVariant` on the host's ROWaterfall (`:AFTER[ROWaterfall]`) +
+    `%rowaterfallVariant` on this CONFIG (needs Waterfall + B9PartSwitch).
+  - Not modelled yet (Round P2): a physically SHAPED plume - expansion with altitude
+    from the lip's Prandtl-Meyer turn, shock-cell spacing, afterburning / soot colour -
+    needs Waterfall's base templates and plume literature (`claude_lit/OPEN_QUESTIONS.md`).
 - **Checklist tab**: every design check's pass/warn status (not just
   currently-failing ones), grouped by category in a `ttk.Treeview`, with
   plain PASS/WARN text (not color alone) for accessibility.
