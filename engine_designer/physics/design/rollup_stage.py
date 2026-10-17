@@ -4,7 +4,7 @@ Split verbatim out of the former single-file design.py; a value shared
 between stages lives on the PassState `s` (see design/state.py)."""
 import numpy as np
 
-from .. import (combustion, cycles, electric_pump, gimbal, ignition, injectors,
+from .. import (burn_time, combustion, cycles, electric_pump, gimbal, ignition, injectors,
                 manifold, mass_model, materials, turbopump_intent)
 from .constants import (
     PA_SEA_LEVEL,
@@ -13,26 +13,29 @@ from .constants import (
     OXIDIZER_INLET_TEMP_K,
     CONTRACTION_RATIO_TYPICAL,
     LSTAR_TYPICAL_M,
-    BASE_RATED_BURN_TIME_S,
-    RATED_TIME_MARGIN_MULT_MIN,
-    RATED_TIME_MARGIN_MULT_MAX,
 )
 from .checklist import _check
 
 
 def burn_time_and_mass(self, s):
     """Rated burn time, electric-pump battery/motor, injector plate, dry-mass rollup."""
-    # Rated burn time: ablative chambers TARGET a burn time (ablative_target_burn_time_s,
-    # a design input) rather than deriving one. That target sizes a real, independent
-    # char-depth liner thickness (mass_model.ablative_liner_thickness_m, SP-8124's 1.25
-    # char-depth safety factor) - the sacrificial material genuinely consumed over the
-    # burn - separate from the hoop-stress wall thickness, which now correctly sizes the
-    # STRUCTURAL OVERWRAP behind that liner (matching refrasil_phenolic's real documented
-    # 3-layer liner+insulation+overwrap construction) rather than standing in for the
-    # liner itself, as it used to (see ASSUMPTIONS.md for the gap this replaces). Every
-    # other material scales a flat baseline by chamber thermal margin instead (see
-    # BASE_RATED_BURN_TIME_S's comment above). Computed before the dry-mass sum because
-    # the electric pump-fed cycle's battery mass scales with it.
+    # Rated burn time (2026-10-16, physics/burn_time.py): the DUTY the engine is
+    # qualified for = EngineDesign.rated_burn_time_target_s (0 = the RO-corpus duty
+    # for this role / thrust / era), capped by the shortest physical life limit /
+    # burn_time.LIFE_FACTOR. Ablative walls size a real, independent char-depth
+    # liner (mass_model.ablative_liner_thickness_m, SP-8124's 1.25 char-depth
+    # factor) to the target - the sacrificial material genuinely consumed over the
+    # burn - behind the hoop-sized STRUCTURAL OVERWRAP (refrasil_phenolic's real
+    # 3-layer construction), so they carry it by construction; every other wall's
+    # life comes from its temperature margin (burn_time.thermal_life_s). Computed
+    # before the dry-mass sum because the electric pump-fed battery scales with it.
+    s.engine_role = burn_time.engine_role(s.isp_vac_eng, s.isp_sl_eng,
+                                          self.cycle == cycles.PRESSURE_FED)
+    s.design_year, s.design_year_source = burn_time.design_year(self)
+    s.duty_default_s = burn_time.default_duty_s(s.engine_role, s.thrust_vac / 1e3, s.design_year)
+    s.duty_target_s = (self.rated_burn_time_target_s if self.rated_burn_time_target_s > 0
+                       else s.duty_default_s)
+    s.burn_time_limits = []
     s.ablative_liner_thickness_m = 0.0
     s.ablative_liner_mass_kg = 0.0
     if s.chamber_cooling == "ablative":
@@ -43,21 +46,33 @@ def burn_time_and_mass(self, s):
         # film's throat flux multiplier scales the rate (Tier 3 - direction
         # sound, magnitude unanchored). No chamber film -> x1.0, unchanged.
         consumption_rate_m_s *= float(s.film_phi[s._throat_idx])
-        s.rated_burn_time_s = self.ablative_target_burn_time_s
         s.ablative_liner_thickness_m = mass_model.ablative_liner_thickness_m(
-            consumption_rate_m_s, self.ablative_target_burn_time_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
+            consumption_rate_m_s, s.duty_target_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
         s.ablative_liner_mass_kg = mass_model.constant_thickness_shell_mass_kg(
             s.body_xs, s.body_rs, s.ablative_liner_thickness_m, s.chamber_material.density_kg_m3)
         s.chamber_wall_mass_kg += s.ablative_liner_mass_kg  # existing hoop-stress mass
                                                              # (structure_stage.wall_structure)
                                                              # is now the OVERWRAP, not the liner
+        s.burn_time_limits.append({
+            "key": "chamber_char", "label": "Ablative chamber char depth", "life_s": None,
+            "lever": "liner is sized to the duty target ([SP-8124] x1.25 char depth) - a "
+                     "longer target costs liner thickness and mass"})
     else:
         # the WORST of the throat row and the full-length peak row (the throat
         # alone used to set it even when another station ran hotter - audit W7)
-        _margin = min(s.margin["margin_ratio"], s.peak_wall_margin_ratio or float("inf"))
-        margin_mult = _margin / materials.THIN_MARGIN_THRESHOLD
-        margin_mult = max(RATED_TIME_MARGIN_MULT_MIN, min(RATED_TIME_MARGIN_MULT_MAX, margin_mult))
-        s.rated_burn_time_s = BASE_RATED_BURN_TIME_S * margin_mult
+        _peak = s.peak_wall_margin_ratio
+        _margin = min(s.margin["margin_ratio"], _peak or float("inf"))
+        _zone = (s.peak_wall_temp_zone if _peak is not None and _peak < s.margin["margin_ratio"]
+                 else "throat")
+        _lever = ("cooler extension: a higher-temperature extension material, nozzle film, "
+                  "extending regen (regen_nozzle_end_eps) or a thermal-barrier liner"
+                  if _zone == "nozzle" else
+                  "cooler chamber wall: chamber material, coolant velocity / channels, "
+                  "chamber film (or a convergent film ring), or a lower Pc")
+        s.burn_time_limits.append({
+            "key": "wall_temperature", "label": f"Hot-wall temperature margin ({_zone})",
+            "margin": _margin, "zone": _zone,
+            "life_s": burn_time.thermal_life_s(s.duty_default_s, _margin), "lever": _lever})
 
     # Ablative NOZZLE EXTENSION: the same char-depth sizing, per station. The
     # char rate is the throat-referenced material rate scaled by the local
@@ -79,11 +94,29 @@ def burn_time_and_mass(self, s):
                          or materials.ABLATIVE_CONSUMPTION_RATE_M_S)
             rate_ext = base_rate * np.interp(s.ext_xs, s.xs, q_abl) / q_ref
             s.ext_ablative_liner_thickness_m = mass_model.ablative_liner_thickness_m(
-                rate_ext, self.ablative_target_burn_time_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
+                rate_ext, s.duty_target_s, materials.CHAR_DEPTH_SAFETY_FACTOR)
             s.ext_ablative_liner_mass_kg = mass_model.constant_thickness_shell_mass_kg(
                 s.ext_xs, s.ext_rs, s.ext_ablative_liner_thickness_m, s.bell_material.density_kg_m3)
             s.bell_wall_mass_kg += s.ext_ablative_liner_mass_kg
-        s.rated_burn_time_s = min(s.rated_burn_time_s, self.ablative_target_burn_time_s)
+        s.burn_time_limits.append({
+            "key": "extension_char", "label": "Ablative nozzle-extension char depth",
+            "life_s": None,
+            "lever": "extension liner is sized to the duty target - a longer target "
+                     "costs liner mass"})
+    s.rated_burn_time_s, s.burn_life_s, _gov = burn_time.rated_and_limits(
+        s.duty_target_s, s.duty_default_s, s.burn_time_limits)
+    s.rated_limited_by = _gov["key"] if _gov else "target"
+    for _lim in s.burn_time_limits:
+        _lim["allowable_rated_s"] = (None if _lim["life_s"] is None
+                                     else _lim["life_s"] / burn_time.LIFE_FACTOR)
+    _check(s.checklist, s.warnings, "cooling", "Rated burn time vs. life limit",
+           _gov is None,
+           (f"Duty target {s.duty_target_s:.0f} s exceeds what the hardware supports with a "
+            f"x{burn_time.LIFE_FACTOR:.0f} life factor: rated burn time capped at "
+            f"{s.rated_burn_time_s:.0f} s by {_gov['label'].lower()} (life "
+            f"{s.burn_life_s:.0f} s). {_gov['lever'][:1].upper()}{_gov['lever'][1:]}." if _gov else ""),
+           f"OK - {s.rated_burn_time_s:.0f} s duty"
+           + (f", life limit {s.burn_life_s:.0f} s" if s.burn_life_s != float("inf") else ""))
 
     # Render the ablative liners as part of the wall (these thickness arrays are
     # read only by the 3D preview): the hoop-sized overwrap + the sacrificial liner.
@@ -369,6 +402,14 @@ def checks_and_result(self, s):
         "jacket_thermal_stress_pa": s.jacket_thermal_stress_pa,
         "computed_dry_mass_kg": s.computed_dry_mass_kg,
         "rated_burn_time_s": s.rated_burn_time_s,
+        "rated_burn_time_target_s": s.duty_target_s,
+        "duty_default_s": s.duty_default_s,
+        "burn_life_s": s.burn_life_s,
+        "rated_limited_by": s.rated_limited_by,
+        "burn_time_limits": s.burn_time_limits,
+        "engine_role": s.engine_role,
+        "design_year": s.design_year,
+        "design_year_source": s.design_year_source,
         "ablative_liner_thickness_m": s.ablative_liner_thickness_m,
         "ablative_liner_mass_kg": s.ablative_liner_mass_kg,
         "nozzle_liner_mass_kg": s.nozzle_liner_mass_kg,

@@ -30,6 +30,13 @@ PUMPED_PROPELLANTS = {
     "LOX/CH4": ("CH4", "LOX"),
     "N2O4/MMH": ("MMH", "N2O4"),
     "Aerozine-50/NTO": ("A-50", "N2O4"),
+    "LOX/UDMH": ("UDMH", "LOX"),
+    "N2O4/UDMH": ("UDMH", "N2O4"),
+    "LOX/RP-1 (subcooled)": ("RP-1", "LOX"),
+    # MON-x: no saturation table (storable, like N2O4) - the name only labels tanks
+    "MON-3/MMH": ("MMH", "MON-3"),
+    "MON-10/MMH": ("MMH", "MON-10"),
+    "MON-25/MMH": ("MMH", "MON-25"),
     "Hydrazine": ("N2H4", ""),
     "H2O2": ("", "H2O2"),
 }
@@ -37,6 +44,26 @@ PUMPED_PROPELLANTS = {
 # saturated at 1 atm (its normal boiling point); anything else sits at ambient.
 CRYOGEN_NBP_MAX_K = 250.0
 AMBIENT_STORAGE_K = 293.15
+# ...unless the PAIR fixes its propellants' state: a subcooled variant's "auto"
+# is its densified temperature, (fuel K, ox K). Falcon 9 FT practice, ~-7 C RP-1
+# / ~-207 C LOX - ASSUMPTIONS.md "Subcooled LOX/RP-1". Must match
+# design/constants.py COOLANT_INLET_TEMP_K / OXIDIZER_INLET_TEMP_K.
+PAIR_AUTO_PROPELLANT_TEMP_K = {
+    "LOX/RP-1 (subcooled)": (266.0, 66.0),
+}
+
+
+def auto_propellant_temp_k(pair, leg, prop):
+    """The "0 = auto" tank/inlet temperature of one pumped leg ("fuel"/"ox"): the
+    pair's fixed subcooled state if it has one, else NBP for a cryogen with
+    saturation data, else ambient."""
+    fixed = PAIR_AUTO_PROPELLANT_TEMP_K.get(pair)
+    if fixed is not None:
+        return fixed[0] if leg == "fuel" else fixed[1]
+    if prop and thermo_tables.has_saturation(prop):
+        nbp = thermo_tables.saturation_temperature(prop, 101_325.0)
+        return nbp if nbp < CRYOGEN_NBP_MAX_K else AMBIENT_STORAGE_K
+    return AMBIENT_STORAGE_K
 # Boost-pump drive efficiency (drive-turbine shaft power / the hydraulic power it
 # takes from the main pump), [SSME-Orientation p.52-71] Key Performance
 # Parameters at NPL: LPOTP hydraulic turbine 67.7 %, LPFTP gas turbine 58.0 %.
@@ -67,13 +94,7 @@ def pump_suction(self, s):
                                  ("ox", names[1], s.rho_ox, s.mdot - mdot_fuel)):
         has_vp = bool(prop) and thermo_tables.has_saturation(prop)
         t_user = float(getattr(self, f"propellant_temp_{leg}_k") or 0.0)
-        if t_user > 0:
-            t_k = t_user
-        elif has_vp:
-            nbp = thermo_tables.saturation_temperature(prop, 101_325.0)
-            t_k = nbp if nbp < CRYOGEN_NBP_MAX_K else AMBIENT_STORAGE_K
-        else:
-            t_k = AMBIENT_STORAGE_K
+        t_k = t_user if t_user > 0 else auto_propellant_temp_k(self.propellant_pair, leg, prop)
         sat = thermo_tables.saturation(prop, t_k) if has_vp else None
         p_v = sat["p_sat_pa"] if sat else 0.0
         p_tank = float(getattr(self, f"tank_pressure_{leg}_pa") or 0.0) or TANK_HEAD_PA

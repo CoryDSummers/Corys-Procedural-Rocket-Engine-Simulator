@@ -15,7 +15,8 @@ has run the GUI. Approved plan below, then the checklist and the as-built deviat
 - [x] C9 free mount (hand-set height + offset, clearance warn row), `turbopump_head_offset_m` -> `turbopump_offset_m`, + `turbopump_height_m`; corpus = input-key rename + addition only, report `2026-10-01_e1_free_mount_before_after.txt`, re-snapshot (3594e6b) - Cory 2026-10-01: "I meant for the turbopump to be able be adjusted higher than the combustion chamber"; chose free height + sideways, keep the head mount
 - [x] C10 GUI: free in the mount dropdown, height + shared offset sliders sized to the engine, seed-on-switch (c4c373c) - syntax/import-checked + handlers stub-tested only
 - [x] C11 docs (ASSUMPTIONS row, README, CLAUDE.md, TURBOPUMP_FLOW, this copy)
-- [ ] Cory GUI test: placement sliders, main 3D view, Shape Lab "Route to pump", RS-29.json, mount dropdown / roll / flip / offset, free mount height / offset sliders + seeding + clash warn row
+- [x] Cory GUI test (2026-10-01, "everything is good now"): placement sliders, main 3D view, Shape Lab "Route to pump", RS-29.json, mount dropdown / roll / flip / offset, free mount height / offset sliders + seeding + clash warn row
+- [x] Merged main (#26 Section tab, 2026-10-01; #29-#33, 2026-10-17): schema renumbered 20 -> 24 (main took 21-23 and skipped 20), corpus re-snapshotted (3-way check: every value matches the side that changed it)
 - [ ] Rest of E1 (deferred): mounting struts/brackets + mass, clash check incl. gimbal sweep
 
 ## As built (deviations from the plan)

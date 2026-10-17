@@ -170,6 +170,8 @@ touching any cooling number.** What changed structurally:
    python3 -m engine_designer.physics.isentropic
    python3 -m engine_designer.physics.nozzle_shapes
    python3 -m engine_designer.physics.geometry3d
+   python3 -m engine_designer.physics.propellant_pairs  # pair VARIANTS (subcooled LOX/RP-1) ->
+                                                     # base-pair aliasing of per-pair constants
    python3 -m engine_designer.physics.combustion
    python3 -m engine_designer.physics.thermo_tables  # baked equilibrium/coolant/saturation tables
                                                      # load + sanity (mass balance, gamma trend,
@@ -192,6 +194,9 @@ touching any cooling number.** What changed structurally:
                                                      # back pressure (turbine PR), exhaust Isp, HX
    python3 -m engine_designer.physics.electric_pump
    python3 -m engine_designer.physics.reliability
+   python3 -m engine_designer.physics.burn_time      # rated = duty target capped by wall life / 4;
+                                                     # RO-corpus duty + tested/rated fits (re-fit
+                                                     # from testflight_corpus.json and pinned)
    python3 -m engine_designer.physics.cost_model
    python3 -m engine_designer.physics.turbopump_materials
    python3 -m engine_designer.physics.turbopump_efficiency
@@ -209,8 +214,12 @@ touching any cooling number.** What changed structurally:
                                                      # stream temperature along feed line ->
                                                      # rings -> jacket pass(es) -> injector, +
                                                      # hot gas (Tc + isentropic static T)
-   python3 -m engine_designer.physics.validate      # the important one - 7 real engines
-                                                     # (incl. Raptor-2 methalox, Sprite HTP),
+   python3 -m engine_designer.physics.validate      # the important one - 13 real engines
+                                                     # (incl. Raptor-2 methalox, Sprite HTP,
+                                                     # RD-119/RD-112 LOX/UDMH, RD-253/RD-0210
+                                                     # N2O4/UDMH, Merlin 1D+ subcooled; RD-111A
+                                                     # and the MON-x/MMH AJ10-190/R-40/TD-339/
+                                                     # Aestus rows reported only - `gated=False`),
                                                      # both isolated and full-pipeline;
                                                      # also GG-bleed, wall-heat-flux (Bartz
                                                      # h_g + computed wall temp), injector-
@@ -224,7 +233,19 @@ touching any cooling number.** What changed structurally:
                                                      # roengines_models.json model-height
                                                      # snapshot (auto-finds upstream/ROEngines;
                                                      # falls back to ROENGINES_DIR/../ROEngines)
-   python3 -m engine_designer.export.cfg_writer  # 3 output-mode renders + brace/token checks
+   python3 -m engine_designer.catalog.build_roengines_plumes  # ROEngines Waterfall/RealPlume plume
+                                                     # per part + template-by-propellant / scale-per-
+                                                     # metre-of-exit / audio tables (roengines_plumes.json)
+   python3 -m engine_designer.catalog.mmcfg     # tiny KSP/MM cfg parser the scrapers share
+   python3 -m engine_designer.catalog.build_rp1_snapshot  # RP-1 tech nodes / engine part +
+                                                     # config costs / ECM rows joined to RO configs
+                                                     # (rp1_snapshot.json; auto-finds upstream/RP-1)
+   python3 -m engine_designer.catalog.build_testflight_corpus  # every RO TESTFLIGHT block (rated/
+                                                     # tested burn time, reliabilities, cycle family,
+                                                     # RP-1 era) -> testflight_corpus.json
+   python3 -m engine_designer.export.plume       # export plume: recolor template + k-ratio scale
+   python3 -m engine_designer.export.cfg_writer  # 3 output-mode renders + brace/token checks,
+                                                     # RP-1 gating, sanitizing, model variants
    python3 -m engine_designer.gui.schematic
    python3 -m engine_designer.gui.preview3d          # matplotlib 3D preview (kept as fallback)
    python3 -m engine_designer.gui.preview3d_gl_core  # OpenGL preview's pure-numpy mesh/camera/
@@ -281,8 +302,8 @@ touching any cooling number.** What changed structurally:
    and "ALL FILM-OVERLAY CHECKS OK" (two-site post-jacket film overlay - plausibility incl. an
    [EUCASS-2023] regen+7%-film analog, not a spot check; both 2026-09-23) and "ALL PUMP
    PRESSURE-CHAIN CHECKS OK" (solved staged-combustion power balance vs SSME/RD-0124/NK-33 +
-   RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (193
-   pair x method x construction combos compute finite + converged - the cooling audit's
+   RL10 expander discharge/Pc, 2026-09-23) and "ALL COOLING ROBUSTNESS CHECKS OK" (361
+   pair x method x construction combos since the 2026-10-16 MON variants (280 after the 2026-10-15 pairs, 193 before) compute finite + converged - the cooling audit's
    crash/NaN guard, 2026-09-23) and "ALL TURBINE-EXHAUST CHECKS OK" (H-1 back pressure/aspirator
    slot, F-1 exhaust-Isp pin, LR-91/tripropellant plausibility, closed-cycle guard, 2026-09-24;
    F-1 back pressure / GG share / duct bore [F1-Man] + J-2 gas-film slot area + F-1 scroll
@@ -306,8 +327,12 @@ touching any cooling number.** What changed structurally:
    CHECKS OK" (tap-off accuracy round, 2026-09-26: STBE-like LOX/CH4 tap-off total turbine flow
    vs the P&W study's 132/2462 lbm/s within 25 %, 1,000 K at 0.955 x Pc, legacy/LH2 unchanged,
    Tin direction, kerolox mixer, turbine blade/disk split vs the real F-1 hardware;
-   `validate/tap_off_checks.py`)
-   (32 banners
+   `validate/tap_off_checks.py`) and "ALL BURN-TIME CHECKS OK" (TestFlight burn-time round,
+   2026-10-16: every real corpus engine carries its real RO ratedBurnTime uncapped by the wall-
+   temperature life cap - the anchor THERMAL_LIFE_MARGIN_REF was reverse-solved on them -, life
+   follows the hottest station, a target past the life is capped + flagged, ablative carries its
+   target; `validate/burn_time_checks.py`)
+   (33 banners
    total - the old "15" here had drifted stale;
    `python3 -m engine_designer.physics.validate | grep -c '^ALL'` is the quick count).
 
@@ -385,7 +410,7 @@ one status/Edit/Clear row per `plumbing.HOSTS` entry, labels/hints/roles in `HOS
 per-ring manifold sizing sliders (fuel / ox / jacket inlet groups); runs are seeded from `default_run_for_host` = the old auto-drawn
 jacket-inlet duct), drawn by `gui/mesh_builder.build_plumbing_pieces` in BOTH the Lab and the main
 3D preview, where a baked jacket_inlet run replaces the legacy auto duct; the Lab also ghosts the
-turbopump (placed by `geometry3d.turbopump_placement` - roadmap E1, schema 20: user
+turbopump (placed by `geometry3d.turbopump_placement` - roadmap E1, schema 24: user
 `turbopump_azimuth_deg` / `_axial_station_frac` / `_standoff_m` / `_shaft_orientation` (axial |
 tangential | radial) / `_roll_deg` / `_shaft_flip` / `_mount` (side | head | free) / `_offset_m`
 / `_height_m`;
@@ -515,9 +540,19 @@ for convenience but never redistributed - only derived numbers ever leave it, pe
 CC BY-NC-ND license), `gui/` (Tkinter shell + File menu w/ Ctrl+S/O/N/E + matplotlib 2D
 schematic w/ cooling overlay + a side-view injector block on the chamber head, 3D view with
 a domed injector cap, a face-on Injector Face tab, and a 2D turbopump systems diagram),
-`export/` (`cfg_writer.render_cfg` renders to RF `.cfg` text; `output_mode` =
+`export/` (`cfg_writer.render_cfg` renders to RF `.cfg` text - **read README "Export" first**:
+it has the verified KSP/MM/RealFuels/RP-1 meaning of every exported field (config name = the
+global RF/RP-1/TestFlight key, CONFIG `cost` is a DELTA on the part cost, a CONFIG-level
+`entryCost` is NEVER read - entry cost is an `ENTRYCOSTMODS` row, a standalone clone needs RP-1
+PART-level `TechRequired`/`cost`/`RP0conf`/ModuleTagList or RP-1 relabels it "non RP-0");
+`resolve_export` resolves + sanitizes every identity / RP-1 value and lists warn-only
+`export_issues`; `physics/cost_model.py` = the ABSOLUTE engine cost fitted to RP-1's own prices
+(`catalog/rp1_snapshot.json`); host part + B9PartSwitch model variant (`EngineDesign.
+host_model_part` / `host_model_variants` -> `LinkB9PSModule`, scraped into
+`roengines_models.json` `variants` / `alt_parts`, height via `catalog.host_native_height_m`);
+`output_mode` =
 `additional_config` (default, append a CONFIG to the host part - unchanged),
-`new_part_in_place` (+ a `@rescaleFactor` patch), or `new_part_standalone` (a `+PART` copy
+`new_part_in_place` (+ a `@rescaleFactor` patch), or `new_part_standalone` (a `+PART[<one named host part>]` copy
 that borrows the host model rescaled, own `#engineType`/gating, `origMass`-pinned mass -
 generated `TR341_Config.cfg`); uniform model scale = design length / host native height).
 
@@ -527,7 +562,7 @@ generated `TR341_Config.cfg`); uniform model scale = design length / host native
 is the distilled, cited reference actually consulted when trusting or adding physics in
 `engine_designer/`. **Read `claude_lit/README.md` first** — it has the citation-key table
 (one row per source, tagged `[Huzel]`/`[Sutton]`/`[Bazarov]`/etc.), the topic-file index
-(16 files under `claude_lit/topics/`, one per physics domain — injectors, cooling, engine
+(19 files under `claude_lit/topics/`, one per physics domain — injectors, cooling, engine
 cycles, turbopumps, materials, combustion stability, ...) and the lookup-budget rules
 (section-targeted reads, 40 KB topic-file cap). `claude_lit/PROVENANCE.md` records when each
 source was extracted and by what method (moved out of the README index 2026-09-22). `claude_lit/sources/*.md` has
@@ -589,3 +624,26 @@ the stacked PRs #18-#20 had merged into each other's branches, leaving main at R
 round, merge bottom-up and retarget the child PR to main first). Tap-off accuracy round =
 `turbopump/tapoff-accuracy` off main, plan `plans/2026-09-26_tapoff_accuracy.md`, PR #22.
 Turbopump Section tab = `turbopump/section-view` off main, plan `plans/2026-09-30_turbopump_section_view.md`.
+Export identity / RP-1 round (schema 21 - 20 skipped, claimed by two unmerged branches) =
+`export/rp1-identity` off main, plan `plans/2026-10-15_export_rp1_identity.md`.
+New propellant pairs (LOX/UDMH, N2O4/UDMH, "LOX/RP-1 (subcooled)") = `propellants/new-pairs`
+STACKED on `export/rp1-identity` (both touch cfg_writer / cost_model), plan
+`plans/2026-10-15_new_propellant_pairs.md`. Adding a pair: one `PAIRS` (+ `COOLANTS`) entry in
+the generator, `--merge-pairs` (old pairs stay byte-identical), then an entry in every per-pair
+dict (grep an existing key, e.g. `"N2O4/MMH"`) + a SPOT_CHECKS anchor; a different-STATE copy of
+an existing pair is a VARIANT (`physics/propellant_pairs.py`: `alias_variants` / `base_pair`).
+MON-3/10/25 variants of N2O4/MMH = `propellants/mon-variants` STACKED on `propellants/new-pairs`,
+plan `plans/2026-10-16_mon_variants.md`. A variant aliases every per-pair dict that has no own
+entry - check a NEW per-pair dict gets `alias_variants(...)` too, or variants silently take its
+fallback.
+TestFlight burn-time round = `testflight/burn-time` STACKED on `propellants/mon-variants`, plan
+`plans/2026-10-16_testflight_burn_time.md` (schema 22: `rated_burn_time_target_s` replaces
+`ablative_target_burn_time_s`; `physics/burn_time.py`; read README "Rated / tested burn time"
+first). Round A (corpus fits, duty target + wall-life cap, techTransfer) done; Round B (more
+life mechanisms - liner creep, coking, turbine blade, bearings, seals, coatings) waits on
+literature listed in `claude_lit/OPEN_QUESTIONS.md` and `claude_lit/topics/17-engine-life-and-duty.md`.
+Export plumes = `export/plumes` STACKED on `testflight/burn-time`, plan
+`plans/2026-10-16_export_plumes.md` (schema 23: `plume_mode` host / generated / none;
+`export/plume.py`, `catalog/build_roengines_plumes.py`; read README "Plume" first - Waterfall
+plume `scale` is a WORLD size that ignores rescaleFactor unless useRelativeScaling). Round P2
+(physically shaped plumes) waits on the plume literature in `claude_lit/OPEN_QUESTIONS.md`.

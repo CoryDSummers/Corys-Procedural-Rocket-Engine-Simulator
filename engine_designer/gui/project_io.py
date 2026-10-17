@@ -47,7 +47,7 @@ if __name__ == "__main__":
                            chamber_residence_time_ms=1.6,
                            chamber_wall_fillet_r_over_rt=1.2,
                            chamber_cooling_method="uncooled", nozzle_cooling_method="radiative",
-                           ablative_target_burn_time_s=350.0,
+                           rated_burn_time_target_s=350.0,
                            nozzle_liner_material_key="zirconia",
                            nozzle_extension_stiffening_style="orthogrid",
                            film_cooling_fraction=0.06, chamber_film_inject_area_ratio=1.8,
@@ -163,17 +163,56 @@ if __name__ == "__main__":
     assert EngineDesign.from_dict(json.loads(json.dumps(cas.to_dict()))) == cas
     assert EngineDesign().to_dict()["schema_version"] >= 19
 
-    # v20 turbopump placement: an older file takes the auto placement; a set one round-trips
-    old_v19 = EngineDesign.from_dict({"schema_version": 19, "design": {"cycle": "gas_generator"}})
-    assert (old_v19.turbopump_azimuth_deg, old_v19.turbopump_axial_station_frac,
-            old_v19.turbopump_standoff_m, old_v19.turbopump_shaft_orientation,
-            old_v19.turbopump_mount, old_v19.turbopump_roll_deg, old_v19.turbopump_shaft_flip,
-            old_v19.turbopump_offset_m, old_v19.turbopump_height_m) == \
+    # v21 export identity / RP-1: a pre-21 file's delta-scale cost / entry_cost are
+    # reset to 0 (= re-estimate at export); the new fields round-trip, incl. the
+    # host-model variant dict.
+    old_v19 = EngineDesign.from_dict({"schema_version": 19, "design": {
+        "cost": 12.0, "entry_cost": 9654.0, "tech_node": "orbitalRocketry1986"}})
+    assert old_v19.cost == 0.0 and old_v19.entry_cost == 0.0
+    assert old_v19.tech_node == "orbitalRocketry1986"
+    ident = EngineDesign(config_description="picker text", rp1_ecm_parents="H-1-200K",
+                         rp1_tree_icon=False, host_model_part="ROE-XLR11",
+                         host_model_variants={"model": "rm5"}, cost=650.0, entry_cost=18000.0)
+    back = EngineDesign.from_dict(json.loads(json.dumps(ident.to_dict())))
+    assert back == ident and back.host_model_variants == {"model": "rm5"} and back.cost == 650.0
+    assert EngineDesign().to_dict()["schema_version"] >= 21
+
+    # v22 TestFlight burn time: ablative_target_burn_time_s -> rated_burn_time_target_s.
+    # The old 200 s default on a non-ablative design meant nothing -> 0 (auto duty);
+    # an ablative design or a value the user changed is kept.
+    def v21(**kw):
+        return EngineDesign.from_dict({"schema_version": 21, "design": kw})
+    assert v21(ablative_target_burn_time_s=200.0).rated_burn_time_target_s == 0.0
+    assert v21(ablative_target_burn_time_s=200.0,
+               material_key="ablative_phenolic").rated_burn_time_target_s == 200.0
+    assert v21(ablative_target_burn_time_s=200.0, bell_material_key="ablative_phenolic",
+               material_key="narloy_z").rated_burn_time_target_s == 200.0
+    assert v21(ablative_target_burn_time_s=350.0).rated_burn_time_target_s == 350.0
+    # A file older than the ablative-target field (schema < 11) ran on the same 200 s.
+    assert v21(material_key="ablative_phenolic").rated_burn_time_target_s == 200.0
+    assert v21().rated_burn_time_target_s == 0.0
+    assert not hasattr(v21(ablative_target_burn_time_s=350.0), "ablative_target_burn_time_s")
+    tf = EngineDesign(rated_burn_time_target_s=480.0, testflight_transfer_pct=25.0)
+    assert EngineDesign.from_dict(json.loads(json.dumps(tf.to_dict()))) == tf
+    assert EngineDesign().to_dict()["schema_version"] >= 22
+
+    # v23 export plume: an older file takes "host" (the host's plume, recolored).
+    assert v21().plume_mode == "host"
+    pl = EngineDesign(plume_mode="generated")
+    assert EngineDesign.from_dict(json.loads(json.dumps(pl.to_dict()))).plume_mode == "generated"
+    assert EngineDesign().to_dict()["schema_version"] >= 23
+
+    # v24 turbopump placement (built as the unmerged "20"): an older file takes the auto placement; a set one round-trips
+    old_v23 = EngineDesign.from_dict({"schema_version": 23, "design": {"cycle": "gas_generator"}})
+    assert (old_v23.turbopump_azimuth_deg, old_v23.turbopump_axial_station_frac,
+            old_v23.turbopump_standoff_m, old_v23.turbopump_shaft_orientation,
+            old_v23.turbopump_mount, old_v23.turbopump_roll_deg, old_v23.turbopump_shaft_flip,
+            old_v23.turbopump_offset_m, old_v23.turbopump_height_m) == \
         (0.0, 0.0, 0.0, "axial", "side", 0.0, False, 0.0, 0.0)
     placed = EngineDesign(turbopump_azimuth_deg=135.0, turbopump_axial_station_frac=0.3,
                           turbopump_standoff_m=0.05, turbopump_shaft_orientation="tangential")
     assert EngineDesign.from_dict(json.loads(json.dumps(placed.to_dict()))) == placed
-    # head mount + roll / flip / radial shaft (same unreleased schema 20, 2026-10-01)
+    # head mount + roll / flip / radial shaft (same schema 24 bump, 2026-10-01)
     head = EngineDesign(turbopump_mount="head", turbopump_roll_deg=-45.0,
                         turbopump_shaft_flip=True, turbopump_offset_m=0.25,
                         turbopump_shaft_orientation="radial")
@@ -181,6 +220,6 @@ if __name__ == "__main__":
     free = EngineDesign(turbopump_mount="free", turbopump_height_m=0.6, turbopump_offset_m=0.9,
                         turbopump_azimuth_deg=200.0)
     assert EngineDesign.from_dict(json.loads(json.dumps(free.to_dict()))) == free
-    assert EngineDesign().to_dict()["schema_version"] >= 20
+    assert EngineDesign().to_dict()["schema_version"] >= 24
 
     print("project_io.py self-checks: OK")

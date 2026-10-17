@@ -45,7 +45,81 @@
       "node_stack_top_m": 0.8317,
       "node_stack_bottom_m": -3.0204,
       "rescale_factor": 1.67,
-      "source_file": "Agena_BDB.cfg"
+      "source_file": "Agena_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "nozzle",
+          "subtypes": [
+            {
+              "name": "8048",
+              "transforms": [
+                "Agena_8096_Engine",
+                "Bell_8048"
+              ],
+              "native_height_m": 1.8671,
+              "height_from_part": false,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "8081",
+              "transforms": [
+                "Agena_8096_Engine",
+                "Bell_8081"
+              ],
+              "native_height_m": 1.9923,
+              "height_from_part": false,
+              "linked_configs": [
+                "XLR81-BA-7"
+              ]
+            },
+            {
+              "name": "8096",
+              "transforms": [
+                "Agena_8096_Engine",
+                "Bell_8096"
+              ],
+              "native_height_m": 2.1209,
+              "height_from_part": false,
+              "linked_configs": [
+                "Model8096-39",
+                "Model8096-HDA",
+                "Model8096A",
+                "XLR81-BA-11",
+                "XLR81-BA-13",
+                "XLR81-LF2-SPS"
+              ]
+            },
+            {
+              "name": "8096B",
+              "transforms": [
+                "Agena_8096_Engine",
+                "Bell_8096B"
+              ],
+              "native_height_m": 3.0361,
+              "height_from_part": false,
+              "linked_configs": [
+                "Model8096B",
+                "Model8096L"
+              ]
+            },
+            {
+              "name": "8096C",
+              "transforms": [
+                "Agena_8096C_Engine"
+              ],
+              "native_height_m": 3.0294,
+              "height_from_part": false,
+              "linked_configs": [
+                "Agena-2000",
+                "Model8096C"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "AJ10_137",
@@ -81,6 +155,18 @@
       "source_file": "AJ10Adv_BDB.cfg",
       "alt_source_files": [
         "AJ10AdvShort_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-AJ10Adv",
+          "model": "ROEngines/Assets/BDB/Delta/bluedog_AJ10_118F",
+          "native_height_m": 1.7721,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.886,
+          "node_stack_bottom_m": -0.886,
+          "rescale_factor": 1.6,
+          "source_file": "AJ10AdvShort_BDB.cfg"
+        }
       ]
     },
     {
@@ -125,7 +211,53 @@
       "node_stack_top_m": 0.3608,
       "node_stack_bottom_m": -0.3608,
       "rescale_factor": 1.443,
-      "source_file": "Alcyone1_BDB.cfg"
+      "source_file": "Alcyone1_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchBottom",
+          "description": "Mount Type",
+          "subtypes": [
+            {
+              "name": "Fairing",
+              "transforms": [],
+              "native_height_m": 0.7215,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Recessed",
+              "transforms": [],
+              "native_height_m": 0.7215,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        },
+        {
+          "module_id": "meshSwitchEndcap",
+          "description": "Top Diameter",
+          "subtypes": [
+            {
+              "name": "Large Cap",
+              "transforms": [
+                "largeEndcap"
+              ],
+              "native_height_m": 0.7215,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Small Cap",
+              "transforms": [
+                "smallEndcap"
+              ],
+              "native_height_m": 0.7215,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "Algol-I",
@@ -205,6 +337,18 @@
       "source_file": "Antares1_Inline_BDB.cfg",
       "alt_source_files": [
         "Antares1_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-Antares1",
+          "model": "ROEngines/Assets/BDB/Solids/Scout/bluedog_Scout_Antares_Basic",
+          "native_height_m": 2.8763,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 1.4329,
+          "node_stack_bottom_m": -1.4434,
+          "rescale_factor": 1.311,
+          "source_file": "Antares1_BDB.cfg"
+        }
       ]
     },
     {
@@ -219,6 +363,18 @@
       "source_file": "Antares2_Inline_BDB.cfg",
       "alt_source_files": [
         "Antares2_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-Antares2",
+          "model": "ROEngines/Assets/BDB/Solids/Scout/bluedog_Scout_Antares_Basic",
+          "native_height_m": 2.8763,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 1.4329,
+          "node_stack_bottom_m": -1.4434,
+          "rescale_factor": 1.311,
+          "source_file": "Antares2_BDB.cfg"
+        }
       ]
     },
     {
@@ -329,7 +485,33 @@
       "node_stack_top_m": 2.8,
       "node_stack_bottom_m": -2.8,
       "rescale_factor": 1.6,
-      "source_file": "Castor30XL_BDB.cfg"
+      "source_file": "Castor30XL_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchBody",
+          "description": "Paintjob",
+          "subtypes": [
+            {
+              "name": "Black",
+              "transforms": [
+                "Mesh_Dark"
+              ],
+              "native_height_m": 5.6,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "White",
+              "transforms": [
+                "Mesh_Light"
+              ],
+              "native_height_m": 5.6,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "E1",
@@ -351,7 +533,31 @@
       "node_stack_top_m": 3.0419,
       "node_stack_bottom_m": -2.3163,
       "rescale_factor": 1.6,
-      "source_file": "F1_BDB.cfg"
+      "source_file": "F1_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchInsulation",
+          "description": "Insulation",
+          "subtypes": [
+            {
+              "name": "Disabled",
+              "transforms": [],
+              "native_height_m": 5.3582,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Enabled",
+              "transforms": [
+                "Foil"
+              ],
+              "native_height_m": 5.3582,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "F1B",
@@ -373,7 +579,35 @@
       "node_stack_top_m": 0.155,
       "node_stack_bottom_m": -1.63,
       "rescale_factor": 1.0,
-      "source_file": "G1_Al2Me6.cfg"
+      "source_file": "G1_Al2Me6.cfg",
+      "variants": [
+        {
+          "module_id": "model",
+          "description": "Model (auto-switched)",
+          "subtypes": [
+            {
+              "name": "g1",
+              "transforms": [],
+              "native_height_m": 1.785,
+              "height_from_part": true,
+              "linked_configs": [
+                "G-1"
+              ]
+            },
+            {
+              "name": "g1a",
+              "transforms": [
+                "nozzle_ext"
+              ],
+              "native_height_m": 2.305,
+              "height_from_part": false,
+              "linked_configs": [
+                "G-1A"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "Gamma2",
@@ -431,6 +665,18 @@
       "source_file": "RS27_BDB.cfg",
       "alt_source_files": [
         "H1_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-H1C",
+          "model": "ROEngines/Assets/BDB/Saturn/bluedog_Saturn_Engine_H1C",
+          "native_height_m": 2.8,
+          "native_max_dia_m": 1.0,
+          "node_stack_top_m": 1.4042,
+          "node_stack_bottom_m": -1.3958,
+          "rescale_factor": 1.76,
+          "source_file": "H1_BDB.cfg"
+        }
       ]
     },
     {
@@ -453,7 +699,37 @@
       "node_stack_top_m": 0.618,
       "node_stack_bottom_m": -1.094,
       "rescale_factor": 1.0,
-      "source_file": "HM7_Al2Me6.cfg"
+      "source_file": "HM7_Al2Me6.cfg",
+      "variants": [
+        {
+          "module_id": "model",
+          "description": "Model (auto-switched)",
+          "subtypes": [
+            {
+              "name": "hm7",
+              "transforms": [
+                "_hm7"
+              ],
+              "native_height_m": 1.712,
+              "height_from_part": true,
+              "linked_configs": [
+                "HM-7"
+              ]
+            },
+            {
+              "name": "hm7b",
+              "transforms": [
+                "_hm7b"
+              ],
+              "native_height_m": 2.008,
+              "height_from_part": false,
+              "linked_configs": [
+                "*"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "J2",
@@ -464,7 +740,37 @@
       "node_stack_top_m": 1.5608,
       "node_stack_bottom_m": -1.7067,
       "rescale_factor": 1.6,
-      "source_file": "J2_BDB.cfg"
+      "source_file": "J2_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "model",
+          "description": "Model",
+          "subtypes": [
+            {
+              "name": "J2",
+              "transforms": [
+                "J2"
+              ],
+              "native_height_m": 3.2675,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "J2S",
+              "transforms": [
+                "J2S"
+              ],
+              "native_height_m": 3.2675,
+              "height_from_part": true,
+              "linked_configs": [
+                "J-2S"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "J2T",
@@ -596,7 +902,37 @@
       "node_stack_top_m": 0.0,
       "node_stack_bottom_m": -1.6821,
       "rescale_factor": 1.0,
-      "source_file": "LMDE_RE.cfg"
+      "source_file": "LMDE_RE.cfg",
+      "variants": [
+        {
+          "module_id": "model",
+          "description": "model",
+          "subtypes": [
+            {
+              "name": "lmde",
+              "transforms": [
+                "ROEngines/Assets/RealEngines/LMDE(Clone)"
+              ],
+              "native_height_m": 1.6821,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "tr201",
+              "transforms": [
+                "ROEngines/Assets/BDB/Delta/bluedog_TR_201(Clone)"
+              ],
+              "native_height_m": 2.2,
+              "height_from_part": false,
+              "linked_configs": [
+                "TR-201"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "LR101",
@@ -610,6 +946,18 @@
       "source_file": "LR101_BDB.cfg",
       "alt_source_files": [
         "LR101_BDB2.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-LR101Inline_2",
+          "model": "ROEngines/Assets/BDB/Atlas/bluedog_Atlas_LR101inline",
+          "native_height_m": 0.8099,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.5153,
+          "node_stack_bottom_m": -0.2946,
+          "rescale_factor": 1.6256,
+          "source_file": "LR101_BDB2.cfg"
+        }
       ]
     },
     {
@@ -624,6 +972,60 @@
       "source_file": "LR105_BDB.cfg",
       "alt_source_files": [
         "LR105_BDB2.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-LR105_2",
+          "model": "ROEngines/Assets/BDB/Atlas/bluedog_atlas_LR105engine",
+          "native_height_m": 2.4923,
+          "native_max_dia_m": 1.5,
+          "node_stack_top_m": 1.1648,
+          "node_stack_bottom_m": -1.3274,
+          "rescale_factor": 1.4949,
+          "source_file": "LR105_BDB2.cfg",
+          "variants": [
+            {
+              "module_id": "nozzle",
+              "description": "Nozzle",
+              "subtypes": [
+                {
+                  "name": "XNA3",
+                  "transforms": [
+                    "XLR105"
+                  ],
+                  "native_height_m": 2.4923,
+                  "height_from_part": true,
+                  "linked_configs": [
+                    "LR43-NA-5"
+                  ]
+                },
+                {
+                  "name": "NA3",
+                  "transforms": [
+                    "LR105_NA3"
+                  ],
+                  "native_height_m": 2.4923,
+                  "height_from_part": true,
+                  "linked_configs": [
+                    "LR105-NA-3",
+                    "LR105-NA-5"
+                  ]
+                },
+                {
+                  "name": "NA6",
+                  "transforms": [
+                    "LR105_NA6"
+                  ],
+                  "native_height_m": 2.4923,
+                  "height_from_part": true,
+                  "linked_configs": [
+                    "*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
@@ -646,7 +1048,40 @@
       "node_stack_top_m": 1.4227,
       "node_stack_bottom_m": -2.022,
       "rescale_factor": 1.0,
-      "source_file": "LR79_BDB.cfg"
+      "source_file": "LR79_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "starterTank",
+          "description": "Starter Tank",
+          "subtypes": [
+            {
+              "name": "LR79",
+              "transforms": [
+                "LubeTank",
+                "StartTanks",
+                "Nozzle_Original"
+              ],
+              "native_height_m": 3.4447,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "S-3",
+              "transforms": [
+                "LubeTank",
+                "Nozzle_Original"
+              ],
+              "native_height_m": 3.4447,
+              "height_from_part": true,
+              "linked_configs": [
+                "S-3*"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "LR87",
@@ -658,9 +1093,208 @@
       "node_stack_bottom_m": -1.6,
       "rescale_factor": 1.6,
       "source_file": "LR87_11_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "AJ3",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR87_3(Clone)"
+              ],
+              "native_height_m": 3.1187,
+              "height_from_part": false,
+              "linked_configs": [
+                "LR87-AJ-1",
+                "LR87-AJ-3"
+              ]
+            },
+            {
+              "name": "AJ5",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR87_5(Clone)"
+              ],
+              "native_height_m": 3.2187,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "AJ11",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR87_11(Clone)"
+              ],
+              "native_height_m": 3.8587,
+              "height_from_part": false,
+              "linked_configs": [
+                "LR87-AJ-1*"
+              ]
+            }
+          ]
+        }
+      ],
       "alt_source_files": [
         "LR87_BDB.cfg",
         "LR87_Single_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-LR87",
+          "model": "ROEngines/Assets/BDB/Titan/bluedog_LR87_3",
+          "native_height_m": 3.2187,
+          "native_max_dia_m": 3.0,
+          "node_stack_top_m": 1.6187,
+          "node_stack_bottom_m": -1.6,
+          "rescale_factor": 1.6,
+          "source_file": "LR87_BDB.cfg",
+          "variants": [
+            {
+              "module_id": "nozzle",
+              "description": "Nozzle",
+              "subtypes": [
+                {
+                  "name": "AJ3",
+                  "transforms": [
+                    "ROEngines/Assets/BDB/Titan/bluedog_LR87_3(Clone)"
+                  ],
+                  "native_height_m": 3.1187,
+                  "height_from_part": false,
+                  "linked_configs": [
+                    "LR87-AJ-1",
+                    "LR87-AJ-3"
+                  ]
+                },
+                {
+                  "name": "AJ5",
+                  "transforms": [
+                    "ROEngines/Assets/BDB/Titan/bluedog_LR87_5(Clone)"
+                  ],
+                  "native_height_m": 3.2187,
+                  "height_from_part": true,
+                  "linked_configs": [
+                    "*"
+                  ]
+                },
+                {
+                  "name": "AJ11",
+                  "transforms": [
+                    "ROEngines/Assets/BDB/Titan/bluedog_LR87_11(Clone)"
+                  ],
+                  "native_height_m": 3.8587,
+                  "height_from_part": false,
+                  "linked_configs": [
+                    "LR87-AJ-1*"
+                  ]
+                }
+              ]
+            },
+            {
+              "module_id": "meshSwitchShroud",
+              "description": "EngineShroud",
+              "subtypes": [
+                {
+                  "name": "Titan 2",
+                  "transforms": [
+                    "EngineShroud_Titan2"
+                  ],
+                  "native_height_m": 3.2187,
+                  "height_from_part": true,
+                  "linked_configs": []
+                },
+                {
+                  "name": "Bare",
+                  "transforms": [
+                    "EngineShroud_Bare"
+                  ],
+                  "native_height_m": 2.9494,
+                  "height_from_part": false,
+                  "linked_configs": []
+                },
+                {
+                  "name": "Titan 1",
+                  "transforms": [
+                    "EngineShroud_Titan1"
+                  ],
+                  "native_height_m": 3.2187,
+                  "height_from_part": true,
+                  "linked_configs": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "part_name": "ROE-LR87_Single",
+          "model": "ROEngines/Assets/BDB/Titan/bluedog_LR87_11_Single",
+          "native_height_m": 2.3823,
+          "native_max_dia_m": 3.0,
+          "node_stack_top_m": 1.1623,
+          "node_stack_bottom_m": -1.22,
+          "rescale_factor": 1.6,
+          "source_file": "LR87_Single_BDB.cfg",
+          "variants": [
+            {
+              "module_id": "nozzle",
+              "description": "Nozzle",
+              "subtypes": [
+                {
+                  "name": "AJ3",
+                  "transforms": [
+                    "AJ3"
+                  ],
+                  "native_height_m": 2.3823,
+                  "height_from_part": true,
+                  "linked_configs": [
+                    "LR87-AJ-1",
+                    "LR87-AJ-3"
+                  ]
+                },
+                {
+                  "name": "AJ5",
+                  "transforms": [
+                    "AJ5"
+                  ],
+                  "native_height_m": 2.5123,
+                  "height_from_part": false,
+                  "linked_configs": [
+                    "*"
+                  ]
+                },
+                {
+                  "name": "AJ11",
+                  "transforms": [
+                    "AJ11"
+                  ],
+                  "native_height_m": 2.8623,
+                  "height_from_part": false,
+                  "linked_configs": [
+                    "LR87-AJ-1*"
+                  ]
+                },
+                {
+                  "name": "25",
+                  "transforms": [
+                    "Engine_LR87"
+                  ],
+                  "native_height_m": 3.3623,
+                  "height_from_part": false,
+                  "linked_configs": []
+                },
+                {
+                  "name": "49",
+                  "transforms": [
+                    "Engine_LR91"
+                  ],
+                  "native_height_m": 3.2623,
+                  "height_from_part": false,
+                  "linked_configs": []
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
@@ -672,7 +1306,37 @@
       "node_stack_top_m": 1.1623,
       "node_stack_bottom_m": -1.2115,
       "rescale_factor": 1.6,
-      "source_file": "LR87_LH2_BDB.cfg"
+      "source_file": "LR87_LH2_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "sl",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR87_LH2_SL(Clone)"
+              ],
+              "native_height_m": 2.3738,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "vac",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR87_LH2_V(Clone)"
+              ],
+              "native_height_m": 4.0167,
+              "height_from_part": false,
+              "linked_configs": [
+                "*Vac*"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "LR89",
@@ -684,8 +1348,73 @@
       "node_stack_bottom_m": -1.6014,
       "rescale_factor": 1.4949,
       "source_file": "LR89_BDB2.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "MA1",
+              "transforms": [
+                "comboChamber",
+                "MA1_nozzle",
+                "comboPipes",
+                "mountGeneric"
+              ],
+              "native_height_m": 2.4958,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "MA3",
+              "transforms": [
+                "MA3_bell",
+                "MA3_powerhead",
+                "MA3_pipes1",
+                "MA3_pipes2",
+                "mountGeneric_F"
+              ],
+              "native_height_m": 2.4958,
+              "height_from_part": true,
+              "linked_configs": [
+                "LR89-NA-6"
+              ]
+            },
+            {
+              "name": "RS56",
+              "transforms": [
+                "comboChamber",
+                "RS56OBA_nozzle",
+                "comboPipes",
+                "mountGeneric"
+              ],
+              "native_height_m": 2.4958,
+              "height_from_part": true,
+              "linked_configs": [
+                "LR89-NA-7.1",
+                "LR89-NA-7.2",
+                "RS-56-OBA"
+              ]
+            }
+          ]
+        }
+      ],
       "alt_source_files": [
         "LR89_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-LR89",
+          "model": "ROEngines/Assets/BDB/Atlas/bluedog_Atlas_LR89",
+          "native_height_m": 2.227,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.557,
+          "node_stack_bottom_m": -1.67,
+          "rescale_factor": 1.0,
+          "source_file": "LR89_BDB.cfg"
+        }
       ]
     },
     {
@@ -698,8 +1427,104 @@
       "node_stack_bottom_m": -1.38,
       "rescale_factor": 1.6,
       "source_file": "LR91_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "AJ3",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR91_3_SingleVernier(Clone)"
+              ],
+              "native_height_m": 2.3557,
+              "height_from_part": false,
+              "linked_configs": [
+                "LR91-AJ-1",
+                "LR91-AJ-3"
+              ]
+            },
+            {
+              "name": "AJ5",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR91_5(Clone)"
+              ],
+              "native_height_m": 2.4006,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "AJ11",
+              "transforms": [
+                "ROEngines/Assets/BDB/Titan/bluedog_LR91_11(Clone)"
+              ],
+              "native_height_m": 2.5606,
+              "height_from_part": false,
+              "linked_configs": [
+                "LR91-AJ-1*"
+              ]
+            }
+          ]
+        }
+      ],
       "alt_source_files": [
         "LR91_4V_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-LR91-4V",
+          "model": "ROEngines/Assets/BDB/Titan/bluedog_LR91_3",
+          "native_height_m": 2.4006,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 1.0206,
+          "node_stack_bottom_m": -1.38,
+          "rescale_factor": 1.6,
+          "source_file": "LR91_4V_BDB.cfg",
+          "variants": [
+            {
+              "module_id": "nozzle",
+              "description": "Nozzle",
+              "subtypes": [
+                {
+                  "name": "AJ3",
+                  "transforms": [
+                    "ROEngines/Assets/BDB/Titan/bluedog_LR91_3(Clone)"
+                  ],
+                  "native_height_m": 2.3557,
+                  "height_from_part": false,
+                  "linked_configs": [
+                    "LR91-AJ-1",
+                    "LR91-AJ-3"
+                  ]
+                },
+                {
+                  "name": "AJ5",
+                  "transforms": [
+                    "ROEngines/Assets/BDB/Titan/bluedog_LR91_5_FourVernier(Clone)"
+                  ],
+                  "native_height_m": 2.4006,
+                  "height_from_part": true,
+                  "linked_configs": [
+                    "*"
+                  ]
+                },
+                {
+                  "name": "AJ11",
+                  "transforms": [
+                    "ROEngines/Assets/BDB/Titan/bluedog_LR91_11_FourVernier(Clone)"
+                  ],
+                  "native_height_m": 2.5606,
+                  "height_from_part": false,
+                  "linked_configs": [
+                    "LR91-AJ-1*"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
@@ -711,7 +1536,37 @@
       "node_stack_top_m": 1.9807,
       "node_stack_bottom_m": -5.2037,
       "rescale_factor": 1.27,
-      "source_file": "M1_BDB.cfg"
+      "source_file": "M1_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "sl",
+              "transforms": [
+                "nozzleSL"
+              ],
+              "native_height_m": 5.5507,
+              "height_from_part": false,
+              "linked_configs": [
+                "M-1*SL"
+              ]
+            },
+            {
+              "name": "vac",
+              "transforms": [
+                "nozzleVac"
+              ],
+              "native_height_m": 8.8006,
+              "height_from_part": false,
+              "linked_configs": [
+                "*"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "M55",
@@ -761,6 +1616,48 @@
         "Merlin1CV_SSTU.cfg",
         "Merlin1C_SSTU.cfg",
         "Merlin1DV_SSTU.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-Merlin1A",
+          "model": "ROEngines/Assets/SSTU/SC-ENG-Merlin-1A",
+          "native_height_m": 1.9768,
+          "native_max_dia_m": 0.94,
+          "node_stack_top_m": 0.0,
+          "node_stack_bottom_m": -1.9768,
+          "rescale_factor": 1.0,
+          "source_file": "Merlin1A_SSTU.cfg"
+        },
+        {
+          "part_name": "ROE-Merlin1CV",
+          "model": "ROEngines/Assets/SSTU/SC-ENG-Merlin-1CV",
+          "native_height_m": 4.4199,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.0,
+          "node_stack_bottom_m": -4.4199,
+          "rescale_factor": 1.0,
+          "source_file": "Merlin1CV_SSTU.cfg"
+        },
+        {
+          "part_name": "ROE-Merlin1C",
+          "model": "ROEngines/Assets/SSTU/SC-ENG-Merlin-1C",
+          "native_height_m": 2.1499,
+          "native_max_dia_m": 0.94,
+          "node_stack_top_m": 0.0,
+          "node_stack_bottom_m": -2.1499,
+          "rescale_factor": 1.555,
+          "source_file": "Merlin1C_SSTU.cfg"
+        },
+        {
+          "part_name": "ROE-Merlin1DV",
+          "model": "ROEngines/Assets/SSTU/SC-ENG-Merlin-1DV",
+          "native_height_m": 4.4199,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.0,
+          "node_stack_bottom_m": -4.4199,
+          "rescale_factor": 1.0,
+          "source_file": "Merlin1DV_SSTU.cfg"
+        }
       ]
     },
     {
@@ -849,7 +1746,37 @@
       "node_stack_top_m": 1.0863,
       "node_stack_bottom_m": -3.7049,
       "rescale_factor": 1.0,
-      "source_file": "NK43_RE.cfg"
+      "source_file": "NK43_RE.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "15V",
+              "transforms": [
+                "thrustTransform"
+              ],
+              "native_height_m": 3.7363,
+              "height_from_part": false,
+              "linked_configs": [
+                "NK-15V*"
+              ]
+            },
+            {
+              "name": "43",
+              "transforms": [
+                "thrustTransform"
+              ],
+              "native_height_m": 4.7912,
+              "height_from_part": true,
+              "linked_configs": [
+                "NK-43*"
+              ]
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "NK9",
@@ -959,7 +1886,33 @@
       "node_stack_top_m": 0.53,
       "node_stack_bottom_m": -0.79,
       "rescale_factor": 1.0,
-      "source_file": "RD0105_RE.cfg"
+      "source_file": "RD0105_RE.cfg",
+      "variants": [
+        {
+          "module_id": "vernier",
+          "description": "Vernier",
+          "subtypes": [
+            {
+              "name": "Compact",
+              "transforms": [
+                "ROEngines/Assets/RealEngines/RD0105_Pap(Clone)"
+              ],
+              "native_height_m": 1.32,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Wide",
+              "transforms": [
+                "ROEngines/Assets/RealEngines/RD0105_Pap - Blowfish(Clone)"
+              ],
+              "native_height_m": 1.32,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "RD0110",
@@ -1124,7 +2077,42 @@
       "node_stack_top_m": 0.6596,
       "node_stack_bottom_m": -2.62,
       "rescale_factor": 1.6,
-      "source_file": "RD180_BDB.cfg"
+      "source_file": "RD180_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "SwitchRD180",
+          "description": "Engine Housing",
+          "subtypes": [
+            {
+              "name": "Bare",
+              "transforms": [
+                "Naked"
+              ],
+              "native_height_m": 3.2796,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "AtlasIII",
+              "transforms": [
+                "Atlas3_NoPipe"
+              ],
+              "native_height_m": 3.9542,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "AtlasV",
+              "transforms": [
+                "Atlas5_NoPipe"
+              ],
+              "native_height_m": 4.792,
+              "height_from_part": false,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "RD191",
@@ -1171,6 +2159,18 @@
       "source_file": "RD215_RN.cfg",
       "alt_source_files": [
         "RD215_Single_Tantares.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-RD215_Single",
+          "model": "ROEngines/Assets/Tantares/RD_250_RD_252/tantares_lv_engine_rd_250_s0_1",
+          "native_height_m": 2.25,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 1.125,
+          "node_stack_bottom_m": -1.125,
+          "rescale_factor": 1.8,
+          "source_file": "RD215_Single_Tantares.cfg"
+        }
       ]
     },
     {
@@ -1271,9 +2271,109 @@
       "node_stack_bottom_m": -1.2986,
       "rescale_factor": 1.62,
       "source_file": "RL10Fixed_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "A3",
+              "transforms": [
+                "RL10_1"
+              ],
+              "native_height_m": 1.6761,
+              "height_from_part": false,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "A42N",
+              "transforms": [
+                "RL10_A42N"
+              ],
+              "native_height_m": 2.222,
+              "height_from_part": false,
+              "linked_configs": [
+                "RL10A-4-2N"
+              ]
+            },
+            {
+              "name": "A5",
+              "transforms": [
+                "RL10_A5"
+              ],
+              "native_height_m": 1.1301,
+              "height_from_part": false,
+              "linked_configs": [
+                "RL10A-5"
+              ]
+            },
+            {
+              "name": "C1",
+              "transforms": [
+                "RL10_C1"
+              ],
+              "native_height_m": 2.222,
+              "height_from_part": false,
+              "linked_configs": [
+                "RL10C-1"
+              ]
+            },
+            {
+              "name": "C1-1",
+              "transforms": [
+                "RL10C11Nozzle"
+              ],
+              "native_height_m": 2.3727,
+              "height_from_part": false,
+              "linked_configs": [
+                "RL10C-1-1",
+                "RL10C-1A",
+                "RL10E-3ELL"
+              ]
+            },
+            {
+              "name": "C3",
+              "transforms": [
+                "RL10C3Nozzle"
+              ],
+              "native_height_m": 3.173,
+              "height_from_part": false,
+              "linked_configs": [
+                "RL10C-3",
+                "RL10E-1",
+                "RL10E-3EL"
+              ]
+            }
+          ]
+        }
+      ],
       "alt_source_files": [
         "RL10A4N_BDB.cfg",
         "RL10B2_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-RL10A4N",
+          "model": "ROEngines/Assets/BDB/Centaur/bluedog_CentaurD_RL10A4N",
+          "native_height_m": 1.6632,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.7932,
+          "node_stack_bottom_m": -0.8701,
+          "rescale_factor": 1.62,
+          "source_file": "RL10A4N_BDB.cfg"
+        },
+        {
+          "part_name": "ROE-RL10B2",
+          "model": "ROEngines/Assets/BDB/Centaur/bluedog_CentaurD_RL10B2",
+          "native_height_m": 2.2999,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.7932,
+          "node_stack_bottom_m": -1.5067,
+          "rescale_factor": 1.62,
+          "source_file": "RL10B2_BDB.cfg"
+        }
       ]
     },
     {
@@ -1285,7 +2385,118 @@
       "node_stack_top_m": 1.8994,
       "node_stack_bottom_m": -3.4459,
       "rescale_factor": 1.6,
-      "source_file": "RS68_BDB.cfg"
+      "source_file": "RS68_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchNozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "ablative",
+              "transforms": [
+                "nozzleBlack"
+              ],
+              "native_height_m": 5.3453,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "white",
+              "transforms": [
+                "nozzleWhite"
+              ],
+              "native_height_m": 5.3453,
+              "height_from_part": true,
+              "linked_configs": [
+                "RS-68B"
+              ]
+            },
+            {
+              "name": "regen",
+              "transforms": [
+                "nozzleRegen"
+              ],
+              "native_height_m": 5.3453,
+              "height_from_part": true,
+              "linked_configs": [
+                "RS-68K",
+                "RS-800"
+              ]
+            }
+          ]
+        },
+        {
+          "module_id": "mountSwitch",
+          "description": "Mount",
+          "subtypes": [
+            {
+              "name": "Bare",
+              "transforms": [
+                "exhaustStandard",
+                "vernierGimbal",
+                "vernierStandardSkinnedMesh",
+                "vernierPistonBaseLower"
+              ],
+              "native_height_m": 5.3453,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Boattail open",
+              "transforms": [
+                "exhaustStandard",
+                "vernierGimbal",
+                "vernierStandardSkinnedMesh",
+                "vernierPistonBaseLower",
+                "RS68Boattail"
+              ],
+              "native_height_m": 5.5063,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "Boattail insulated",
+              "transforms": [
+                "exhaustStandard",
+                "vernierGimbal",
+                "vernierStandardSkinnedMesh",
+                "vernierPistonBaseLower",
+                "RS68Boattail",
+                "insulationCollar"
+              ],
+              "native_height_m": 5.5063,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "Boattail shielded",
+              "transforms": [
+                "exhaustStandard",
+                "vernierGimbal",
+                "vernierStandardSkinnedMesh",
+                "vernierPistonBaseLower",
+                "RS68Boattail",
+                "mediumPlusCollar",
+                "insulationCollar"
+              ],
+              "native_height_m": 5.5063,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "Compact",
+              "transforms": [
+                "exhaustCompact"
+              ],
+              "native_height_m": 5.3453,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "RutherfordEngine",
@@ -1428,7 +2639,104 @@
       "node_stack_top_m": 1.605,
       "node_stack_bottom_m": -2.4,
       "rescale_factor": 1.5,
-      "source_file": "RS25_EStreet.cfg"
+      "source_file": "RS25_EStreet.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "35",
+              "transforms": [
+                "ROEngines/Assets/EStreetRockets/rmm_kilimanjaro(Clone)"
+              ],
+              "native_height_m": 3.705,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "50",
+              "transforms": [
+                "ROEngines/Assets/EStreetRockets/rmm_osorno(Clone)"
+              ],
+              "native_height_m": 3.705,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "77",
+              "transforms": [
+                "ROEngines/Assets/EStreetRockets/rmm_cotopaxi(Clone)"
+              ],
+              "native_height_m": 4.005,
+              "height_from_part": true,
+              "linked_configs": [
+                "*"
+              ]
+            },
+            {
+              "name": "150",
+              "transforms": [
+                "ROEngines/Assets/EStreetRockets/rmm_ceraunius(Clone)"
+              ],
+              "native_height_m": 5.205,
+              "height_from_part": false,
+              "linked_configs": []
+            }
+          ]
+        },
+        {
+          "module_id": "meshSwitch",
+          "description": "Engine Mount",
+          "subtypes": [
+            {
+              "name": "Compact",
+              "transforms": [],
+              "native_height_m": 4.005,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Small Mount",
+              "transforms": [
+                "1875attach",
+                "foil1875-silver"
+              ],
+              "native_height_m": 4.575,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "Large Mount",
+              "transforms": [
+                "25attach",
+                "foil25-silver"
+              ],
+              "native_height_m": 4.575,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "STS Mount",
+              "transforms": [
+                "sts-mount"
+              ],
+              "native_height_m": 2.7945,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "SDLV Mount",
+              "transforms": [
+                "sls-mount"
+              ],
+              "native_height_m": 2.6501,
+              "height_from_part": false,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "Star-13",
@@ -1450,7 +2758,35 @@
       "node_stack_top_m": -0.1424,
       "node_stack_bottom_m": -0.4598,
       "rescale_factor": 1.6073,
-      "source_file": "STAR17_BDB.cfg"
+      "source_file": "STAR17_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchTop",
+          "description": "Top Adapter",
+          "subtypes": [
+            {
+              "name": "Submerged Mount",
+              "transforms": [
+                "Default",
+                "Default_17A"
+              ],
+              "native_height_m": 0.3174,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Top Mount",
+              "transforms": [
+                "Alternate",
+                "Alternate_17A"
+              ],
+              "native_height_m": 0.3174,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "Star-31",
@@ -1464,6 +2800,18 @@
       "source_file": "Antares3_Inline_BDB.cfg",
       "alt_source_files": [
         "Antares3_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-Antares3",
+          "model": "ROEngines/Assets/BDB/Solids/Scout/bluedog_Scout_Antares_Basic",
+          "native_height_m": 2.8763,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 1.4329,
+          "node_stack_bottom_m": -1.4434,
+          "rescale_factor": 1.311,
+          "source_file": "Antares3_BDB.cfg"
+        }
       ]
     },
     {
@@ -1475,7 +2823,33 @@
       "node_stack_top_m": 0.6863,
       "node_stack_bottom_m": -0.6863,
       "rescale_factor": 1.5,
-      "source_file": "STAR37_BDB.cfg"
+      "source_file": "STAR37_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchTop",
+          "description": "Top Adapter",
+          "subtypes": [
+            {
+              "name": "Enabled",
+              "transforms": [
+                "TopMesh"
+              ],
+              "native_height_m": 1.3726,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Disabled",
+              "transforms": [
+                "NoMesh"
+              ],
+              "native_height_m": 1.3726,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "Star-48B",
@@ -1486,7 +2860,42 @@
       "node_stack_top_m": 0.9798,
       "node_stack_bottom_m": -0.9802,
       "rescale_factor": 1.33,
-      "source_file": "STAR48B_BDB.cfg"
+      "source_file": "STAR48B_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchTop",
+          "description": "Top Adapter",
+          "subtypes": [
+            {
+              "name": "Straight",
+              "transforms": [
+                "topFairing_9375m"
+              ],
+              "native_height_m": 1.96,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Tapered",
+              "transforms": [
+                "topFairing_625m"
+              ],
+              "native_height_m": 1.96,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "None",
+              "transforms": [
+                "NoMesh"
+              ],
+              "native_height_m": 1.96,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "Star-5D",
@@ -1563,7 +2972,33 @@
       "node_stack_top_m": 11.084,
       "node_stack_bottom_m": -8.15,
       "rescale_factor": 1.63,
-      "source_file": "UA1204_BDB.cfg"
+      "source_file": "UA1204_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchType",
+          "description": "Type",
+          "subtypes": [
+            {
+              "name": "Radial",
+              "transforms": [
+                "Radial"
+              ],
+              "native_height_m": 19.234,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Inline",
+              "transforms": [
+                "Inline"
+              ],
+              "native_height_m": 19.234,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "UA1205",
@@ -1574,7 +3009,33 @@
       "node_stack_top_m": 14.344,
       "node_stack_bottom_m": -8.15,
       "rescale_factor": 1.63,
-      "source_file": "UA1205_BDB.cfg"
+      "source_file": "UA1205_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchType",
+          "description": "Type",
+          "subtypes": [
+            {
+              "name": "Radial",
+              "transforms": [
+                "Radial"
+              ],
+              "native_height_m": 22.494,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Inline",
+              "transforms": [
+                "Inline"
+              ],
+              "native_height_m": 22.494,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "UA1206",
@@ -1585,7 +3046,33 @@
       "node_stack_top_m": 15.9833,
       "node_stack_bottom_m": -8.15,
       "rescale_factor": 1.63,
-      "source_file": "UA1206_BDB.cfg"
+      "source_file": "UA1206_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchType",
+          "description": "Type",
+          "subtypes": [
+            {
+              "name": "Radial",
+              "transforms": [
+                "Radial"
+              ],
+              "native_height_m": 24.1333,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Inline",
+              "transforms": [
+                "Inline"
+              ],
+              "native_height_m": 24.1333,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "UA1207",
@@ -1596,7 +3083,33 @@
       "node_stack_top_m": 21.516,
       "node_stack_bottom_m": -8.15,
       "rescale_factor": 1.63,
-      "source_file": "UA1207_BDB.cfg"
+      "source_file": "UA1207_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchType",
+          "description": "Type",
+          "subtypes": [
+            {
+              "name": "Radial",
+              "transforms": [
+                "Radial"
+              ],
+              "native_height_m": 29.666,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Inline",
+              "transforms": [
+                "Inline"
+              ],
+              "native_height_m": 29.666,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "UA1208",
@@ -1607,7 +3120,33 @@
       "node_stack_top_m": 24.776,
       "node_stack_bottom_m": -8.15,
       "rescale_factor": 1.63,
-      "source_file": "UA1208_BDB.cfg"
+      "source_file": "UA1208_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchType",
+          "description": "Type",
+          "subtypes": [
+            {
+              "name": "Radial",
+              "transforms": [
+                "Radial"
+              ],
+              "native_height_m": 32.926,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Inline",
+              "transforms": [
+                "Inline"
+              ],
+              "native_height_m": 32.926,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "Veronique",
@@ -1633,6 +3172,28 @@
       "alt_source_files": [
         "Viking2_FRE.cfg",
         "Viking4_FRE.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-Viking2",
+          "model": "ROEngines/Assets/FRE/VikingEarly/VikingEarly",
+          "native_height_m": 2.64,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 1.61,
+          "node_stack_bottom_m": -1.03,
+          "rescale_factor": 1.0,
+          "source_file": "Viking2_FRE.cfg"
+        },
+        {
+          "part_name": "ROE-Viking4",
+          "model": "ROEngines/Assets/FRE/VikingUpper/VikingUpper",
+          "native_height_m": 3.71,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 1.61,
+          "node_stack_bottom_m": -2.1,
+          "rescale_factor": 1.0,
+          "source_file": "Viking4_FRE.cfg"
+        }
       ]
     },
     {
@@ -1645,8 +3206,76 @@
       "node_stack_bottom_m": -1.0551,
       "rescale_factor": 1.0,
       "source_file": "X405_BDB.cfg",
+      "variants": [
+        {
+          "module_id": "meshSwitchShroud",
+          "description": "Shroud",
+          "subtypes": [
+            {
+              "name": "Shroud",
+              "transforms": [
+                "Shroud"
+              ],
+              "native_height_m": 1.839,
+              "height_from_part": true,
+              "linked_configs": []
+            },
+            {
+              "name": "Bare",
+              "transforms": [],
+              "native_height_m": 1.6739,
+              "height_from_part": false,
+              "linked_configs": []
+            }
+          ]
+        }
+      ],
       "alt_source_files": [
         "X405H_BDB.cfg"
+      ],
+      "alt_parts": [
+        {
+          "part_name": "ROE-X405H",
+          "model": "ROEngines/Assets/BDB/Vega/bluedog_Vega_GE405H",
+          "native_height_m": 1.6441,
+          "native_max_dia_m": null,
+          "node_stack_top_m": 0.6206,
+          "node_stack_bottom_m": -1.0236,
+          "rescale_factor": 1.6256,
+          "source_file": "X405H_BDB.cfg",
+          "variants": [
+            {
+              "module_id": "nozzle",
+              "description": "Nozzle",
+              "subtypes": [
+                {
+                  "name": "base",
+                  "transforms": [
+                    "baseNozzle"
+                  ],
+                  "native_height_m": 1.6441,
+                  "height_from_part": true,
+                  "linked_configs": [
+                    "X-405H",
+                    "X-405H-2"
+                  ]
+                },
+                {
+                  "name": "upgraded",
+                  "transforms": [
+                    "upgradedNozzle"
+                  ],
+                  "native_height_m": 2.2998,
+                  "height_from_part": false,
+                  "linked_configs": [
+                    "X-405H-3",
+                    "X-405H-4"
+                  ]
+                }
+              ]
+            }
+          ]
+        }
       ]
     },
     {
@@ -1669,7 +3298,61 @@
       "node_stack_top_m": 0.0,
       "node_stack_bottom_m": -0.536,
       "rescale_factor": 1.0,
-      "source_file": "XLR11_Al2Me6.cfg"
+      "source_file": "XLR11_Al2Me6.cfg",
+      "variants": [
+        {
+          "module_id": "model",
+          "description": "Model (auto-switched)",
+          "subtypes": [
+            {
+              "name": "rm3",
+              "transforms": [
+                "_rm_3",
+                "_mount_x1"
+              ],
+              "native_height_m": 0.536,
+              "height_from_part": true,
+              "linked_configs": [
+                "XLR11-RM-3"
+              ]
+            },
+            {
+              "name": "rm5",
+              "transforms": [
+                "_rm_5",
+                "_mount_rm_5_single"
+              ],
+              "native_height_m": 0.622,
+              "height_from_part": false,
+              "linked_configs": [
+                "*"
+              ]
+            }
+          ]
+        },
+        {
+          "module_id": "mount",
+          "description": "Thrust Structure",
+          "subtypes": [
+            {
+              "name": "Truss",
+              "transforms": [
+                "_mounts"
+              ],
+              "native_height_m": 1.136,
+              "height_from_part": false,
+              "linked_configs": []
+            },
+            {
+              "name": "Bare",
+              "transforms": [],
+              "native_height_m": 0.536,
+              "height_from_part": true,
+              "linked_configs": []
+            }
+          ]
+        }
+      ]
     },
     {
       "engine_type": "XLR25",
@@ -1702,7 +3385,38 @@
       "node_stack_top_m": 0.8,
       "node_stack_bottom_m": -1.04,
       "rescale_factor": 1.0,
-      "source_file": "XLR99_CH4.cfg"
+      "source_file": "XLR99_CH4.cfg",
+      "variants": [
+        {
+          "module_id": "nozzle",
+          "description": "Nozzle",
+          "subtypes": [
+            {
+              "name": "XLR99",
+              "transforms": [
+                "ROEngines/Assets/TheBeastlyPig/XLR99(Clone)"
+              ],
+              "native_height_m": 1.84,
+              "height_from_part": true,
+              "linked_configs": [
+                "XLR99-RM-1"
+              ]
+            },
+            {
+              "name": "XLR99A",
+              "transforms": [
+                "ROEngines/Assets/TheBeastlyPig/XLR99A(Clone)"
+              ],
+              "native_height_m": 2.65,
+              "height_from_part": false,
+              "linked_configs": [
+                "XLR99-RM-3",
+                "XLR99-RM-5"
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,7 @@
 """Engine-level assumption constants used by EngineDesign.compute() (moved verbatim
 from the former single-file design.py)."""
 from .. import (isentropic as iso)
+from ..propellant_pairs import alias_variants
 
 G0 = iso.G0
 PA_SEA_LEVEL = 101_325.0
@@ -95,6 +96,13 @@ GG_GAS_PROPERTIES = {
                                                                     # GG-bleed data point to calibrate
     "N2O4/MMH":        dict(tin_k=1150.0, cp=2800.0, gamma=1.22),   # estimate - see note above
     "Aerozine-50/NTO": dict(tin_k=1150.0, cp=2800.0, gamma=1.22),   # estimate - see note above
+    # UDMH pairs (2026-10-15): the storable estimate above, transferred (Tier 3). A
+    # full-equilibrium Cantera cross-check is NOT usable for these: fuel-rich UDMH
+    # equilibrates to ~1,330-1,450 K even with no oxidizer (complete decomposition,
+    # which a real kinetically-limited GG never reaches); its cp ~3,150 / gamma ~1.18
+    # at GG MR 0.15 agree with 2,800 / 1.22 in magnitude.
+    "LOX/UDMH":        dict(tin_k=1150.0, cp=2800.0, gamma=1.22),
+    "N2O4/UDMH":       dict(tin_k=1150.0, cp=2800.0, gamma=1.22),
     "Hydrazine":       dict(tin_k=1050.0, cp=2100.0, gamma=1.13),   # monopropellant: pressure-fed
                                                                     # only, never reaches a turbine
                                                                     # branch - harmless placeholder
@@ -108,7 +116,10 @@ GG_GAS_PROPERTIES = {
 GG_MIXTURE_RATIO = {
     "LOX/RP-1": 0.3, "LOX/CH4": 0.3, "LOX/LH2": 0.9,
     "N2O4/MMH": 0.15, "Aerozine-50/NTO": 0.15, "Hydrazine": 0.15, "H2O2": 0.15,
+    "LOX/UDMH": 0.15, "N2O4/UDMH": 0.15,     # UDMH is an "energetic" fuel [SP-8081 p.7]
 }
+alias_variants(GG_GAS_PROPERTIES)
+alias_variants(GG_MIXTURE_RATIO)
 # RETIRED 2026-09-24: the turbine-exhaust Isp is now COMPUTED per disposal mode
 # (physics/turbine_exhaust.py: overboard duct / aspirator / nozzle injection) and
 # stored as cycle_result["gg_dump_isp_fraction"]. These flat values are only the
@@ -171,9 +182,14 @@ COOLANT_INLET_TEMP_K = {
     "LOX/CH4": 112.0,          # liquid methane near its boiling point
     "N2O4/MMH": 290.0,
     "Aerozine-50/NTO": 290.0,
+    "LOX/UDMH": 290.0,
+    "N2O4/UDMH": 290.0,
+    # chilled RP-1 (Falcon 9 FT practice, ~266 K - ASSUMPTIONS.md "Subcooled LOX/RP-1")
+    "LOX/RP-1 (subcooled)": 266.0,
     "Hydrazine": 290.0,
     "H2O2": 290.0,
 }
+alias_variants(COOLANT_INLET_TEMP_K)   # MON-x/MMH: same MMH at ambient
 # Turbopump Round 2: with EngineDesign.coolant_inlet_model "computed" (default) the
 # table above is only pass 1's seed - the jacket inlet becomes the fuel pump's
 # computed outlet temperature (design/suction_stage.pump_heating) on a second compute
@@ -192,7 +208,11 @@ OXIDIZER_INLET_TEMP_K = {
     "LOX/CH4": 90.0,
     "N2O4/MMH": 290.0,
     "Aerozine-50/NTO": 290.0,
+    "LOX/UDMH": 90.0,
+    "N2O4/UDMH": 290.0,
+    "LOX/RP-1 (subcooled)": 66.0,     # densified LOX
 }
+alias_variants(OXIDIZER_INLET_TEMP_K)  # MON-x stored at ambient like N2O4
 CONTRACTION_RATIO_TYPICAL = (1.3, 6.0)
 LSTAR_TYPICAL_M = (0.02, 3.0)   # widened from (0.5, 3.0) - verified: a 100N-class thruster needs
                                 # L*~0.02m for a sane chamber aspect ratio, a 10kN-class needs

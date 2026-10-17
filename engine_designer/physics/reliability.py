@@ -2,43 +2,53 @@
 Design-derived TestFlight reliability + tested/rated burn time.
 
 EXPORT-TIME ONLY - nothing here is called from EngineDesign.compute(), so no
-validate.py spot check moves. It replaces the four verbatim
-`controller_tier.*_reliability_*` numbers that export/cfg_writer.py used to
-write regardless of the design: a modern FFSC and a crude pressure-fed engine
-should NOT get the same TESTFLIGHT curve.
+validate.py spot check moves. (The RATED burn time itself is a compute()
+output since 2026-10-16 - physics/burn_time.py.)
 
-Method: start from the chosen controller tier's four reliability values (they
-stay the anchor / build-quality modifier), take the failure gap `1 - value`,
-scale it by the cycle's inherent difficulty (BASE_BY_CYCLE), then inflate it
-for the design's own risk drivers - high chamber pressure, oxidiser-rich
-turbomachinery, deep throttling, many restarts, a tip-speed-marginal or
-fatigue-marginal design, a multi-chamber layout. Clamp into a real band
-(cycleReliabilityStart across ~300 RO configs runs 0.63 min / 0.97 median /
-0.9997 max).
+Reliability: start from the chosen controller tier's four reliability values
+(the build-quality anchor), take the failure gap `1 - value`, scale it by the
+cycle family (BASE_BY_CYCLE), then inflate it for the design's own risk
+drivers - high chamber pressure, deep throttling, many restarts, a
+tip-speed-marginal or fatigue-marginal design, a multi-chamber layout. Clamp
+into the real RO band (cycleReliabilityStart over ~600 RO configs: 0.63 min /
+0.97 median / 0.9997 max).
 
-All coefficients are Tier 3 (reasonable-but-arbitrary), the same status the
-controller-tier numbers themselves already carry. The point is the DIRECTION:
-FFSC/ORSC < FRSC < GG < pressure-fed at a fixed tier; higher Pc lower; deep
-throttle lower.
+BASE_BY_CYCLE is FITTED where RealismOverhaul has the data (2026-10-16,
+catalog/testflight_corpus.json, refit_cycle_gaps()): each family's failure gap
+over the same-decade median of the other pump-fed (mostly gas-generator)
+configs, geometric mean over the four reliability values -
+  pressure-fed 0.66, expander 0.70 (RL10 / LE-5B / RD-0146 / Vinci),
+  staged (ORSC and FRSC alike) 1.43 - which is the Pc term below at the staged
+  fleet's median ~16 MPa (x1.27) times 1.13.
+So RO does NOT rate ox-rich staged combustion worse than fuel-rich (the old
+OX_RICH_EXTRA 0.35 and the 1.6 / 2.2 / 2.6 staged multipliers double-counted
+the chamber-pressure term and are retired). FFSC (no RO data) takes the staged
+value; tap-off and electric pump stay Tier 3 guesses.
+The risk inflators are Tier 3 (reasonable-but-arbitrary): trust the direction.
 """
 
-# Cycle inherent difficulty: multiplies the (1 - reliability) failure gap.
-# 1.0 = as reliable as the tier says; > 1 = harder to make reliable.
+# Cycle family: multiplies the (1 - reliability) failure gap. 1.0 = the
+# gas-generator / other-pump-fed reference group.
 BASE_BY_CYCLE = {
-    "pressure_fed": 0.85,
-    "gas_generator": 1.00,
-    "tap_off": 1.15,
-    "expander": 0.95,
-    "electric_pump": 1.05,
-    "frsc": 1.6,
-    "orsc": 2.2,
-    "ffsc": 2.6,
+    "pressure_fed": 0.66,       # fitted, 61 RO rows
+    "gas_generator": 1.00,      # reference
+    "tap_off": 1.15,            # Tier 3 - no RO tap-off rows (J-2S only flew on a stand)
+    "expander": 0.70,           # fitted, 27 RO rows
+    "electric_pump": 1.05,      # Tier 3 - Rutherford rows only, too few to fit
+    "frsc": 1.13,               # fitted staged family / Pc term (see docstring)
+    "orsc": 1.13,
+    "ffsc": 1.13,               # no RO data - the staged value
 }
 _BASE_FALLBACK = 1.0
+# Real chamber pressures of the RO staged-combustion configs the staged factor
+# was fitted on (their Engine_Configs header comments, MPa); the median sets the
+# Pc term BASE_BY_CYCLE["orsc"/"frsc"] is divided by.
+STAGED_FAMILY_PC_MPA = {"RD180": 26.66, "RD170": 24.52, "RD191": 25.83, "RD120": 16.28,
+                        "RD253": 14.7, "NK33": 14.5, "RD8": 0.7, "RD58": 5.30,
+                        "RD0124": 15.69, "SSME": 20.48, "RD0120": 21.87, "LE7": 12.7}
 
 PC_REF_PA = 7.0e6
 PC_GAP_PER_MPA = 0.030          # each MPa of Pc above the reference inflates the gap by this
-OX_RICH_EXTRA = 0.35            # ORSC / FFSC: hot oxidiser-rich gas is corrosive/erosive
 DEEP_THROTTLE_THRESHOLD = 0.5
 DEEP_THROTTLE_EXTRA = 0.25      # throttling below 50 % of max
 MANY_RESTART_THRESHOLD = 10
@@ -53,22 +63,12 @@ CHAMBER_COUNT_EXTRA = 0.15      # per extra chamber beyond the first
 RELIABILITY_FLOOR = 0.55
 RELIABILITY_CEILING = 0.99975
 
-# tested / rated burn-time multiplier bounds.
-TESTED_RATED_MIN = 3.0
-TESTED_RATED_MAX = 30.0
-TESTED_BURN_TIME_CAP_S = 180000.0
-
-
 def _risk_multiplier(design, result):
     """(1 + sum of applicable risk inflators) on the cycle-scaled failure gap."""
     m = 1.0
     pc_mpa = design.chamber_pressure_pa / 1e6
     if pc_mpa > PC_REF_PA / 1e6:
         m += PC_GAP_PER_MPA * (pc_mpa - PC_REF_PA / 1e6)
-
-    cyc = (result.get("cycle_result") or {})
-    if cyc.get("oxidizer_rich") or design.cycle == "ffsc":
-        m += OX_RICH_EXTRA
 
     if design.throttle_floor < DEEP_THROTTLE_THRESHOLD:
         m += DEEP_THROTTLE_EXTRA
@@ -116,34 +116,59 @@ def derived_reliability(design, result, controller_tier):
     }
 
 
-def derived_burn_times(design, result, controller_tier, rated_burn_time_s=None,
+def derived_burn_times(design, result, controller_tier=None, rated_burn_time_s=None,
                        is_ablative=False):
     """
-    Return (rated_burn_time_s, tested_burn_time_s). Rated is the
-    chamber-material-driven value from compute() (passed in). Tested = rated x a
-    multiplier that starts from the controller tier's tested_to_rated_multiplier
-    and is nudged up for a reusable design signal (deep throttle range + many
-    restarts) and down for a hard-to-reuse one; ablative chambers get
-    tested == rated (matching real "ablative, no extra time" configs).
+    (rated_burn_time_s, tested_burn_time_s). Rated is compute()'s duty-capped
+    value (physics/burn_time.py) unless overridden. Tested = rated x the
+    RO-corpus tested/rated ratio for this era / pressure-fed / restartable /
+    upper-stage engine (burn_time.tested_ratio), never past the hardware's
+    life limit (result["burn_life_s"]) and never below rated; ablative =
+    rated (the real "ablative, no extra time" pattern). controller_tier is
+    accepted for call compatibility - the era comes from burn_time.design_year.
     """
+    from . import burn_time
     if rated_burn_time_s is None:
         rated_burn_time_s = result["rated_burn_time_s"]
-    if is_ablative:
-        return rated_burn_time_s, rated_burn_time_s
-
-    mult = controller_tier.tested_to_rated_multiplier
-    # Reusable-design signal: throttles deep AND restarts often -> more qual time.
-    if (design.throttle_floor <= 0.6
-            and getattr(design, "ignitions", 1) >= 5):
-        mult *= 1.25
-    if design.cycle in ("frsc", "orsc", "ffsc"):
-        mult *= 1.10                                  # staged/FFSC engines are qual-heavy
-    if getattr(design, "ignitions", 1) <= 1 and design.throttle_floor >= 0.95:
-        mult *= 0.8                                   # expendable, fixed-thrust -> less qual
-
-    mult = max(TESTED_RATED_MIN, min(TESTED_RATED_MAX, mult))
-    tested = min(TESTED_BURN_TIME_CAP_S, rated_burn_time_s * mult)
+    year = result.get("design_year") or burn_time.design_year(design)[0]
+    role = result.get("engine_role") or burn_time.engine_role(
+        result.get("isp_vac_engine_s"), result.get("isp_sl_engine_s"),
+        design.cycle == "pressure_fed")
+    ratio = burn_time.tested_ratio(year, role == "pressure_fed",
+                                   burn_time.is_restartable(getattr(design, "ignitions", 1)),
+                                   role != "booster")
+    tested = burn_time.tested_burn_time_s(rated_burn_time_s, result.get("burn_life_s"), ratio,
+                                          ablative=is_ablative)
     return rated_burn_time_s, tested
+
+
+def refit_cycle_gaps(rows=None):
+    """{family: gap ratio} - each RO cycle family's failure gap over the same-
+    decade median of the other pump-fed configs, geometric mean over the four
+    reliability values. Families: catalog/build_testflight_corpus.FAMILY_FILES +
+    "pf"."""
+    import math
+    import statistics
+    if rows is None:
+        from ..catalog import build_testflight_corpus
+        rows = build_testflight_corpus.load_rows()
+    keys = ("cyc_start", "cyc_end", "ign_start", "ign_end")
+    rows = [r for r in rows if r["biprop"] and r["year"] and all(r[k] for k in keys)]
+    dec = lambda y: min(y // 10 * 10, 2000)
+    ref = {}
+    for r in rows:
+        if r["family"] == "pump":
+            ref.setdefault(dec(r["year"]), []).append(r)
+    out = {}
+    for fam in sorted({r["family"] for r in rows} - {"pump"}):
+        logs = []
+        for k in keys:
+            med = {d: 1.0 - statistics.median(x[k] for x in v) for d, v in ref.items()}
+            ratios = [(1.0 - r[k]) / med[dec(r["year"])] for r in rows
+                      if r["family"] == fam and med.get(dec(r["year"]), 0) > 0]
+            logs.append(statistics.median(math.log(max(x, 1e-4)) for x in ratios))
+        out[fam] = math.exp(sum(logs) / len(logs))
+    return out
 
 
 if __name__ == "__main__":
@@ -156,7 +181,20 @@ if __name__ == "__main__":
         d = EngineDesign(propellant_pair=pair, cycle=cycle, **kw)
         return derived_reliability(d, d.compute(), tier)
 
-    # Cycle-complexity ordering at a fixed tier: pressure-fed > GG > FRSC > ORSC > FFSC.
+    # The cycle factors reproduce the RO corpus fit.
+    import statistics
+    gaps = refit_cycle_gaps()
+    print("  RO failure-gap ratio vs same-era pump-fed: "
+          + ", ".join(f"{k} {v:.2f}" for k, v in gaps.items()))
+    assert abs(gaps["pf"] - BASE_BY_CYCLE["pressure_fed"]) < 0.05, gaps
+    assert abs(gaps["expander"] - BASE_BY_CYCLE["expander"]) < 0.05, gaps
+    pc_term = 1.0 + PC_GAP_PER_MPA * (statistics.median(STAGED_FAMILY_PC_MPA.values())
+                                     - PC_REF_PA / 1e6)
+    for fam in ("orsc", "frsc"):
+        assert abs(BASE_BY_CYCLE[fam] * pc_term / gaps[fam] - 1.0) < 0.15, (fam, gaps[fam], pc_term)
+
+    # Ordering at a fixed tier and each cycle's typical Pc: pressure-fed > GG >
+    # FRSC > ORSC > FFSC - now carried by the Pc term, not a per-cycle penalty.
     pf = rel("N2O4/MMH", "pressure_fed", chamber_pressure_pa=0.8e6, injector_type="impinging")
     gg = rel("LOX/RP-1", "gas_generator")
     fr = rel("LOX/LH2", "frsc", chamber_pressure_pa=20e6, mixture_ratio=6.0)
@@ -179,14 +217,15 @@ if __name__ == "__main__":
     assert abs(base_default["cycle_reliability_start"] - tier.cycle_reliability_start) < 0.02, \
         (base_default["cycle_reliability_start"], tier.cycle_reliability_start)
 
-    # Burn times: ablative -> tested == rated; non-ablative -> in the 3-30x band.
+    # Burn times: inside the RO corpus band, never past the life, ablative tested == rated.
     d = EngineDesign(cycle="gas_generator")
     r = d.compute()
     rated, tested = derived_burn_times(d, r, tier)
-    assert 3.0 <= tested / rated <= 30.0, (rated, tested)
+    assert 1.0 <= tested / rated <= 10.0 and tested <= max(rated, r["burn_life_s"]) + 1e-9, \
+        (rated, tested, r["burn_life_s"])
     rated_a, tested_a = derived_burn_times(d, r, tier, is_ablative=True)
     assert rated_a == tested_a
-    print(f"  burn time: rated {rated:.0f} s -> tested {tested:.0f} s ({tested/rated:.1f}x); "
-          f"ablative tested == rated")
+    print(f"  burn time: rated {rated:.0f} s -> tested {tested:.0f} s ({tested/rated:.1f}x, "
+          f"life {r['burn_life_s']:.0f} s); ablative tested == rated")
 
     print("reliability.py self-checks: OK")

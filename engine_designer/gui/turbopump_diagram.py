@@ -24,6 +24,22 @@ _XF, _XO = 2.7, 9.3           # fuel-side / ox-side column centres
 _MID = 6.0
 
 
+def _tank_names(pair):
+    """(ox label, fuel label) for the tank boxes, from the explicit pumped-propellant
+    map - pair strings are not uniformly ox-first ("Aerozine-50/NTO") - plus the fixed
+    temperature of a subcooled pair variant."""
+    from ..physics.design.suction_stage import PAIR_AUTO_PROPELLANT_TEMP_K, PUMPED_PROPELLANTS
+    names = PUMPED_PROPELLANTS.get(pair)
+    if not names or not all(names):
+        parts = pair.split("/")
+        return (parts[0], parts[-1])
+    fuel, ox = names
+    temps = PAIR_AUTO_PROPELLANT_TEMP_K.get(pair)
+    if temps:
+        fuel, ox = f"{fuel} @ {temps[0]:.0f} K", f"{ox} @ {temps[1]:.0f} K"
+    return ox, fuel
+
+
 def _box(ax, cx, cy, w, h, text, color, *, fontsize=7.2):
     ax.add_patch(FancyBboxPatch((cx - w / 2, cy - h / 2), w, h,
                                  boxstyle="round,pad=0.02,rounding_size=0.08",
@@ -84,7 +100,7 @@ def draw_turbopump_diagram(ax, result):
     cyc = result["cycle_result"]
     inp = result["inputs"]
     pc_mpa = inp["chamber_pressure_pa"] / 1e6
-    ox_name, fuel_name = inp["propellant_pair"].split("/")
+    ox_name, fuel_name = _tank_names(inp["propellant_pair"])
 
     _box(ax, _XF, 11.0, 2.7, 1.0, f"FUEL TANK\n{fuel_name}", _NEUTRAL, fontsize=7)
     _box(ax, _XO, 11.0, 2.7, 1.0, f"OX TANK\n{ox_name}", _NEUTRAL, fontsize=7)

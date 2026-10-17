@@ -32,6 +32,55 @@ SPOT_CHECKS = [
     dict(name="Sprite DSpr (H2O2 monopropellant, real RO engine, de Havilland HTP JATO)",
          pair="H2O2", pc_pa=1.0e6, eps=3.0, mr=1.0,
          actual_vac_isp=121.0, actual_sl_isp=95.6, sl_meaningful=False, tol_pct=8.0),
+    # --- 2026-10-15 new-pairs round -------------------------------------------------
+    # LOX/UDMH: ETA_CF reverse-solved on RD-119 (Engine_Configs/RD109_Config.cfg);
+    # RD-112 (RD220_Config.cfg, Pc/MR/eps cited [2],[5] there) is the INDEPENDENT
+    # cross-check - its residual is the spread one ETA_CF per pair carries.
+    dict(name="RD-119 8D710 (LOX/UDMH, real RO engine, Kosmos-2 upper stage)", pair="LOX/UDMH",
+         pc_pa=7.9e6, eps=102.0, mr=1.5,
+         actual_vac_isp=362.0, actual_sl_isp=220.0, sl_meaningful=False),
+    dict(name="RD-112 (LOX/UDMH, real RO engine, R-20 1st stage) - cross-check", pair="LOX/UDMH",
+         pc_pa=14.7e6, eps=31.8, mr=1.704,
+         actual_vac_isp=344.0, actual_sl_isp=304.0, sl_meaningful=True),
+    # N2O4/UDMH: ETA_CF reverse-solved on RD-253 (RD253_Config.cfg); RD-0210
+    # (RD0210_Config.cfg, Proton stage 2 - SL Isp is an RPA figure there) cross-checks.
+    dict(name="RD-253 11D43 (N2O4/UDMH, real RO engine, Proton 1st stage)", pair="N2O4/UDMH",
+         pc_pa=14.7e6, eps=26.3, mr=2.67,
+         actual_vac_isp=315.5, actual_sl_isp=284.5, sl_meaningful=True),
+    dict(name="RD-0210 (N2O4/UDMH, real RO engine, Proton 2nd stage) - cross-check",
+         pair="N2O4/UDMH", pc_pa=14.7e6, eps=81.3, mr=2.6,
+         actual_vac_isp=327.0, actual_sl_isp=242.0, sl_meaningful=False),
+    # Subcooled LOX/RP-1: NOT re-tuned - it inherits LOX/RP-1's eta_c* and ETA_CF,
+    # so this checks that colder reactants + the same losses reproduce a densified
+    # engine. Merlin 1D+ (Merlin1_Config.cfg, CooledLOX / CooledRP-1).
+    dict(name="Merlin 1D+ (LOX/RP-1 subcooled, real RO engine, Falcon 9 FT)",
+         pair="LOX/RP-1 (subcooled)", pc_pa=10.8e6, eps=21.4, mr=2.36,
+         actual_vac_isp=311.0, actual_sl_isp=282.0, sl_meaningful=True),
+    # RD-111A (RD111_config.cfg): subcooled LOX, but its +8.5 s over the RD-111 came
+    # with redesigned injectors - not a subcooling effect, so REPORTED, never gated.
+    dict(name="RD-111A 8D716A (subcooled LOX / T-1, real RO engine) - reported only",
+         pair="LOX/RP-1 (subcooled)", pc_pa=7.85e6, eps=18.0, mr=2.39,
+         actual_vac_isp=318.0, actual_sl_isp=276.0, sl_meaningful=True, gated=False),
+    # --- 2026-10-16 MON variants of N2O4/MMH ----------------------------------------
+    # N2O4/MMH's ETA_CF (Aestus) is INHERITED, not re-solved. The MON chemistry moves Isp
+    # by <0.1 s at these points (N2O4/MMH predicts the same numbers), so these rows
+    # measure the spread ONE ETA_CF per pair carries across MMH engines: AJ10-190 -6 %,
+    # R-40 +1.6 %, TD-339 +3.4 % - engine-to-engine efficiency, not chemistry. Reported,
+    # not gated (re-tuning to one of them would just move the miss to another);
+    # OPEN_QUESTIONS "N2O4/MMH efficiency spread". Header rows of the named configs.
+    dict(name="AJ10-190 (MON-3/MMH, real RO engine, Shuttle OMS) - reported only",
+         pair="MON-3/MMH", pc_pa=0.86e6, eps=55.0, mr=1.65,
+         actual_vac_isp=316.0, actual_sl_isp=None, sl_meaningful=False, gated=False),
+    dict(name="R-40 (MON-3/MMH, real RO engine, Marquardt R-40) - reported only",
+         pair="MON-3/MMH", pc_pa=0.99e6, eps=22.0, mr=1.65,
+         actual_vac_isp=281.0, actual_sl_isp=None, sl_meaningful=False, gated=False),
+    dict(name="TD-339 (MON-10/MMH, real RO engine, Surveyor vernier) - reported only",
+         pair="MON-10/MMH", pc_pa=1.72e6, eps=85.0, mr=1.5,
+         actual_vac_isp=287.0, actual_sl_isp=None, sl_meaningful=False, gated=False),
+    # The anchor itself re-run on its real MON-3: the residual is the N2O4 -> MON-3 shift.
+    dict(name="Aestus as MON-3/MMH (its real oxidizer) - reported only",
+         pair="MON-3/MMH", pc_pa=1.1e6, eps=84.0, mr=1.9,
+         actual_vac_isp=306.0, actual_sl_isp=113.0, sl_meaningful=False, gated=False),
 ]
 
 
@@ -82,8 +131,9 @@ def run():
         if check["sl_meaningful"]:
             err_sl = (isp_sl - check["actual_sl_isp"]) / check["actual_sl_isp"] * 100
             ok = ok and abs(err_sl) <= tol
-        all_ok &= ok
-        status = "OK" if ok else "*** OUT OF TOLERANCE ***"
+        gated = check.get("gated", True)
+        all_ok &= ok or not gated
+        status = ("OK" if ok else "*** OUT OF TOLERANCE ***") if gated else "reported, not gated"
         print(f"\n{check['name']}  [{status}]")
         print(f"  Pc={check['pc_pa']/1e6:.2f} MPa  eps={check['eps']}  MR={check['mr']}  "
               f"eta_cstar={eta_cstar}  eta_CF={combustion.ETA_CF[check['pair']]:.4f}  "
@@ -139,10 +189,11 @@ def run_integration_checks():
         err = (r["isp_vac_engine_s"] - check["actual_vac_isp"]) / check["actual_vac_isp"] * 100
         tol = check.get("tol_pct", INTEGRATION_TOLERANCE_PCT)
         ok = abs(err) <= tol
-        all_ok &= ok
+        gated = check.get("gated", True)
+        all_ok &= ok or not gated
         print(f"  {check['name']:<45} predicted {r['isp_vac_engine_s']:6.1f} s  "
               f"actual {check['actual_vac_isp']:6.1f} s  err {err:+.2f}%  "
-              f"[{'OK' if ok else 'FAIL'}]")
+              f"[{('OK' if ok else 'FAIL') if gated else 'reported'}]")
     print()
     print("ALL INTEGRATION CHECKS WITHIN TOLERANCE" if all_ok else
           "*** ONE OR MORE INTEGRATION CHECKS OUT OF TOLERANCE - the nozzle-efficiency-vs-"

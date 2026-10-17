@@ -426,6 +426,40 @@ if __name__ == "__main__":
         assert saturation(prop, 1e4)["t_clamped"]
     assert saturation("N2O4", 293.0) is None and not has_saturation("MMH")
     assert sdb["RP-1"]["surrogate"] and not sdb["LOX"]["surrogate"]
+    # 10. new pairs (2026-10-15): the subcooled variant is LOX/RP-1 with colder
+    #     reactants - the same MR/Pc grid, slightly LOWER Tc / c* / Isp (less
+    #     reactant enthalpy), and its own coolant table reaches 266 K unclamped;
+    #     its combustion.PROPELLANT_DENSITIES are the saturation-table derivation
+    #     documented there; both UDMH pairs peak in Tc between their real
+    #     operating MR and stoichiometric (LOX/UDMH ~2.13, N2O4/UDMH ~3.07).
+    from . import combustion
+    for pc in (2e6, 10e6):
+        for mr in (2.0, 2.36, 2.8):
+            hot, cold = gas_state("LOX/RP-1", mr, pc), gas_state("LOX/RP-1 (subcooled)", mr, pc)
+            assert 0 < hot["tc_k"] - cold["tc_k"] < 30 and 0 < hot["cstar_ms"] - cold["cstar_ms"] < 10
+            dv = isp_vac_ideal_s("LOX/RP-1", mr, pc, 25.0)[0] - isp_vac_ideal_s("LOX/RP-1 (subcooled)", mr, pc, 25.0)[0]
+            assert 0 < dv < 2.0, (mr, pc, dv)
+    c266 = coolant_state("LOX/RP-1 (subcooled)", 266.0, 10e6)
+    assert c266 is not None and not c266["t_clamped"]
+    rho_f, rho_o = combustion.PROPELLANT_DENSITIES["LOX/RP-1 (subcooled)"]
+    rp1_ratio = saturation("RP-1", 266.0)["rho_l_kg_m3"] / saturation("RP-1", 293.15)["rho_l_kg_m3"]
+    assert abs(rho_f - 810.0 * rp1_ratio) < 0.1, rho_f
+    assert abs(rho_o - saturation("LOX", 66.0)["rho_l_kg_m3"]) < 0.1, rho_o
+    for pair, mr_peak_window in (("LOX/UDMH", (1.6, 2.3)), ("N2O4/UDMH", (2.4, 3.2))):
+        g = _gas_db()[pair]
+        ip = int(np.argmin(abs(np.exp(g["lnp"]) - 7e6)))
+        mr_peak = g["mr"][int(np.argmax(g["tc_k"][ip]))]
+        assert mr_peak_window[0] <= mr_peak <= mr_peak_window[1], (pair, mr_peak)
+    # 11. MON-x/MMH (2026-10-16): N2O4 + x % NO. Oxidizer-rich of the real MRs the
+    #     dissolved NO adds energy, so Isp rises monotonically N2O4 -> MON-3 -> -10 -> -25,
+    #     but only slightly (MON is chosen for its freezing point, not performance); the
+    #     oxidizer densities are 1440 x RealFuels' MONx/NTO ratio (combustion.py).
+    for pc in (1e6, 7e6):
+        isps = [isp_vac_ideal_s(p, 2.0, pc, 55.0)[0]
+                for p in ("N2O4/MMH", "MON-3/MMH", "MON-10/MMH", "MON-25/MMH")]
+        assert all(b > a for a, b in zip(isps, isps[1:])) and isps[-1] - isps[0] < 2.0, (pc, isps)
+    for pair, rf in (("MON-3/MMH", 1436.3), ("MON-10/MMH", 1444.1), ("MON-25/MMH", 1455.4)):
+        assert abs(combustion.PROPELLANT_DENSITIES[pair][1] - 1440.0 * rf / 1433.0) < 0.1, pair
     for prop in nbp_ref:
         s = saturation(prop, sdb[prop]["nbp"])
         print(f"  {prop:4s} NBP {sdb[prop]['nbp']:6.2f} K  rho_l {s['rho_l_kg_m3']:7.1f}  "

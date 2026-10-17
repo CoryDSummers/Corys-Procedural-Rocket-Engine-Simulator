@@ -64,6 +64,7 @@ import warnings
 
 import numpy as np
 
+from .propellant_pairs import base_pair
 from .cooling import COOLANT_TRANSPORT, _COOLANT_TRANSPORT_FALLBACK, _darcy_friction
 from .manifold import (MANIFOLD_DENSITY_KG_M3, ring_flow_radius_at, ring_is_scroll,
                        velocity_cap_warning)
@@ -855,7 +856,8 @@ def liquid_viscosity_pa_s(pair, host):
     if host == "turbine_exhaust":
         return EXHAUST_GAS_VISCOSITY_PA_S
     if HOST_PUMP.get(host) == "ox_pump":
-        return OX_VISCOSITY_PA_S.get(str(pair).split("/")[0], _OX_VISCOSITY_FALLBACK)
+        # base_pair: a MON-x/MMH variant reads N2O4's viscosity
+        return OX_VISCOSITY_PA_S.get(base_pair(str(pair)).split("/")[0], _OX_VISCOSITY_FALLBACK)
     return COOLANT_TRANSPORT.get(pair, _COOLANT_TRANSPORT_FALLBACK)[1]
 
 

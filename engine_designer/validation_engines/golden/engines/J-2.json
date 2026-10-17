@@ -96,6 +96,26 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "67961.84590972983"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "16990.46147743246"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (convergent section)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
+"life_s": {
+"__f__": "67961.84590972983"
+},
+"margin": {
+"__f__": "1.6646841269811343"
+},
+"zone": "convergent section"
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.8710583194558972"
 },
@@ -480,6 +500,12 @@
 "category": "plumbing",
 "detail": "OK - 2.51 m, 49.4 kg, -> turbine, line loss 9 kPa",
 "name": "Plumbing run on 'turbine_exhaust' geometry (2 pipes) (default exhaust duct)",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 500 s duty, life limit 67962 s",
+"name": "Rated burn time vs. life limit",
 "passed": true
 },
 {
@@ -3411,6 +3437,12 @@
 }
 }
 },
+"design_year": 1966,
+"design_year_source": "tech node improvedHydrolox",
+"duty_default_s": {
+"__f__": "231.4385361113907"
+},
+"engine_role": "upper",
 "eps_for_transition": {
 "__f__": "6.0"
 },
@@ -3659,9 +3691,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -3698,6 +3727,7 @@
 "chamber_wall_fillet_r_over_rt": {
 "__f__": "0.0"
 },
+"config_description": "",
 "config_name": "J-2",
 "contraction_ratio": {
 "__f__": "1.6"
@@ -3712,7 +3742,7 @@
 "__f__": "6.0"
 },
 "cost": {
-"__f__": "20.0"
+"__f__": "0.0"
 },
 "cycle": "gas_generator",
 "diffuser_type": "auto",
@@ -3721,7 +3751,7 @@
 },
 "enforce_suction_limit": false,
 "entry_cost": {
-"__f__": "10000.0"
+"__f__": "0.0"
 },
 "eta_pump_fuel": {
 "__f__": "0.0"
@@ -3756,9 +3786,11 @@
 "__f__": "0.0"
 },
 "host_model_engine_type": "",
+"host_model_part": "",
 "host_model_reference_height_m": {
 "__f__": "0.0"
 },
+"host_model_variants": {},
 "ignition_system": "tea_teb",
 "ignitions": 1,
 "impingement_angle_deg": {
@@ -3822,6 +3854,7 @@
 "__f__": "0.0"
 },
 "plumbing_runs": [],
+"plume_mode": "host",
 "preburner_tin_k": {
 "__f__": "0.0"
 },
@@ -3846,6 +3879,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "axial",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "500.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -3861,6 +3897,8 @@
 "regen_nozzle_end_eps": {
 "__f__": "27.5"
 },
+"rp1_ecm_parents": "",
+"rp1_tree_icon": true,
 "suction_accel_g": {
 "__f__": "1.0"
 },
@@ -3890,7 +3928,10 @@
 "target_vac_thrust_n": {
 "__f__": "1023090.6"
 },
-"tech_node": "",
+"tech_node": "improvedHydrolox",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.6"
 },
@@ -4813,8 +4854,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "289.5102829532408"
+"__f__": "500.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "500.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "4.814702760141089e-06"
 },

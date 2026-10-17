@@ -87,6 +87,26 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "1500.624489629767"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "375.1561224074417"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (convergent section)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
+"life_s": {
+"__f__": "1500.624489629767"
+},
+"margin": {
+"__f__": "0.8146522538284923"
+},
+"zone": "convergent section"
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.9617098846157603"
 },
@@ -429,6 +449,12 @@
 "category": "turbopump",
 "detail": "OK - axial shaft at 0 deg, axis 1.06 m off the engine axis, x 0.07-1.69 m, 23 mm clear of the 0.57 m local envelope (turbine)",
 "name": "Turbopump placement",
+"passed": true
+},
+{
+"category": "cooling",
+"detail": "OK - 360 s duty, life limit 1501 s",
+"name": "Rated burn time vs. life limit",
 "passed": true
 },
 {
@@ -3159,6 +3185,12 @@
 }
 }
 },
+"design_year": 1966,
+"design_year_source": "controller tier (Baseline Analog/Early Digital (previous default))",
+"duty_default_s": {
+"__f__": "166.87515574449714"
+},
+"engine_role": "booster",
 "eps_for_transition": {
 "__f__": "6.0"
 },
@@ -3425,9 +3457,6 @@
 },
 "injector_stiffness_ok_at_floor": false,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -3464,6 +3493,7 @@
 "chamber_wall_fillet_r_over_rt": {
 "__f__": "0.0"
 },
+"config_description": "",
 "config_name": "Raptor-2",
 "contraction_ratio": {
 "__f__": "1.6"
@@ -3478,7 +3508,7 @@
 "__f__": "6.0"
 },
 "cost": {
-"__f__": "20.0"
+"__f__": "0.0"
 },
 "cycle": "ffsc",
 "diffuser_type": "auto",
@@ -3487,7 +3517,7 @@
 },
 "enforce_suction_limit": false,
 "entry_cost": {
-"__f__": "10000.0"
+"__f__": "0.0"
 },
 "eta_pump_fuel": {
 "__f__": "0.0"
@@ -3522,9 +3552,11 @@
 "__f__": "0.0"
 },
 "host_model_engine_type": "",
+"host_model_part": "",
 "host_model_reference_height_m": {
 "__f__": "0.0"
 },
+"host_model_variants": {},
 "ignition_system": "tea_teb",
 "ignitions": 1,
 "impingement_angle_deg": {
@@ -3588,6 +3620,7 @@
 "__f__": "0.0"
 },
 "plumbing_runs": [],
+"plume_mode": "host",
 "preburner_tin_k": {
 "__f__": "0.0"
 },
@@ -3612,6 +3645,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "360.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -3627,6 +3663,8 @@
 "regen_nozzle_end_eps": {
 "__f__": "40.0"
 },
+"rp1_ecm_parents": "",
+"rp1_tree_icon": true,
 "suction_accel_g": {
 "__f__": "1.0"
 },
@@ -3657,6 +3695,9 @@
 "__f__": "2255530.0"
 },
 "tech_node": "",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.6"
 },
@@ -4444,8 +4485,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "141.6786528397378"
+"__f__": "360.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "360.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "8.892167431140511e-06"
 },

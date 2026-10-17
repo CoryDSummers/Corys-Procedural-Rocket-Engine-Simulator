@@ -108,6 +108,26 @@
 }
 ]
 },
+"burn_life_s": {
+"__f__": "826.0251402849212"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": {
+"__f__": "206.5062850712303"
+},
+"key": "wall_temperature",
+"label": "Hot-wall temperature margin (throat)",
+"lever": "cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc",
+"life_s": {
+"__f__": "826.0251402849212"
+},
+"margin": {
+"__f__": "0.598117658168913"
+},
+"zone": "throat"
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.8338024865617994"
 },
@@ -445,6 +465,12 @@
 "detail": "OK - axial shaft at 0 deg, axis 0.57 m off the engine axis, x 0.09-0.58 m, 16 mm clear of the 0.40 m local envelope (pump)",
 "name": "Turbopump placement",
 "passed": true
+},
+{
+"category": "cooling",
+"detail": "Duty target 415 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 207 s by hot-wall temperature margin (throat) (life 826 s). Cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc.",
+"name": "Rated burn time vs. life limit",
+"passed": false
 },
 {
 "category": "injector",
@@ -2443,6 +2469,12 @@
 }
 }
 },
+"design_year": 1980,
+"design_year_source": "controller tier (Digital FADEC)",
+"duty_default_s": {
+"__f__": "414.6455540321421"
+},
+"engine_role": "upper",
 "eps_for_transition": {
 "__f__": "16.0"
 },
@@ -2667,9 +2699,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -2706,6 +2735,7 @@
 "chamber_wall_fillet_r_over_rt": {
 "__f__": "0.0"
 },
+"config_description": "",
 "config_name": "AJ-90k",
 "contraction_ratio": {
 "__f__": "3.8"
@@ -2720,7 +2750,7 @@
 "__f__": "16.0"
 },
 "cost": {
-"__f__": "71.0"
+"__f__": "0.0"
 },
 "cycle": "frsc",
 "diffuser_type": "auto",
@@ -2729,7 +2759,7 @@
 },
 "enforce_suction_limit": false,
 "entry_cost": {
-"__f__": "77496.0"
+"__f__": "0.0"
 },
 "eta_pump_fuel": {
 "__f__": "0.0"
@@ -2764,9 +2794,11 @@
 "__f__": "0.0"
 },
 "host_model_engine_type": "J2",
+"host_model_part": "",
 "host_model_reference_height_m": {
 "__f__": "0.0"
 },
+"host_model_variants": {},
 "ignition_system": "spark_torch",
 "ignitions": 8,
 "impingement_angle_deg": {
@@ -2830,6 +2862,7 @@
 "__f__": "0.0"
 },
 "plumbing_runs": [],
+"plume_mode": "host",
 "preburner_tin_k": {
 "__f__": "0.0"
 },
@@ -2854,6 +2887,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "0.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -2869,6 +2905,8 @@
 "regen_nozzle_end_eps": {
 "__f__": "0.0"
 },
+"rp1_ecm_parents": "",
+"rp1_tree_icon": true,
 "suction_accel_g": {
 "__f__": "1.0"
 },
@@ -2899,6 +2937,9 @@
 "__f__": "400000.0"
 },
 "tech_node": "",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "1.0"
 },
@@ -3678,8 +3719,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "104.02046229024575"
+"__f__": "206.5062850712303"
 },
+"rated_burn_time_target_s": {
+"__f__": "414.6455540321421"
+},
+"rated_limited_by": "wall_temperature",
 "required_time_s": {
 "__f__": "4.640558761112321e-06"
 },
@@ -8545,6 +8590,7 @@
 "Fuel pump: impeller outlet 0.18 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "Ox pump: impeller outlet 0.17 x its diameter wide - wider than any real SP-8109 Table I impeller (0.04-0.14): a mixed-flow-like stage at specific speed 2,200. Real LH2 multistage pumps run slower stages (SSME HPFTP ~1,100); 'Efficient <-> Compact' toward efficient lowers it.",
 "[turbopump] Inconel 718 (nickel superalloy): turbine-inlet gas ~1113 K is well above its ~980 K service limit for disk AND blades - lower the turbine gas temperature (GG / tap-off / preburner temperature) or choose a hotter-capable alloy, or set a separate turbine blade material (real turbines near 1,100 K ran wrought disks with cast blades, e.g. the F-1's Inconel 718 / 713C [SP-8110]).",
+"Duty target 415 s exceeds what the hardware supports with a x4 life factor: rated burn time capped at 207 s by hot-wall temperature margin (throat) (life 826 s). Cooler chamber wall: chamber material, coolant velocity / channels, chamber film (or a convergent film ring), or a lower Pc.",
 "Nozzle is separated at sea level even at 100% throttle (Pe/Pa=0.038) - this is a vacuum/high-altitude nozzle, not suited to a sea-level-igniting stage."
 ]
 }

@@ -193,14 +193,14 @@ def run_explicit_cooling_check():
              "N2O4/MMH", 1.9, 1.1e6, 84.0, "ablative_phenolic", 45_000.0, None),
             ("LMAE (Apollo LM ascent, MON1/A-50, Refrasil-phenolic ablative)",
              "Aerozine-50/NTO", 1.6, 0.83e6, 45.6, "refrasil_phenolic", 15_570.0, 560.0)]:
-        # ablative_target_burn_time_s (2026-09-25): burn time is now a design INPUT for
+        # rated_burn_time_target_s (was ablative_target_burn_time_s, 2026-09-25): burn time is now a design INPUT for
         # ablative sections, not derived - so for LMAE we target its real ratedBurnTime
         # and report the resulting char-depth liner thickness instead. This does NOT
         # "reproduce" 560 s (it's an input by construction now); the interesting number
         # is the liner thickness it implies, a physically plausible gauge independent of
         # hoop stress - see materials.py's _REFRASIL_CONSUMPTION_RATE_M_S comment and
         # ASSUMPTIONS.md for the fix this replaces.
-        target_kw = {"ablative_target_burn_time_s": real_rated_s} if real_rated_s else {}
+        target_kw = {"rated_burn_time_target_s": real_rated_s} if real_rated_s else {}
         r = EngineDesign(propellant_pair=pair, mixture_ratio=mr, chamber_pressure_pa=pc,
                           expansion_ratio=eps, cycle="pressure_fed",
                           nozzle_type="bell", bell_percent_length=80.0,
@@ -342,7 +342,8 @@ def run_cooling_robustness_sweep():
     combos = [(p, ch, nz, "milled_channel", "channels")
               for p, ch, nz in itertools.product(combustion.available_pairs(), mats, mats)]
     combos += [(p, "regenerative", "regenerative", wc, model)
-               for p in ("LOX/RP-1", "LOX/LH2", "Aerozine-50/NTO")
+               for p in ("LOX/RP-1", "LOX/LH2", "Aerozine-50/NTO", "N2O4/UDMH", "LOX/RP-1 (subcooled)",
+                         "MON-3/MMH")
                for wc, model in itertools.product(cooling.WALL_CONSTRUCTIONS, ("flat", "channels"))]
     bad = []
     for pair, ch, nz, wc, model in combos:

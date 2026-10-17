@@ -35,6 +35,23 @@ into that and makes no claims about it.
 
 ## Open literature gaps
 
+- **Physically shaped exhaust plumes (wanted — export plume Round P2, 2026-10-16).** The export
+  now writes a Waterfall plume (`engine_designer/export/plume.py`: host's recolored, or
+  "generated" = template + scale from propellant / regime / exit diameter), but the plume
+  SHAPE is still a stock template's. Shaping it from the design (expansion vs altitude, Mach
+  disc / shock-cell spacing, afterburning and soot colour) needs, in priority order:
+  1. **Love, Grigsby, Lee & Woodling, NASA TR R-6 (1959)**, "Experimental and theoretical
+     studies of axisymmetric free jets" — jet boundary and Mach-disc location vs pressure
+     ratio and exit Mach (the under-expanded vacuum/high-altitude plume).
+  2. **Pack, D.C. (1950)**, "A note on Prandtl's formula for the wave-length of a supersonic
+     gas jet", *Q. J. Mech. Appl. Math.* 3 — shock-cell spacing (over-/under-expanded).
+  3. **Simmons, F.S., *Rocket Exhaust Plume Phenomenology* (Aerospace Press, 2000)** and/or
+     **JANNAF Rocket Exhaust Plume Technology handbook, CPIA Publication 263** — afterburning,
+     radiation colour by propellant (soot for kerolox, H2O for hydrolox), plume length scaling.
+  Not literature but also needed: Waterfall's own base templates
+  (`post-kerbin-mining-corporation/Waterfall`, `GameData/Waterfall/Templates`) as a reference
+  clone in `upstream/`, to know which shader parameters a generated EFFECTTEMPLATE can drive.
+
 - **Nozzle-loss split for the performance path (wanted — P1 re-anchor, 2026-09-25).** Isp now
   runs on the equilibrium tables with ONE fitted nozzle efficiency per pair (`combustion.
   ETA_CF`); Merlin-1D (−4.8 %) and Rutherford (−4.3 %) show the spread one number can't carry.
@@ -257,6 +274,10 @@ into that and makes no claims about it.
     covers them. Look first at `[Sutton]` Ch. 7 propellant tables and `[Huzel]`.
     **Round 1 (2026-09-26) status:** the computed suction model takes their vapor pressure as
     ZERO (NPSH available optimistic, said so on the checklist row) until a curve is baked.
+    **2026-10-15 pointer:** `[Sutton Table 7-1 p.245]` (PDF page 260) has two vapor-pressure
+    points each - UDMH 0.0384 MPa at 289 K / 0.1093 MPa at 339 K, N2O4 0.01014 (printed;
+    suspicious - N2O4 is ~1 atm at 294 K) / 0.2013 MPa at 328 K - enough for a 2-point
+    Clausius-Clapeyron fit once the N2O4 value is cross-checked against `[Huzel]`.
   - **Pump-suction model follow-ups (2026-09-26, turbopump Round 1).** Wanted:
     - **TSH for CH4 and N2O4.** `inducer.TSH_ANCHORS` has only `[SP-8052]`'s F-1 LOX
       (11 ft) and J-2 LH2 (250 ft). SP-8052 names N2O4 as a thermodynamic-effect fluid and
@@ -373,6 +394,55 @@ into that and makes no claims about it.
     no He) has no dimensions to give a second anchor.
   Anything left unfound is calibrated purely by reverse-solving against RO headers (say which).
 
+  - **New propellant pairs 2026-10-15 (LOX/UDMH, N2O4/UDMH, subcooled LOX/RP-1).**
+    - **Densified-propellant temperatures.** `"LOX/RP-1 (subcooled)"` uses LOX 66 K / RP-1
+      266 K (Falcon 9 FT practice, widely published but not in `literature/`). Wanted: a
+      citable densified-propellant source (e.g. a NASA densified LOX/RP-1 or SLI propellant-
+      densification report) to move them to Tier 2, and RD-111A's real subcooled-LOX
+      temperature (its RO header says "-203 C?").
+    - **UDMH liquid thermal conductivity.** Not in `[Sutton Table 7-1]`; MMH's 0.20 W/m-K is
+      carried over (`cooling.COOLANT_TRANSPORT`). Wanted: a measured value (~0.17-0.2?).
+    - **RD-253 / RD-119 turbomachinery.** The N2O4/UDMH ox-rich preburner temperature (Tier-3
+      1100 K) and the LOX/UDMH GG gas are storable transfers; RD-253 preburner Tin / MR and
+      RD-119's turbine-drive arrangement would anchor them.
+    - **Storable ox-rich preburner gas, N2O4/MMH + A-50.** Cantera at 1100 K gives cp 1197 /
+      gamma 1.303 vs the entries' older 1400 / 1.25 estimate. Updating them would move the
+      corpus storable ORSC designs (none today) - a deliberate change for its own round.
+    - **Export densities of the older pairs.** `cfg_writer` exports RP-1 / CH4 / NTO / A-50
+      pairs with the physics densities rather than RO's resource densities
+      (`RF_RESOURCE_DENSITY_KG_M3`), an in-game MR error <= 1 %. Switching changes every
+      existing export - Cory's call.
+  - **MON variants 2026-10-16 (MON-3/10/25/MMH).**
+    - **N2O4/MMH efficiency spread.** One `ETA_CF` (0.9088, Aestus) gives AJ10-190 -6.3 %,
+      R-40 +1.5 %, TD-339 +3.2 % (identical on N2O4 or MON - not chemistry). AJ10-190's 316 s
+      at Pc 0.86 MPa / eps 55 would need ETA_CF ~0.97. Wanted: real OMS / R-4D / Surveyor-
+      vernier test Isp + nozzle data to tell a header-number problem from a real
+      size/Pc/cooling-dependent nozzle loss (the option-C kinetic/boundary-layer split).
+    - **Dissolved-NO enthalpy.** `NO(L)` = dHf N2O3(l) - 1/2 dHf N2O4(l) = 60.1 kJ/mol, heat
+      of mixing neglected, N2O3(l) value from CRC/NBS (not in `literature/`). Bounds move
+      MON-25 Isp up to 3.5 s. Wanted: a cited MON-x heat of formation (CPIA / Air Force
+      propellant handbook, or the CEA "MON-x" reactant definitions).
+    - **MON-1 for Aerozine-50.** RO's LMDE / LMAE / AJ10-137 / LE-3 burn A-50 with MON1
+      (~= NTO); a MON-1 variant of Aerozine-50/NTO would only change their export resource.
+
+- **Copper-liner creep / hold-time life (wanted — TestFlight burn-time round, 2026-10-16).**
+  A design-derived `ratedBurnTime` needs a *time-at-temperature* life for the chamber liner.
+  `[Quentmeyer-TMX73665]` gives cycles only, with 1.7 s holds. `[CR134806-Props]` was expected
+  to supply creep data and has **none**. `[ASR72-238]` covers Ni/Fe liners only. Its own
+  references point to:
+  1. Conway, Stentz & Berling, *High-Temperature Low-Cycle Fatigue of Copper-Base Alloys in
+     Argon, Part III — Thermal-Mechanical Strain Cycling, Hold-Time and Notch Fatigue*,
+     Mar-Test MTI-R003-2-3 (NAS3-16753), Dec 1973. This is the NASA CR-121259 series; look for
+     the Part III CR number on NTRS.
+  2. Jerome & Armstrong, *NARloy Z Creep Test Report*, Boeing memo 5-9430-H-1357, 1973. It is
+     internal, so any public NARloy-Z / GRCop-84 stress-rupture curve is a fair substitute. The
+     GRCop-84 TMs already held may carry creep; check `[GRCop84-TM2005]` first.
+  3. Hannum, Kasper & Pavli, AIAA 76-685 (1976): the creep-rupture + ratcheting
+     interpretation and 13 more chamber lives.
+  Also still wanted for that round: superalloy turbine-blade Larson-Miller curves (IN-713C,
+  IN-718, MAR-M-246), Zaretsky NASA/TP-2013-215305 (bearing L10), and silicide / Ir-Re
+  coating oxidation life.
+
 ## Pending `ASSUMPTIONS.md` citation upgrades
 
 Real citations now exist for the following, but no `engine_designer/ASSUMPTIONS.md` or code
@@ -464,6 +534,25 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   engine this cooling topology is sourced from. Previously an uncited Tier-3 value. See
   `topics/12b-structures-manifolds-and-hardware.md`. **APPLIED 2026-09-25** — `ASSUMPTIONS.md`'s
   `cooling_flow_topology` / `manifold_bypass_fraction` row now cites `[F1-Man §1-16]` directly.
+
+- **`materials.py` `narloy_z` vs `[CR134806-Props §2.2]` (2026-10-16).**
+
+  | Property | Catalog | Cited typical RT (solution treated + aged) |
+  |---|---|---|
+  | k (W/m·K) | 325 | 295 |
+  | E (GPa) | 115 | 127 |
+  | ρ (kg/m³) | 9000 | 9134 |
+  | CTE (10⁻⁶/K) | 18.5 | 17.2 (294-533 K) |
+  | UTS (MPa) | — | 314 |
+  | YS (MPa) | — | 192 |
+
+  Check whether the catalog's k and CTE are meant as hot-wall values before replacing them. The
+  temperature curves are in the PDF (Figs. 14-16), not digitized yet.
+- **`mass_model` throat LCF coefficients vs `[Quentmeyer-TMX73665]` (2026-10-16).** Generic
+  Coffin-Manson coefficients (Tier 3), against a real OFHC/Amzirc chamber correlation:
+  T_gw = 2511·N_f^-0.205 K for OFHC and 3139·N_f^-0.229 K for Amzirc. Candidate validate
+  plausibility row: the tool's cycles within about 3× of the line at its solved hot-wall
+  temperature.
 
 ## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
 

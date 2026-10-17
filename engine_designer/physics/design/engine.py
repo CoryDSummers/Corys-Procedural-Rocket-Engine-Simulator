@@ -93,29 +93,23 @@ class EngineDesign:
                                                    # 0.0 = auto-size to the pair's coking/boiling
                                                    # coolant-dT limit (cooling.
                                                    # size_dump_coolant_fraction).
-    ablative_target_burn_time_s: float = BASE_RATED_BURN_TIME_S
-                                                   # chamber_cooling_method=="ablative" only: the
-                                                   # RATED burn time this design TARGETS, replacing
-                                                   # today's purely-derived value for ablative
-                                                   # chambers (rollup_stage.burn_time_and_mass).
-                                                   # Sizes a real, independent char-depth liner
-                                                   # thickness (mass_model.ablative_liner_thickness_m,
-                                                   # materials.CHAR_DEPTH_SAFETY_FACTOR = 1.25,
-                                                   # [SP-8124]) BEHIND which the existing hoop-stress
-                                                   # wall_thickness_m now sizes a separate STRUCTURAL
-                                                   # OVERWRAP, not the liner itself - matching
-                                                   # refrasil_phenolic's real documented 3-layer
-                                                   # construction. Non-ablative sections are
-                                                   # completely unaffected (unchanged margin-driven
-                                                   # rated_burn_time_s path). Default = today's flat
-                                                   # BASE_RATED_BURN_TIME_S (200s) so an unset field
-                                                   # reads the same NUMBER as before, but NOTE: this
-                                                   # is a deliberate, flagged exception to bit-
-                                                   # identical backward compat for ablative designs
-                                                   # specifically - the OLD rated_burn_time_s was
-                                                   # DERIVED (varied by Pc/geometry), the new one is
-                                                   # a flat 200s default until dialed in. See
-                                                   # ASSUMPTIONS.md.
+    rated_burn_time_target_s: float = 0.0
+                                                   # The DUTY this engine is qualified for (the
+                                                   # exported TestFlight ratedBurnTime target), any
+                                                   # cooling type. 0 = the RO-corpus duty for this
+                                                   # role / thrust / era (physics/burn_time.
+                                                   # default_duty_s). The rating is this target
+                                                   # capped by the shortest physical life limit /
+                                                   # burn_time.LIFE_FACTOR (rollup_stage.
+                                                   # burn_time_and_mass, result["burn_time_limits"]).
+                                                   # Ablative sections size their char-depth liner
+                                                   # to it (mass_model.ablative_liner_thickness_m,
+                                                   # [SP-8124] 1.25 char-depth factor) behind the
+                                                   # hoop-sized structural overwrap; an electric-
+                                                   # pump battery is sized to the resulting rating.
+                                                   # Schema 22 (2026-10-16) - was
+                                                   # ablative_target_burn_time_s (ablative only,
+                                                   # default 200 s); see from_dict's migration.
     cooling_flow_topology: str = "single_pass_countercurrent"  # | "f1_split_reverse_flow"
                                                    # | "j2_mid_nozzle_inlet"
                                                    # (physics/manifold.size_jacket_manifolds).
@@ -504,8 +498,17 @@ class EngineDesign:
     gimbal_range_deg: float = 6.0         # only meaningful in "custom" mode
     gimbal_response_speed_deg_s: float = 0.0  # 0 = don't emit useGimbalResponseSpeed/gimbalResponseSpeed
     tech_node: str = ""                   # RP-1 %techRequired - empty = no tech-tree gating
-    entry_cost: float = 10000.0
-    cost: float = 20.0
+    # RP-1 economy (physics/cost_model.py, export/cfg_writer.py). Since schema 21
+    # `cost` is the ABSOLUTE engine cost (RP-1 part cost + config delta) and
+    # `entry_cost` the config's ENTRYCOSTMODS row; 0 = use the cost_model estimate.
+    entry_cost: float = 0.0
+    cost: float = 0.0
+    rp1_ecm_parents: str = ""             # comma list of config names: ENTRYCOSTMODS tech-
+                                           # transfer parents (entry cost discounted once owned)
+    rp1_tree_icon: bool = True            # emit a PARTUPGRADE icon in the tech node
+    testflight_transfer_pct: float = 50.0  # TestFlight techTransfer: % of the rp1_ecm_parents
+                                           # configs' flight data this config inherits
+                                           # (RO's most common value is 50); 0 = none
     ignitions: int = 1                    # export-time only (like tech_node/entry_cost/cost) -
                                            # forced to 1 at export if the chosen ignition system's
                                            # forces_single_ignition is True (see ignition.py)
@@ -520,7 +523,10 @@ class EngineDesign:
     #                        BORROWS the host part's model, rescaled - generated
     #                        equivalent of TR341_Config.cfg.
     output_mode: str = "additional_config"
-    config_name: str = "MyEngine-100K"       # RF CONFIG `name` (was GUI-only export_name_var)
+    config_name: str = "MyEngine-100K"       # RF CONFIG `name` (was GUI-only export_name_var):
+                                             # the engine-config picker entry AND the global key
+                                             # for techRequired / ENTRYCOSTMODS / TestFlight
+    config_description: str = ""             # RF picker text for the CONFIG; blank -> auto one-liner
     host_model_reference_height_m: float = 0.0  # 0 = auto (catalog/roengines_models.json);
                                                  # >0 overrides it (m). Used only when a mode
                                                  # rescales the model.
@@ -528,10 +534,23 @@ class EngineDesign:
     new_part_title: str = ""                 # blank -> config_name
     new_part_manufacturer: str = "Fictional"
     new_part_description: str = ""           # blank -> auto one-liner
+    # Which ROEngines model the export borrows (catalog/roengines_models.json):
+    # several parts can share one #engineType (ROE-LR105 / ROE-LR105_2); blank =
+    # the snapshot default. `host_model_variants` = {B9PartSwitch moduleID:
+    # subtype} written as the CONFIG's LinkB9PSModule (e.g. {"model": "rm5"} for
+    # the XLR-11's RM-5 model); empty = the part's own default subtype.
+    host_model_part: str = ""
+    host_model_variants: dict = field(default_factory=dict)
+    # Exhaust plume written into the export (export/plume.py): "host" = the host part's
+    # ROEngines plume, recolored to this propellant family | "generated" = template,
+    # scale and audio from the design (propellant, nozzle regime, exit diameter,
+    # thrust) on the host model's plume anchor | "none".
+    plume_mode: str = "host"
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 20  # 20 (2026-09-30): turbopump placement (turbopump_azimuth_deg,
-                         # turbopump_axial_station_frac, turbopump_standoff_m,
+    SCHEMA_VERSION = 24  # 24 (2026-10-17; built 2026-09-30/10-01 as the unmerged "20"): turbopump
+                         # placement (turbopump_azimuth_deg, turbopump_axial_station_frac,
+                         # turbopump_standoff_m,
                          # turbopump_shaft_orientation; + turbopump_mount / _roll_deg /
                          # _shaft_flip / _offset_m / _height_m, "radial" shaft, "head" /
                          # "free" mounts, 2026-10-01 - same
@@ -540,6 +559,20 @@ class EngineDesign:
                          # rule (standoff from the local contour/ring radius, not the bell
                          # exit) - a deliberate geometry change: ports move, so a baked
                          # pump-connected run's line loss moves with them.
+                         # 23 (2026-10-16): plume_mode ("host" | "generated" | "none") - no
+                         # key migration; an older file takes "host" (the host's plume,
+                         # recolored - before this, a standalone clone had NO plume).
+                         # 22 (2026-10-16): TestFlight burn-time round - testflight_transfer_pct
+                         # added; ablative_target_burn_time_s
+                         # became rated_burn_time_target_s (every cooling type; 0 = the RO-
+                         # corpus duty). from_dict keeps an old value only where it meant
+                         # something: an ablative design, or a value changed from the old
+                         # 200 s default; otherwise 0 = auto.
+                         # 21 (2026-10-15): export identity / RP-1 round - config_description,
+                         # rp1_ecm_parents, rp1_tree_icon, host_model_part, host_model_variants;
+                         # `cost` changed MEANING (was a delta-scale number, now the absolute
+                         # RP-1 engine cost) so a pre-21 file's cost / entry_cost are reset to
+                         # 0 = re-estimate. (20 skipped: claimed by two unmerged branches.)
                          # 19 (2026-09-27): turbopump_geometry_model ("envelope" | "casings")
                          # - no key migration; an older file takes "envelope", bit-identical.
                          # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
@@ -658,6 +691,30 @@ class EngineDesign:
                  if isinstance(r, dict) and r.get("host") == "turbine_exhaust"
                  and "root_mode" not in r else r)
                 for r in payload["plumbing_runs"]]
+        # Schema < 21: `cost` was a delta-scale estimate (~20 for a 1.4 MN engine),
+        # meaningless as the new absolute RP-1 cost - re-estimate both on export.
+        _ver = data.get("schema_version", 1) if isinstance(data, dict) and "design" in data else None
+        if _ver is not None and _ver < 21:
+            payload["cost"] = 0.0
+            payload["entry_cost"] = 0.0
+        # Schema < 22: ablative_target_burn_time_s (ablative-only, default 200 s, saved
+        # by every file) -> rated_burn_time_target_s (every design, 0 = auto duty).
+        # A pre-11 file has neither key - it ran on the old 200 s default too.
+        _ver22 = data.get("schema_version", 1) if isinstance(data, dict) and "design" in data else None
+        if (_ver22 is not None and _ver22 < 22 and "rated_burn_time_target_s" not in payload
+                and "ablative_target_burn_time_s" not in payload):
+            payload["ablative_target_burn_time_s"] = BASE_RATED_BURN_TIME_S
+        if "ablative_target_burn_time_s" in payload and "rated_burn_time_target_s" not in payload:
+            _old = float(payload.pop("ablative_target_burn_time_s") or BASE_RATED_BURN_TIME_S)
+            _ablative = (payload.get("chamber_cooling_method") == "ablative"
+                         or payload.get("nozzle_cooling_method") == "ablative"
+                         or any(getattr(materials.MATERIALS.get(payload.get(k, "")),
+                                        "cooling_method", "") == "ablative"
+                                for k in ("material_key", "bell_material_key")))
+            payload["rated_burn_time_target_s"] = (
+                _old if (_ablative or abs(_old - BASE_RATED_BURN_TIME_S) > 1e-9) else 0.0)
+        if not isinstance(payload.get("host_model_variants", {}), dict):
+            payload.pop("host_model_variants", None)
         known = {f.name for f in dataclasses.fields(cls)}
         return cls(**{k: v for k, v in payload.items() if k in known})
 

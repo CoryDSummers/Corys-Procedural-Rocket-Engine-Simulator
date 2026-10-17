@@ -1,0 +1,162 @@
+2026-10-15 export identity / RP-1 round (schema 21): corpus diff is INPUTS-ONLY.
+No computed output changed (export-time fields only). Per-design input diffs:
+CHANGED   engines/AJ10-137
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/Aestus
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/F-1
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/J-2
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/LMAE
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/Merlin-1D
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/RD-180
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/RL10A-3-3
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/RS-25
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/Raptor-2
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/Rutherford
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   engines/Vulcain
+    /inputs/config_description: added
+    /inputs/cost/__f__: '20.0' -> '0.0'
+    /inputs/entry_cost/__f__: '10000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/AJ-90k
+    /inputs/config_description: added
+    /inputs/cost/__f__: '71.0' -> '0.0'
+    /inputs/entry_cost/__f__: '77496.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/LR-100
+    /inputs/config_description: added
+    /inputs/cost/__f__: '31.0' -> '0.0'
+    /inputs/entry_cost/__f__: '22462.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/RS-29
+    /inputs/config_description: added
+    /inputs/cost/__f__: '240.0' -> '0.0'
+    /inputs/entry_cost/__f__: '55000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/RS-29A
+    /inputs/config_description: added
+    /inputs/cost/__f__: '240.0' -> '0.0'
+    /inputs/entry_cost/__f__: '55000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/RS-29C
+    /inputs/config_description: added
+    /inputs/cost/__f__: '240.0' -> '0.0'
+    /inputs/entry_cost/__f__: '55000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/RS-30
+    /inputs/config_description: added
+    /inputs/cost/__f__: '240.0' -> '0.0'
+    /inputs/entry_cost/__f__: '55000.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/TRW-270
+    /inputs/config_description: added
+    /inputs/cost/__f__: '1.0' -> '0.0'
+    /inputs/entry_cost/__f__: '414.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added
+CHANGED   user_designs/j-2_test_bed
+    /inputs/config_description: added
+    /inputs/cost/__f__: '34.0' -> '0.0'
+    /inputs/entry_cost/__f__: '24840.0' -> '0.0'
+    /inputs/host_model_part: added
+    /inputs/host_model_variants: added
+    /inputs/rp1_ecm_parents: added
+    /inputs/rp1_tree_icon: added

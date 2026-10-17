@@ -6,13 +6,21 @@ interpolated over mixture ratio, with Pc-dependence neglected (small over
 the pressure ranges these engines run at). The practical accuracy guardrail
 is the per-pair spot-check in validate.py, not this table's precision.
 
-Propellant pairs: LOX/RP-1, LOX/LH2, N2O4/MMH (storable hypergolic, MON3
-treated as chemically equivalent to pure N2O4), Aerozine-50/NTO (storable
+Propellant pairs: LOX/RP-1, LOX/LH2, N2O4/MMH (storable hypergolic, pure N2O4;
+its MON-3/10/25 variants have their own tables since 2026-10-16), Aerozine-50/NTO (storable
 hypergolic, MON1 treated the same way - shares N2O4/MMH's table, see below),
 and Hydrazine (a MONOPROPELLANT - see the note on `_TABLES["Hydrazine"]` and
 `MONOPROPELLANT_PAIRS` for how that's represented without a parallel code path).
+2026-10-15 (new-pairs round): LOX/UDMH (RD-119 / RD-112 class), N2O4/UDMH
+(RD-253 / Proton) and "LOX/RP-1 (subcooled)" - a VARIANT of LOX/RP-1 at
+densified temperatures (propellant_pairs.PAIR_VARIANT_OF), with its own baked
+tables and densities but LOX/RP-1's combustion/nozzle efficiencies.
+2026-10-16: MON-3/MMH, MON-10/MMH, MON-25/MMH - variants of N2O4/MMH (N2O4 +
+3/10/25 % NO by mass), own tables + oxidizer density, N2O4/MMH's efficiencies.
 """
 import numpy as np
+
+from .propellant_pairs import PAIR_VARIANT_OF, alias_variants
 
 _TABLES = {
     "LOX/RP-1": dict(
@@ -54,6 +62,22 @@ _TABLES = {
         gamma=[1.223, 1.218, 1.213, 1.210, 1.206, 1.204],
         m=[20.0, 20.6, 21.1, 21.5, 22.0, 22.3],
     ),
+    # LOX/UDMH and N2O4/UDMH (2026-10-15): both have baked Cantera equilibrium
+    # tables, which is what the performance path reads - these legacy rows exist so
+    # available_pairs() lists them and any legacy-path caller gets sane values. They
+    # are SAMPLED from those tables at Pc 7 MPa (frozen gamma), not hand-sourced.
+    "LOX/UDMH": dict(
+        mr=[1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2],
+        tc=[2850.0, 3220.0, 3455.0, 3575.0, 3620.0, 3625.0, 3610.0],
+        gamma=[1.249, 1.232, 1.221, 1.214, 1.211, 1.208, 1.207],
+        m=[17.1, 18.6, 20.0, 21.1, 22.0, 22.8, 23.5],
+    ),
+    "N2O4/UDMH": dict(
+        mr=[2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2],
+        tc=[3225.0, 3335.0, 3400.0, 3430.0, 3435.0, 3420.0, 3400.0],
+        gamma=[1.228, 1.223, 1.219, 1.217, 1.215, 1.214, 1.214],
+        m=[21.4, 22.2, 23.0, 23.6, 24.2, 24.7, 25.1],
+    ),
     # Hydrazine: a MONOPROPELLANT, not a fuel/oxidizer pair - catalytic decomposition
     # (partial NH3 dissociation into N2/H2), not combustion. Represented as a
     # single-point table on purpose: np.interp against a length-1 array returns that
@@ -80,6 +104,8 @@ _TABLES = {
         m=[21.8],
     ),
 }
+# "LOX/RP-1 (subcooled)" - a dropdown entry; its legacy row is LOX/RP-1's.
+alias_variants(_TABLES)
 
 MONOPROPELLANT_PAIRS = {"Hydrazine", "H2O2"}
 
@@ -98,6 +124,19 @@ PROPELLANT_DENSITIES = {
     "LOX/CH4": (422.0, 1141.0),          # liquid methane at ~112 K
     "N2O4/MMH": (880.0, 1440.0),
     "Aerozine-50/NTO": (903.0, 1440.0),
+    "LOX/UDMH": (784.0, 1141.0),         # UDMH s.g. 0.784 [Sutton Table 7-1 p.245]
+    "N2O4/UDMH": (784.0, 1440.0),
+    # Densified: LOX at 66 K = 1255.2 (CoolProp oxygen, saturation table rho_l);
+    # RP-1 at 266 K = 810 x the n-dodecane surrogate's rho_l(266 K)/rho_l(293.15 K)
+    # (1.0271) = 831.9 - the surrogate's absolute density is ~8 % light, its
+    # thermal expansion is what is borrowed. Pinned by thermo_tables' self-test.
+    "LOX/RP-1 (subcooled)": (831.9, 1255.2),
+    # MON-x oxidizer = N2O4/MMH's 1440 x RealFuels' MONx/NTO density ratio
+    # (RO_Resources.cfg: NTO 1433, MON3 1436.3, MON10 1444.1, MON25 1455.4) -
+    # the dissolved NO densifies the liquid slightly. Fuel = MMH, unchanged.
+    "MON-3/MMH": (880.0, 1443.3),
+    "MON-10/MMH": (880.0, 1451.2),
+    "MON-25/MMH": (880.0, 1462.5),
     "Hydrazine": (1021.0, 1021.0),
     "H2O2": (1390.0, 1390.0),            # ~85% HTP; "ox" slot is the harmless monoprop duplicate
 }
@@ -118,6 +157,8 @@ DEFAULT_ETA_CSTAR = {
     "LOX/CH4": 0.975,
     "N2O4/MMH": 0.975,
     "Aerozine-50/NTO": 0.975,
+    "LOX/UDMH": 0.975,
+    "N2O4/UDMH": 0.975,
     "Hydrazine": 0.80,          # catalytic decomposition, inherently less energetic than
                                 # bipropellant combustion - lower than any bipropellant
                                 # pair here, which is a correctness signal, not a fudge
@@ -148,6 +189,8 @@ ETA_CF = {
     "LOX/CH4": 0.9588,           # Raptor-2 347.0 s
     "N2O4/MMH": 0.9088,          # Aestus 306.0 s
     "Aerozine-50/NTO": 0.9518,   # AJ10-137 314.5 s
+    "LOX/UDMH": 0.9852,          # RD-119 362.0 s (2026-10-15; RD-112 cross-check +1.8 %)
+    "N2O4/UDMH": 0.9730,         # RD-253 315.5 s (2026-10-15; RD-0210 cross-check +1.1 %)
     "Hydrazine": 1.0,
     "H2O2": 1.0,
 }
@@ -174,10 +217,17 @@ L_MID_BASE = {
                                  # vaporization time but less than kerosene droplets
     "N2O4/MMH": 0.020,
     "Aerozine-50/NTO": 0.020,   # same family/regime as N2O4/MMH
+    "N2O4/UDMH": 0.020,         # same family/regime as N2O4/MMH
+    "LOX/UDMH": 0.025,          # liquid-liquid, NOT hypergolic: droplets must vaporize and
+                                 # ignite like kerosene, but UDMH is far more volatile (boils
+                                 # 336 K vs RP-1's 460-540 K [Sutton Table 7-1]) - between
+                                 # kerolox and the storables (Tier 3, same curve-shape tier)
     "Hydrazine": 0.010,          # catalyst beds are compact/fast - shortest of any pair,
                                  # matching how small/simple real monoprop thrusters are
     "H2O2": 0.010,              # catalytic decomposition bed - compact/fast, like Hydrazine
 }
+for _t in (PROPELLANT_DENSITIES, DEFAULT_ETA_CSTAR, ETA_CF, L_MID_BASE):
+    alias_variants(_t)     # explicit entries (the subcooled densities) are kept
 COMPLETENESS_EFF_MIN = 0.3   # floor - real combustion is never literally zero, but a
                               # drastically too-short chamber is genuinely bad
 COMPLETENESS_EFF_MAX = 1.0   # ceiling - a long/typical L* leaves DEFAULT_ETA_CSTAR's
@@ -201,7 +251,15 @@ def completeness_factor(lstar_m, pair, atomization_time_modifier=1.0):
 
 
 def available_pairs():
-    return list(_TABLES.keys())
+    """Pair keys in dropdown order: each variant right after its base pair."""
+    variants = set(PAIR_VARIANT_OF)
+    out = []
+    for p in _TABLES:
+        if p in variants:
+            continue
+        out.append(p)
+        out.extend(v for v, b in PAIR_VARIANT_OF.items() if b == p and v in _TABLES)
+    return out
 
 
 def propellant_densities(pair):
@@ -436,10 +494,14 @@ L_STAR_DEFAULT_M = {
     "LOX/CH4": 1.05,           # ~40 in - between kerolox and hydrolox, closer to kerolox
     "N2O4/MMH": 0.85,          # N2O4 / hydrazine-base 30-35 in
     "Aerozine-50/NTO": 0.85,
+    "N2O4/UDMH": 0.85,         # [Huzel Table 4-1] N2O4 / hydrazine-base fuel 30-35 in
+    "LOX/UDMH": 0.90,          # not in Huzel Table 4-1: its LOX / ammonia (30-40 in) and
+                                # hydrazine-base (30-35 in) rows bracket ~35 in (Tier 3)
     "Hydrazine": 1.00,         # monoprop catalyst bed - H2O2/RP-1 "incl. catalyst bed" is
                                 # 60-70 in; a hydrazine bed is compact -> ~1 m
     "H2O2": 0.60,              # HTP catalyst bed - compact silver-screen/pellet bed
 }
+alias_variants(L_STAR_DEFAULT_M)
 
 
 def l_star_default_for_pair(pair):

@@ -64,7 +64,15 @@ Options: ``--out DIR`` (default: the repo's property_data dir), ``--quick``
 (coarse grid, for a smoke test), ``--check-only`` (just the Sutton self-check),
 ``--gas-only`` (combustion tables only), ``--saturation-only`` (write ONLY
 saturation_properties.json - needs CoolProp but not Cantera, and leaves the other
-two tables byte-for-byte untouched).
+two tables byte-for-byte untouched), ``--merge-pairs "P1,P2"`` (compute ONLY those
+pairs - gas table, plus a coolant table where COOLANTS has one - and splice them into
+the existing JSON; every other pair stays byte-identical. How the 2026-10-15 pairs
+LOX/UDMH, N2O4/UDMH and "LOX/RP-1 (subcooled)" were added, with cantera==3.2.0 /
+CoolProp==8.0.0 pinned to match the existing meta; the 2026-10-16 MON-3/10/25/MMH
+variants were merged the same way).
+
+Subcooled reactants (SUBCOOLED_REACTANTS, e.g. "O2(L,66K)") need CoolProp for their
+sensible-heat drop, so a gas-table run needs CoolProp too since 2026-10-15.
 """
 from __future__ import annotations
 
@@ -98,6 +106,28 @@ REACTANTS = {
     "N2H4(L)": ({"N": 2, "H": 4}, 50630.0, "298.15 K"),
     "H2O2(L)": ({"H": 2, "O": 2}, -187780.0, "298.15 K"),
     "H2O(L)":  ({"H": 2, "O": 1}, -285830.0, "298.15 K"),
+    # 2026-10-16 MON variants: the nitric oxide dissolved in MON-x. It sits in
+    # the N2O4 as N2O3 (NO + NO2), so its effective enthalpy is
+    # dHf N2O3(l) - 1/2 dHf N2O4(l) = 50,300 + 9,782 = 60,082 J/mol
+    # [CRC Handbook / NBS N2O3(l) +50.3 kJ/mol; N2O4(l) as above]. Neglects
+    # the N2O3-in-N2O4 heat of mixing. Bounds (ASSUMPTIONS.md): NO(g) 90,291
+    # [NIST-JANAF], NO(g) - dHvap 13.8 kJ/mol = ~76,500.
+    "NO(L)":   ({"N": 1, "O": 1}, 60082.0, "298.15 K, dissolved in N2O4 (as N2O3)"),
+}
+
+# SUBCOOLED (densified) reactants (2026-10-15, new-pairs round): the same
+# species as a base reactant above, colder than its storage state. Assigned
+# enthalpy = base enthalpy - [h(T_base) - h(T_cold)], the sensible-heat drop
+# taken from CoolProp at 1 atm (oxygen; n-dodecane as the RP-1 surrogate,
+# per-kg drop x RP-1's formula molar mass). Filled in by
+# _add_subcooled_reactants() - needs CoolProp, so it is not done at import.
+# name -> (base reactant, CoolProp fluid, T_base K, Q at base (0 = saturated
+# liquid, None = single-phase at 1 atm), T_cold K)
+SUBCOOLED_REACTANTS = {
+    # Falcon 9 "Full Thrust" densified LOX, about -207 C (66 K) - ASSUMPTIONS.md
+    "O2(L,66K)":  ("O2(L)", "Oxygen", 90.17, 0, 66.0),
+    # Falcon 9 "Full Thrust" chilled RP-1, about -7 C (266 K)
+    "RP-1(266K)": ("RP-1", "n-Dodecane", 298.15, None, 266.0),
 }
 ATOMIC_MASS = {"H": 1.00794, "C": 12.0107, "N": 14.0067, "O": 15.9994}
 
@@ -109,6 +139,18 @@ PAIRS = {
     "N2O4/MMH": ({"MMH(L)": 1.0}, {"N2O4(L)": 1.0}, np.arange(1.2, 3.01, 0.1)),
     "Aerozine-50/NTO": ({"UDMH(L)": 0.5, "N2H4(L)": 0.5}, {"N2O4(L)": 1.0},
                         np.arange(1.2, 3.01, 0.1)),
+    # 2026-10-15 new-pairs round (merged in with --merge-pairs; the five pairs
+    # above were left byte-identical). Stoichiometric O/F: LOX/UDMH ~2.13,
+    # N2O4/UDMH ~3.07; real engines RD-119 MR 1.5 .. RD-112 1.7, RD-253 2.67.
+    "LOX/UDMH": ({"UDMH(L)": 1.0}, {"O2(L)": 1.0}, np.arange(0.8, 3.01, 0.1)),
+    "N2O4/UDMH": ({"UDMH(L)": 1.0}, {"N2O4(L)": 1.0}, np.arange(1.4, 4.01, 0.1)),
+    "LOX/RP-1 (subcooled)": ({"RP-1(266K)": 1.0}, {"O2(L,66K)": 1.0}, np.arange(1.6, 3.41, 0.1)),
+    # 2026-10-16 MON variants of N2O4/MMH (--merge-pairs): MON-x = x % NO by
+    # mass in N2O4. MR grid = N2O4/MMH's. No COOLANTS entry (MMH is not in
+    # CoolProp - same fallback as the base pair).
+    "MON-3/MMH": ({"MMH(L)": 1.0}, {"N2O4(L)": 0.97, "NO(L)": 0.03}, np.arange(1.2, 3.01, 0.1)),
+    "MON-10/MMH": ({"MMH(L)": 1.0}, {"N2O4(L)": 0.90, "NO(L)": 0.10}, np.arange(1.2, 3.01, 0.1)),
+    "MON-25/MMH": ({"MMH(L)": 1.0}, {"N2O4(L)": 0.75, "NO(L)": 0.25}, np.arange(1.2, 3.01, 0.1)),
 }
 PC_GRID_MPA = [0.5, 1.0, 2.0, 4.0, 7.0, 12.0, 20.0, 30.0]
 # 2026-09-25 (P1 performance re-anchor): widened from [10, 40, 100] so the
@@ -152,6 +194,12 @@ COOLANTS = {
                 [0.5, 1.0, 2.0, 4.0, 7.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0]),
     "LOX/RP-1": ("n-Dodecane", True, np.arange(280.0, 801.0, 5.0),
                  [0.5, 1.0, 2.0, 4.0, 7.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0]),
+    # Chilled RP-1 enters the jacket at ~266 K: same surrogate, grid starting
+    # just above n-dodecane's 263.6 K triple point (real RP-1 freezes ~225 K).
+    "LOX/RP-1 (subcooled)": ("n-Dodecane", True,
+                             np.concatenate([np.arange(264.0, 280.0, 2.0),
+                                             np.arange(280.0, 801.0, 5.0)]),
+                             [0.5, 1.0, 2.0, 4.0, 7.0, 10.0, 15.0, 20.0, 30.0, 40.0, 50.0]),
 }
 
 # Saturation curves: pumped propellant -> (CoolProp fluid, surrogate?). Keyed by
@@ -167,6 +215,23 @@ SATURATION_T_MAX_OVER_TC = 0.98   # stop short of the critical point (h_fg -> 0 
 
 
 # ---------------------------------------------------------------------------
+def _add_subcooled_reactants():
+    """Insert SUBCOOLED_REACTANTS into REACTANTS (needs CoolProp). Returns the
+    {name: sensible-heat drop J/mol} it applied, for the meta block."""
+    from CoolProp.CoolProp import PropsSI
+    applied = {}
+    for name, (base, fluid, t_base, q_base, t_cold) in SUBCOOLED_REACTANTS.items():
+        comp, h_base, _ = REACTANTS[base]
+        mw = sum(ATOMIC_MASS[e] * n for e, n in comp.items())          # kg/kmol = g/mol
+        h_hot = (PropsSI("H", "T", t_base, "Q", q_base, fluid) if q_base is not None
+                 else PropsSI("H", "T", t_base, "P", 101325.0, fluid))
+        h_cold = PropsSI("H", "T", t_cold, "P", 101325.0, fluid)
+        dh_j_mol = (h_hot - h_cold) * mw / 1000.0                       # J/kg -> J/mol
+        REACTANTS[name] = (comp, round(h_base - dh_j_mol, 1), f"{t_cold:g} K (subcooled)")
+        applied[name] = round(dh_j_mol, 1)
+    return applied
+
+
 def _blend(fuel, ox, mr):
     """Element kmol per kg and enthalpy J/kg of the reactant mixture at O/F = mr."""
     w_f, w_o = 1.0 / (1.0 + mr), mr / (1.0 + mr)
@@ -366,10 +431,12 @@ def sutton_check(eq, verbose=True):
     return ok_all
 
 
-def build_gas_tables(eq, quick=False):
+def build_gas_tables(eq, quick=False, only=None):
     out = {}
     pcs = PC_GRID_MPA[::3] if quick else PC_GRID_MPA
     for pair, (fuel, ox, mrs) in PAIRS.items():
+        if only is not None and pair not in only:
+            continue
         mrs = mrs[::4] if quick else mrs
         t0 = time.time()
         grid = {k: [] for k in ("tc_k", "m_molar", "cp_frozen_j_kgk", "gamma_frozen",
@@ -412,11 +479,13 @@ def build_gas_tables(eq, quick=False):
     return out, mono
 
 
-def build_coolant_tables(quick=False):
+def build_coolant_tables(quick=False, only=None):
     import CoolProp
     from CoolProp.CoolProp import PropsSI
     out = {}
     for pair, (fluid, surrogate, ts, ps) in COOLANTS.items():
+        if only is not None and pair not in only:
+            continue
         ts = ts[::5] if quick else ts
         props = {k: [] for k in ("rho_kg_m3", "cp_j_kgk", "mu_pa_s", "k_w_mk", "h_j_kg")}
         codes = {"rho_kg_m3": "D", "cp_j_kgk": "C", "mu_pa_s": "V", "k_w_mk": "L", "h_j_kg": "H"}
@@ -492,6 +561,53 @@ def write_saturation_tables(out_dir, quick=False):
     print(f"wrote {out_dir}/saturation_properties.json")
 
 
+def merge_pairs(eq, out_dir, pairs, subcooled_dh, quick=False):
+    """Splice freshly computed pairs into the existing tables (json round-trips
+    floats exactly, so every untouched pair re-serializes byte-identically)."""
+    unknown = [p for p in pairs if p not in PAIRS]
+    if unknown:
+        print(f"unknown pair(s) {unknown}; PAIRS has {list(PAIRS)}")
+        return 1
+    now = datetime.date.today().isoformat()
+    import cantera as ct
+    gpath = os.path.join(out_dir, "combustion_equilibrium.json")
+    with open(gpath) as f:
+        gdoc = json.load(f)
+    print("combustion equilibrium tables (merge):")
+    gas, _ = build_gas_tables(eq, quick=quick, only=set(pairs))
+    gdoc["pairs"].update(gas)
+    m = gdoc["meta"]
+    used = {r for p in pairs for blend in PAIRS[p][:2] for r in blend}
+    for r in sorted(used):
+        v = REACTANTS[r]
+        m["reactants"][r] = dict(formula=v[0], h_j_mol=v[1], state=v[2])
+    if any(r in subcooled_dh for r in used):
+        m.setdefault("subcooled_reactant_dh_j_mol", {}).update(
+            {r: subcooled_dh[r] for r in used if r in subcooled_dh})
+        m["subcooled_reactant_note"] = (
+            "subcooled reactant enthalpy = base CEA enthalpy - CoolProp sensible-heat drop "
+            "at 1 atm (Oxygen; n-Dodecane surrogate for RP-1)")
+    m.setdefault("merges", []).append(dict(date=now, pairs=pairs, cantera_version=ct.__version__,
+                                           quick=quick))
+    with open(gpath, "w") as f:
+        json.dump(gdoc, f, indent=1)
+    print(f"merged {pairs} into {gpath}")
+    cool_pairs = [p for p in pairs if p in COOLANTS]
+    if cool_pairs:
+        cpath = os.path.join(out_dir, "coolant_properties.json")
+        with open(cpath) as f:
+            cdoc = json.load(f)
+        print("coolant tables (merge):")
+        cool, cpv = build_coolant_tables(quick=quick, only=set(cool_pairs))
+        cdoc["coolants"].update(cool)
+        cdoc["meta"].setdefault("merges", []).append(dict(date=now, pairs=cool_pairs,
+                                                          coolprop_version=cpv, quick=quick))
+        with open(cpath, "w") as f:
+            json.dump(cdoc, f, indent=1)
+        print(f"merged {cool_pairs} into {cpath}")
+    return 0
+
+
 def main(argv=None):
     here = os.path.dirname(os.path.abspath(__file__))
     default_out = os.path.normpath(os.path.join(here, "..", "..", "engine_designer", "physics",
@@ -504,6 +620,10 @@ def main(argv=None):
                     help="write combustion_equilibrium.json only (leave the coolant tables)")
     ap.add_argument("--saturation-only", action="store_true",
                     help="write saturation_properties.json only (CoolProp; no Cantera needed)")
+    ap.add_argument("--merge-pairs", default=None, metavar="P1,P2",
+                    help="compute ONLY these pairs (gas + coolant table, where one is "
+                         "defined) and splice them into the EXISTING JSON in --out, leaving "
+                         "every other pair byte-identical; the saturation table is untouched")
     a = ap.parse_args(argv)
 
     if a.saturation_only:
@@ -525,6 +645,10 @@ def main(argv=None):
     if not ok:
         print("refusing to write tables that fail the Sutton self-check")
         return 1
+    subcooled_dh = _add_subcooled_reactants()
+    if a.merge_pairs:
+        return merge_pairs(eq, a.out, [p.strip() for p in a.merge_pairs.split(",") if p.strip()],
+                           subcooled_dh, quick=a.quick)
     os.makedirs(a.out, exist_ok=True)
     now = datetime.date.today().isoformat()
     print("combustion equilibrium tables:")
@@ -536,6 +660,7 @@ def main(argv=None):
                 reactants={k: dict(formula=v[0], h_j_mol=v[1], state=v[2])
                            for k, v in REACTANTS.items()},
                 reactant_source="NASA CEA thermo.inp liquid-reactant assigned enthalpies",
+                subcooled_reactant_dh_j_mol=subcooled_dh,
                 self_check="Sutton Table 5-5 (1000 psia, opt. expansion): PASSED",
                 layout="each property is [len(pc_mpa)][len(mr)]; isp_vac_s_by_eps[eps], "
                        "isp_vac_frozen_s_by_eps[eps] and pe_over_pc_by_eps[eps] likewise",

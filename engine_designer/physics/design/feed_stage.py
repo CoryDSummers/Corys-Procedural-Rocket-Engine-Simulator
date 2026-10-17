@@ -28,7 +28,8 @@ from .constants import (
     BASE_RATED_BURN_TIME_S,
 )
 from .checklist import _check
-from .suction_stage import AMBIENT_STORAGE_K, CRYOGEN_NBP_MAX_K, PUMPED_PROPELLANTS
+from .suction_stage import PUMPED_PROPELLANTS, auto_propellant_temp_k
+from ..propellant_pairs import base_pair
 
 
 def injector_and_cooling_routing(self, s):
@@ -442,10 +443,7 @@ def _tap_fuel_inlet_k(self, s):
     if t_user > 0:
         return t_user
     prop = PUMPED_PROPELLANTS.get(self.propellant_pair, ("", ""))[0]
-    if prop and thermo_tables.has_saturation(prop):
-        nbp = thermo_tables.saturation_temperature(prop, 101_325.0)
-        return nbp if nbp < CRYOGEN_NBP_MAX_K else AMBIENT_STORAGE_K
-    return AMBIENT_STORAGE_K
+    return auto_propellant_temp_k(self.propellant_pair, "fuel", prop)
 
 
 def _tap_off_drive_gas(self, s):
@@ -497,7 +495,7 @@ def _finish_tap_off(self, s, info):
         a = tap_off.STBE_ANCHOR
         kero = (" No LOX/RP-1 tap-off has flown: kerosene diluent in a ~2,000 K+ mixer risks "
                 "coking/soot like a fuel-rich GG (the STBE precedent is methane)."
-                if self.propellant_pair == "LOX/RP-1" else "")
+                if base_pair(self.propellant_pair) == "LOX/RP-1" else "")
         _check(s.checklist, s.warnings, "turbopump", "Tap-off drive gas (hot-gas mixer)",
                not info["clamped"],
                f"Requested tap-off turbine temperature {info['t_mix_requested_k']:.0f} K is "

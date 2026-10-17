@@ -30,6 +30,7 @@ def coupled_wall_temps(q_w_m2, h_g_w_m2k, t_aw_k, h_c_w_m2k, t_coolant_k,
 # Tier 2 - cited range, midpoint chosen. Pairs not listed get 1.0 (no credit).
 GAS_SIDE_DEPOSIT_FACTOR = {
     "LOX/RP-1": 0.5,
+    "LOX/RP-1 (subcooled)": 0.5,   # same kerosene soot layer
 }
 
 

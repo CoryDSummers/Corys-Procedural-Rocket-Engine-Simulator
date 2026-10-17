@@ -1,9 +1,9 @@
 {
 "ablative_liner_mass_kg": {
-"__f__": "80.21734778848115"
+"__f__": "300.8150542068044"
 },
 "ablative_liner_thickness_m": {
-"__f__": "0.0375"
+"__f__": "0.140625"
 },
 "bell_material_margin": {
 "assumed_wall_temp_k": {
@@ -23,67 +23,79 @@
 "body_wall_thickness_m": {
 "__nd__": [
 {
-"__f__": "0.0415876656454046"
+"__f__": "0.1447126656454046"
 },
 {
-"__f__": "0.0415876656454046"
+"__f__": "0.1447126656454046"
 },
 {
-"__f__": "0.04080111253681171"
+"__f__": "0.1439261125368117"
 },
 {
-"__f__": "0.04078020709744057"
+"__f__": "0.14390520709744056"
 },
 {
-"__f__": "0.040762881294905726"
+"__f__": "0.14388788129490573"
 },
 {
-"__f__": "0.04074926698902607"
+"__f__": "0.14387426698902608"
 },
 {
-"__f__": "0.040739467792889894"
+"__f__": "0.1438644677928899"
 },
 {
-"__f__": "0.040733558284296714"
+"__f__": "0.14385855828429672"
 },
 {
-"__f__": "0.03930298278541932"
+"__f__": "0.14242798278541932"
 },
 {
-"__f__": "0.03916307304702519"
+"__f__": "0.14228807304702518"
 },
 {
-"__f__": "0.03902866614715552"
+"__f__": "0.14215366614715552"
 },
 {
-"__f__": "0.03890242798637433"
+"__f__": "0.14202742798637433"
 },
 {
-"__f__": "0.038784771162878796"
+"__f__": "0.14190977116287878"
 },
 {
-"__f__": "0.03867593689531369"
+"__f__": "0.1418009368953137"
 },
 {
-"__f__": "0.03857598839231625"
+"__f__": "0.14170098839231626"
 },
 {
-"__f__": "0.038032997040729016"
+"__f__": "0.141157997040729"
 },
 {
-"__f__": "0.038"
+"__f__": "0.141125"
 },
 {
-"__f__": "0.038"
+"__f__": "0.141125"
 },
 {
-"__f__": "0.038"
+"__f__": "0.141125"
 },
 {
-"__f__": "0.038"
+"__f__": "0.141125"
 }
 ]
 },
+"burn_life_s": {
+"__f__": "inf"
+},
+"burn_time_limits": [
+{
+"allowable_rated_s": null,
+"key": "chamber_char",
+"label": "Ablative chamber char depth",
+"lever": "liner is sized to the duty target ([SP-8124] x1.25 char depth) - a longer target costs liner thickness and mass",
+"life_s": null
+}
+],
 "cf_vac_ideal": {
 "__f__": "1.909217447748725"
 },
@@ -119,7 +131,7 @@
 "__f__": "1.4135307742478809"
 },
 "chamber_wall_mass_kg": {
-"__f__": "90.71447223939555"
+"__f__": "311.3121786577188"
 },
 "checklist": [
 {
@@ -351,6 +363,12 @@
 "passed": true
 },
 {
+"category": "cooling",
+"detail": "OK - 750 s duty",
+"name": "Rated burn time vs. life limit",
+"passed": true
+},
+{
 "category": "injector",
 "detail": "OK - ~698 elements/m^2",
 "name": "Injector element crowding",
@@ -445,7 +463,7 @@
 "__f__": "0.9980256852181593"
 },
 "computed_dry_mass_kg": {
-"__f__": "936.7061491341157"
+"__f__": "1157.303855552439"
 },
 "convergent_half_angle_deg": {
 "__f__": "30.0"
@@ -2234,6 +2252,12 @@
 },
 "turbopump": null
 },
+"design_year": 1966,
+"design_year_source": "tech node orbitalRocketry1966",
+"duty_default_s": {
+"__f__": "179.20871783815898"
+},
+"engine_role": "pressure_fed",
 "eps_for_transition": {
 "__f__": "6.0"
 },
@@ -2506,9 +2530,6 @@
 },
 "injector_stiffness_ok_at_floor": true,
 "inputs": {
-"ablative_target_burn_time_s": {
-"__f__": "200.0"
-},
 "acoustic_cavities": false,
 "acoustic_cavity_count": 12,
 "apply_chamber_pressure_loss": false,
@@ -2545,6 +2566,7 @@
 "chamber_wall_fillet_r_over_rt": {
 "__f__": "0.0"
 },
+"config_description": "",
 "config_name": "AJ10-137",
 "contraction_ratio": {
 "__f__": "1.6"
@@ -2559,7 +2581,7 @@
 "__f__": "6.0"
 },
 "cost": {
-"__f__": "20.0"
+"__f__": "0.0"
 },
 "cycle": "pressure_fed",
 "diffuser_type": "auto",
@@ -2568,7 +2590,7 @@
 },
 "enforce_suction_limit": false,
 "entry_cost": {
-"__f__": "10000.0"
+"__f__": "0.0"
 },
 "eta_pump_fuel": {
 "__f__": "0.0"
@@ -2603,9 +2625,11 @@
 "__f__": "0.0"
 },
 "host_model_engine_type": "",
+"host_model_part": "",
 "host_model_reference_height_m": {
 "__f__": "0.0"
 },
+"host_model_variants": {},
 "ignition_system": "tea_teb",
 "ignitions": 1,
 "impingement_angle_deg": {
@@ -2669,6 +2693,7 @@
 "__f__": "0.0"
 },
 "plumbing_runs": [],
+"plume_mode": "host",
 "preburner_tin_k": {
 "__f__": "0.0"
 },
@@ -2693,6 +2718,9 @@
 "pump_stages_ox": 0,
 "pump_type_fuel": "auto",
 "pump_type_ox": "auto",
+"rated_burn_time_target_s": {
+"__f__": "750.0"
+},
 "regen_channel_aspect_ratio": {
 "__f__": "0.0"
 },
@@ -2708,6 +2736,8 @@
 "regen_nozzle_end_eps": {
 "__f__": "0.0"
 },
+"rp1_ecm_parents": "",
+"rp1_tree_icon": true,
 "suction_accel_g": {
 "__f__": "1.0"
 },
@@ -2737,7 +2767,10 @@
 "target_vac_thrust_n": {
 "__f__": "97416.0"
 },
-"tech_node": "",
+"tech_node": "orbitalRocketry1966",
+"testflight_transfer_pct": {
+"__f__": "50.0"
+},
 "throttle_floor": {
 "__f__": "0.6"
 },
@@ -3476,8 +3509,12 @@
 },
 "pump_model": "meanline",
 "rated_burn_time_s": {
-"__f__": "200.0"
+"__f__": "750.0"
 },
+"rated_burn_time_target_s": {
+"__f__": "750.0"
+},
+"rated_limited_by": "target",
 "required_time_s": {
 "__f__": "1.148978696953919e-05"
 },

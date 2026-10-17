@@ -187,8 +187,10 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 
 ## What this tool covers
 
-- **Propellant pairs**: LOX/RP-1, LOX/LH2, **LOX/CH4** (methalox), N2O4/MMH,
-  Aerozine-50/NTO (storable hypergolics), and two monopropellants —
+- **Propellant pairs**: LOX/RP-1, **LOX/RP-1 (subcooled)**, LOX/LH2, **LOX/CH4**
+  (methalox), N2O4/MMH with its **MON-3 / MON-10 / MON-25** variants,
+  Aerozine-50/NTO, **N2O4/UDMH** (storable hypergolics),
+  **LOX/UDMH** (the RD-119 / RD-112 family), and two monopropellants —
   **Hydrazine** and **H2O2** (high-test peroxide) — no mixture ratio, one
   `PROPELLANT` block, always pressure-fed, decomposed over a catalyst bed
   instead of combusted. Since the 2026-09-25 P1 re-anchor the five bipropellants
@@ -200,6 +202,17 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   Sprite/de Havilland HTP JATO respectively — see `physics/validate/`); the other
   corpus engines' residuals (RS-25 −1.8 %, RD-180 −3.7 %, Merlin −4.8 %, ...) are in
   `validation_engines/reports/2026-09-25_performance_reanchor_before_after.txt`.
+  The 2026-10-15 pairs: LOX/UDMH is anchored on RD-119 (RD-112 cross-check +1.8 %),
+  N2O4/UDMH on RD-253 (RD-0210 +1.1 %); the subcooled pair (LOX 66 K / RP-1 266 K)
+  has its own colder-reactant table, densities and inlet temperatures but LOX/RP-1's
+  efficiencies un-retuned, and reproduces Merlin 1D+ to +0.2 %. Its export uses RO's
+  `CooledRP-1` / `CooledLqdOxygen`, and the new pairs' volume ratios use the game's
+  own resource densities (`cfg_writer.RF_RESOURCE_DENSITY_KG_M3`).
+  The 2026-10-16 MON-x/MMH variants (N2O4 + 3/10/25 % NO, as AJ10-190, R-4D, Aestus
+  and TD-339 really burn) have their own tables and oxidizer densities and export
+  `MON3`/`MON10`/`MON25`, on N2O4/MMH's efficiencies: MON barely moves Isp
+  (<1 s), so AJ10-190 / R-40 / TD-339 (-6.3 / +1.5 / +3.2 %) are reported, not
+  gated - they show one Aestus-anchored efficiency's spread across MMH engines.
   The two monopropellants reuse the entire bipropellant pipeline via a deliberate
   trick (a single-point combustion table that always returns the same
   decomposition state) rather than a parallel code path — see
@@ -295,9 +308,10 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
     **mass**: a battery sized for the whole burn plus the motors, added to the
     dry mass. Only pays off at small scale / short burn (battery mass scales
     with burn *time*); the tool warns when the electric hardware dominates.
-  ORSC and FFSC also carry a standing reliability caveat (oxidiser-rich
+  ORSC and FFSC also carry a development-complexity caveat (oxidiser-rich
   turbomachinery is historically hard - late-Soviet/Russian ORSC, and only
-  Raptor/BE-4-era FFSC). Per-cycle behaviour is spot-checked end-to-end against
+  Raptor/BE-4-era FFSC); their exported TestFlight reliability follows RO's own
+  staged-engine numbers (see "Design-derived TestFlight reliability"). Per-cycle behaviour is spot-checked end-to-end against
   RD-180, SSME, RD-0124, J-2X, Rutherford and a Raptor-like design in
   `validate.py::run_cycle_model_check()`.
 - **Nozzle shape**: Conical (adjustable half-angle) or **Bell** (Rao
@@ -685,7 +699,7 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   PDF). Wall thickness, bearing placement and OD, seals and the turbine blading are
   drawing-only placeholders until E3 / Round 3 size them (`gui/turbopump_section.py`).
   **Turbopump Placement (3D)**
-  (Turbopump tab, roadmap E1, 2026-09-30, schema 20): clock angle round the engine,
+  (Turbopump tab, roadmap E1, 2026-09-30, schema 24): clock angle round the engine,
   axial station, stand-off and shaft orientation (axial / tangential); the auto default
   sits the assembly beside the chamber - each part clears the local contour, manifold
   rings and exhaust hardware over its own span (`geometry3d.turbopump_placement`), no
@@ -727,28 +741,52 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   `varyIsp`/`varyMixture`, `residualsThresholdBase` on export - purely
   export-time, never affects computed Isp/thrust. See
   `physics/controller_tech.py`.
+- **Rated / tested burn time** (`physics/burn_time.py`, 2026-10-16). RO's
+  TestFlight (`TestFlight_Generic_Engines.cfg`) reads `ratedBurnTime` as the duty:
+  the per-second failure chance is (1 - cycleReliability) / rated, the `cycle` curve
+  is flat to rated + 5 s, 2x at `testedBurnTime` (the longest SINGLE demonstrated
+  burn) and 100x at 2.5 x tested.
+  - **Rated** = the duty target `rated_burn_time_target_s` (Cooling > Burn Time;
+    0 = the RO-corpus median for this role - sea-level booster / upper stage /
+    pressure-fed - thrust and era, fitted over the real ratedBurnTime of every dated
+    RO liquid-biprop config, `catalog/testflight_corpus.json`), **capped** by the
+    shortest physical life limit / 4 ([SP-8110] / [ASR72-238] life factor). Round A
+    has one mechanism: the hot-wall temperature margin at the worst station,
+    life ~ margin^(1/0.205) ([Quentmeyer-TMX73665] copper-liner exponent, a Tier-3
+    transfer), anchored at margin 0.69 - reverse-solved so every real engine in the
+    validation corpus carries its real RO rating uncapped (`validate/
+    burn_time_checks.py`, "ALL BURN-TIME CHECKS OK"). Ablative sections size their
+    char liner to the target, so they carry it by construction; an electric-pump
+    battery is sized to the rating. The table under the slider names each limit,
+    what it allows and the lever that raises it; a capped target is a warn row.
+  - **Tested** = rated x the RO-corpus tested/rated ratio (ln-fit over 426 configs:
+    +0.19 per decade from 1970, x0.56 pressure-fed, x1.12 restartable, x0.70 upper
+    stage; 1960s booster ~3.5x, 2000s ~8x), never past the life limit, never below
+    rated; ablative = rated. The era is the RP-1 tech node's start year, else the
+    controller tier's `era_year`. (The old 6-17x tier multipliers came from
+    cumulative qualification time and over-stated it.)
 - **Design-derived TestFlight reliability** (`physics/reliability.py`,
   export-time only): the exported `ignitionReliability*` / `cycleReliability*`
-  are DERIVED from the design - the controller tier is the anchor, then the
-  failure gap `1 - value` is scaled by the cycle's inherent difficulty
-  (pressure-fed easy -> FFSC/ORSC hard) and inflated for high chamber pressure,
-  oxidiser-rich turbomachinery, deep throttling, many restarts, a
-  tip-speed-marginal or fatigue-marginal design, and multi-chamber layouts.
-  Clamped into the real RO-corpus band (cycleReliabilityStart runs 0.63 min /
-  0.97 median / 0.9997 max across ~300 configs). A low-complexity GG/pressure-fed
-  design at the `baseline` tier still exports ~0.970, matching every `.cfg`
-  written before; a fresh FFSC exports ~0.84. `testedBurnTime` is
-  `rated x` a controller-tier multiplier nudged by a reusability signal.
-- **Cost model** (`physics/cost_model.py`, export-time only): a CER-style
-  `cost` / `entryCost` estimate from the computed dry mass (`mass^0.55`),
-  chamber pressure, cycle complexity, chamber count, and the blended
-  `relative_cost_factor`s of the chosen material / injector / turbopump tier /
-  controller tier (previously tracked but never combined). Calibrated so a
-  ~1.4 MN kerolox GG lands near this project's own `H3-250K` gating values
-  (`cost` 20 / `entryCost` 15000). The GUI shows the estimate and auto-fills the
-  export fields; typing a value overrides it (a "Reset cost to estimate" button
-  hands it back). `cost` is written on the CONFIG block; `entryCost` only in the
-  RP-1 gating patch.
+  are DERIVED from the design - the controller tier is the anchor (its values
+  match the RO corpus' per-decade medians), then the failure gap `1 - value` is
+  scaled by the cycle family FITTED on RO (pressure-fed x0.66, expander x0.70,
+  staged x1.13 on top of the chamber-pressure term - RO rates ORSC like FRSC, so
+  the old ox-rich penalty is retired; tap-off / electric stay Tier 3) and
+  inflated for high chamber pressure (the staged fleet's extra gap is mostly this
+  term), deep throttling, many restarts, a tip-speed- or fatigue-marginal design
+  (the fatigue term fires below 4 x ignitions - the cited life factor) and
+  multi-chamber layouts. Clamped into the RO band (0.63 min / 0.97 median /
+  0.9997 max). `techTransfer = <parents>:<pct>` is written from the tech-transfer
+  parents (raw config names, `testflight_transfer_pct`, default 50 - RO's usual).
+- **Cost model** (`physics/cost_model.py`, export-time only): the ABSOLUTE
+  engine cost RP-1 would charge (its PART cost + the CONFIG delta), fitted in log
+  space to RP-1's own prices for 487 RO engine configs (`catalog/rp1_snapshot.json`):
+  `~22 x F_vac[kN]^0.48`, x3.9 for hydrolox, x0.81 storables, x0.91 pressure-fed,
+  scatter ~x1.7. Tier-3 multipliers on top for cycle complexity, chamber pressure,
+  the catalog `relative_cost_factor`s and clustering. Entry cost = 28 x cost (the
+  median ratio of RP-1's ECM rows) x a cycle R&D factor. The GUI shows the estimate
+  and auto-fills the fields; typing overrides it ("Reset costs to estimate" hands it
+  back; 0 = estimate). See "Export" below for how the number is split.
 - **Gimbal**: inherit the host part's existing gimbal untouched (default,
   matches `H3-250K`/`H4-250K`), set a custom `gimbalRange`/response speed
   (matches `H3-250K-V`/`TR341_Config.cfg`), or go explicitly ungimballed
@@ -756,11 +794,74 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   separate vernier chambers for TVC). A soft plausibility check warns if a
   custom range falls outside the ~2-11.5 deg band real engines cluster in -
   note real gimbal range does NOT scale with thrust. See `physics/gimbal.py`.
-- **RP-1 tech-tree gating**: an editable combobox (type any node, or pick
-  from real RP-1 engine-tech-node suggestions fetched from RP-1's own
-  `TREE-Engines.cfg`, contextually ordered by propellant/cycle) plus entry
-  cost/cost fields, wired into the export's existing `%techRequired`/
-  `%entryCost`/`%cost` patch. See `physics/tech_tree.py`.
+- **Export (KSP / RP-1)** (Model tab; `export/cfg_writer.py`, verified 2026-10-15
+  against RealFuels' C# source and RP-1 / ROEngines' cfgs in `upstream/`). What
+  each field is FOR in game:
+
+  | Field | Game use |
+  |---|---|
+  | Config name | The RealFuels engine-config picker entry, and the GLOBAL key for RP-1's `techRequired`, its entry cost (ENTRYCOSTMODS), the RF unlock database and TestFlight - must be unique across every installed engine (the default `MyEngine-100K` is flagged) |
+  | Config description | Picker text |
+  | Part name | KSP's internal part ID (`@PART[...]`), standalone mode only; players never see it |
+  | Title / Manufacturer / Part description | What the VAB shows, standalone mode only (a config added to a host keeps the host's) |
+  | Tech node | The config's `techRequired` - and, standalone, the PART's `TechRequired` |
+  | Engine cost | Absolute: standalone -> the PART cost (config delta 0); on a host -> CONFIG `cost` = this - the host part's RP-1 cost (RP-1 treats a config `cost` as a delta: H-1 part 392, configs +0/+21/+67) |
+  | Entry cost (+ parents) | An `ENTRYCOSTMODS { <config> = cost, parents }` row - the ONLY place RealFuels reads a config's unlock cost from (a CONFIG-level `entryCost` is never read; older exports' were dead). Parents = tech-transfer configs that discount it once owned |
+  | Tree icon | A `PARTUPGRADE RFUpgrade_<config>` so a config added to a host shows in its node (RP-1 writes these by hand; RF doesn't create them). Cosmetic |
+  | Host part / model variant | Which ROEngines part to borrow (several can share an engineType, e.g. `ROE-LR105` / `ROE-LR105_2`) and which of its B9PartSwitch model subtypes the config selects (`LinkB9PSModule[<id>] { subtype }` - e.g. the XLR-11 RM-5 model, LR105 NA-3/NA-6 nozzles). A variant that moves the bottom attach node also sets the model-scale height; a mesh-only variant keeps the part's height (the GUI says so - use the reference-height override) |
+
+  ModuleManager order used: `+PART[<host part>]` clone `:BEFORE[RealismOverhaulEngines]`
+  (so RO's own engineType-keyed title / config patches skip it) -> engine definition
+  `:AFTER[RealismOverhaulEngines]` -> model-variant link and RP-1 config gating
+  `:BEFORE[RealismOverhaulEnginesPost]` (after ROEngines' own `@CONFIG,*` default
+  links) -> standalone RP-1 PART placement `:AFTER[xxxRP0]` (`TechRequired`, `cost`,
+  `entryCost = 0`, `RP0conf = true`, ModuleTagList `EngineLiquidTurbo`/`EngineLiquidPF`),
+  before RP-1's `NonRP0.cfg :FOR[zzzRP-0]` would relabel the clone "non RP-0" and leave
+  it in ROEngines' default `start` node. Names are sanitized to `[A-Za-z0-9-]`
+  (spaces break selectors, KSP turns `_` into `.`, RF keys `.`/`_` as `-`); free text
+  to one line without braces or `//`. Every such change, a missing tech node, an
+  unknown host cost or variant shows in the live **Export notes** box and in a
+  Continue/Cancel dialog on export - warn-only. Tech-node suggestions are labelled
+  with RP-1's own node titles (`physics/tech_tree.py` + the snapshot).
+- **Plume** (Model tab → "Plume", `export/plume.py`, 2026-10-16;
+  `EngineDesign.plume_mode`). Before this a standalone clone had NO plume: ROEngines
+  attaches plumes by part NAME (`@PART[ROE-xxx]:BEFORE[ROWaterfall]` /
+  `:BEFORE[RealPlume]`), a later pass than the `:BEFORE[RealismOverhaulEngines]` clone.
+  RO's processor (`RealismOverhaul/Waterfall_Configs/_Processor/`) builds the Waterfall
+  module for ANY part with a `ROWaterfall` node from `:FOR[ROWaterfall]` on, so the
+  export now writes that node itself.
+  - *Host plume, recolored* (default): the host part's own ROWaterfall values
+    (`catalog/roengines_plumes.json`, scraped from ROEngines `Waterfall/` +
+    `RealPlume/` by `catalog/build_roengines_plumes.py`). Same propellant family →
+    verbatim. Different family → the template + glow ROEngines uses most for real
+    engines of that family and role (sea-level vs vacuum nozzle), rescaled by
+    k_new / k_old (below); its ExtraTemplates are dropped. Without Waterfall the
+    host's RealPlume PLUMEs are written verbatim (not recolored).
+  - *Generated from design*: template from the propellant family + nozzle regime
+    (Isp_sl / Isp_vac > 0.80 and attached at sea level → the "lower" template),
+    `scale` = k_template × the computed exit diameter, audio from the cycle
+    (pressure-fed) or thrust (pump-fed bands fitted on ROEngines' own audio vs real
+    thrust), on the host model's plume anchor (transform + position). The plume
+    then matches the DESIGNED nozzle, not the borrowed model's.
+  - *None*: no plume written.
+  - **k_template** = plume `scale` per metre of exit diameter, fitted per template
+    over the ROEngines parts whose RO config header gives thrust / Pc / eps (exit
+    diameter from At = F / (Pc CF_vac), γ 1.2). Templates are NOT scale-compatible
+    (kerolox-lower-1 0.85 vs kerolox-upper-3 2.26 per metre). Against RO's own 23
+    hand-tuned MainPlumeVariants the k-ratio recolor misses by a median 17 %
+    (keeping the donor scale: 68 %), reported by the scraper.
+  - **Scale convention** (Waterfall `WaterfallEffect.InitializeEffect`): an effect
+    is parented with `SetParent(parent, true)`, so its world size is `scale` and
+    ignores the part's `rescaleFactor` unless `useRelativeScaling = true`; position is
+    local and follows the model. A rescaled copy therefore multiplies a non-relative
+    plume's scale by the model scale.
+  - In *Additional CONFIG* / *rescale in place* the host keeps its own plume; a
+    recolored, generated or rescaled one is added the way RO does it per config: a
+    `MainPlumeVariant` on the host's ROWaterfall (`:AFTER[ROWaterfall]`) +
+    `%rowaterfallVariant` on this CONFIG (needs Waterfall + B9PartSwitch).
+  - Not modelled yet (Round P2): a physically SHAPED plume - expansion with altitude
+    from the lip's Prandtl-Meyer turn, shock-cell spacing, afterburning / soot colour -
+    needs Waterfall's base templates and plume literature (`claude_lit/OPEN_QUESTIONS.md`).
 - **Checklist tab**: every design check's pass/warn status (not just
   currently-failing ones), grouped by category in a `ttk.Treeview`, with
   plain PASS/WARN text (not color alone) for accessibility.
@@ -824,10 +925,8 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
   real, cited char-consumption rate (matching the "ablative, no extra time"
   pattern found in real RealismOverhaul configs, where tested burn time is
   essentially equal to rated for ablative engines); every other material
-  scales a baseline by chamber thermal margin. Tested burn time uses a new
-  per-controller-tier `tested_to_rated_multiplier` (6-17x, spanning 4 real
-  cited engines: Saturn V F-1, RD-180, Merlin 1D, Vulcain 2) instead of a
-  flat rated x20.
+  scaled a baseline by chamber thermal margin. (Superseded 2026-10-16 by the duty
+  target + life cap above.)
 - **Number of ignitions**: exposed as a real design choice (Model tab),
   forced to 1 for single-shot igniters (matching `ignition.py`'s
   `forces_single_ignition`) - real RO configs show this varies enormously by
@@ -836,9 +935,13 @@ python3 -c "import ast; ast.parse(open('engine_designer/gui/preview3d_gl.py').re
 
 ## What this tool does NOT cover (phase 2)
 
-- Propellant pairs beyond the current seven (e.g. HAN- or ADN-based "green"
-  monopropellants, subcooled/densified variants as distinct resources, 98% HTP
-  as its own hotter pair). LOX/CH4 and H2O2 are now real (calibrated against
+- Propellant pairs beyond the current thirteen (e.g. HAN- or ADN-based "green"
+  monopropellants, LOX/ethanol, LOX/Syntin, 98% HTP as its own hotter pair).
+  Subcooling is a fixed-temperature pair VARIANT ("LOX/RP-1 (subcooled)",
+  `physics/propellant_pairs.py`), not a continuous propellant-temperature input:
+  the `propellant_temp_*_k` fields still only move pump suction / pump heating,
+  not density or combustion enthalpy, and there is no tank model, so the
+  vehicle-level payoff of densification shows only in the exported volume ratio. LOX/CH4 and H2O2 are now real (calibrated against
   Raptor-2/BE-4 and Sprite); the methalox cycles no longer use a LOX/LH2
   stand-in.
 - A dual-nozzle SUBCONFIG export workflow (only one CONFIG per export).

@@ -16,6 +16,7 @@ MODULES=(
   engine_designer.physics.isentropic
   engine_designer.physics.nozzle_shapes
   engine_designer.physics.geometry3d
+  engine_designer.physics.propellant_pairs   # pair variants (subcooled LOX/RP-1) -> base-pair aliasing
   engine_designer.physics.combustion
   engine_designer.physics.thermo_tables   # baked Cantera/CoolProp property tables load + sanity
   engine_designer.physics.mixture_ratio
@@ -30,6 +31,7 @@ MODULES=(
   engine_designer.physics.turbine_exhaust   # GG/tap-off exhaust: back pressure, exhaust Isp, modes
   engine_designer.physics.electric_pump
   engine_designer.physics.reliability
+  engine_designer.physics.burn_time
   engine_designer.physics.cost_model
   engine_designer.physics.turbopump_materials
   engine_designer.physics.turbopump_efficiency
@@ -43,6 +45,11 @@ MODULES=(
   engine_designer.physics.flow_network
   engine_designer.catalog.build_catalog
   engine_designer.catalog.build_roengines_models
+  engine_designer.catalog.build_roengines_plumes
+  engine_designer.catalog.mmcfg
+  engine_designer.catalog.build_rp1_snapshot
+  engine_designer.catalog.build_testflight_corpus
+  engine_designer.export.plume
   engine_designer.export.cfg_writer
   engine_designer.gui.schematic
   engine_designer.gui.preview3d

@@ -98,22 +98,23 @@ def run_mass_model_sensitivity_check():
 
     d_ref = EngineDesign(material_key="narloy_z", **base)
     r_ref = d_ref.compute()
-    # 2026-09-23: burn time scales with the WORST of the throat and full-length
+    # 2026-10-16: rated = the duty target (0 = corpus duty) capped by the wall-
+    # temperature life / LIFE_FACTOR, the WORST of the throat and full-length
     # peak margins (the throat alone used to set it - cooling audit W7).
+    from .. import burn_time
     _worst = min(r_ref["material_margin"]["margin_ratio"],
                  r_ref["cooling"]["peak_wall_margin_ratio"] or float("inf"))
-    ref_mult = _worst / materials.THIN_MARGIN_THRESHOLD
-    ref_mult_clamped = max(0.3, min(3.0, ref_mult))
-    expected_rated = 200.0 * ref_mult_clamped
-    ok_rated_matches = abs(r_ref["rated_burn_time_s"] - expected_rated) < 1e-6
-    print(f"  Non-ablative rated burn time matches the margin-scaled formula exactly: "
+    _life = burn_time.thermal_life_s(r_ref["duty_default_s"], _worst)
+    expected_rated = min(r_ref["rated_burn_time_target_s"], _life / burn_time.LIFE_FACTOR)
+    ok_rated_matches = abs(r_ref["rated_burn_time_s"] - max(burn_time.RATED_MIN_S, expected_rated)) < 1e-6
+    print(f"  Non-ablative rated burn time = min(duty target, wall life / {burn_time.LIFE_FACTOR:.0f}): "
           f"{r_ref['rated_burn_time_s']:.2f} == {expected_rated:.2f} s  "
           f"[{'OK' if ok_rated_matches else 'FAIL'}]")
 
     # Ablative NOZZLE EXTENSION liner (2026-09-25): per-station, char rate scaled
     # by the local ablative-surface flux - so it must thin toward the exit, grow
     # with the target burn, and the consumable extension caps the engine rating.
-    ext = [EngineDesign(bell_material_key="ablative_phenolic", ablative_target_burn_time_s=t,
+    ext = [EngineDesign(bell_material_key="ablative_phenolic", rated_burn_time_target_s=t,
                         **base).compute() for t in (100.0, 200.0, 400.0)]
     ext_t = [r["ext_ablative_liner_thickness_m"] for r in ext]
     ok_ext_taper = all(float(t[0]) > float(t[-1]) > 0.0 for t in ext_t)

@@ -104,6 +104,7 @@ from .feed_calibration import run_feed_pump_calibration_check  # noqa: F401
 from .suction import run_pump_suction_check  # noqa: F401
 from .pump_meanline import run_pump_meanline_check  # noqa: F401
 from .tap_off_checks import run_tap_off_check  # noqa: F401
+from .burn_time_checks import run_burn_time_check  # noqa: F401
 
 # Every check, in the order `python3 -m engine_designer.physics.validate` runs them.
 ALL_CHECKS = (
@@ -139,4 +140,5 @@ ALL_CHECKS = (
     run_pump_suction_check,
     run_pump_meanline_check,
     run_tap_off_check,
+    run_burn_time_check,
 )
