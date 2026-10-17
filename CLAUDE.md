@@ -607,6 +607,9 @@ the stacked PRs #18-#20 had merged into each other's branches, leaving main at R
 round, merge bottom-up and retarget the child PR to main first). Tap-off accuracy round =
 `turbopump/tapoff-accuracy` off main, plan `plans/2026-09-26_tapoff_accuracy.md`, PR #22.
 Turbopump Section tab = `turbopump/section-view` off main, plan `plans/2026-09-30_turbopump_section_view.md`.
+**MERGED to main 2026-10-17** (bottom-up, PRs #29-#33, schema now 23): the export identity /
+RP-1 round, new propellant pairs, MON variants, TestFlight burn-time Round A and export plumes
+below - their plans stay as history; new work on them branches off main.
 Export identity / RP-1 round (schema 21 - 20 skipped, claimed by two unmerged branches) =
 `export/rp1-identity` off main, plan `plans/2026-10-15_export_rp1_identity.md`.
 New propellant pairs (LOX/UDMH, N2O4/UDMH, "LOX/RP-1 (subcooled)") = `propellants/new-pairs`
