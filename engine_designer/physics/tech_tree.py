@@ -75,7 +75,10 @@ def suggested_nodes(propellant_pair, cycle):
         families.append(HYDROLOX)
     if cycle in staged:
         families.append(FRSC_FAMILY)
-    if cycle in staged or propellant_pair == "LOX/RP-1":
+    # RP-1's "stagedCombustion*" nodes are its ORSC line ("1963 ORSC Engines"),
+    # so they lead only for a staged cycle - a kerolox gas generator starts on
+    # the orbitalRocketry line like the real H-1 / LR87 / F-1.
+    if cycle in staged:
         families.append(STAGED_COMBUSTION)
     families.append(ORBITAL_ROCKETRY)
     families.append(LANDING)
@@ -89,3 +92,24 @@ def suggested_nodes(propellant_pair, cycle):
                 seen.add(node)
                 ordered.append(node)
     return ordered
+
+
+# --- labels for the GUI combobox: "id - title" from the RP-1 snapshot -------------
+_LABEL_SEP = "  -  "
+
+
+def node_label(node_id):
+    """'orbitalRocketry1976  -  1976-1980 Orbital Rocketry' (title from
+    catalog/rp1_snapshot.json), or the bare id when it has no known title."""
+    from ..catalog import build_rp1_snapshot
+    title = build_rp1_snapshot.tech_node_titles().get(node_id, "")
+    return f"{node_id}{_LABEL_SEP}{title}" if title else node_id
+
+
+def node_id_from_label(text):
+    """Inverse of node_label - also accepts a bare, typed node id."""
+    return (text or "").split(_LABEL_SEP, 1)[0].strip()
+
+
+def suggested_node_labels(propellant_pair, cycle):
+    return [node_label(n) for n in suggested_nodes(propellant_pair, cycle)]

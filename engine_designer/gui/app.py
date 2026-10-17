@@ -32,8 +32,8 @@ matplotlib.use("TkAgg")
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-from ..catalog import load_roengines_models
-from ..export.cfg_writer import write_cfg
+from ..catalog import load_roengines_models, host_model_parts, host_native_height_m
+from ..export.cfg_writer import write_cfg, resolve_export
 from ..physics import (combustion, controller_tech, cooling, cost_model, cycles, flow_network,
                         ignition,
                         hatbands, injectors, materials, plumbing, reliability,
@@ -1371,6 +1371,19 @@ class EngineDesignerApp:
         h_row = self._add_dropdown(hb, h_row,
                                     "Host model (existing RO part to bind onto for export)",
                                     "host_var", host_values, host_values[0] if host_values else "", width=34)
+        # Which ROEngines part (several can share an engineType) and which of its
+        # B9PartSwitch model variants the export uses - e.g. the XLR-11's RM-5
+        # model. Rebuilt whenever the host changes (_rebuild_variant_controls).
+        h_row = self._add_dropdown(hb, h_row, "Host part / model (ROEngines part carrying that engineType)",
+                                    "host_part_var", [], "", on_select=self._on_host_part_change,
+                                    width=34)
+        self.variant_frame = ttk.Frame(hb)
+        self.variant_frame.grid(row=h_row, column=0, columnspan=2, sticky="ew")
+        self.variant_frame.columnconfigure(0, weight=1)
+        self.variant_vars = {}          # moduleID -> StringVar of the display label
+        self._variant_label_to_sub = {}  # moduleID -> {label: subtype ("" = default)}
+        self._variant_host_key = None
+        h_row += 1
 
         # --- export output shape ---
         h_row = self._add_dropdown(
@@ -1389,27 +1402,119 @@ class EngineDesignerApp:
         _hrh.bind("<FocusOut>", self._on_control_change)
         h_row += 1
 
-        sec_identity = CollapsibleSection(tab_model, "New Part Identity")
+        # --- Export (KSP / RP-1): every name / text / career field the .cfg
+        # writes, each with its own label saying what the game does with it
+        # (README "Export"). Export-time only - read by _on_export_field_change
+        # without a physics recompute, like the old Export & Metadata fields.
+        sec_identity = CollapsibleSection(tab_model, "Export (KSP / RP-1)")
         sec_identity.grid(row=md_row, column=0, columnspan=2, sticky="ew")
         md_row += 1
         idb = sec_identity.body_parent()
         id_row = 0
 
-        ttk.Label(idb, text="New standalone part: name / title / manufacturer "
-                            "(blank = derived from CONFIG name)").grid(
+        def _field(label, var, hint=None, preview_attr=None):
+            nonlocal id_row
+            ttk.Label(idb, text=label).grid(row=id_row, column=0, columnspan=2, sticky="w")
+            id_row += 1
+            ent = ttk.Entry(idb, textvariable=var)
+            ent.grid(row=id_row, column=0, columnspan=2, sticky="ew")
+            ent.bind("<KeyRelease>", self._on_export_field_change)
+            id_row += 1
+            if hint or preview_attr:
+                lbl = ttk.Label(idb, text=hint or "", foreground="#606060", wraplength=330,
+                                font=("TkDefaultFont", 8))
+                lbl.grid(row=id_row, column=0, columnspan=2, sticky="w")
+                id_row += 1
+                if preview_attr:
+                    setattr(self, preview_attr, lbl)
+            return ent
+
+        ttk.Label(idb, text="Engine config", font=("TkDefaultFont", 9, "bold")).grid(
             row=id_row, column=0, columnspan=2, sticky="w")
+        id_row += 1
+        self.export_name_var = tk.StringVar(value=self.design.config_name)
+        _field("Config name - the RealFuels engine-config picker entry", self.export_name_var,
+               preview_attr="config_name_preview")
+        self.config_desc_var = tk.StringVar(value=self.design.config_description)
+        _field("Config description - picker text (blank = auto summary)", self.config_desc_var)
+
+        ttk.Label(idb, text="New part (standalone output mode only)",
+                  font=("TkDefaultFont", 9, "bold")).grid(row=id_row, column=0, columnspan=2,
+                                                          sticky="w", pady=(6, 0))
+        id_row += 1
+        self.part_fields_note = ttk.Label(idb, text="", foreground="#a06000", wraplength=330,
+                                          font=("TkDefaultFont", 8))
+        self.part_fields_note.grid(row=id_row, column=0, columnspan=2, sticky="w")
         id_row += 1
         self.new_part_name_var = tk.StringVar(value=self.design.new_part_name)
         self.new_part_title_var = tk.StringVar(value=self.design.new_part_title)
         self.new_part_mfr_var = tk.StringVar(value=self.design.new_part_manufacturer)
-        for _c, _v in ((0, self.new_part_name_var), (1, self.new_part_title_var)):
-            _e = ttk.Entry(idb, textvariable=_v)
-            _e.grid(row=id_row, column=_c, sticky="ew")
-            _e.bind("<KeyRelease>", self._on_export_field_change)
+        self._part_entries = [
+            _field("Part name - internal ID (blank = from config name)", self.new_part_name_var,
+                   preview_attr="part_name_preview"),
+            _field("Title - the name shown in the VAB (blank = config name)", self.new_part_title_var),
+            _field("Manufacturer - VAB manufacturer line / filter", self.new_part_mfr_var),
+        ]
+        ttk.Label(idb, text="Part description - VAB info text (blank = auto)").grid(
+            row=id_row, column=0, columnspan=2, sticky="w")
         id_row += 1
-        _e = ttk.Entry(idb, textvariable=self.new_part_mfr_var)
-        _e.grid(row=id_row, column=0, columnspan=2, sticky="ew")
-        _e.bind("<KeyRelease>", self._on_export_field_change)
+        self.new_part_desc_text = tk.Text(idb, width=40, height=3, wrap="word")
+        self.new_part_desc_text.insert("1.0", self.design.new_part_description)
+        self.new_part_desc_text.grid(row=id_row, column=0, columnspan=2, sticky="ew")
+        self.new_part_desc_text.bind("<KeyRelease>", self._on_export_field_change)
+        id_row += 1
+
+        ttk.Label(idb, text="RP-1 career", font=("TkDefaultFont", 9, "bold")).grid(
+            row=id_row, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        id_row += 1
+        ttk.Label(idb, text="Tech node (blank = no RP-1 gating; type any node id)").grid(
+            row=id_row, column=0, columnspan=2, sticky="w")
+        id_row += 1
+        self.tech_node_var = tk.StringVar(value=tech_tree.node_label(self.design.tech_node)
+                                          if self.design.tech_node else "")
+        self.tech_node_combo = ttk.Combobox(
+            idb, textvariable=self.tech_node_var,
+            values=tech_tree.suggested_node_labels(self.design.propellant_pair, self.design.cycle))
+        self.tech_node_combo.grid(row=id_row, column=0, columnspan=2, sticky="ew")
+        self.tech_node_combo.bind("<KeyRelease>", self._on_export_field_change)
+        self.tech_node_combo.bind("<<ComboboxSelected>>", self._on_export_field_change)
+        id_row += 1
+        ttk.Label(idb, text="Engine cost (absolute)").grid(row=id_row, column=0, sticky="w")
+        ttk.Label(idb, text="Entry cost (unlock)").grid(row=id_row, column=1, sticky="w")
+        id_row += 1
+        self.cost_var = tk.StringVar(value=f"{self.design.cost:.0f}")
+        cost_entry = ttk.Entry(idb, textvariable=self.cost_var, width=16)
+        cost_entry.grid(row=id_row, column=0, sticky="ew")
+        cost_entry.bind("<KeyRelease>", self._on_cost_field_edit)
+        self.entry_cost_var = tk.StringVar(value=f"{self.design.entry_cost:.0f}")
+        entry_cost_entry = ttk.Entry(idb, textvariable=self.entry_cost_var, width=16)
+        entry_cost_entry.grid(row=id_row, column=1, sticky="ew")
+        entry_cost_entry.bind("<KeyRelease>", self._on_cost_field_edit)
+        id_row += 1
+        self.cost_split_label = ttk.Label(idb, text="", foreground="#606060", wraplength=330,
+                                          font=("TkDefaultFont", 8))
+        self.cost_split_label.grid(row=id_row, column=0, columnspan=2, sticky="w")
+        id_row += 1
+        ttk.Button(idb, text="Reset costs to estimate",
+                   command=self._on_cost_reset).grid(row=id_row, column=0, columnspan=2, sticky="w")
+        id_row += 1
+        self.ecm_parents_var = tk.StringVar(value=self.design.rp1_ecm_parents)
+        _field("Tech-transfer parent configs (comma list, optional)", self.ecm_parents_var,
+               hint="Entry cost is discounted once you own these configs (RP-1 ENTRYCOSTMODS), "
+                    "e.g. H-1-200K for an uprated H-1.")
+        self.rp1_icon_var = tk.BooleanVar(value=self.design.rp1_tree_icon)
+        ttk.Checkbutton(idb, text="Show the config as an icon in its tech node "
+                                  "(config-on-host modes)",
+                        variable=self.rp1_icon_var,
+                        command=self._on_export_field_change).grid(
+            row=id_row, column=0, columnspan=2, sticky="w")
+        id_row += 1
+        ttk.Label(idb, text="Export notes", font=("TkDefaultFont", 9, "bold")).grid(
+            row=id_row, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        id_row += 1
+        self.export_notes = tk.Text(idb, width=40, height=5, state="disabled", wrap="word",
+                                    foreground="#a06000", font=("Courier", 8))
+        self.export_notes.grid(row=id_row, column=0, columnspan=2, sticky="ew")
         id_row += 1
 
         sec_perf = CollapsibleSection(tab_model, "Performance Targets")
@@ -1494,54 +1599,6 @@ class EngineDesignerApp:
         self.warnings_box = tk.Text(wb, width=42, height=7, state="disabled", wrap="word",
                                      foreground="#a03030", font=("Courier", 9))
         self.warnings_box.grid(row=0, column=0, columnspan=2, sticky="ew")
-
-        sec_export = CollapsibleSection(left, "Export & Metadata", start_open=False)
-        sec_export.grid(row=row, column=0, columnspan=2, sticky="ew")
-        row += 1
-        exb = sec_export.body_parent()
-        ex_row = 0
-
-        ttk.Label(exb, text="Export CONFIG name").grid(row=ex_row, column=0, columnspan=2, sticky="w")
-        ex_row += 1
-        self.export_name_var = tk.StringVar(value=self.design.config_name)
-        _cfg_name_entry = ttk.Entry(exb, textvariable=self.export_name_var)
-        _cfg_name_entry.grid(row=ex_row, column=0, columnspan=2, sticky="ew")
-        _cfg_name_entry.bind("<KeyRelease>", self._on_export_field_change)
-        ex_row += 1
-
-        # RP-1 tech-node gating: these three fields never affect compute()'s physics
-        # (Isp/thrust/warnings are unrelated to a career-mode tech unlock), so they're
-        # read/written directly on self.design by _on_export_field_change WITHOUT
-        # triggering a full recompute() on every keystroke - unlike every slider/dropdown
-        # above, which all funnel through _on_control_change's trace-triggered recompute.
-        ttk.Label(exb, text="RP-1 tech node (optional - blank = no tech-tree gating; "
-                             "type any node, suggestions are real RP-1 engine nodes)").grid(
-            row=ex_row, column=0, columnspan=2, sticky="w")
-        ex_row += 1
-        self.tech_node_var = tk.StringVar(value=self.design.tech_node)
-        self.tech_node_combo = ttk.Combobox(
-            exb, textvariable=self.tech_node_var,
-            values=tech_tree.suggested_nodes(self.design.propellant_pair, self.design.cycle))
-        self.tech_node_combo.grid(row=ex_row, column=0, columnspan=2, sticky="ew")
-        self.tech_node_combo.bind("<KeyRelease>", self._on_export_field_change)
-        self.tech_node_combo.bind("<<ComboboxSelected>>", self._on_export_field_change)
-        ex_row += 1
-
-        ttk.Label(exb, text="Entry cost").grid(row=ex_row, column=0, sticky="w")
-        ttk.Label(exb, text="Cost").grid(row=ex_row, column=1, sticky="w")
-        ex_row += 1
-        self.entry_cost_var = tk.StringVar(value=f"{self.design.entry_cost:.0f}")
-        entry_cost_entry = ttk.Entry(exb, textvariable=self.entry_cost_var, width=16)
-        entry_cost_entry.grid(row=ex_row, column=0, sticky="ew")
-        entry_cost_entry.bind("<KeyRelease>", self._on_cost_field_edit)
-        self.cost_var = tk.StringVar(value=f"{self.design.cost:.0f}")
-        cost_entry = ttk.Entry(exb, textvariable=self.cost_var, width=16)
-        cost_entry.grid(row=ex_row, column=1, sticky="ew")
-        cost_entry.bind("<KeyRelease>", self._on_cost_field_edit)
-        # Reset button: hand the cost fields back to the auto estimate.
-        ttk.Button(exb, text="Reset cost to estimate",
-                   command=self._on_cost_reset).grid(row=ex_row + 1, column=0, columnspan=2, sticky="w")
-        ex_row += 2
 
         # Project New / Save / Load (JSON design file) - all four project actions
         # together beneath the tabs.
@@ -2010,8 +2067,13 @@ class EngineDesignerApp:
                 self.controller_var.get(), self.design.controller_tech_key)
             self.design.gimbal_mode = GIMBAL_MODE_FROM_DISPLAY.get(
                 self.gimbal_mode_var.get(), self.design.gimbal_mode)
-            self.design.host_model_engine_type = self.host_display_to_type.get(
+            _new_host = self.host_display_to_type.get(
                 self.host_var.get(), self.design.host_model_engine_type)
+            if _new_host != self.design.host_model_engine_type:
+                # a different host's part names / B9 switchers don't carry over
+                self.design.host_model_part = ""
+                self.design.host_model_variants = {}
+            self.design.host_model_engine_type = _new_host
             self.design.turbopump_tech_key = self.turbopump_display_to_key.get(
                 self.turbopump_tech_var.get(), self.design.turbopump_tech_key)
             self.design.turbopump_arrangement = self.turbopump_arrangement_var.get()
@@ -2145,8 +2207,10 @@ class EngineDesignerApp:
         # Keep the tech-node combobox's suggestions relevant to the current
         # propellant/cycle (e.g. LOX/LH2 -> hydrolox nodes first) without
         # clobbering anything the user already typed/selected.
-        self.tech_node_combo["values"] = tech_tree.suggested_nodes(
+        self.tech_node_combo["values"] = tech_tree.suggested_node_labels(
             self.design.propellant_pair, self.design.cycle)
+        self._rebuild_variant_controls()
+        self._update_export_field_states()
 
         self._schedule_recompute()
 
@@ -2171,12 +2235,16 @@ class EngineDesignerApp:
         restart count), so unlike every other control these are read/written
         directly on self.design without calling recompute() - typing a value
         shouldn't trigger a full physics recompute on every keystroke."""
-        self.design.tech_node = self.tech_node_var.get().strip()
-        self.design.config_name = self.export_name_var.get().strip() or self.design.config_name
+        self.design.tech_node = tech_tree.node_id_from_label(self.tech_node_var.get())
+        self.design.config_name = self.export_name_var.get().strip()
+        self.design.config_description = self.config_desc_var.get().strip()
         self.design.new_part_name = self.new_part_name_var.get().strip()
         self.design.new_part_title = self.new_part_title_var.get().strip()
         self.design.new_part_manufacturer = (
             self.new_part_mfr_var.get().strip() or "Fictional")
+        self.design.new_part_description = self.new_part_desc_text.get("1.0", "end").strip()
+        self.design.rp1_ecm_parents = self.ecm_parents_var.get().strip()
+        self.design.rp1_tree_icon = bool(self.rp1_icon_var.get())
         try:
             self.design.entry_cost = float(self.entry_cost_var.get())
         except ValueError:
@@ -2189,6 +2257,116 @@ class EngineDesignerApp:
             self.design.ignitions = int(self.ignitions_var.get())
         except ValueError:
             pass
+        self._refresh_export_notes()
+
+    # --- host part / model variant pickers ------------------------------------
+    def _rebuild_variant_controls(self, force=False):
+        """One dropdown per B9PartSwitch model switcher on the chosen host part
+        (catalog/roengines_models.json `variants`), plus the part list itself.
+        Only rebuilt when the host / part actually changed."""
+        d = self.design
+        parts = host_model_parts(d.host_model_engine_type, self.roengines_models)
+        names = [p["part_name"] for p in parts if p.get("part_name")]
+        key = (d.host_model_engine_type, d.host_model_part, tuple(names))
+        if key == self._variant_host_key and not force:
+            return
+        self._variant_host_key = key
+        self.host_part_var_box["values"] = names or ["(no ROEngines part known)"]
+        cur = d.host_model_part if d.host_model_part in names else (names[0] if names else "")
+        self.host_part_var.set(cur or "(no ROEngines part known)")
+        for w in self.variant_frame.winfo_children():
+            w.destroy()
+        self.variant_vars, self._variant_label_to_sub = {}, {}
+        part = next((p for p in parts if p.get("part_name") == cur), None)
+        r = 0
+        for sw in (part or {}).get("variants", []):
+            mid = sw["module_id"]
+            labels = {"(part default)": ""}
+            for st in sw["subtypes"]:
+                used = ", ".join(c for c in st["linked_configs"] if c != "*")
+                lbl = st["name"] + (f"  (RO configs: {used})" if used else "")
+                if "*" in st["linked_configs"]:
+                    lbl += "  [RO default]"
+                labels[lbl] = st["name"]
+            self._variant_label_to_sub[mid] = labels
+            ttk.Label(self.variant_frame, text=f"Model variant - {sw['description']} ({mid})").grid(
+                row=r, column=0, sticky="w")
+            r += 1
+            var = tk.StringVar()
+            pick = d.host_model_variants.get(mid, "")
+            var.set(next((l for l, sub in labels.items() if sub == pick), "(part default)"))
+            box = ttk.Combobox(self.variant_frame, textvariable=var, values=list(labels),
+                               state="readonly", width=34)
+            box.grid(row=r, column=0, sticky="ew")
+            box.bind("<<ComboboxSelected>>", self._on_variant_change)
+            self.variant_vars[mid] = var
+            r += 1
+        if part is not None and not part.get("variants"):
+            ttk.Label(self.variant_frame, text="(this model has no switchable variants)",
+                      foreground="#606060", font=("TkDefaultFont", 8)).grid(row=r, column=0, sticky="w")
+
+    def _on_host_part_change(self, _event=None):
+        if self._loading:
+            return
+        names = list(self.host_part_var_box["values"])
+        pick = self.host_part_var.get()
+        default = names[0] if names else ""
+        self.design.host_model_part = "" if pick == default or pick not in names else pick
+        self.design.host_model_variants = {}
+        self._rebuild_variant_controls(force=True)
+        self._on_control_change()
+
+    def _on_variant_change(self, _event=None):
+        if self._loading:
+            return
+        chosen = {}
+        for mid, var in self.variant_vars.items():
+            sub = self._variant_label_to_sub.get(mid, {}).get(var.get(), "")
+            if sub:
+                chosen[mid] = sub
+        self.design.host_model_variants = chosen
+        self._on_control_change()   # model scale may follow the variant's length
+
+    def _update_export_field_states(self):
+        standalone = self.design.output_mode == "new_part_standalone"
+        state = "normal" if standalone else "disabled"
+        for ent in self._part_entries:
+            ent.configure(state=state)
+        self.new_part_desc_text.configure(state=state)
+        self.part_fields_note.configure(
+            text="" if standalone else
+            "Greyed out: this output mode adds a config to the host part, which keeps its own "
+            "name / title / manufacturer / description. Pick 'New standalone part' to set them.")
+        self._refresh_export_notes()
+
+    def _refresh_export_notes(self):
+        """Live preview of the sanitized names, the RP-1 cost split and every
+        export_issues() note - warn-only, the same list _on_export shows."""
+        if self.last_result is None or not hasattr(self, "export_notes"):
+            return
+        try:
+            ex = resolve_export(self.design, self.last_result)
+        except Exception as exc:     # never let a preview break the GUI
+            ex = {"issues": [f"(export preview failed: {exc})"]}
+        if "config_name" in ex:
+            self.config_name_preview.configure(
+                text=f"exported as {ex['config_name']}  - must be unique across every installed "
+                     f"engine: RealFuels, RP-1 entry costs and TestFlight all key on it")
+            self.part_name_preview.configure(
+                text=f"exported as {ex['part_name']}  (KSP's internal part ID - players see the title)")
+            if ex["standalone"]:
+                split = f"standalone part: PART cost {ex['cost']}, config delta 0"
+            elif ex["host_part_cost"] is not None:
+                split = (f"config on {ex['host_part_name'] or 'host'}: host part costs "
+                         f"{ex['host_part_cost']:.0f} -> CONFIG cost delta {ex['config_cost_delta']:+d}")
+            else:
+                split = "host part has no RP-1 cost - config cost delta written as 0"
+            est = ex["estimate"]
+            self.cost_split_label.configure(
+                text=f"{split}.  Estimate {est['cost']} / entry {est['entry_cost']} "
+                     f"(fit to RP-1's own engines, ~x1.7 scatter)"
+                     + ("" if not self._cost_overridden else " - fields overridden"))
+        self._set_text(self.export_notes, "\n".join(f"- {i}" for i in ex["issues"]) or "(none)")
 
     def _on_xray_change(self):
         if self.gl_preview is not None:
@@ -3067,11 +3245,12 @@ class EngineDesignerApp:
             native_h = self._host_native_height_m()
             scale = self._compute_model_scale()
             if scale is not None:
-                src = ("manual" if self.design.host_model_reference_height_m > 0
-                       else "ROEngines")
+                _h, src, _note = self._host_height_info()
                 mass_burn_lines.append(
                     f"Model scale: engine {engine_len:.2f} m / host {native_h:.2f} m "
                     f"({src}) -> rescaleFactor x{scale:.3f}")
+                if _note:
+                    mass_burn_lines.append(f"  NOTE: {_note}")
             else:
                 mass_burn_lines.append(
                     f"Model scale: no known height for host '{self.design.host_model_engine_type}'"
@@ -3079,8 +3258,8 @@ class EngineDesignerApp:
         mass_burn_lines += [
             "",
             f"Estimated cost {cost_est['cost']} / entryCost {cost_est['entry_cost']}"
-            + ("  (auto - editable in the fields below)" if not self._cost_overridden
-               else "  (fields below manually overridden)"),
+            + ("  (auto - editable in Model > Export (KSP / RP-1))" if not self._cost_overridden
+               else "  (manually overridden in Model > Export (KSP / RP-1))"),
         ]
         self._set_text(self.mass_burn_details, "\n".join(mass_burn_lines))
 
@@ -3270,7 +3449,14 @@ class EngineDesignerApp:
         self.cavities_var.set(bool(d.acoustic_cavities))
         self.cavity_count_var.set(str(d.acoustic_cavity_count))
         self.thrust_var.set(f"{d.target_vac_thrust_n / 1e3:.1f}")
-        self.tech_node_var.set(d.tech_node)
+        self.tech_node_var.set(tech_tree.node_label(d.tech_node) if d.tech_node else "")
+        self.config_desc_var.set(d.config_description)
+        self.ecm_parents_var.set(d.rp1_ecm_parents)
+        self.rp1_icon_var.set(bool(d.rp1_tree_icon))
+        self.new_part_desc_text.configure(state="normal")
+        self.new_part_desc_text.delete("1.0", "end")
+        self.new_part_desc_text.insert("1.0", d.new_part_description)
+        self._rebuild_variant_controls(force=True)
         self.entry_cost_var.set(f"{d.entry_cost:.0f}")
         self.cost_var.set(f"{d.cost:.0f}")
         self.ignitions_var.set(str(d.ignitions))
@@ -3337,8 +3523,16 @@ class EngineDesignerApp:
                 messagebox.showwarning(
                     "Newer file",
                     "This project was saved by a newer version of the tool; loading best-effort.")
-            self._cost_overridden = True   # a loaded design carries its own cost/entryCost
-            self._load_into_gui(project_io.load_design(path))
+            _loaded = project_io.load_design(path)
+            # A loaded design carries its own cost/entryCost - unless they are 0
+            # (= re-estimate; pre-schema-21 files are migrated to that).
+            self._cost_overridden = _loaded.cost > 0 or _loaded.entry_cost > 0
+            if not self._cost_overridden and project_io.file_schema_version(path) < 21:
+                messagebox.showinfo(
+                    "Costs re-estimated",
+                    "This project was saved before the RP-1 cost re-fit: its cost / entry cost "
+                    "were on the old scale and have been reset to the new estimate.")
+            self._load_into_gui(_loaded)
             self._current_project_path = path
             self._set_title()
         except Exception as exc:
@@ -3350,24 +3544,23 @@ class EngineDesignerApp:
             return
         self._on_export_field_change()
         d = self.design
-        default_name = (d.new_part_name.strip()
-                        if d.output_mode == "new_part_standalone" and d.new_part_name.strip()
-                        else d.config_name.strip() or "MyEngine")
+        ex = resolve_export(d, self.last_result)
+        if ex["issues"] and not messagebox.askokcancel(
+                "Export notes",
+                "The export will be written, but check these first:\n\n"
+                + "\n\n".join(f"- {i}" for i in ex["issues"])
+                + "\n\nContinue?", icon="warning"):
+            return
+        default_name = ex["part_name"] if ex["standalone"] else ex["config_name"]
         path = filedialog.asksaveasfilename(
             defaultextension=".cfg", initialfile=f"{default_name}_Config.cfg",
             filetypes=[("KSP config", "*.cfg")])
         if not path:
             return
         try:
-            write_cfg(path, d, self.last_result, config_name=d.config_name.strip() or "MyEngine",
-                      tech_node=d.tech_node or None,
-                      entry_cost=d.entry_cost, cost=d.cost,
+            write_cfg(path, d, self.last_result,
                       mass_mult=self._compute_mass_mult(),
-                      output_mode=d.output_mode,
-                      model_scale=self._compute_model_scale(),
-                      new_part={"name": d.new_part_name, "title": d.new_part_title,
-                                "manufacturer": d.new_part_manufacturer,
-                                "description": d.new_part_description})
+                      model_scale=self._compute_model_scale())
         except Exception as exc:
             messagebox.showerror("Export failed", str(exc))
             return
@@ -3384,6 +3577,7 @@ class EngineDesignerApp:
             self.design.entry_cost = float(est["entry_cost"])
             self.cost_var.set(str(est["cost"]))
             self.entry_cost_var.set(str(est["entry_cost"]))
+        self._refresh_export_notes()
         return est
 
     def _compute_mass_mult(self):
@@ -3406,14 +3600,16 @@ class EngineDesignerApp:
 
     def _host_native_height_m(self):
         """Rendered height (m) of the current host model: the user's manual
-        override if set, else the ROEngines snapshot, else None."""
-        manual = self.design.host_model_reference_height_m
-        if manual and manual > 0:
-            return manual
-        entry = self.roengines_models.get(self.design.host_model_engine_type)
-        if entry and entry.get("native_height_m", 0) > 0:
-            return float(entry["native_height_m"])
-        return None
+        override if set, else the chosen part / model variant's height from the
+        ROEngines snapshot (catalog.host_native_height_m), else None."""
+        h, _src, _note = self._host_height_info()
+        return h
+
+    def _host_height_info(self):
+        d = self.design
+        return host_native_height_m(d.host_model_engine_type, d.host_model_part,
+                                    d.host_model_variants, d.host_model_reference_height_m,
+                                    self.roengines_models)
 
     def _compute_model_scale(self):
         """Uniform rescaleFactor multiplier for a borrowed host model =

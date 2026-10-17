@@ -224,7 +224,12 @@ touching any cooling number.** What changed structurally:
                                                      # roengines_models.json model-height
                                                      # snapshot (auto-finds upstream/ROEngines;
                                                      # falls back to ROENGINES_DIR/../ROEngines)
-   python3 -m engine_designer.export.cfg_writer  # 3 output-mode renders + brace/token checks
+   python3 -m engine_designer.catalog.mmcfg     # tiny KSP/MM cfg parser the scrapers share
+   python3 -m engine_designer.catalog.build_rp1_snapshot  # RP-1 tech nodes / engine part +
+                                                     # config costs / ECM rows joined to RO configs
+                                                     # (rp1_snapshot.json; auto-finds upstream/RP-1)
+   python3 -m engine_designer.export.cfg_writer  # 3 output-mode renders + brace/token checks,
+                                                     # RP-1 gating, sanitizing, model variants
    python3 -m engine_designer.gui.schematic
    python3 -m engine_designer.gui.preview3d          # matplotlib 3D preview (kept as fallback)
    python3 -m engine_designer.gui.preview3d_gl_core  # OpenGL preview's pure-numpy mesh/camera/
@@ -498,9 +503,19 @@ for convenience but never redistributed - only derived numbers ever leave it, pe
 CC BY-NC-ND license), `gui/` (Tkinter shell + File menu w/ Ctrl+S/O/N/E + matplotlib 2D
 schematic w/ cooling overlay + a side-view injector block on the chamber head, 3D view with
 a domed injector cap, a face-on Injector Face tab, and a 2D turbopump systems diagram),
-`export/` (`cfg_writer.render_cfg` renders to RF `.cfg` text; `output_mode` =
+`export/` (`cfg_writer.render_cfg` renders to RF `.cfg` text - **read README "Export" first**:
+it has the verified KSP/MM/RealFuels/RP-1 meaning of every exported field (config name = the
+global RF/RP-1/TestFlight key, CONFIG `cost` is a DELTA on the part cost, a CONFIG-level
+`entryCost` is NEVER read - entry cost is an `ENTRYCOSTMODS` row, a standalone clone needs RP-1
+PART-level `TechRequired`/`cost`/`RP0conf`/ModuleTagList or RP-1 relabels it "non RP-0");
+`resolve_export` resolves + sanitizes every identity / RP-1 value and lists warn-only
+`export_issues`; `physics/cost_model.py` = the ABSOLUTE engine cost fitted to RP-1's own prices
+(`catalog/rp1_snapshot.json`); host part + B9PartSwitch model variant (`EngineDesign.
+host_model_part` / `host_model_variants` -> `LinkB9PSModule`, scraped into
+`roengines_models.json` `variants` / `alt_parts`, height via `catalog.host_native_height_m`);
+`output_mode` =
 `additional_config` (default, append a CONFIG to the host part - unchanged),
-`new_part_in_place` (+ a `@rescaleFactor` patch), or `new_part_standalone` (a `+PART` copy
+`new_part_in_place` (+ a `@rescaleFactor` patch), or `new_part_standalone` (a `+PART[<one named host part>]` copy
 that borrows the host model rescaled, own `#engineType`/gating, `origMass`-pinned mass -
 generated `TR341_Config.cfg`); uniform model scale = design length / host native height).
 
@@ -572,3 +587,5 @@ the stacked PRs #18-#20 had merged into each other's branches, leaving main at R
 round, merge bottom-up and retarget the child PR to main first). Tap-off accuracy round =
 `turbopump/tapoff-accuracy` off main, plan `plans/2026-09-26_tapoff_accuracy.md`, PR #22.
 Turbopump Section tab = `turbopump/section-view` off main, plan `plans/2026-09-30_turbopump_section_view.md`.
+Export identity / RP-1 round (schema 21 - 20 skipped, claimed by two unmerged branches) =
+`export/rp1-identity` off main, plan `plans/2026-10-15_export_rp1_identity.md`.

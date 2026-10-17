@@ -477,8 +477,14 @@ class EngineDesign:
     gimbal_range_deg: float = 6.0         # only meaningful in "custom" mode
     gimbal_response_speed_deg_s: float = 0.0  # 0 = don't emit useGimbalResponseSpeed/gimbalResponseSpeed
     tech_node: str = ""                   # RP-1 %techRequired - empty = no tech-tree gating
-    entry_cost: float = 10000.0
-    cost: float = 20.0
+    # RP-1 economy (physics/cost_model.py, export/cfg_writer.py). Since schema 21
+    # `cost` is the ABSOLUTE engine cost (RP-1 part cost + config delta) and
+    # `entry_cost` the config's ENTRYCOSTMODS row; 0 = use the cost_model estimate.
+    entry_cost: float = 0.0
+    cost: float = 0.0
+    rp1_ecm_parents: str = ""             # comma list of config names: ENTRYCOSTMODS tech-
+                                           # transfer parents (entry cost discounted once owned)
+    rp1_tree_icon: bool = True            # emit a PARTUPGRADE icon in the tech node
     ignitions: int = 1                    # export-time only (like tech_node/entry_cost/cost) -
                                            # forced to 1 at export if the chosen ignition system's
                                            # forces_single_ignition is True (see ignition.py)
@@ -493,7 +499,10 @@ class EngineDesign:
     #                        BORROWS the host part's model, rescaled - generated
     #                        equivalent of TR341_Config.cfg.
     output_mode: str = "additional_config"
-    config_name: str = "MyEngine-100K"       # RF CONFIG `name` (was GUI-only export_name_var)
+    config_name: str = "MyEngine-100K"       # RF CONFIG `name` (was GUI-only export_name_var):
+                                             # the engine-config picker entry AND the global key
+                                             # for techRequired / ENTRYCOSTMODS / TestFlight
+    config_description: str = ""             # RF picker text for the CONFIG; blank -> auto one-liner
     host_model_reference_height_m: float = 0.0  # 0 = auto (catalog/roengines_models.json);
                                                  # >0 overrides it (m). Used only when a mode
                                                  # rescales the model.
@@ -501,9 +510,21 @@ class EngineDesign:
     new_part_title: str = ""                 # blank -> config_name
     new_part_manufacturer: str = "Fictional"
     new_part_description: str = ""           # blank -> auto one-liner
+    # Which ROEngines model the export borrows (catalog/roengines_models.json):
+    # several parts can share one #engineType (ROE-LR105 / ROE-LR105_2); blank =
+    # the snapshot default. `host_model_variants` = {B9PartSwitch moduleID:
+    # subtype} written as the CONFIG's LinkB9PSModule (e.g. {"model": "rm5"} for
+    # the XLR-11's RM-5 model); empty = the part's own default subtype.
+    host_model_part: str = ""
+    host_model_variants: dict = field(default_factory=dict)
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 19  # 19 (2026-09-27): turbopump_geometry_model ("envelope" | "casings")
+    SCHEMA_VERSION = 21  # 21 (2026-10-15): export identity / RP-1 round - config_description,
+                         # rp1_ecm_parents, rp1_tree_icon, host_model_part, host_model_variants;
+                         # `cost` changed MEANING (was a delta-scale number, now the absolute
+                         # RP-1 engine cost) so a pre-21 file's cost / entry_cost are reset to
+                         # 0 = re-estimate. (20 skipped: claimed by two unmerged branches.)
+                         # 19 (2026-09-27): turbopump_geometry_model ("envelope" | "casings")
                          # - no key migration; an older file takes "envelope", bit-identical.
                          # 18 (2026-09-26): tap-off accuracy round - tap_off_model,
                          # tap_off_tin_k, turbine_blade_material_key - no key migration; an older file takes the
@@ -621,6 +642,14 @@ class EngineDesign:
                  if isinstance(r, dict) and r.get("host") == "turbine_exhaust"
                  and "root_mode" not in r else r)
                 for r in payload["plumbing_runs"]]
+        # Schema < 21: `cost` was a delta-scale estimate (~20 for a 1.4 MN engine),
+        # meaningless as the new absolute RP-1 cost - re-estimate both on export.
+        _ver = data.get("schema_version", 1) if isinstance(data, dict) and "design" in data else None
+        if _ver is not None and _ver < 21:
+            payload["cost"] = 0.0
+            payload["entry_cost"] = 0.0
+        if not isinstance(payload.get("host_model_variants", {}), dict):
+            payload.pop("host_model_variants", None)
         known = {f.name for f in dataclasses.fields(cls)}
         return cls(**{k: v for k, v in payload.items() if k in known})
 

@@ -163,4 +163,18 @@ if __name__ == "__main__":
     assert EngineDesign.from_dict(json.loads(json.dumps(cas.to_dict()))) == cas
     assert EngineDesign().to_dict()["schema_version"] >= 19
 
+    # v21 export identity / RP-1: a pre-21 file's delta-scale cost / entry_cost are
+    # reset to 0 (= re-estimate at export); the new fields round-trip, incl. the
+    # host-model variant dict.
+    old_v19 = EngineDesign.from_dict({"schema_version": 19, "design": {
+        "cost": 12.0, "entry_cost": 9654.0, "tech_node": "orbitalRocketry1986"}})
+    assert old_v19.cost == 0.0 and old_v19.entry_cost == 0.0
+    assert old_v19.tech_node == "orbitalRocketry1986"
+    ident = EngineDesign(config_description="picker text", rp1_ecm_parents="H-1-200K",
+                         rp1_tree_icon=False, host_model_part="ROE-XLR11",
+                         host_model_variants={"model": "rm5"}, cost=650.0, entry_cost=18000.0)
+    back = EngineDesign.from_dict(json.loads(json.dumps(ident.to_dict())))
+    assert back == ident and back.host_model_variants == {"model": "rm5"} and back.cost == 650.0
+    assert EngineDesign().to_dict()["schema_version"] >= 21
+
     print("project_io.py self-checks: OK")

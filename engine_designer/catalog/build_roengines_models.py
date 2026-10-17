@@ -39,6 +39,8 @@ import os
 import re
 from pathlib import Path
 
+from . import mmcfg
+
 OUTPUT_PATH = Path(__file__).resolve().parent / "roengines_models.json"
 
 # node_stack_top / _bottom, tolerating: an optional leading '@', tabs or spaces
@@ -76,6 +78,79 @@ def _y_component(raw):
         return None
 
 
+# B9PartSwitch switchers that only recolor / re-texture / swap plumes - not a
+# model shape choice, so not offered as a host "variant".
+_EFFECT_SWITCH_RE = re.compile(r"color|plume|exhaust|texture|paint|stripe|fx", re.IGNORECASE)
+
+
+def _vec_y(raw):
+    return _y_component(raw) if raw else None
+
+
+def parse_variants(text, rescale, top_y, bot_y):
+    """Model-shape B9PartSwitch switchers on the file's bare PART, plus which
+    RealFuels CONFIG selectors this file's own `@PART[...]` patches link to each
+    subtype (`%LinkB9PSModule[id] { subtype = X }` inside `@CONFIG[sel]`).
+
+    Returns [{module_id, description, subtypes: [{name, transforms,
+    native_height_m, height_from_part, linked_configs}]}] - native_height_m uses
+    the subtype's moved bottom / top stack NODE when it has one, else the part's
+    own height (height_from_part = True: a transform-only variant, e.g. a longer
+    bell drawn without moving the attach node, can't be measured without the
+    mesh)."""
+    nodes = mmcfg.parse(text)
+    part = next((n for n in nodes if n.header == "PART"), None)
+    if part is None:
+        return []
+    links = {}   # (module_id, subtype) -> [config selector]
+    for top in nodes:
+        if top.type_name != "PART" or top.op != "@":
+            continue
+        for n in top.walk():
+            if n.type_name != "CONFIG":
+                continue
+            sel = n.selector or "*"
+            for lk in n.children:
+                if lk.type_name == "LinkB9PSModule" and lk.selector and lk.get("subtype"):
+                    links.setdefault((lk.selector, lk.get("subtype")), []).append(sel)
+    base_h = abs(top_y - bot_y) * rescale
+    out = []
+    for mod in part.find("MODULE"):
+        if mod.get("name") != "ModuleB9PartSwitch":
+            continue
+        mid = mod.get("moduleID") or ""
+        if not mid or _EFFECT_SWITCH_RE.search(mid):
+            continue
+        subs = []
+        for st in mod.find("SUBTYPE"):
+            nm = st.get("name")
+            if not nm:
+                continue
+            t, b = top_y, bot_y
+            moved = False
+            for nd in st.find("NODE"):
+                y = _vec_y(nd.get("position"))
+                if y is None:
+                    continue
+                if nd.get("name") == "bottom":
+                    b, moved = y, True
+                elif nd.get("name") == "top":
+                    t, moved = y, True
+            h = abs(t - b) * rescale
+            subs.append({
+                "name": nm,
+                "transforms": st.get_all("transform"),
+                "native_height_m": round(h, 4) if moved else round(base_h, 4),
+                "height_from_part": not moved,
+                "linked_configs": sorted(set(links.get((mid, nm), []))),
+            })
+        if len(subs) >= 2:
+            out.append({"module_id": mid,
+                        "description": mod.get("switcherDescription") or mid,
+                        "subtypes": subs})
+    return out
+
+
 def parse_file(path):
     text = path.read_text(errors="replace")
     block = _first_part_block(text)
@@ -103,7 +178,7 @@ def parse_file(path):
     model_m = MODEL_RE.search(block)
     dia_m = DIA_RE.search(text)
 
-    return {
+    entry = {
         "engine_type": engine_type,
         "part_name": name_m.group(1) if name_m else None,
         "model": model_m.group(1) if model_m else None,
@@ -114,6 +189,10 @@ def parse_file(path):
         "rescale_factor": rescale,
         "source_file": path.name,
     }
+    variants = parse_variants(text, rescale, top_y, bot_y)
+    if variants:
+        entry["variants"] = variants
+    return entry
 
 
 def _dedupe(entries):
@@ -130,8 +209,13 @@ def _dedupe(entries):
         pick = group[len(group) // 2]
         if len(group) > 1:
             pick = dict(pick)
-            pick["alt_source_files"] = sorted(
-                g["source_file"] for g in group if g["source_file"] != pick["source_file"])
+            alts = sorted((g for g in group if g["source_file"] != pick["source_file"]),
+                          key=lambda g: g["source_file"])
+            pick["alt_source_files"] = [g["source_file"] for g in alts]
+            # Each alt is a DIFFERENT part (own model / variants) sharing the
+            # engineType - the exporter can clone or link one by part name.
+            pick["alt_parts"] = [{k: v for k, v in g.items() if k != "engine_type"}
+                                 for g in alts]
         out.append(pick)
     return out
 
@@ -176,7 +260,26 @@ def build():
                "_commit": commit, "_count": len(entries), "models": entries}
     OUTPUT_PATH.write_text(json.dumps(payload, indent=2) + "\n")
     print(f"Wrote {len(entries)} model entries to {OUTPUT_PATH} (ROEngines @ {commit})")
+    _check_variants({e["engine_type"]: e for e in entries})
     return entries
+
+
+def _check_variants(by_type):
+    """Spot checks on the model-variant scrape (XLR-11 rm3/rm5, LR105 nozzles)."""
+    xlr = {v["module_id"]: v for v in by_type["XLR11"].get("variants", [])}
+    subs = {s["name"]: s for s in xlr["model"]["subtypes"]}
+    assert set(subs) == {"rm3", "rm5"}, subs
+    assert "XLR11-RM-3" in subs["rm3"]["linked_configs"], subs["rm3"]
+    assert "*" in subs["rm5"]["linked_configs"], subs["rm5"]
+    assert not subs["rm5"]["height_from_part"], subs["rm5"]          # rm5 moves the bottom node
+    assert subs["rm5"]["native_height_m"] != subs["rm3"]["native_height_m"]
+    lr105 = next(p for p in [by_type["LR105"]] + by_type["LR105"].get("alt_parts", [])
+                 if p["source_file"] == "LR105_BDB2.cfg")
+    noz = {v["module_id"]: v for v in lr105.get("variants", [])}
+    assert [s["name"] for s in noz["nozzle"]["subtypes"]] == ["XNA3", "NA3", "NA6"], noz
+    n_var = sum(1 for e in by_type.values() for p in [e] + e.get("alt_parts", [])
+                if p.get("variants"))
+    print(f"  {n_var} host models carry selectable model variants")
 
 
 def _git_commit(src):
@@ -203,6 +306,7 @@ def _report_existing():
     for e in models:
         assert e.get("engine_type"), e
         assert isinstance(e.get("native_height_m"), (int, float)) and e["native_height_m"] > 0, e
+    _check_variants({e["engine_type"]: e for e in models})
     heights = sorted(e["native_height_m"] for e in models)
     print(f"  native_height_m range {heights[0]:.2f} - {heights[-1]:.2f} m, "
           f"median {heights[len(heights) // 2]:.2f} m")
