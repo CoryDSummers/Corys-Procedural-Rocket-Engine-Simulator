@@ -569,6 +569,30 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
 - **Throat-flux anchors for LOX/RP-1 and LOX/CH4** (both run raw Bartz; RP-1 with the
   cited deposit factor). SECA-FR-93-18 Fig. 37 shows a Rocketdyne 3.4-in LOX/RP-1 motor at
   ~98-111 MW/m2 measured throat flux but gives no chamber pressure - find it.
+- **MR dependence of LOX/RP-1 throat h_g (added 2026-10-17)**. Cory noticed that wall
+  temperature barely moves with MR. `validate.run_mr_heat_flux_trend_probe` (reported, not
+  gated) compares the model with `[TP2862-LOXRP1 Fig.8/Fig.10]` at 4.32 MPa, 6.59 cm throat:
+  - Measured throat Q/A goes ×1.28 from O/F 2.4 to 3.0 (33 → 42 MW/m²). Soot-coated h_g goes
+    ×1.24.
+  - The model goes ×0.97 for q and ×0.95 for h_g, at 0.66–0.50 of the measured magnitude.
+  - Zoned-injector data (Fig. 11c, 8.3/13.8 MPa) rise 40–80 % over O/F 1.8–3.0, the same
+    direction.
+  - Not the soot: Fig. 10's deposit knockdown is flat in O/F (coated/free 0.61–0.58), so the
+    constant `GAS_SIDE_DEPOSIT_FACTOR` is fine.
+  - **Leading hypothesis: frozen cp in Bartz.** The model uses frozen cp, which falls 5 %
+    (2065 → 1961 J/kg·K) from O/F 2.4 to 3.0. The baked table's `cp_equilibrium_j_kgk` rises
+    27 % (5983 → 7616). With h_g ∝ cp_eq and the small c* drop that predicts about +30 %,
+    matching the data. The full equilibrium cp would overshoot the magnitude about 3×.
+  - The classical fix is the enthalpy-driven Bartz form, q = h_g/cp·(h_aw − h_w). It needs
+    a mixture enthalpy at wall temperature: a table regeneration (h vs T at fixed elemental
+    composition, recombining) plus a re-fit of `BARTZ_ABS_FLUX_CALIBRATION` (LOX/LH2 SSME
+    anchor) and the deposit-factor F-1 cross-check.
+  - Wanted: a cited statement of which cp Bartz-type correlations should use in a
+    recombining boundary layer (Bartz 1957/1965 originals, Huzel §4.2, Sutton §8.1,
+    Rousar/Elam). Also an MR trend for a second pair (LOX/CH4 or LOX/LH2 throat flux vs MR)
+    to show it isn't kerolox-specific.
+  - The fix itself is its own plan-mode round: physics change, SPOT_CHECKS, corpus
+    `--report --diff`, then `--snapshot`.
 - **Real-engine cooling data for the corpus** (`engine_designer/validation_engines/`):
   cited throat heat flux, coolant ΔT, jacket dP, liner thickness for RL10A-3-3, Vulcain,
   RD-180, Merlin-1D, Raptor-2, Rutherford, Aestus (only F-1 / J-2 / SSME have any today).

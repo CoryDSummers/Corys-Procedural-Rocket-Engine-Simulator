@@ -130,6 +130,56 @@ def run_coupled_wall_temperature_check():
     print("=" * 78)
     return all_ok
 
+
+# [TP2862-LOXRP1] uniform-mixture-ratio calorimeter, Pc 4.32 MPa, 6.59 cm throat.
+# Best-fit lines read off the figures (2026-10-17 re-read of the PDF):
+# Fig. 8 measured throat Q/A 3.32 -> 4.24 kW/cm2 (33 -> 42 MW/m2) at O/F 2.4 -> 3.0;
+# Fig. 10 soot-coated throat h_g 1.18 -> 1.46 W/cm2K over the same O/F step
+# (soot-free 1.92 -> 2.51 - the ~40% deposit knockdown is flat in O/F).
+TP2862_PC_PA = 4.32e6
+TP2862_THROAT_DIA_M = 0.0659
+TP2862_MR_LO, TP2862_MR_HI = 2.4, 3.0
+TP2862_Q_THROAT_W_M2 = (33.2e6, 42.4e6)
+TP2862_HG_COATED_W_M2K = (11.8e3, 14.6e3)
+
+
+def run_mr_heat_flux_trend_probe():
+    """
+    REPORTED ONLY (not gated, prints no ALL banner, always returns True):
+    the model's throat heat-flux response to mixture ratio vs. the measured
+    LOX/RP-1 calorimeter trend in [TP2862-LOXRP1] Figs. 8/10. The measured flux
+    rises ~28% from O/F 2.4 to 3.0; the model (frozen-property Bartz on the
+    equilibrium tables, constant GAS_SIDE_DEPOSIT_FACTOR) is roughly flat there,
+    because the frozen cp drop cancels the small Tc rise past the Tc peak.
+    Open item - claude_lit/OPEN_QUESTIONS.md "MR dependence of LOX/RP-1 throat h_g".
+    """
+    print()
+    print("=" * 78)
+    print("MR HEAT-FLUX TREND PROBE (reported, not gated) vs [TP2862-LOXRP1] Figs. 8/10")
+    print("=" * 78)
+    # 23.2 kN vac lands the auto-sized throat on the calorimeter's 6.59 cm
+    rows = {}
+    for mr in (TP2862_MR_LO, TP2862_MR_HI):
+        r = EngineDesign(propellant_pair="LOX/RP-1", mixture_ratio=mr,
+                         chamber_pressure_pa=TP2862_PC_PA, expansion_ratio=4.0,
+                         target_vac_thrust_n=23.2e3, material_key="narloy_z",
+                         injector_type="impinging", regen_channel_model="channels").compute()
+        rows[mr] = r["cooling"]
+    q_lo, q_hi = (rows[m]["q_throat_w_m2"] for m in (TP2862_MR_LO, TP2862_MR_HI))
+    h_lo, h_hi = (rows[m]["hg_throat_w_m2k"] for m in (TP2862_MR_LO, TP2862_MR_HI))
+    mq_lo, mq_hi = TP2862_Q_THROAT_W_M2
+    mh_lo, mh_hi = TP2862_HG_COATED_W_M2K
+    print(f"  throat q   O/F {TP2862_MR_LO}->{TP2862_MR_HI}: model {q_lo/1e6:5.1f} -> {q_hi/1e6:5.1f} "
+          f"MW/m2 (x{q_hi/q_lo:.2f})   measured {mq_lo/1e6:.1f} -> {mq_hi/1e6:.1f} (x{mq_hi/mq_lo:.2f})")
+    print(f"  throat h_g O/F {TP2862_MR_LO}->{TP2862_MR_HI}: model {h_lo/1e3:5.1f} -> {h_hi/1e3:5.1f} "
+          f"kW/m2K (x{h_hi/h_lo:.2f})   soot-coated {mh_lo/1e3:.1f} -> {mh_hi/1e3:.1f} "
+          f"(x{mh_hi/mh_lo:.2f})")
+    print(f"  model/measured throat q: {q_lo/mq_lo:.2f} at O/F {TP2862_MR_LO}, "
+          f"{q_hi/mq_hi:.2f} at O/F {TP2862_MR_HI}")
+    print("  -> informational: the model's wall heat load is nearly MR-insensitive past the Tc peak")
+    print("=" * 78)
+    return True
+
 def run_film_overlay_check():
     """
     Film cooling as an OVERLAY on every section method, at two independent

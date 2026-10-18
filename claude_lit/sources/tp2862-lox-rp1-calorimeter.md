@@ -33,10 +33,15 @@ Pc≈8.3 MPa (1200 psia) and Pc≈13.5–14.1 MPa (1962–2051 psia, injector 4)
 LOX/RP-1 (ambient-temperature kerosene).
 
 **Absolute measured throat heat flux, UMR case** `[TP2862-LOXRP1 Fig.8, p.10]`: at nominal Pc
-= 4.3 MPa abs (627 psia), measured throat Q/A rises from ~4 to ~11×10³ Btu/(in²·s) (roughly
-6.5–18 MW/m²) over O/F = 2.4–3.0 — this is the primary usable *magnitude* anchor point, a
-real measured LOX/RP-1 throat heat flux at a Pc directly relevant to `engine_designer`'s
-target range. At the higher-Pc test (8.87 MPa abs = 1287 psia, O/F=3.32) the measured value
+= 4.32 MPa abs (627 psia), the measured throat Q/A best-fit line runs 2.4 → 4.5 kW/cm² over
+O/F 1.8 → 3.15, i.e. **3.32 → 4.24 kW/cm² (33 → 42 MW/m², ×1.28) over O/F 2.4 → 3.0**
+(data points 3.1–4.6 kW/cm²). The 8.37 MPa line runs 5.9 → 8.0 kW/cm² over O/F 2.25 → 3.32,
+and the 13.65 MPa line runs 7.8 → 11.4 kW/cm² over O/F 1.9 → 2.8. *(Corrected 2026-10-17 from
+a re-read of the rendered figure. The earlier "~4 to ~11×10³ Btu/(in²·s), 6.5–18 MW/m²" was a
+misreading of the axes; nothing in `engine_designer` had used it.)* This is the primary usable
+*magnitude* anchor point, a real measured LOX/RP-1 throat heat flux at a Pc directly relevant
+to `engine_designer`'s target range, and the only measured **O/F trend** in the set.
+`validate.run_mr_heat_flux_trend_probe` reports the model against it. At the higher-Pc test (8.87 MPa abs = 1287 psia, O/F=3.32) the measured value
 was scaled to a *projected* 6.4 kW/cm² (39.6 Btu/in²·sec) at 8.87 MPa via a `Q/A ∝ Pc^0.8`
 scaling relation taken from ref. 7 (Cook, NASA CR-159790) — flag this 6.4 kW/cm² figure as
 a *derived/scaled* number, not a raw calorimeter reading, though the scaling exponent itself
@@ -78,14 +83,19 @@ material-limit discussion (`[TP2862-LOXRP1 Fig.10 p.12, Fig.12 p.13, Summary ite
 p.15]`):
 - UMR injector, Pc = 4.32 MPa abs (627 psia): soot-coated throat h_g is **~40% lower** than
   the soot-free (clean-wall) calculated h_g, across O/F = 2.0–3.2.
+  Fig. 10 best-fit lines (re-read 2026-10-17): soot-free 1.53 → 2.70 W/cm²·K and
+  soot-coated 0.99 → 1.56 W/cm²·K over O/F 2.0 → 3.2. Their ratio stays 0.61–0.58, so the
+  **knockdown is flat in O/F**, but **h_g itself rises ~25–30 % from O/F 2.4 to 3.0**
+  (coated 1.18 → 1.46). Data scatter is large: soot-free points at O/F 3.0 span 2.1–2.9.
 - Zoned/fuel-rich-outer-zone injector, Pc = 13.8 MPa abs (2000 psia): soot-coated throat h_g
   is **~60% lower** than soot-free, an even larger knockdown at the higher pressure/fuel-film
   condition.
 - Soot forms as a real physical carbon layer on the calorimeter wall whose thickness the
   paper describes as varying with axial location; deposit thermal resistance R_d is modeled
-  with an empirical fit (their eq. 10, from ref. 7/Cook CR-159790): R_d = e^(1.17 − 0.726·G)
-  [cm²·s·K/kcal] where G is propellant mass velocity (or R_d = e^(0.90 − 0.051·G) in
-  in²·s·°R/Btu units) — a usable closed-form deposit-resistance correlation if `cooling.py`
+  with an empirical fit (their eq. 10, from ref. 7/Cook CR-159790): R_d = e^(11.7 − 7.26·G)
+  [cm²·s·K/kcal] where G is propellant mass velocity (or R_d = e^(9.0 − 0.51·G) in
+  in²·s·°R/Btu units; exponents corrected 2026-10-17 against the PDF p.10 - the earlier
+  transcription had dropped a decimal place) — a usable closed-form deposit-resistance correlation if `cooling.py`
   ever wants to model coking-layer thermal resistance explicitly, though it is a 1970s-era
   empirical fit from a single referenced source (ref. 7), not independently re-derived here.
 - Framing: the authors explicitly conclude (Concluding Remarks, p.15) that **both zoned

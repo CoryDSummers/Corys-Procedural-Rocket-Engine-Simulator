@@ -31,7 +31,7 @@ informational only, not gated on tolerance.
 #   cooling_flux         Cooling: wall heat flux / Bartz magnitude vs F-1 / SSME / RL10 (COOLIN
 #   cooling_methods      Cooling: explicit per-section cooling methods (incl. dump) and the mat
 #   cooling_layouts      Cooling: jacket flow layouts - F-1 manifold bypass and the J-2 two-pas
-#   cooling_wall_film    Cooling: coupled throat wall temperature and the two-site film overlay
+#   cooling_wall_film    Cooling: coupled throat wall temperature and the two-site film overlay (+ the reported MR heat-flux trend probe)
 #   turbine_exhaust_checks  Turbine-exhaust handling: back pressure, exhaust Isp, aspirator, gas film
 #   turbomachinery       Turbopump efficiency / sizing / bearing DN, GG bleed, per-cycle models
 #   injectors_stability  Injector element geometry (incl. gas-centered swirl) and combustion ac
@@ -98,6 +98,7 @@ from .cooling_wall_film import (  # noqa: F401
     run_coupled_wall_temperature_check,
     run_film_overlay_check,
     run_zirconia_liner_check,
+    run_mr_heat_flux_trend_probe,
 )
 from .turbine_exhaust_checks import run_turbine_exhaust_check  # noqa: F401
 from .feed_calibration import run_feed_pump_calibration_check  # noqa: F401
@@ -130,6 +131,7 @@ ALL_CHECKS = (
     run_feed_system_plausibility_check,
     run_hatband_plausibility_check,
     run_coupled_wall_temperature_check,
+    run_mr_heat_flux_trend_probe,
     run_cooling_compatibility_check,
     run_cooling_robustness_sweep,
     run_film_overlay_check,
