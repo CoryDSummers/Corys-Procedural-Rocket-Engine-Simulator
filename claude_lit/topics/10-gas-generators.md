@@ -125,7 +125,46 @@ injector face, where both propellants arrive simultaneously.
 - The potential-core mixing theory is qualitative; `[SP-8081]` explicitly says it has never
   been used to design a production GG.
 
+**Real LOX/LH2 fuel-rich preburner, hot-fire data** `[CR135356-Preburner]`. This is Rocketdyne's
+20 klbf "Advanced Space Engine" staged-combustion preburner (1978); there is no ox-rich or
+hydrocarbon data.
+- **Design point:** 1053 K at O/F 0.82, 23.3 MPa, fuel inlet 239 K `[Table 2 p.7]`.
+- **Gas temperature vs O/F**, theoretical with ~ambient GH2 (digitized ±10 K) `[Fig. 111 p.165]`:
+  531 / 719 / 904 / 1093 / 1280 K at O/F 0.2 / 0.4 / 0.6 / 0.8 / 1.0. That is ≈935 K per unit
+  O/F, near-linear.
+  - Tests with good-quality LOX ran ≈15 K (1-2 %) under theory.
+  - Mixed-phase LOX ran 100-160 K low `[p.166]`.
+- **Measured preburner c\*:** 2006-2262 m/s `[Table 27 p.156]`. No theoretical c\* is given, so no
+  η_c\*.
+- **Hot-streak control** `[p.14, p.106; Fig. 11 p.24]`:
+  - fuel feed slots narrower than the metering annulus;
+  - spacer wires to keep each LOX post concentric;
+  - "low element fuel flow means hot streaks";
+  - design mixing uniformity E_m ≈95 %.
+- **Turbine-duct temperature spread** `[Fig. 101 p.157; Tables 36-37 p.196-197]`:
+  - the H2-turbine duct ran 145-245 K hotter than the O2-turbine duct in preburner-only tests,
+    and still 60-90 K hotter later;
+  - near-wall probes read cold, because the liner coolant is unmixed.
+  - Real turbine-inlet non-uniformity of ≈±10 % is something the tool does not model.
+- **Life and stability targets** `[p.7, p.34, Table 9 p.36, p.46, p.154]`:
+  - 60 cycles / 2 h service-free; 300 cycles / 10 h between overhauls.
+  - Safety factors: 1.1 on yield, 1.4 on ultimate, 4.0 on life; creep ≤1 %; damage summed as
+    4φ_f + φ_c.
+  - Preburner oscillations stayed under 4 % of Pc.
+
+**J-2 GG / fuel-turbine inlet redline** `[J2-Man Fig. 2-20 sh.3 p.2-62]`: 2,000 ± 50 °F
+(1,366 K) allowed for 0.5-3.5 s during start, then 1,450 ± 50 °F (1,061 K) mainstage. It is a
+real LOX/LH2 cutoff to spot-check GG Tin against.
+
 ## Implications for engine_designer
+
+- **LOX/LH2 preburner Tin(MR) now has a cited curve** `[CR135356-Preburner Fig. 111]`:
+  - `PREBURNER_GAS_PROPERTIES` LOX/LH2 `tin_k` 1113 K sits at MR ≈0.83-0.85 on it, so it is
+    consistent.
+  - The ≈935 K-per-unit-O/F slope could let a preburner MR drive Tin, instead of a fixed Tin.
+  - cp 8500 / γ 1.37 stay uncited. The agent's ideal-mixing estimate at MR 0.82 (≈8.75 kJ/kg·K,
+    γ ≈1.35) is derived, not sourced.
+  - Ox-rich and hydrocarbon preburner gas (ASSUMPTIONS.md ~174-175) are still unanchored.
 
 - **`design.py` GG_TIN_K = 1050**: exactly RD-0110 `[KBKhA Table 2]`, and in the middle of
   the `[SP-8081 Table I]` fleet band (811–1178 K, most 922–1033 K) and the `[SP-8107 Table

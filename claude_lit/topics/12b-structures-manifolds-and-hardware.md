@@ -266,6 +266,25 @@ data exists for any Cu-D variant (contrast `[Miller-CuFatigue]`'s real OFHC-copp
 already cited in `topics/12`). Treat any Cu-D property number as a coupon-level research
 result, one tier below even GRCop-84's own citations, which back a flying/tested alloy.
 
+**J-2S tap-off port hardware** `[Vilja-J2S p.1, Fig. 3]`:
+- The hot-gas tap ports are a single circumferential row, hand-brazed into a ring manifold on
+  the chamber. About 20 are visible on the half-ring drawn.
+- Production was to cast that ring.
+- The uprate study moves the thrust-chamber forward manifolds to Inconel 718 `[p.4]`.
+- 1993 restart design `[J2S-Restart leaves 41-47, 108, 128]`:
+  - The tap port is NARloy-Z-lined and coolant-cooled (replacing eroding 321 CRES), with
+    JBK-75 (cast A-286) structure.
+  - A cast turnaround takes one down-pass tube to two up-pass tubes. That corroborates
+    `[AEDC-J2S]`'s 180 down / 360 up.
+  - The full-length jacket eliminates hatbands.
+  - Hot-gas valve: René 41 butterfly and shaft, Haynes 25 bearings, Inconel 625 housing. The
+    hot-gas check valve's springs lost load at gas temperature.
+- This is the only port-level geometry in claude_lit for a chamber tap-off (cf. `physics/tap_off.py`).
+
+**GOX vent hardware hazard** `[X34-MPS p.4]`: sonic GOX through aluminum vent/orifice hardware
+is a particle-impact ignition and aluminum-fire risk. The X-34 rejected orifice pressurization
+for that reason, which is a real materials rule for any GOX-wetted plumbing.
+
 ## Caveats
 
 - `[SP-8120]` is a **criteria/practices monograph, not a sizing-equation source** — it gives

@@ -333,6 +333,16 @@ near-injection effectiveness. Relevant context (not a portable number) for the s
 heat-transfer.md`) shows LH2 coolant going from ~57–85 °R inlet to 1575–1900 °R outlet with a
 refractory-metal wall — a ΔT of ~800–1000 K is achievable for hydrogen.
 
+**Storable (hydrazine-family) coolant limits are pressure- and stability-bound, not a flat ΔT**
+`[USAF-Hydrazine §5.3.6.1 leaf 505, §4.2.3.1 leaf 433, §6.2.3 leaves 513-515]`:
+- Hydrazine regen cooling was historically "generally unsuccessful", with explosions in the
+  passages. Bell detonated 394 K hydrazine by wire burnout; MHF-1 detonated at ~533 K.
+- The handbook's safe limit for N2H4 is ~450 K; UDMH decomposes on its own at 666 K.
+- Saturation sets a second ceiling: UDMH boils at ≈420 K at 1 MPa and MMH at ≈448 K (derived
+  from its fits).
+- The flat N2O4/MMH ~150 K above is therefore only safe at sufficient jacket pressure. Details
+  and property fits are in `topics/11-propellants.md`.
+
 **A second real hydrocarbon/hypergolic film-cooling Isp-tax data point**
 `[OME-Platelet §III.C.2.c, leaf 12]`: fuel film cooling at **~8% of fuel flow costs ~1 sec
 Isp** on a like-doublet hypergolic OME injector, alongside `[TP2862-LOXRP1]`'s LOX/RP-1
@@ -394,7 +404,8 @@ covers a zoned material system in practice, not a single compound.
   not a single fixed compound, so batch-to-batch variability (2-4% on thermal conductivity
   alone, `[Akhmedova-RP1]`) is real and irreducible.
 - `[Quentmeyer-CR185257]`'s TBC/tungsten-reinforced/high-aspect-ratio comparisons (cited in
-  `topics/12-materials-and-structures.md`) are single-test-article results, not a statistical
+  `topics/12-materials-and-structures.md`; the TBC data, incl. the primary 1978 coated-liner
+  firings `[Quentmeyer-78-1034]`, is in `12c-thermal-barrier-coatings.md`) are single-test-article results, not a statistical
   dataset; its sulfur-corrosion finding above is a clean, standalone rig result.
 - `[Armstrong-MarsISRU]` is 98 pages on Mars-ISRU (CO/O2) propellant cooling — its propellant
   chemistry and huge Mars-vacuum-optimized nozzle contours (area ratio 200-2000) have zero

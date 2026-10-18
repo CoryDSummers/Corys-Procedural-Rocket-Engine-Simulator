@@ -63,6 +63,25 @@ performance reserve. Each is a small percentage; together they can be several pe
 load. (The tool doesn't model propellant/tank mass — RealFuels does — but this is why
 `Isp` alone doesn't set stage performance.)
 
+**Basic vs with-accessories engine mass** `[J2S-Restart leaf 8]`: the J-2S is 3,235 lb
+(1,467.4 kg) basic dry and 3,800 lb (1,724 kg) with accessories, a +17 % accessory allowance.
+The 1968 spec adds a 250 lb restart kit (4,050 lb). Installed on the S-IVB the J-2S is 3,960 lb
+with 2 turbine starters and 4,021 lb with 3, against 3,515 lb for the J-2
+`[J2S-Boeing69 Table 4.0-I/II p.4-4; p.10-547]`.
+RO's J-2S uses the basic figure. Its engine pneumatic helium tank is 700 in³ (11.5 L)
+`[leaf 162]`. For comparison, one J-2 acceptance-form example gives a dry weight of 3,420 lb
+(1,551 kg) against a 3,480 lb spec `[J2-Man Fig. 3-76]`. That is an illustrative form entry,
+not a fleet average.
+
+**Pressurant budget, one real small stage** `[X34-MPS p.5, p.9]`. The X-34 used unheated
+helium from ambient-temperature bottles, with no heat exchanger.
+- About 22 kg of helium was used for about 13.3 t of LOX/RP-1, ≈0.17 % of propellant mass
+  (derived).
+- 36 % of the 34.5 kg loaded was left unused.
+- The bottles cooled to ≈133 K by burnout, because the gas expands without heating. That cooling
+  is why heated pressurant (F-1/J-2 turbine-exhaust heat exchangers) saves bottle mass on larger
+  stages.
+
 **Component tolerance stack-up** `[SP-8107 §2.3.1.2]`: effects of component manufacturing
 tolerances on required turbopump operating range are combined **root-sum-square** (√Σ of
 squares), not worst-case algebraic sum, assuming Gaussian distributions.

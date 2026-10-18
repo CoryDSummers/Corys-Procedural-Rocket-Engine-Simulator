@@ -70,6 +70,14 @@ the simple `Ae·(Pe−Pa)` penalty no longer applies (shock structure, side load
 
 **Nozzle area ratios** in service: up to ~285 (RL10B-2), ~400 developed `[Sutton §8.2]`.
 Very large ε buys little Is and costs length/mass; extendible nozzle cones mitigate this.
+- **J-2S Isp vs ε at MR 5.5** `[Vilja-J2S Table 2]`: 436.0 / 448.3 / 452.8 s at ε 40 / 80 / 105.
+  Only the ε-40 point is test-backed; the others are predictions. This is a real diminishing-
+  returns curve for one hydrolox engine: +12.3 s for 40→80, then +4.5 s for 80→105.
+- **J-2S Isp vs MR, 1968 spec** `[J2S-Boeing69 Fig. 4.0-3 p.4-8; Fig. 5.1-2 p.5-4; Fig. 4.0-1]`:
+  - 431 s nominal at MR 5.5, 434.5 s at MR 5.0, ≈437 s at MR 4.5 (≈−6 s per unit MR); 427 s is
+    the guaranteed minimum.
+  - Thrust falls ≈21 % from MR 5.5 to 4.5 at a fixed calibration.
+  - The spec's 431 s vs `[Vilja-J2S]`'s 436 s at MR 5.5 is unreconciled. RO uses 436.
 
 ## Worked numbers
 

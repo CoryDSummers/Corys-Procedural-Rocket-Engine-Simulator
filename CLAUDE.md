@@ -545,7 +545,7 @@ generated `TR341_Config.cfg`); uniform model scale = design length / host native
 is the distilled, cited reference actually consulted when trusting or adding physics in
 `engine_designer/`. **Read `claude_lit/README.md` first** — it has the citation-key table
 (one row per source, tagged `[Huzel]`/`[Sutton]`/`[Bazarov]`/etc.), the topic-file index
-(19 files under `claude_lit/topics/`, one per physics domain — injectors, cooling, engine
+(22 files under `claude_lit/topics/`, one per physics domain — injectors, cooling, engine
 cycles, turbopumps, materials, combustion stability, ...) and the lookup-budget rules
 (section-targeted reads, 40 KB topic-file cap). `claude_lit/PROVENANCE.md` records when each
 source was extracted and by what method (moved out of the README index 2026-09-22). `claude_lit/sources/*.md` has

@@ -71,6 +71,8 @@ into that and makes no claims about it.
   Already in hand: `[STBE]` has one itemized LOX/RP-1 stack (ideal 345.4 → delivered 322.1 s via
   ERE/KIN/TDK/BLM), `[Sutton §3.5]` typical loss magnitudes. Also a cheap cross-check still to
   do: `[Schmucker-CycleCalc eq.31]`'s LOX/LH2 c* fit against the new table c*.
+  (2026-10-18 batch: `[Vilja-J2S]` Isp vs ε and `[J2S-Boeing69]` Isp vs MR for the J-2S, but no
+  loss breakdown; `[RL10-ROCETS]` has no c* or throat area. Item 5 is still open.)
 
 - **Oxidiser-rich preburner temperature at high Pc (RD-170/180, Raptor ox side) — OPEN
   (2026-09-23).** `staged_combustion.py` now SOLVES the turbine PR from a preburner
@@ -82,6 +84,8 @@ into that and makes no claims about it.
   pressure (plus ideally turbine PR), to replace the 800 K estimate and check the solved
   preburner/Pc (~2.16 at 800 K). Also useful: NK-33 pump/turbine efficiencies, since the
   tool comes out 18 % low on NK-33 preburner/Pc (1.81 vs 2.21).
+  (2026-10-18: `[CR135356-Preburner]` is LOX/LH2 **fuel-rich** only. It does not answer this.
+  It gave the fuel-rich LOX/LH2 Tin-vs-MR curve instead; see topic 10.)
 
 - **Russian "sandwich" wall construction — PARTIALLY RESOLVED (2026-09-24), narrowed to a
   dimensioned-design-criteria gap.** A six-source dedicated search (`[SP-8087]`,
@@ -176,15 +180,27 @@ into that and makes no claims about it.
   conservative real velocity criterion (60 fps liquid/Mach 0.25 gas, `§3.2.5.1`) that
   actively conflicts with `[SP-8087]`'s 200 ft/s/Mach 0.3-0.5 — still no velocity-head/dP
   ratio number from either source, and now two unreconciled absolute-velocity numbers instead
-  of one; (b) the **taper blend** (0.5) and far-side floor (0.15) — a real torus
+  of one. **2026-10-18, J-2 fuel side:** forward fuel manifold 790-925 psia at zero flow vs Pc
+  ≈787 psia `[J2-Man Fig. 2-15A]`, i.e. injector ΔP ≲18 % of Pc. The ox side is still open; (b) the **taper blend** (0.5) and far-side floor (0.15) — a real torus
   drawing with inlet and far-side bores (J-2/F-1 thrust-chamber manifold drawings,
   heroicrelics.org detail pages); (c) the **J-2's real fuel-inlet-manifold area ratio**
-  (`jacket_inlet_eps` default 8) and its **manifold bore** — the J-2 engine manual / R-3825
+  (`jacket_inlet_eps` default 8) and its **manifold bore** — **2026-10-18: `[J2-Man]` (R-3825-1B,
+  the operating-instructions volume) does NOT have them**. It names the fuel inlet and forward fuel
+  manifolds only. Wanted now: **R-3825-1, the J-2 Data Manual** (hardware description). It
   would have both; would also give a real J-2 jacket dP for `validate.run_two_pass_cooling_
   check`'s currently-wide [0.2, 5] MPa band; (d) **LH2 speed of sound at jacket conditions** —
   needed to apply SP-8087's gas criterion (Mach 0.3 recommended / 0.5 max) to LH2 manifolds
   instead of skipping the check; any NIST-style parahydrogen property table.
-- **Warm-GH2 density in regen hydrolox injector-feed rings** — the fuel reaching a regen
+- **Warm-GH2 density in regen hydrolox injector-feed rings — DATA NOW IN HAND (2026-10-18),
+  model change still open.**
+  - Real jacket-outlet/injector-feed H2 states:
+    - J-2: 67-127 K at 5.4-6.4 MPa, forward fuel manifold `[J2-Man Fig. 2-15]`;
+    - RL10A-3-3A: 205-244 K at 5.5-5.9 MPa jacket exit, fuel injector manifold 3.68-3.75 MPa
+      `[RL10-ROCETS]`;
+    - TN D-4733 rig: 61-197 K at screech boundaries `[TN-D4733]`.
+  - Still needed: a real-gas H2 density model in `manifold.py`; the CoolProp para-H2 tables in
+    `thermo_tables` could serve.
+  - The original item follows. The fuel reaching a regen
   hydrolox engine's injector manifold is warm hydrogen GAS after the jacket, but `manifold.py`
   sizes every fuel ring at liquid LH2 density (71 kg/m^3), so that ring's bore/velocity is off
   in an unknown-magnitude direction (same mdot at much lower density -> bigger bore at a fixed
@@ -214,6 +230,11 @@ into that and makes no claims about it.
     coefficient from geometry. Wanted: a J-2 turbine-exit pressure (a second anchor), shingle
     slot heights / eyelet counts, and `[SP-8120]` §2.2.5.1 manifold-hydraulics loss numbers
     applied to a hot gas. Until then the constant is Tier 2 INTERIM (ASSUMPTIONS).
+    **2026-10-18:** still no J-2 turbine-exit pressure.
+    - The J-2 ox-turbine exhaust transducer range is 0-100 psia `[J2-Man]`.
+    - `[SP-8110 Table I]`'s J-2S ox turbine (100 psia inlet, PR 2.68) implies ≈37 psia exit
+      (derived).
+    - `[J2S-Boeing69]` gives the J-2S LOX-turbopump exhaust-hood gas at cutoff ≈661 K.
   - **Exhaust scroll manifold shape (2026-09-25).** The injection manifold is now a tangentially-
     fed scroll (F-1 thrust-chamber photo + manifold cutaway, enginehistory.org RPE 8.12; J-2
     photo, Science Museum 1977-0402; `[F1-Man §1-18]`), full-flow inlet (F-1 24.3 in vs the real
@@ -221,7 +242,8 @@ into that and makes no claims about it.
     Tier 3; an F-1 / J-2 manifold drawing with sections would pin it); (2) the neck / flame-shield
     proportions from a dimensioned drawing (today read off the cutaway, Tier 3); (3) a real
     manifold-assembly weight (F-1: ring 110 kg + neck/shield 103 kg in the model); (4) the J-2's
-    exhaust duct bore and manifold inlet size (the model gives 10.6 in); (5) the inlet splitter
+    exhaust duct bore and manifold inlet size (the model gives 10.6 in; not in `[J2-Man]`,
+    `[J2S-Boeing69]` or `[J2S-Restart]` - try the R-3825-1 Data Manual); (5) the inlet splitter
     plates and exit flow vanes `[F1-Man §1-18]` are not modelled - they belong with the
     per-engine injection back-pressure item above.
   - **Liquid films still use the Tier-3 decay law (2026-09-25).** The turbine-exhaust GAS film
@@ -252,6 +274,11 @@ into that and makes no claims about it.
       LH2 jacket.
     - Wanted: the F-1 / H-1 jacket tube geometry (tube count, passes, hydraulic diameter) to
       separate a friction-model error from a geometry-default error.
+    - 2026-10-18: the J-2 / J-2S fuel pump discharge is still not found.
+      - LOX discharge is bounded at ≳1,175 psia (J-2, from the heat-exchanger outlet
+        `[J2-Man]`) and ≳1,700 psia (J-2S spec, ≈1.42 × Pc, inferred `[J2S-Boeing69]`).
+      - The J-2S fuel injector manifold is ≳1.08 × Pc (inferred, GH2 tap at up to 1,300 psia).
+      - RL10A-3-3A measured: fuel discharge 2.25-2.40 × Pc, LOX 1.30-1.40 × Pc `[RL10-ROCETS]`.
   - **H-1 turbine efficiency: 62.5 % vs 70.2 % (2026-09-26).**
     - `[SP-8110 Table I]` (explicitly total-to-static) gives 62.5 % for the H-1 Mark 3
       turbine. `[SP-8107 Table III]` gives 70.2 % and `[H1-Man Fig 1-47]` 69.6 %.
@@ -259,15 +286,26 @@ into that and makes no claims about it.
     - `turbopump_efficiency._TURBINE_ANCHORS` keeps 70.2 %. The tool's turbine power uses a
       total-inlet / static-exit PR, so T-S is the consistent basis.
     - Resolving it would move the pressure-compounded ceiling (0.76) down to ~0.65–0.70.
+    - **2026-10-18, narrowed** `[SP-290 Ch.3 eq. 3-13/3-14, Fig. 3-7]`:
+      - T-S and T-T differ only by the leaving loss.
+      - Idealized 2-stage curves at the H-1's loading give η_TT/η_TS ≈1.10-1.11, vs the
+        H-1's 1.12. So a T-S vs T-T split is consistent.
+      - It needs a leaving loss ≈11 % of isentropic work (V_ex ≈0.9 U), which is high for
+        pressure-compounding, so a different rating point is not excluded. See `topics/09b`.
   - **Geared arrangement not derived for big RP-1 engines (2026-09-26).**
     `turbopump_sizing.derive_arrangement` gears only below ~10,000 lbf (RP-1). The real H-1
     (205,000 lbf) and Atlas turbopumps were geared `[SP-8101 p.3; SP-8110 Table I]`, which is
     what let their turbines reach U/C0 ~0.4. A derived rule wants more data points, e.g. the
     LR87 and RS-27.
-  - **Seal purge flow rates (2026-09-26).** `[SP-8121]` gives inter-propellant seal layouts
-    and says to use a GN2 or helium purge, but no purge mass flows anywhere in the sections
-    read. Needed before the tool can cost a helium purge (Round 4 seals).
-  - **Storable-propellant vapor pressure (2026-09-26).** The new
+  - **Seal purge flow rates — RESOLVED 2026-10-18 (two real anchors).** These are J-2
+    LOX-turbopump intermediate-seal helium, 2,600-7,000 SCIM ≈0.12-0.32 g/s at ≥600 psia
+    `[J2-Man]`, and the X-34 Fastrac IPS helium ≈2 g/s / 6.8 kg per mission at 730 psia
+    `[X34-MPS]`. Data is in `topics/09`. There is still no seal geometry to scale from.
+  - **Storable-propellant vapor pressure — RESOLVED for the fuels 2026-10-18.**
+    `[USAF-Hydrazine]` gives NBP-to-critical fits for N2H4 / MMH / UDMH / A-50, all confirmed
+    on the page images. **Still open: N2O4 / MON** (the same handbook series' Vol. II, not
+    held) **and H2O2**. Baking them into `saturation_properties.json` is a code task. Original
+    item: the new
     `saturation_properties.json` covers only the CoolProp fluids (LOX, para-LH2, CH4, and
     RP-1 via n-dodecane). N2O4 (≈ 1 atm at room temperature, the one that matters for NPSH),
     MMH, UDMH, N2H4 and H2O2 need a cited vapor-pressure curve before Round 1's NPSH model
@@ -298,11 +336,17 @@ into that and makes no claims about it.
       at 3,000 gpm; `[SP-8107 Table II]` gives 8,530 gpm (Ss at NPSH_crit ~98,000). Kept only
       on the legacy path for bit-identity.
   - **Tap-off follow-ups (2026-09-26, tap-off accuracy round).** Wanted:
-    - **A J-2S tap-off gas source.** The legacy model's `min(Tc x 0.55, 1150 K)` and the old
-      "J-2S ~1,140 K" note trace to nothing in claude_lit. Wanted: tap-off gas temperature,
-      pressure and tap-port design (location, hot-gas duct, any mixing or film). Look for
-      Rocketdyne's J-2S development / final report. LOX/LH2 tap-off stays on the legacy
-      model until then.
+    - **A J-2S tap-off gas source — LARGELY RESOLVED 2026-10-18.**
+      - Turbine-inlet temperature is ≈900 K at rated, falling to ≈700 K below ~33 % thrust
+        `[J2S-Restart]`. That agrees with `[SP-8110 Table I]`'s 922 K / 889 psia (≈0.74 × Pc),
+        which was in claude_lit all along.
+      - Dilution: jacket-exit H2 plus a valved fuel bypass, mixed in the injector-end tap-off
+        manifold. Tap ports are a brazed ring with NARloy-Z-lined ports `[Vilja-J2S]`,
+        `[J2S-Restart]`. See `topics/08b`.
+      - **Still open:** the tap-off flow fraction / H2 dilution split, the tap and turbine-inlet
+        pressure at the 265K point, and the port count and size. Likely source: Rocketdyne
+        R-7211 J-2S Interface Criteria Document, or a J-2S final development report.
+      - A hydrolox mixer in `tap_off.py` is now a code task with a sourced temperature target.
     - **A second hydrocarbon tap-off point.** The mixer rests on ONE design study (P&W STBE,
       LOX/CH4), which is internally inconsistent (MR 3.0 vs 3.5 between tables; the 132 lbm/s
       reading). No LOX/RP-1 tap-off has flown: kerosene as a mixer diluent (coking, soot,
@@ -315,9 +359,18 @@ into that and makes no claims about it.
       `DISK_METAL_TEMP_FRACTION` rests on the F-1 alone. SP-8110's unread materials sections
       or MMPDS elevated-temperature data would fix these.
   - **Pump meanline follow-ups (2026-09-26, turbopump Round 2).** Wanted:
-    - **Disk-friction coefficient.** Neither SP-8109 nor Huzel gives one; `pump_meanline.
-      DISK_CM_COEFF` is a Daily-Nece-type form (Tier 3). Gülich / Stepanoff / Daily & Nece 1960
-      would cite it.
+    - **Disk-friction coefficient — citation found 2026-10-18** `[SP-290 Ch.8 eq. 8-7/8-16]`.
+      These are the Daily & Nece 1960 regimes I-IV. In the turbulent separate-boundary-layer
+      regime C_M = 0.102(s/a)^0.1/R^0.2, with P = C_M·ρω³a⁵/2. **Flag:** `DISK_CM_COEFF` 0.0622
+      with R^−0.2 mixes the regime-III theoretical numerator with the regime-IV exponent and drops
+      the ½. **CONFIRMED on the page images:** tool/SP-290 = 1.22·(s/a)^−0.1, i.e. 1.80 / 1.65 /
+      1.54 / 1.43 at s/a 0.02 / 0.05 / 0.10 / 0.20, independent of R. Real pump/turbine disks
+      sit in regime IV.
+      - **Cory's call:** either switch to eq. 8-16 with an assumed s/a (0.02-0.05 gives
+        0.035-0.038), which cuts disk-friction power ≈35-45 % and needs a `K_HYD` refit; or keep
+        0.0622 and label it an uncited roughness/leakage allowance.
+      - SP-290 covers smooth enclosed disks in water and oil; wear-ring leakage and roughness
+        are not covered.
     - **Small-pump size effect.** The meanline runs ~5-8 pts optimistic against SP-8109 Fig. 6
       for 2-6 in impellers, pessimistic at 1 in. The wear-ring clearance floor is fitted to
       Fig. 6. This is why the RL10 LOX pump is gated +-0.13. A per-size loss breakdown
@@ -335,13 +388,18 @@ into that and makes no claims about it.
       inlet, the J-2 jacket dP rose 3.3 -> 4.9 MPa and the RL10 9.3 -> 12.1 MPa; two
       plausibility bands were widened. Real LH2 jacket dP is ~1-2 MPa (SP-8107: the RL10's
       whole fuel-pump discharge is ~1,000 psia), so the tool over-predicts either way.
+      **2026-10-18: a measured bound now exists.** The RL10A-3-3A pump discharge minus jacket
+      exit is 1.79-1.95 MPa, including an orifice and the inlet manifold, so the jacket is
+      ≤1.8-1.95 MPa `[RL10-ROCETS]`. The tool's 12.1 MPa is ≥6× high.
       Belongs to a cooling round: size passages on throat or mean velocity, or on mass flux.
     - **LOX compression heating at high pressure.** `suction_stage.LOX_BETA_PER_K` is a constant
       that reproduces the SSME HPOTP (+10.6 K at 25 MPa); RD-180 / Raptor ox pumps (55-60 MPa)
       get ~+35 K. That is reported only. A LOX coolant table (CoolProp) would replace it.
     - **Pump discharge-temperature anchors beyond the SSME.** No J-2, RL10, M-1, H-1 or F-1
       RP-1 discharge temperature exists in `literature/`; the F-1 LOX has only an indirect
-      heat-exchanger inlet (-288 F). There is also no RL10 source at all.
+      heat-exchanger inlet (-288 F). (2026-10-18: an RL10 source now exists, `[RL10-ROCETS]`,
+      but it tabulates pressures, not pump discharge temperatures. `[J2-Man]` gives only the
+      LOX start condition. Still open.)
   - The original acquisition list is kept below for those follow-ups. It was written against
     the planned (pre-implementation) version of the feature: three modes (overboard duct
     RS-68/H-1/Merlin, nozzle injection F-1/J-2X/Vulcain, roll nozzle LR-91), with
@@ -392,6 +450,10 @@ into that and makes no claims about it.
     (`HX_MASS_SHELL_MULT` stays Tier 3) and any heat-transfer sizing rule (duty vs coil area) -
     one dimensioned can is not enough to scale by duty. `[H1-Man]`'s H-1 exchanger (3 LOX coils,
     no He) has no dimensions to give a second anchor.
+  - **2026-10-18:** second and third duty anchors added (outlet temperatures and flows):
+    - J-2 S-IVB helium coils and S-II LOX coil `[J2-Man §2.1.9]`;
+    - J-2S GOX/helium envelopes `[J2S-Boeing69 pp.4-18..4-24]`.
+    See `topics/07`. Still no exchanger weight or coil area anywhere.
   Anything left unfound is calibrated purely by reverse-solving against RO headers (say which).
 
   - **New propellant pairs 2026-10-15 (LOX/UDMH, N2O4/UDMH, subcooled LOX/RP-1).**
@@ -400,8 +462,8 @@ into that and makes no claims about it.
       citable densified-propellant source (e.g. a NASA densified LOX/RP-1 or SLI propellant-
       densification report) to move them to Tier 2, and RD-111A's real subcooled-LOX
       temperature (its RO header says "-203 C?").
-    - **UDMH liquid thermal conductivity.** Not in `[Sutton Table 7-1]`; MMH's 0.20 W/m-K is
-      carried over (`cooling.COOLANT_TRANSPORT`). Wanted: a measured value (~0.17-0.2?).
+    - **UDMH liquid thermal conductivity — RESOLVED 2026-10-18:** 0.157 W/m·K at 298 K
+      (0.135 at 350 K) `[USAF-Hydrazine §2.5.3.7]`. Moved to the pending citation upgrades.
     - **RD-253 / RD-119 turbomachinery.** The N2O4/UDMH ox-rich preburner temperature (Tier-3
       1100 K) and the LOX/UDMH GG gas are storable transfers; RD-253 preburner Tin / MR and
       RD-119's turbine-drive arrangement would anchor them.
@@ -411,7 +473,9 @@ into that and makes no claims about it.
     - **Export densities of the older pairs.** `cfg_writer` exports RP-1 / CH4 / NTO / A-50
       pairs with the physics densities rather than RO's resource densities
       (`RF_RESOURCE_DENSITY_KG_M3`), an in-game MR error <= 1 %. Switching changes every
-      existing export - Cory's call.
+      existing export - Cory's call. (2026-10-18: the A-50 903 vs 900 difference is reference
+      temperature. `[USAF-Hydrazine]` gives 903.3 at 20 °C, 898.7 at 25 °C, and a MIL band of
+      894-903.)
   - **MON variants 2026-10-16 (MON-3/10/25/MMH).**
     - **N2O4/MMH efficiency spread.** One `ETA_CF` (0.9088, Aestus) gives AJ10-190 -6.3 %,
       R-40 +1.5 %, TD-339 +3.2 % (identical on N2O4 or MON - not chemistry). AJ10-190's 316 s
@@ -421,7 +485,9 @@ into that and makes no claims about it.
     - **Dissolved-NO enthalpy.** `NO(L)` = dHf N2O3(l) - 1/2 dHf N2O4(l) = 60.1 kJ/mol, heat
       of mixing neglected, N2O3(l) value from CRC/NBS (not in `literature/`). Bounds move
       MON-25 Isp up to 3.5 s. Wanted: a cited MON-x heat of formation (CPIA / Air Force
-      propellant handbook, or the CEA "MON-x" reactant definitions).
+      propellant handbook, or the CEA "MON-x" reactant definitions). (2026-10-18: the USAF
+      handbook's Vol. I `[USAF-Hydrazine]` covers fuels only. Its heats of formation close the
+      fuel side; the N2O4/MON volume is still wanted.)
     - **MON-1 for Aerozine-50.** RO's LMDE / LMAE / AJ10-137 / LE-3 burn A-50 with MON1
       (~= NTO); a MON-1 variant of Aerozine-50/NTO would only change their export resource.
 
@@ -442,6 +508,42 @@ into that and makes no claims about it.
   Also still wanted for that round: superalloy turbine-blade Larson-Miller curves (IN-713C,
   IN-718, MAR-M-246), Zaretsky NASA/TP-2013-215305 (bearing L10), and silicide / Ir-Re
   coating oxidation life.
+  **2026-10-18: not answered by the batch.**
+  - `[Quentmeyer-78-1034]` has 1.7 s holds and no creep.
+  - Its strain data show the start transient, not the hold, sets the strain range.
+  - Coating-life leads for Round B: NASA TM-100933 (Quentmeyer 1988, the real 1450-cycle
+    coated-liner source), NASA CR-182230 (TBC life prediction, Phase II), NASA TP-3676
+    (thick-TBC thermal fatigue with hold time), NASA CR-167868 (creep of plasma-sprayed
+    zirconia).
+
+- **J-2S data conflicts (2026-10-18), all report-only.**
+  - **Idle level:** 5,000 ± 1,000 lbf ≈1.9 % (1968 spec `[J2S-Boeing69]`, `[AEDC-J2S]`), stable
+    to ≈2.3 % (`[Vilja-J2S]`), and "approx. 5 % nominal thrust" (`[J2S-Restart leaf 19]`,
+    checked on the page). RO uses 5 %.
+  - **Isp at MR 5.5:** 431 s spec nominal `[J2S-Boeing69]` vs 436 s `[Vilja-J2S]`. RO uses 436.
+  - **LH2 NPSH required:** 164/176 ft (spec §4) vs 197/216 ft (the same document's S-II section)
+    `[J2S-Boeing69]`.
+  - The R-7211 J-2S Interface Criteria Document would arbitrate all three.
+
+- **Turbine-inlet temperature non-uniformity (new, 2026-10-18).** A real LOX/LH2 preburner's
+  two turbine ducts differed by 60-245 K, ≈±10 % `[CR135356-Preburner]`. No module models
+  turbine-inlet temperature spread or its margin. It would affect turbine-blade life (Round B).
+
+- **Documents to acquire (raised by the 2026-10-18 batch).** In rough priority order:
+  - R-3825-1 J-2 Data Manual (J-2 manifold bores, jacket inlet ε, tube data, exhaust duct);
+  - Rocketdyne R-7211 J-2S Interface Criteria Document (tap-off flow and pressure);
+  - P&W FR-15876 RL10A-3-3A Design Report, NAS3-22339, 1982 (RL10 tube geometry, heat-transfer
+    map, turbine η, bypass);
+  - NASA TM-100933 (coated-liner 1450 cycles);
+  - USAF Propellant Handbook Vol. II, N2O4 / MON (vapor pressure, MON heat of formation);
+  - AIAA-98-3517, X-34 propellant feed subsystem (engine-inlet pressure, NPSP, line losses);
+  - NASA TN D-4040, Feiler & Heidmann GH2 response-factor model, and TN D-3373
+    (orifice-diameter data) - for an acoustic-stability model;
+  - NASA TN D-7392 / TN D-7055 (measured effective k of coatings in H2-O2 firings) and
+    TP-3296 (Miller & Leissler, as-sprayed YSZ k);
+  - Rocket Research Corp NAS 7-372 reports, or a CEA run, for hydrazine decomposition Tc/γ/M
+    vs NH3 dissociation X;
+  - NASA CR-135221 and CR-121236 (Advanced Space Engine thrust chamber / preliminary design).
 
 ## Pending `ASSUMPTIONS.md` citation upgrades
 
@@ -554,6 +656,44 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   plausibility row: the tool's cycles within about 3× of the line at its solved hot-wall
   temperature.
 
+- **2026-10-18 batch — citation upgrades / code flags, all report-only:**
+  - **`materials.LINER_MATERIALS["zirconia"]` k = 2.0 W/m·K.** Sprayed YSZ is ≈1.0 as-sprayed
+    and 1.1-1.45 sintered `[Zhu-TBC]`; firing back-solves give ≈0.9-1.5 (derived,
+    `[Quentmeyer-78-1034]`). The computed liner thickness is ≈1.4-2× conservative. Validate
+    check (e)'s anchor could become `[Quentmeyer-78-1034 Table II]` (−41 % at 0.061 mm,
+    −79 % at 0.203 mm). See `topics/12c`.
+  - **`cooling.COOLANT_TRANSPORT` storables** `[USAF-Hydrazine]`:
+    - UDMH k 0.20 → 0.157 W/m·K (298 K);
+    - MMH k 0.20 → 0.248 (298 K);
+    - MMH μ 5.8e-4 matches at ≈315 K;
+    - UDMH cp 2810 / ρ 784 / μ 4.8e-4 confirmed;
+    - A-50 k 0.286.
+  - **`MAX_COOLANT_DELTA_T_K` 150 K for storables.** UDMH boils at ≈420 K at 1 MPa (derived), so
+    a 150 K rise boils it in jackets below ~1.5 MPa. Candidate warn-only saturation check;
+    thermal-stability ceilings are N2H4 ~450 K and UDMH 666 K `[USAF-Hydrazine]`.
+  - **Hydrazine decomposition state (1400 K, γ 1.30, M 11.0).** M = 96.13/(5+4X) (derived from
+    `[USAF-Hydrazine]` stoichiometry), so M 11.0 means X ≈0.93, inconsistent with 1400 K. It is
+    an Is calibration pair; say so in ASSUMPTIONS.
+  - **`PREBURNER_GAS_PROPERTIES` LOX/LH2 `tin_k` 1113 K.** It sits on `[CR135356-Preburner
+    Fig. 111]`'s Tin-vs-MR curve at MR ≈0.83-0.85; cite it. The ≈935 K-per-unit-MR slope could
+    drive Tin from preburner MR.
+  - **Tap-off LOX/LH2 temperature:** 900 K rated / ≈700 K throttled `[J2S-Restart]`, plus 922 K
+    / 0.74 × Pc `[SP-8110]`. These replace the unsourced legacy min(0.55·Tc, 1150 K) / 0.855 × Pc
+    (ASSUMPTIONS ~171).
+  - **`turbine_exhaust` heat-exchanger duties.** J-2 / J-2S outlet temperatures and flows
+    `[J2-Man]`, `[J2S-Boeing69]` are second anchors for `LOX_TO_GOX_DH_J_KG` / `HE_HX_DH_J_KG`.
+  - **Turbine efficiency model** `[SP-290]`: η-vs-ν shape, partial-admission sector + pumping
+    loss (could replace the fitted admission floor), and T-S vs T-T bookkeeping for the 0.76
+    ceiling. See `topics/09b`.
+  - **`pump_meanline.DISK_CM_COEFF`** — confirmed 1.4-1.8× high vs `[SP-290]` regime IV; see the disk-friction item above.
+  - **`injectors.min_stable_dp_ratio` / `practical_min_throttle`.** There are real coaxial
+    precedents: J-2S LOX ΔP/Pc 3 % tested stable at 6:1, 1.8 % at 10:1 `[J2S-Restart]`;
+    hydrolox screech criterion W ≥ 4.4 `[TN-D4733]`.
+  - **`TANK_HEAD_PA` 0.3 MPa.** Real values: X-34 LOX 448 kPa / RP-1 345→179 kPa `[X34-MPS]`;
+    J-2S inlet 207 kPa fuel / 269 kPa ox, start box 186-310 kPa `[J2S-Boeing69]`.
+  - **`burn_time` anchors.** J-2 service life 3,750 s `[J2-Man]`; J-2S spec 3,750 s + 3,500 s
+    idle / 30 starts and a 12,000 s demonstration `[J2S-Restart]`.
+
 ## Cooling audit 2026-09-23 - literature needed (engine_designer/COOLING_AUDIT.md)
 
 - **Coolant-side heat transfer: RESOLVED 2026-09-23** by `[EUCASS-2023]` Eq. 21-22
@@ -572,6 +712,11 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
 - **Real-engine cooling data for the corpus** (`engine_designer/validation_engines/`):
   cited throat heat flux, coolant ΔT, jacket dP, liner thickness for RL10A-3-3, Vulcain,
   RD-180, Merlin-1D, Raptor-2, Rutherford, Aestus (only F-1 / J-2 / SSME have any today).
+  **2026-10-18, RL10A-3-3A partly filled** `[RL10-ROCETS]`:
+  - coolant inlet: tank 21.4 K / 186 kPa, pump discharge 7.3-7.9 MPa;
+  - jacket outlet: 205-244 K at 5.5-5.9 MPa;
+  - jacket ΔP ≤1.8-1.95 MPa.
+  Still missing: throat flux, tube geometry and liner thickness (P&W FR-15876).
 - **RP-1 in CoolProp is an n-dodecane surrogate — RESOLVED 2026-09-24**: the real NIST RP-1
   surrogate-model papers (Huber et al., plus the foundational NISTIR 6646 and two companion
   measurement papers) were acquired and distilled (`[NISTIR6646-RP1]`, `[Huber-RP1RP2]`,

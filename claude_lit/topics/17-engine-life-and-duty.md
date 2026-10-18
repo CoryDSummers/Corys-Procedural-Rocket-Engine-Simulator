@@ -80,6 +80,41 @@ rupture**. It is a cyclic ratchet, not a crack started by pure LCF.
 - Hannum et al. attribute it to creep rupture plus thermal ratcheting.
 - Rocketdyne attributes it to "strain-induced creep".
 
+**Coated liners, same rig** `[Quentmeyer-78-1034]`, with full data in `12c-thermal-barrier-coatings.md`:
+- A 0.203 mm ZrO2 coat (eroded to a stable 0.061 mm) cut the metal hot-wall temperature from
+  844 K to 489 K.
+- Coated electroformed-Cu reached ≥659 cycles, vs 210 for uncoated OFHC. That is censored data:
+  both coated articles failed for reasons unrelated to the coating.
+- Inverting the OFHC line above at 489 K gives ≈2,900 cycles (derived). That is extrapolated
+  past the fit range and on a different copper.
+- **Peak strain occurs ≈0.3 s after ignition**, so the start transient sets the strain range,
+  not the hold `[Quentmeyer-78-1034 p.6]`.
+- Approximate isothermal strain ranges `[Fig. 25]`: OFHC ≈2.2 % at 10² and 0.45 % at 10⁴ cycles;
+  electroformed Cu ≈1.4 % and 0.55 %.
+- TBC conductivity also rises over hours at temperature from sintering `[Zhu-TBC Eq. 1]`. That
+  is a slow, accumulated-life effect, not a per-burn one.
+
+**Accumulated duty on one real engine** `[Vilja-J2S Table 1]`: J-2S engine J113 ran
+11,508.8 s mainstage in 99 tests. Across the program: 273 tests, 30,858 s, plus tank-head idle
+(6,713 s) and powered idle (252 s) run separately.
+
+**J-2S life rating vs demonstration** `[J2S-Restart leaves 19, 24, 191]`:
+- Model-spec life: 30 starts / 3,750 s.
+- Endurance demonstration: 3,807.4 s, including 1,503.9 s at high MR.
+- Mission-duty tests: 470 s each.
+- Life extension demonstrated to 12,000 s and 30 starts. That backs RO's J-2S
+  `testedBurnTime` of 12,000 s; the rated life is about ⅓ of the demonstrated.
+
+**J-2 service life** `[J2-Man §2.5.7 p.2-41]`: 3,750 s mainstage, about 7.5× a ~500 s flight
+duty. That is the same 3,750 s as the J-2S model spec above. The 1968 J-2S spec states it as
+3,750 s mainstage + 3,500 s idle, 30 starts `[J2S-Boeing69]`.
+
+**Staged-combustion preburner life targets** `[CR135356-Preburner p.7, p.34, Table 9 p.36]`
+(1978 LOX/LH2 Advanced Space Engine):
+- 60 cycles / 2 h service-free; 300 cycles / 10 h between overhauls.
+- SF 4.0 on life, 1.1 on yield, 1.4 on ultimate; creep ≤1 %.
+- Damage summed as 4φ_f + φ_c. That is the same SF-4 life-fraction rule as `[ASR72-238]`.
+
 **One real applied LCF prediction** `[Miller-CuFatigue]`: predicted 80 cycles, actual through-crack
 at cycle 39 (OFHC, Manson Universal Slopes). Life analyses are typically within about 2×.
 

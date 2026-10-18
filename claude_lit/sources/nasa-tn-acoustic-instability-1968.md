@@ -54,8 +54,8 @@ subsection directly (see Section map).
   **oxygen/hydrogen injection area ratio below 0.5**.
 - **Decreasing contraction ratio improved stability** (higher chamber pressure/flow at fixed
   contraction ratio is destabilizing).
-- A **stability parameter** `w = ΔpH·ρH / (ρO·DO²·(O/F))^(some form)` (see the paper's own
-  nomenclature) had a critical value of **4.4**: above 4.4 stable, below unstable, for an
+- A **stability parameter** (exact form, from its primary source `[TN-D4733 p.26-28]`:
+  W = (2g·ΔP_H/ρ_H)^½·ρ_O·D_O^1.25·(O/F)^−½, in lbm/(s·in^0.75)) had a critical value of **4.4**: above 4.4 stable, below unstable, for an
   85%-radial-face-coverage injector — a real correlating parameter combining hydrogen
   injector ΔP, propellant densities, oxidizer orifice diameter, and O/F.
 - **Weight flow per element above 0.6 lbf/sec (0.272 kg/sec)** (achieved by reducing element

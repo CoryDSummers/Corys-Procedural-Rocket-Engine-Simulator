@@ -63,6 +63,22 @@ obvious follow-up if that comparison data is ever wanted.
 - RL10 (expander): Pc 400 psia, fuel-pump discharge/Pc = **2.5**, overall turbine PR = **1.4**
   `[SP-8107 p.25]`. RL10A-3-3 turbine inlet temp **−106 °F** (cold heated hydrogen)
   `[SP-8107 Table III]`.
+- **RL10A-3-3A measured, five P&W test points** `[RL10-ROCETS Tables 1-5, Figs. 1-2 pp.6-9]`:
+  Pc 472-477 psia, MR 4.67-5.63.
+  - Turbine inlet H2 is **205 K at MR 4.67, rising to 244 K at MR 5.63**: higher MR means less
+    coolant for the same heat.
+  - Jacket exit (venturi inlet) 5.52-5.94 MPa; fuel injector manifold 3.68-3.75 MPa.
+  - Fuel pump discharge **2.25-2.40 × Pc**; LOX pump discharge 1.30-1.40 × Pc.
+  - Flow path: calibrated orifice → jacket → cavitating venturi → turbine, with the fuel-turbine
+    bypass valve (FTBV) in parallel → shutoff valve → injector. Tank-head start, no boost pumps.
+- **20 klbf LOX/LH2 "Advanced Space Engine" (staged combustion)** `[CR135356-Preburner Table
+  42 p.253, Fig. 17 p.36]`:
+  - Design preburner/main Pc is **1.69** (2328/1380 N/cm², derived). That sits between the
+    tool's SSME 1.67 and the real 1.82.
+  - Design preburner injector ΔP ≈23 % of Pc on the ox side and 12-14 % on the fuel side
+    (derived).
+  - The test-stand ratio of 1.45-1.47 was set by orifice turbine simulators, so it is not a
+    power-balance datum.
 - SSME (staged combustion): Pc 3237 psia, preburner turbine inlet pressure ~5880 psia,
   turbine PR 1.56–1.59, turbine efficiency 73–79 % (reaction turbines) `[SP-8107 Tables I,
   III]`.
@@ -73,39 +89,8 @@ obvious follow-up if that comparison data is ever wanted.
 - **GG mixture ratio**: fuel-rich, MR 0.2–1.0 for normal bipropellants (hydrocarbons ~0.3,
   hydrogen 0.98–1.0); "energetic" fuels < 0.2 `[SP-8081 p.7]`. See topic 10.
 
-**Real tap-off-cycle anchor — J-2S** `[AEDC-J2S §2.1/§2.1.1, §4.2]`: the first real hardware/
-test data in this reference set for tap-off specifically (previously "one development engine,
-J-2S" with no real numbers cited). Real hardware confirms a **series turbine arrangement for
-the two pumps** (tapped gas drives the fuel turbine first via the Hot Gas Tapoff Duct, then a
-separate Fuel Turbine Exhaust Bypass Duct carries it on to drive the oxidizer turbine, before
-final overboard dump) — worth checking against whatever `cycles.py`/`design.py` currently
-assumes about tap-off turbine staging (single combined turbine vs. two in series), since this
-real engine uses two. Main-stage performance (3 of 11 test firings with clean data): c\* ≈
-7720–7800 ft/s, Isp ≈ 433–434 lbf·s/lbm, thrust 230,000–271,000 lbf, MR 4.6–5.1 (vs. 5.5
-design nominal) — the c\*/Isp/MR figures are trustworthy; **the reported Pc (1182–1279 psia)
-is flagged uncertain** (notably higher than J-2S's commonly-cited ~700–850 psia nominal Pc;
-the report doesn't unambiguously state the pressure-tap location, see
-`sources/aedc-tr-70-204-j2s-altitude-test.md`). A real, concrete **spin-up solution**: a
-one-shot solid-propellant turbine starter (SPTS) fires at main-stage start to spin the
-turbines before tapped-gas flow alone can sustain them — the same "cold-start" problem any
-tap-off or staged-combustion cycle without a dedicated spin-up GG has to solve. J-2S's defining
-tap-off-enabled feature, a low-thrust **idle mode** (nominal 5000 lbf, MR 2.5, idle Pc only
-18–31 psia) used for orbital-restart tank settling, is a real demonstrated use of tap-off's
-"parallel, throttleable-independent-of-main-injector-flow" character that no other cycle in
-the table above can do as simply.
-
-**A real second LOX/CH4 tap-off data point, for a hydrocarbon fuel** `[STBE-PW leaf
-341-344]`: a 1989 P&W preliminary-design study (Unique STBE Tap-Off, 750 Klbf SL thrust, Pc
-2400 psia) gives a **tap-off flow rate of 132 lbm/s against a 2462 lbm/s injector flow
-(~5.4%)**. The mechanism matters more than the number `[STBE-PW p.317 §4.3.1.1]`: the engine
-taps **1.9 % of O/F-biased chamber gas** into a **hot-gas mixer** where **cold methane (12.5 %
-of the pumped fuel, via the fuel bypass valve)** dilutes it to **1,800 R (1,000 K) at 2293 psia
-(0.955 x Pc)**. The fuel-rich mix drives the methane turbine, then the oxygen turbine, in
-series. So a hydrocarbon tap-off turbine does NOT see chamber gas "film-cooled" to ~1,150 K.
-It sees GG-like fuel-rich gas at ~1,000 K, most of it pumped bypass fuel. (Corrected
-2026-09-26: this passage and the source note first read it as "tapped near the throat".)
-Implemented as `physics/tap_off.py` (the hot-gas mixer, default for LOX/CH4 and LOX/RP-1)
-and gated by validate "TAP-OFF".
+**Tap-off cycle** — the J-2S anchors (`[AEDC-J2S]`, `[Vilja-J2S]`, `[J2S-Restart]`, `[SP-8110]`'s
+turbine row) and the STBE LOX/CH4 hot-gas mixer moved to **`08b-tap-off-cycle.md`** on 2026-10-18.
 
 **A new real cycle variant — the "split expander" cycle (P&W-specific, distinct from any
 existing entry in this table)** `[STBE-PW leaf 28-29]`: "The split expander cycle differs
@@ -298,11 +283,6 @@ subject to failure from either burnout or thermal cycling" (see `topics/14`).
 - Expander feasibility is genuinely propellant- and thrust-dependent (`[SP-8107]`: H2 or
   light hydrocarbon; not at high thrust) — this is a real physical limit, not a modelling
   choice.
-- Tap-off constants now have one real-hardware anchor (`[AEDC-J2S]`, J-2S altitude test
-  data), but it's a single development engine's ground-test program (never flew
-  operationally) with only 3 of 11 firings yielding clean main-stage numbers, and its
-  reported Pc is itself flagged uncertain (tap-location ambiguity) — treat as corroborating
-  context, not a tight quantitative calibration source.
 - `[STBE-PW]` is a 392-page 1986-89 NASA Advanced Launch System booster-engine conceptual
   design study — all seven engines described (GG, split-expander, tap-off variants) are
   unbuilt/unflown design-point targets, not demonstrated hardware, unlike `[NK-33-Mod]`,
@@ -395,17 +375,8 @@ subject to failure from either burnout or thermal cycling" (see `topics/14`).
   them from the `GG_FLOW_FRACTION` red-flag check. ORSC/FFSC reliability caveat matches
   `[KBKhA]`: oxidiser-rich turbines are a late-Soviet/Russian achievement (and full-flow a
   Raptor/BE-4-era one) needing special oxidation-tolerant design.
-- **Tap-off turbine staging** `[AEDC-J2S]`: real J-2S hardware feeds the fuel and oxidizer
-  turbines **in series** (one tapoff duct → fuel turbine → separate exhaust duct → oxidizer
-  turbine → dump), not two parallel turbines each independently fed from the tap. If
-  `cycles.py`'s tap-off builder currently sizes/derives the two turbines independently
-  (as a symmetric GG-cycle preset would), this real precedent is worth checking against —
-  report-only here, no code inspected/changed this pass.
-- **`TAP_OFF_DUMP_ISP_FRACTION = 0.80`** (flagged in ASSUMPTIONS.md as "directionally right,
-  magnitude unsourced"): `[AEDC-J2S]` doesn't give a tap-off bleed-fraction number directly
-  (it's a test report, not a cycle-balance derivation), so this constant remains unanchored
-  by real hardware data — the real MR/thrust/Isp numbers above can't be used to back out a
-  bleed fraction without the engine's fuel-flow schedule, which this note didn't extract.
+- **Tap-off implications** (series turbines, the contradicted legacy LOX/LH2 model, tap-valve
+  throttling, `TAP_OFF_DUMP_ISP_FRACTION`) are in `08b-tap-off-cycle.md`.
 - **Electric pump-fed** (Rutherford) — new `physics/electric_pump.py`: battery + brushless
   motors, no turbine, no bleed, so engine Isp = chamber Isp. The trade is carried as mass
   (`battery_mass ∝ electrical_power × burn_time`), so it only pays off small/short-burn. The

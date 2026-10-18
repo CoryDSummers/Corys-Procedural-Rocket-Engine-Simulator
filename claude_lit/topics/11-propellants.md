@@ -123,12 +123,57 @@ detail this table doesn't capture, and `topics/08-engine-cycles.md` for a real l
 OMS) design-history case of why a *newer* program moved away from this exact propellant/
 cycle combination for a larger reusable vehicle.
 
+### Hydrazine-family fuel properties (N2H4 / MMH / UDMH / A-50) — `[USAF-Hydrazine]`
+
+The 1970 USAF propellant handbook (Bell Aerospace) gives temperature fits for every liquid
+property; the fits themselves are in the source note. Headline values:
+
+| | N2H4 | MMH | UDMH | A-50 | Cite |
+|---|---|---|---|---|---|
+| ρ at 298 K, kg/m³ | 1003.7 | 870.2 | 786.1 | 898.7 (903.3 at 293 K) | §2.3.1 leaf 70, §2.4.1 leaf 112, §2.5.1 leaf 147, §2.6.1 leaf 183 |
+| Melting / normal boiling point, K | 274.68 / 387.37 | 220.78 / 360.80 | 215.94 / 335.47 | 267.6 / 343 | same |
+| Critical T / P | 653 K / 14.7 MPa | 585 / 8.24 | 523 / 5.98 | 607 / 11.9 (mixture rule, dubious) | same |
+| ΔHf (liquid), kJ/mol | +50.43 | +54.84 | +51.63 | 1232 kJ/kg incl. heat of mixing | same; A-50 §2.6.5.1 leaf 209 |
+| k at 298 K, W/m·K | 0.490 (provisional) | 0.248 | 0.157 (0.135 at 350 K) | 0.286 | §2.x.3.7 leaves 88 / 134 / 167 / 200 |
+
+- **Vapor pressure from NBP to critical** for all four fuels is in the note (checked against
+  each sheet's 298 K value and NBP). This closes the storable vapor-pressure gap for the fuels.
+  N2O4 is in Vol II, which we don't hold.
+- **A-50 density 903 vs 900:** both are defensible. 903.3 is the 20 °C value, 898.7 the 25 °C
+  value, and the MIL spec band is 894-903 at 25 °C. The difference is reference temperature.
+- **Decomposition stoichiometry** `[§2.3.4.1 leaf 97]`: 3 N2H4 → 4(1−X) NH3 + (1+2X) N2 + 6X H2,
+  where X is the fraction of ammonia dissociated. The handbook gives no Tc/γ/M-vs-X table.
+- **Thermal stability and regen cooling** `[§5.3.6.1 leaf 505; §4.2.3.1 leaf 433; §6.2.3 leaves 513-515]`:
+  - Hydrazine regen cooling was "generally unsuccessful … uncontrolled thermal explosions in the
+    cooling passages".
+  - Bell twice detonated 394 K (250 °F) liquid hydrazine by heated-wire burnout.
+  - MHF-1 detonated at ~533 K (500 °F) in regen passages.
+  - UDMH decomposes spontaneously (no air) at 666 K (740 °F).
+  - Hydrazine's "safe operating limit" is ~450 K (350 °F).
+- **Source errata** (flagged in the note):
+  - the N2H4 summary-sheet k is printed in the wrong units;
+  - the UDMH sheet cp (0.704) disagrees with its own fit (0.670);
+  - UDMH heat of combustion "437.7" should be 473.7;
+  - the MMH cp K-form is misprinted (use the °R form).
+- Every fit in the note was confirmed against the page images on 2026-10-18. One A-50
+  vapor-pressure constant was corrected (9.55878 → 9.55828), and the source's own A-50
+  heat-of-formation working has two misprints. The final 12.310 kcal/mol is unaffected.
+
 ### Hydrazine (monopropellant)
 
 - Catalytic decomposition over a bed (Shell 405 / Aerojet S-405 iridium catalyst
   `[SP-8081 §2.2.2]`); no mixture ratio, one propellant block.
 - Representative decomposition state (partial NH3 dissociation): the tool uses Tc 1400 K,
   γ 1.30, M 11.0 — a chosen single point, verified only by Is match.
+  - From `[USAF-Hydrazine]`'s stoichiometry, M = 96.13/(5 + 4X) (derived). So M 11.0 means
+    X ≈ 0.93, nearly full NH3 dissociation. NH3 dissociation is endothermic, so that is the cold
+    end of the range.
+  - X = 0 gives M ≈ 19.2. A 1400 K state would sit at intermediate-to-low X, so the
+    (1400 K, 11.0) pair looks like an Is calibration, not one physical state. No temperature-
+    vs-X data is in hand to confirm this.
+  - Report-only. A Tc/γ/M-vs-X source (CEA, or Rocket Research Corp NAS 7-372) is wanted.
+- Catalyst-bed rules `[USAF-Hydrazine §6.6.1 leaf 530]`: showerhead bed loading 31.6 kg/s·m²
+  (0.045 lb/s·in²), staged beds up to 0.2 lb/s·in²; injector ΔP 10-20 % of Pc.
 - `validate.py` anchor: MR-80B (Mars Landing Engine), 2.4 MPa, ε 27.2 → **223.0 s vac**,
   79.0 s SL; tool reproduces 222.4 s.
 - `[Huzel Table 4-1]`: "H2O2/RP-1 including catalyst bed" needs L\* 60–70 in — a hydrazine
@@ -147,7 +192,8 @@ cycle combination for a larger reusable vehicle.
   injector design differs from non-hypergolic (small positive β angle helps, topic 05)
   `[Huzel §4.5, Sutton §7]`.
 - `[Sutton Ch. 7]` has quantitative property tables (vapor pressure, viscosity, freezing/
-  boiling points, Cp) — leaves 257–280, not transcribed here.
+  boiling points, Cp) — leaves 257–280, not transcribed here. For the hydrazine family,
+  `[USAF-Hydrazine]` (above) supersedes them.
 - **A real volume-constrained (not mass-constrained) propellant tradeoff** `[OMS-DesignEvo
   p.646]`: LOX/LH2's low bulk density (dominated by LH2, the same 22:1 density range cited
   above) can cost more *tankage volume* per unit delta-v than a small/volume-limited vehicle
@@ -180,7 +226,22 @@ cycle combination for a larger reusable vehicle.
   - Hydrazine → Is ≈ 223 s (MR-80B).
 - `PROPELLANT_DENSITIES` cross-check: RP-1 810 / LOX 1141 / LH2 71 / MMH 880 / A-50 903 /
   N2O4 1440 kg/m³ — all consistent with `[Sutton §7]` / `[SP-8107 §2.1.1.3]` (LH2 4.4 lbm/ft³
-  = 70.5 kg/m³; IRFNA 98 lbm/ft³).
+  = 70.5 kg/m³; IRFNA 98 lbm/ft³). MMH 880 vs `[USAF-Hydrazine]` 870.2 at 298 K (880 ≈ 288 K);
+  A-50 903 = its 293 K value.
+- **Storable coolant transport properties** (`COOLANT_TRANSPORT`, ASSUMPTIONS.md ~147/~223)
+  vs `[USAF-Hydrazine]`:
+  - UDMH k 0.20 (carried over from MMH) is ≈22 % high; the source gives 0.157 W/m·K at 298 K.
+  - MMH k 0.20 is low; the source gives 0.248 at 298 K, and 0.20 is its ~400 K value.
+  - MMH μ 5.8e-4 matches the source at ~315 K.
+  - UDMH cp 2810, ρ 784 and μ 4.8e-4 are confirmed.
+  - These are citation upgrades (OPEN_QUESTIONS); nothing was changed.
+- **Storable jacket boiling** (new, warn-only candidate):
+  - Inverting `[USAF-Hydrazine]`'s vapor-pressure fits gives UDMH saturation at ≈420 K at 1 MPa
+    and MMH at ≈448 K (derived).
+  - So `MAX_COOLANT_DELTA_T_K` = 150 K from 293 K would boil UDMH in a jacket below ~1.5 MPa.
+  - The binding storable-coolant limit is pressure-dependent (saturation) plus a thermal-
+    stability ceiling (N2H4 "safe" ~450 K, UDMH self-decomposition 666 K). A flat ΔT doesn't
+    capture that.
 - `L_MID_BASE` per pair (topic 03): could be sanity-anchored to `[Huzel Table 4-1]` L\*
   ranges (LOX/RP-1 needs the most chamber length; LOX/LH2 the least among cryo).
 - A future LOX/CH4 addition (README "phase 2") would need its own frozen-composition table +

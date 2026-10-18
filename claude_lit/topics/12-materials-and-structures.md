@@ -232,10 +232,11 @@ report's ~2-second-pulse test article) is explicitly flagged unaddressed.
 **Real chamber-liner life-enhancing design concepts, seven real approaches** `[Quentmeyer-
 CR185257]` — a survey of hardware-tested life-extension techniques for a regen chamber liner,
 distinct from (and complementary to) the alloy-selection framing above. **Thermal barrier
-coating (TBC), the headline quantified result**: ZrO2 (0.076mm)+NiCr bond coat on an
-electroformed-Cu liner survived **1450 cycles with no damage vs. 393 cycles for an uncoated
-Amzirc liner** at the same geometry/conditions (caveat: substrate material also differs, not a
-clean single-variable A/B); TBC cuts heat flux ~50% `[§Thermal Barrier Coatings p.3]`.
+coating (TBC)**: 0.076 mm ZrO2 + NiCr bond coat, 1450 cycles undamaged vs 393 uncoated Amzirc,
+flux cut ~50 % `[§Thermal Barrier Coatings p.3]`. That result is quoted from NASA TM-100933
+(1988, not held), NOT from the 1978 coated-liner paper `[Quentmeyer-78-1034]`. All TBC data
+(conductivity, sintering, flux cuts, erosion, life) now lives in
+**`12c-thermal-barrier-coatings.md`**.
 **Tungsten-reinforced liner**: W wire in a thin Cu wall → thermal conductivity only ~10% below
 OFHC Cu, rupture strength ~80% higher than NARloy-Z at 867K, no damage after 400 cycles
 `[§Tungsten-Reinforced Chamber Liner p.4]`. **High-aspect-ratio channels**: increasing channel
@@ -532,7 +533,8 @@ interaction this topic file's cryo-embrittlement content already discusses.
   if the fatigue estimate ever infers risk from a single hottest-station temperature proxy
   rather than a full strain-field solve. Report-only — no code changed.
 - **Chamber-liner life-extension techniques** (`[Quentmeyer-CR185257]`'s TBC/tungsten-
-  reinforced-liner/high-aspect-ratio-channel/low-stiffness-closeout concepts, above) are real
+  reinforced-liner/high-aspect-ratio-channel/low-stiffness-closeout concepts, above; the TBC
+  lever's data and the zirconia-liner conductivity re-cite are in `12c`) are real
   but currently unmodeled design levers beyond alloy choice alone — none has an obvious single
   constant to cite into `materials.py` today (each is a construction-level choice, not a
   material property), flagged here as candidate future-feature material if chamber-liner
