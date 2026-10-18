@@ -170,7 +170,7 @@ pulled forward).
 ## Checklist
 Each round is its own branch and draft PR, and gets its own plan-mode pass before it starts.
 - [x] Step 0: literature batch committed on `lit/2026-10-18-batch` (draft PR)
-- [ ] Round 1: citations + stale docs on `lit/round1-citations`, stacked on Step 0. Bit-identical.
+- [x] Round 1: citations + stale docs on `lit/round1-citations`, stacked on Step 0. Bit-identical.
   Code locations re-grepped 2026-10-18 (they had moved since this plan was written):
   - `staged_combustion.py:48-53`;
   - `design/constants.py`: ~47 `TANK_HEAD_PA`, ~60-92 GG gas, ~120-130 legacy tap-off;

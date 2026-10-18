@@ -84,6 +84,11 @@ _TABLES = {
     # one value for ANY query "mixture ratio", so combustion_state() needs zero
     # special-casing, and mr_bounds() naturally returns (1.0, 1.0) - a degenerate
     # signal the GUI uses to treat the mixture-ratio slider as not applicable.
+    # (1400 K, M 11.0) is an Isp-CALIBRATION pair, not a physical state: from the
+    # decomposition stoichiometry [USAF-Hydrazine §2.3.4.1], M = 96.13/(5 + 4X)
+    # g/mol with X the NH3 fraction dissociated (derived), so M 11.0 means X ~0.93 -
+    # the cold, endothermic end of the range, not a 1400 K gas. No Tc/M-vs-X table
+    # exists in that source; a refresh needs CEA / NAS 7-372 (OPEN_QUESTIONS).
     "Hydrazine": dict(
         mr=[1.0],
         tc=[1400.0],

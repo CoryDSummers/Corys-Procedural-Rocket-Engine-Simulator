@@ -17,7 +17,8 @@ Modes::
 ``--check`` is the refactor safety net: a pure restructuring of the physics must
 reproduce every golden result dict EXACTLY (floats compared by repr). A deliberate
 physics change re-snapshots golden only alongside a before/after delta table
-(``--report --diff``) recorded in ``engine_designer/COOLING_AUDIT.md``.
+(``--report --diff``) saved as ``validation_engines/reports/YYYY-MM-DD_<topic>_before_after.txt``
+(cooling rounds also summarize theirs in ``engine_designer/COOLING_AUDIT.md``).
 
 The ``reference`` block format (all entries optional)::
 

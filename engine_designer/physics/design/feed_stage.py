@@ -456,7 +456,9 @@ def _tap_off_drive_gas(self, s):
       the turbine flow is pumped at the mixed MR; inlet 0.955 x Pc [STBE-PW p.317].
     - "legacy" (bit-identical when tap_off_tin_k is 0): chamber products at chamber MR,
       min(Tc x 0.55, 1150 K), not pumped, 0.855 x Pc. Both constants are unsourced
-      (Tier 3). tap_off_tin_k > 0 replaces the temperature there too."""
+      (Tier 3), and the real J-2S (922 K, 0.74 x Pc [SP-8110 Table I]; cold-H2
+      dilution [Vilja-J2S]) contradicts them - see design/constants.py
+      TAP_OFF_TEMP_FRACTION. tap_off_tin_k > 0 replaces the temperature there too."""
     model = tap_off.resolve_model(self.tap_off_model, self.propellant_pair)
     t_user = max(0.0, float(self.tap_off_tin_k or 0.0))
     cp_chamber = combustion.mixture_cp_j_kgk(s.gamma_chamber, s.m_molar)

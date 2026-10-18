@@ -126,8 +126,10 @@ def channel_count(throat_dia_m, override=0):
 def channel_target_height_m(throat_dia_m, n_channels, mdot_coolant_kgs, pair,
                              land_fraction, aspect_ratio_override=0.0,
                              target_velocity_ms=0.0, rho_kg_m3=None):
-    """Channel height that makes the THROAT coolant velocity equal
-    TARGET_COOLANT_VELOCITY_MS (so jacket dP is scale-invariant), unless the
+    """Channel height that makes the coolant velocity at the THROAT passage
+    area, evaluated at the INLET-state density `rho_kg_m3` (not the throat's own
+    local state), equal TARGET_COOLANT_VELOCITY_MS (so jacket dP is
+    scale-invariant), unless the
     user pins an aspect ratio. `target_velocity_ms>0` replaces the per-pair
     target (EngineDesign.regen_coolant_velocity_ms). `rho_kg_m3` = the coolant
     density the channel is sized at (the real inlet-state density from

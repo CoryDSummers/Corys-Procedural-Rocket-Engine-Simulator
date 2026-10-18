@@ -76,6 +76,7 @@ INJECTORS = {
         display_name="Coaxial swirl / shear coaxial",
         eta_cstar_multiplier=1.01,
         dp_over_pc_nominal=0.15,
+        # J-2S coax precedent (LOX dP/Pc ~3 % stable at 6:1) - see coax_post below.
         min_stable_dp_ratio=0.10,
         practical_min_throttle=0.50,
         atomization_time_modifier=0.75,
@@ -185,6 +186,10 @@ INJECTORS = {
         display_name="Shear coaxial hollow post (GH2/LOX)",
         eta_cstar_multiplier=1.01,
         dp_over_pc_nominal=0.15,
+        # Both limits below are conservative vs one real coax precedent: the J-2S
+        # ran LOX dP/Pc ~3 % tested-stable at 6:1 (17.4 % at rated), and its engine-
+        # balance code put 1.8 % at 10:1 [J2S-Restart]; values unchanged. Hydrolox
+        # screech has its own correlating parameter, critical W >= 4.4 [TN-D4733].
         min_stable_dp_ratio=0.10,
         practical_min_throttle=0.50,
         atomization_time_modifier=0.75,

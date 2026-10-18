@@ -671,26 +671,32 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   - **`MAX_COOLANT_DELTA_T_K` 150 K for storables.** UDMH boils at ≈420 K at 1 MPa (derived), so
     a 150 K rise boils it in jackets below ~1.5 MPa. Candidate warn-only saturation check;
     thermal-stability ceilings are N2H4 ~450 K and UDMH 666 K `[USAF-Hydrazine]`.
+    *Caveat cited in ASSUMPTIONS 2026-10-18 (lit-batch Round 1); the warn-only check is Round 4.*
   - **Hydrazine decomposition state (1400 K, γ 1.30, M 11.0).** M = 96.13/(5+4X) (derived from
     `[USAF-Hydrazine]` stoichiometry), so M 11.0 means X ≈0.93, inconsistent with 1400 K. It is
-    an Is calibration pair; say so in ASSUMPTIONS.
+    an Is calibration pair; say so in ASSUMPTIONS. *Done 2026-10-18 (Round 1): `combustion.py`
+    comment + ASSUMPTIONS row.*
   - **`PREBURNER_GAS_PROPERTIES` LOX/LH2 `tin_k` 1113 K.** It sits on `[CR135356-Preburner
     Fig. 111]`'s Tin-vs-MR curve at MR ≈0.83-0.85; cite it. The ≈935 K-per-unit-MR slope could
-    drive Tin from preburner MR.
+    drive Tin from preburner MR. *Cited 2026-10-18 (Round 1); Tin(MR) as an input is deferred.*
   - **Tap-off LOX/LH2 temperature:** 900 K rated / ≈700 K throttled `[J2S-Restart]`, plus 922 K
     / 0.74 × Pc `[SP-8110]`. These replace the unsourced legacy min(0.55·Tc, 1150 K) / 0.855 × Pc
-    (ASSUMPTIONS ~171).
+    (ASSUMPTIONS ~171). *Cited as contradicting the legacy model 2026-10-18 (Round 1); the
+    LOX/LH2 mixer is Round 7.*
   - **`turbine_exhaust` heat-exchanger duties.** J-2 / J-2S outlet temperatures and flows
     `[J2-Man]`, `[J2S-Boeing69]` are second anchors for `LOX_TO_GOX_DH_J_KG` / `HE_HX_DH_J_KG`.
+    *Cited 2026-10-18 (Round 1).*
   - **Turbine efficiency model** `[SP-290]`: η-vs-ν shape, partial-admission sector + pumping
     loss (could replace the fitted admission floor), and T-S vs T-T bookkeeping for the 0.76
     ceiling. See `topics/09b`.
   - **`pump_meanline.DISK_CM_COEFF`** — confirmed 1.4-1.8× high vs `[SP-290]` regime IV; see the disk-friction item above.
   - **`injectors.min_stable_dp_ratio` / `practical_min_throttle`.** There are real coaxial
     precedents: J-2S LOX ΔP/Pc 3 % tested stable at 6:1, 1.8 % at 10:1 `[J2S-Restart]`;
-    hydrolox screech criterion W ≥ 4.4 `[TN-D4733]`.
+    hydrolox screech criterion W ≥ 4.4 `[TN-D4733]`. *Cited as context 2026-10-18 (Round 1),
+    values unchanged; the W screening row is deferred.*
   - **`TANK_HEAD_PA` 0.3 MPa.** Real values: X-34 LOX 448 kPa / RP-1 345→179 kPa `[X34-MPS]`;
-    J-2S inlet 207 kPa fuel / 269 kPa ox, start box 186-310 kPa `[J2S-Boeing69]`.
+    J-2S inlet 207 kPa fuel / 269 kPa ox, start box 186-310 kPa `[J2S-Boeing69]`. *Cited
+    2026-10-18 (Round 1), value unchanged.*
   - **`burn_time` anchors.** J-2 service life 3,750 s `[J2-Man]`; J-2S spec 3,750 s + 3,500 s
     idle / 30 starts and a 12,000 s demonstration `[J2S-Restart]`.
 
