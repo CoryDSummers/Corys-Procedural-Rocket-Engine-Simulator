@@ -661,7 +661,8 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
     and 1.1-1.45 sintered `[Zhu-TBC]`; firing back-solves give ≈0.9-1.5 (derived,
     `[Quentmeyer-78-1034]`). The computed liner thickness is ≈1.4-2× conservative. Validate
     check (e)'s anchor could become `[Quentmeyer-78-1034 Table II]` (−41 % at 0.061 mm,
-    −79 % at 0.203 mm). See `topics/12c`.
+    −79 % at 0.203 mm). See `topics/12c`. *Adopted 2026-10-18 (lit-batch Round 2): k 1.3
+    sintered, check (e) re-anchored to Table II.*
   - **`cooling.COOLANT_TRANSPORT` storables** `[USAF-Hydrazine]`:
     - UDMH k 0.20 → 0.157 W/m·K (298 K);
     - MMH k 0.20 → 0.248 (298 K);

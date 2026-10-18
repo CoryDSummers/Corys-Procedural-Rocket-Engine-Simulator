@@ -182,7 +182,12 @@ Each round is its own branch and draft PR, and gets its own plan-mode pass befor
 
   Runtime checklist strings (e.g. `feed_stage.py:522`) are left alone so the change stays
   bit-identical.
-- [ ] Round 2: zirconia liner k 1.3
+- [x] Round 2: zirconia liner k 1.3 on `lit/round2-zirconia`, stacked on Round 1. No golden uses a
+  liner, so `run_corpus --check` stays bit-identical (no report or snapshot needed). Before → after:
+  - C-103 coat 0.152 → 0.099 mm;
+  - Ti-6Al-4V requirement 877 → 570 mm (still capped at 1.0 mm);
+  - check (e) re-anchored to `[Quentmeyer-78-1034 Table II]`: 8.4 % / 22.7 % at 0.061 / 0.203 mm
+    (real regen 41 % / 79 %).
 - [ ] Round 3: pump disk friction (SP-290) + `K_HYD` refit
 - [ ] Round 4: storable property module + temperature-dependent coolant transport
 - [ ] Round 5: LH2 channels-mode jacket ΔP

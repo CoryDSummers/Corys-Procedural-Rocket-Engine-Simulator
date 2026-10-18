@@ -143,7 +143,7 @@ if __name__ == "__main__":
     # but a thicker liner lowers the STRUCTURAL SHELL's own temperature ---
     t_rad0 = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=0.0)
     assert abs(t_rad0 - t_rad) < 1e-9   # explicit 0.0 == the default, bit-identical
-    resist_lo, resist_hi = 5e-5, 2e-4   # ~0.076mm/2.0 W/mK and ~2x that
+    resist_lo, resist_hi = 5e-5, 2e-4   # ~0.076 mm of YSZ at k ~1.5 W/mK, and ~4x that
     t_liner_face_lo = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=resist_lo)
     t_liner_face_hi = radiative_wall_temperature(200.0, 2500.0, 0.85, liner_resistance_m2k_w=resist_hi)
     # Recover each case's shell temperature via q = h_gc*(T_aw - T_liner_face)
