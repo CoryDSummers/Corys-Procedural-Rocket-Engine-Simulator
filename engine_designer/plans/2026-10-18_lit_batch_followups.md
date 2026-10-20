@@ -188,7 +188,17 @@ Each round is its own branch and draft PR, and gets its own plan-mode pass befor
   - Ti-6Al-4V requirement 877 → 570 mm (still capped at 1.0 mm);
   - check (e) re-anchored to `[Quentmeyer-78-1034 Table II]`: 8.4 % / 22.7 % at 0.061 / 0.203 mm
     (real regen 41 % / 79 %).
-- [ ] Round 3: pump disk friction (SP-290) + `K_HYD` refit
+- [x] Round 3: pump disk friction (SP-290) + `K_HYD` refit, on `lit/round3-disk-friction` off main
+  (2026-10-20).
+  - Regime IV alone failed SP-8109 Fig. 6 (validate PUMP MEANLINE (d): 11.0 pts vs ±10). So, by
+    Cory's choice, the `[SP-290 eq. 8-17-8-22]` leakage-throughflow factor was added on the front
+    shroud face; s/a 0.05 (Tier 3).
+  - `K_HYD` 1.76 → 1.79 via the new `refit_k_hyd()`; the self-test asserts it stays on its fit.
+  - Real-pump rms 0.031 → 0.035, all within ±0.08; Fig. 6 worst 8.0 → 9.4 pts.
+  - F-1 LOX disk share 1.31 % → 1.16 % (throughflow ×1.9 on the front face).
+  - Corpus: RL10A-3-3 jacket ΔP −1.5 %, Raptor-2 / RS-25 +0.6 / +0.4 %, RS-29A Isp −0.1 %, the
+    rest ≤ 0.1 %. The 16 pump-fed goldens were re-snapshotted; report
+    `reports/2026-10-20_lit_round3_disk_friction_before_after.txt`.
 - [ ] Round 4: storable property module + temperature-dependent coolant transport
 - [ ] Round 5: LH2 channels-mode jacket ΔP
 - [ ] Round 6: warm-GH2 injector-ring density

@@ -138,8 +138,10 @@ speed chart is for radial-inflow turbines `[Fig. 10-7]`.
   0.02-0.10, including the ½). 0.0622 appears to be the regime-III (merged-layer) numerator,
   which goes with R^−¼, not R^−0.2. **Confirmed 2026-10-18 on the page images:** tool/SP-290
   = 1.22·(s/a)^−0.1, i.e. 1.4-1.8× high for s/a 0.2-0.02, with the ½ dropped. Restoring the ½
-  alone gives 0.72-0.97× of SP-290. Switching the formula or relabelling the constant is
-  Cory's call (OPEN_QUESTIONS).
+  alone gives 0.72-0.97× of SP-290. **Adopted 2026-10-20 (lit-batch Round 3):** eq. 8-16 at
+  s/a 0.05 (Tier 3 gap) plus the eq. 8-17-8-22 leakage-throughflow factor on the front shroud
+  face; `K_HYD` refit 1.76 → 1.79. Regime IV alone failed the SP-8109 Fig. 6 grid (11 pts vs
+  ±10); with throughflow it passes at 9.4.
 - **RL10 turbine point** `[RL10-ROCETS]`: measured pump and jacket-exit pressures bound the
   RL10A-3-3A turbine PR at ≤1.50-1.58 (derived). That is consistent with `[SP-8110]`'s PR 1.42 at
   74 % T-S. The ROCETS report gives no turbine flow, bypass fraction or efficiency, so

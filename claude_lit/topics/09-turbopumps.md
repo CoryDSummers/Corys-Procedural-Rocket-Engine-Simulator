@@ -360,7 +360,7 @@ Full tables are in the source notes.
   - The size effect is SP-8109 Fig. 6 (e.g. Ns 1600: 80 % at 10 in, 69 % at 4 in, 60.5 % at
     1 in). The Ss penalty is Fig. 9 (Ns 2000: 0.4-5.1 points over Ss 10k-60k).
   - Disk friction is named as a loss (and as fluid heating) but **no coefficient is given in
-    either source**.
+    either source**. The coefficient now comes from `[SP-290]` Daily-Nece (see `topics/09b`).
 - **Diffusers.**
   - Vaned when ψ > 0.5 or Ns < 1000, for +3 % η at Ns 1200, more below `[SP-8109 §3.4.1.2.2,
     p.43]`. Vaneless-only is worst.

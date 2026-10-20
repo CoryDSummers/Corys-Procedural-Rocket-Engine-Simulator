@@ -16,7 +16,8 @@ Centrifugal stage [SP-8109 §2.3-2.4, §3.3-3.4; Huzel §6.3]:
     diffusion past W2/W1 0.7 (Tier 3), volute/diffuser zeta*c2^2/2g (Huzel:
     70-90 % of the discharge kinetic head recovered), wear-ring leakage
     (0.0005 D2 clearance, Q = K pi D c sqrt(2 g dh) [SP-8109 p.34, Fig. 22]),
-    disk friction (Tier 3: no coefficient in the reference set), mechanical
+    disk friction (Daily-Nece regime IV + wear-ring leakage throughflow on the
+    front shroud [SP-290 Ch.8 eq. 8-16, 8-17-8-22]; gap ratio Tier 3), mechanical
     (20 % at a 1 in impeller -> negligible at 10 in [SP-8109 p.8]), and the
     suction-specific-speed penalty [SP-8109 Fig. 9]
   - ONE calibrated multiplier K_HYD on the hydraulic losses (Tier 2), fitted to
@@ -76,8 +77,22 @@ SEAL_C_MIN_M = 0.006 * _IN  # Tier 3 floor: 0.0005 D2 is unbuildable on a small 
                            # so the size effect follows SP-8109 Fig. 6 (small pumps leak more)
 SEAL_K = 0.5               # leak coefficient, middle of Fig. 22's 0.25-0.7 [SP-8109 p.36]
 SEAL_HEAD_FRACTION = 0.75  # wear-ring dP ~ 0.75 x stage head [Huzel eq. 6-76]
-DISK_CM_COEFF = 0.0622     # C_M = 0.0622 Re^-0.2 (both faces), Daily-Nece-type turbulent
-                           # enclosed disk - Tier 3, no coefficient in the reference set
+# Disk friction, smooth enclosed disk, turbulent separate boundary layers (Daily-Nece regime
+# IV): P = C_M rho w^3 a^5 / 2 over both faces, C_M = 0.102 (s/a)^0.1 / R^0.2, R = w a^2 / nu
+# [SP-290 Ch.8 eq. 8-7, 8-16 p.232-236]. Regime IV governs at pump R for s/a >= 0.02 (III->IV
+# crossover R* ~ 0.0077 (s/a)^-16/3, derived in claude_lit/sources/sp290 note). SP-290's data
+# are smooth disks in water/oil: rough cast shrouds may exceed it (uncited). Before 2026-10-20
+# this was a hand-picked 0.0622 R^-0.2 (regime-III numerator, no 1/2): 1.65x high at s/a 0.05.
+DISK_CM_REGIME_IV = 0.102  # [SP-290 eq. 8-16]
+DISK_GAP_RATIO = 0.05      # s/a, axial shroud-casing gap / rim radius - Tier 3, uncited; inside
+                           # eq. 8-22's 0.025-0.12 (0.02-0.10 moves the K_HYD fit < 0.002 rms)
+DISK_CM_COEFF = 0.5 * DISK_CM_REGIME_IV * DISK_GAP_RATIO ** 0.1   # ~0.0378, both faces, 1/2 in
+# Throughflow: M/M0 = 1 + 13.9 K0 T / (s/a)^(1/8), T = (Q / w a^3) R^(1/5), K0 ~0.45 for s/a
+# 0.025-0.12 [SP-290 Ch.8 eq. 8-17-8-22 p.237-238] - applied to the FRONT shroud face only,
+# with Q = the wear-ring leakage that recirculates through that gap; the back face stays smooth.
+# Without it the SP-8109 Fig. 6 small/low-Ns grid misses by 11 pts (validate PUMP MEANLINE (d)).
+DISK_THROUGHFLOW_C = 13.9
+DISK_THROUGHFLOW_K0 = 0.45
 MECH_LOSS_AT_1IN = 0.15    # seal+bearing power: "may be as high as 20 %" at 1 in (an upper
                            # bound; 15 % nominal), negligible at >= 10 in
 MECH_LOSS_EXPONENT = 1.3   #   [SP-8109 §2.2 p.8] -> 1 % at 10 in (Tier 2)
@@ -85,8 +100,9 @@ MECH_LOSS_EXPONENT = 1.3   #   [SP-8109 §2.2 p.8] -> 1 % at 10 in (Tier 2)
 # (Ns, points at Ss 10,000, points per decade of Ss) - read from Fig. 9 (straight in log Ss)
 SS_PENALTY_TABLE = ((500.0, 0.05, 1.6), (1000.0, 0.2, 3.1), (2000.0, 0.4, 6.0),
                     (3000.0, 1.0, 8.5), (4000.0, 1.3, 11.2))
-K_HYD = 1.76               # calibrated hydraulic-loss multiplier: least squares on
-                           # CENTRIFUGAL_ANCHORS (rms 0.031, Round 2 fit) - Tier 2
+K_HYD = 1.79               # calibrated hydraulic-loss multiplier: least squares on
+                           # CENTRIFUGAL_ANCHORS (rms 0.035; refit_k_hyd(), 2026-10-20 with
+                           # the SP-290 disk friction; was 1.76 / rms 0.031) - Tier 2
 
 # --- centrifugal: volute / diffuser geometry (drawing + checks) ----------------
 TONGUE_RADIUS_RATIO = 1.05             # tongue 5-10 % beyond r2 [Huzel p.220]; >1.05 r4 [SP-8109]
@@ -407,7 +423,9 @@ def centrifugal_stage(q_m3s, h_stage_m, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, *
     p_useful = rho * G * q_m3s * h_stage_m
     p_th = rho * G * q_imp * h_th
     re_d = omega * r2 * r2 / nu_kin
-    p_df = DISK_CM_COEFF * re_d ** -0.2 * rho * omega ** 3 * r2 ** 5
+    t_thru = q_leak / (omega * r2 ** 3) * re_d ** 0.2
+    f_thru = 1.0 + DISK_THROUGHFLOW_C * DISK_THROUGHFLOW_K0 * t_thru / DISK_GAP_RATIO ** 0.125
+    p_df = DISK_CM_COEFF * re_d ** -0.2 * rho * omega ** 3 * r2 ** 5 * (1.0 + f_thru) / 2.0
     eta_m = _mech_eta(d2)
     p_shaft = (p_th + p_df) / eta_m
     eta = p_useful / p_shaft
@@ -450,7 +468,8 @@ def centrifugal_stage(q_m3s, h_stage_m, n_rpm, u2_m_s, beta2_deg, rho, nu_kin, *
         "alpha2_deg": math.degrees(math.atan2(res["cm2"], res["cu2"])),
         "w2_over_w1": res["w2"] / res["w1"], "cm2_over_cm1": cm_ratio,
         "eta_h": eta_h, "eta_v": q_m3s / q_imp, "eta_m": eta_m,
-        "disk_friction_fraction": p_df / p_shaft, "ss_penalty_pts": pen * 100.0,
+        "disk_friction_fraction": p_df / p_shaft, "disk_reynolds": re_d,
+        "disk_throughflow_factor": f_thru, "ss_penalty_pts": pen * 100.0,
         "eta": eta_after_ss, "p_shaft_w": p_shaft_final, "p_useful_w": p_useful,
         "loss_power_w": loss_power, "diffuser": diffuser, "seal_clearance_m": seal_c,
         "warnings": warnings,
@@ -775,6 +794,21 @@ def fit_report(k_hyd=None, k_ax=None):
     return rows, ok
 
 
+def refit_k_hyd(lo=1.0, hi=2.5, step=0.01):
+    """Least-squares K_HYD over CENTRIFUGAL_ANCHORS by grid scan -> (k, rms of eta - real).
+    Clears design_centrifugal's exact-arg cache first: it keys on k_hyd but NOT on the module
+    constants, so a constant changed in-process would otherwise return stale designs."""
+    design_centrifugal.cache_clear()
+    best = None
+    for i in range(int(round((hi - lo) / step)) + 1):
+        k = round(lo + i * step, 6)
+        sq = [(centrifugal_anchor_eta(row, k)[0] - row[11]) ** 2 for row in CENTRIFUGAL_ANCHORS]
+        rms = math.sqrt(sum(sq) / len(sq))
+        if best is None or rms < best[1]:
+            best = (k, rms)
+    return best
+
+
 if __name__ == "__main__":
     # 1. eq. 17 reproduces the SP-8109 Fig. 16 carpet (eta_h 0.82, delta 0.65)
     carpet = ((6, 25.0, 0.101, 0.477), (8, 20.0, 0.062, 0.567), (12, 30.0, 0.089, 0.605),
@@ -793,13 +827,19 @@ if __name__ == "__main__":
     for name, eta, real, d, good in rows:
         print(f"{name:<22} {eta:6.3f} {real:6.3f} {d:+7.3f} {'ok' if good else 'FAIL'}")
     assert ok, "meanline anchor fit out of tolerance"
+    k_fit, rms_fit = refit_k_hyd()
+    print(f"K_HYD {K_HYD} vs least-squares refit {k_fit} (rms {rms_fit:.4f})")
+    assert abs(k_fit - K_HYD) <= 0.01 + 1e-9, "K_HYD is off its fit - update it to refit_k_hyd()"
     # 4. directions: more blades -> steeper H-Q; radial droops, backswept rises to shutoff
     _, f1 = centrifugal_anchor_eta(CENTRIFUGAL_ANCHORS[0])
     s = f1["stage"]
     print(f"F-1 LOX meanline: z {s['z']} phi2 {s['phi2']:.3f} b2/D2 {s['b2_m'] / s['d2_m']:.3f} "
           f"eta_h {s['eta_h']:.3f} eta_v {s['eta_v']:.3f} eta_m {s['eta_m']:.3f} "
-          f"disk {s['disk_friction_fraction']:.3f} shutoff {f1['hq']['shutoff_ratio']:.2f}")
+          f"disk {s['disk_friction_fraction']:.3f} (throughflow x{s['disk_throughflow_factor']:.2f} "
+          f"front face) shutoff {f1['hq']['shutoff_ratio']:.2f}")
     assert f1["hq"]["shutoff_ratio"] > 1.05
+    # Daily-Nece regime IV holds: disk R above the III->IV crossover [SP-290 Fig. 8-9; derived]
+    assert s["disk_reynolds"] > 0.0077 * DISK_GAP_RATIO ** (-16.0 / 3.0)
     # outlet width vs the real impellers [SP-8109 Table I] - not fitted, a prediction
     for name, real in TABLE_I_B2_OVER_D2.items():
         row = next(r for r in CENTRIFUGAL_ANCHORS if r[0] == name)
