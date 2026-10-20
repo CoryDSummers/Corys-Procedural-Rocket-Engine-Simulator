@@ -76,7 +76,9 @@ TAP_HOT_T_FRACTION = 0.890
 # little enthalpy that the tap flow runs away.
 TAP_OFF_TIN_MIN_K = 600.0
 # Pairs whose tap-off defaults to the mixer model ("auto"): the hydrocarbons, per the STBE
-# precedent. LOX/LH2 stays legacy until a J-2S tap-off gas source is in hand (OPEN_QUESTIONS);
+# precedent. LOX/LH2 stays legacy for now: the J-2S source is in hand (~900 K rated / ~700 K
+# throttled [J2S-Restart], turbine inlet 0.74 x Pc [SP-8110 Table I], cold-H2 dilution
+# [Vilja-J2S]), but its hot-tap split is not, so it waits on lit-batch Round 7;
 # storables have no tap-off precedent at all.
 MIXER_PAIRS = ("LOX/CH4", "LOX/RP-1", "LOX/RP-1 (subcooled)")
 TAP_OFF_MODELS = ("auto", "mixer", "legacy")

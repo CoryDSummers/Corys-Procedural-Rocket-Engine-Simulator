@@ -96,7 +96,7 @@ def run_two_pass_cooling_check():
       (3) jacket dP rises monotonically as the inlet moves upstream (a longer
           down pass through the 1/3-circumference down tubes);
       (4) at the default inlet the J-2 lands in a plausible jacket dP band
-          [0.2, 5.0] MPa with LH2 dT under cooling.MAX_COOLANT_DELTA_T_K, and
+          [0.2, 10.0] MPa with LH2 dT under cooling.MAX_COOLANT_DELTA_T_K, and
           the mid-nozzle inlet ring runs at the down-tube velocity (~3x the
           single-pass passage velocity at that station).
     """

@@ -44,7 +44,11 @@ LINE_LOSS_PA = 0.5e6
 # chains are pinned separately (validate: pump pressure-chain checks).
 FEED_LOSS_OVER_PC = {"fuel": 0.1835, "ox": 0.2265}
 FEED_LOSS_SCALED_CYCLES = ("gas_generator", "tap_off")
-TANK_HEAD_PA = 0.3e6           # slight positive tank head, subtracted from required pump dP
+TANK_HEAD_PA = 0.3e6           # slight positive tank head, subtracted from required pump dP.
+                               # Real anchors bracket it: X-34 Fastrac stage LOX ullage 448 kPa,
+                               # RP-1 345 kPa blowing down to 179 kPa [X34-MPS p.5-6]; J-2S
+                               # duct inlet fuel 207 / ox 269 kPa, start box fuel 27-40 psia
+                               # (186-276 kPa) / ox 33-45 psia (228-310 kPa) [J2S-Boeing69]
 # Pump efficiency used to be two flat constants here (0.72/0.75) - now a per-design
 # choice (EngineDesign.eta_pump_fuel/eta_pump_ox, suggested by physics/turbopump_tech.py's
 # tier catalog) since real RO configs never expose distinct pump fields anyway (it's always
@@ -66,11 +70,14 @@ EXPANDER_TURBINE_PR = 1.4            # ACTUAL expander turbine PR (RL10 1.42) - 
 # turbine-inlet temperature. These used to be three globals (1050 K / 2100 / 1.13)
 # calibrated only to fuel-rich LOX/RP-1 gas - applying them to LOX/LH2 (whose
 # fuel-rich GG gas is hydrogen-rich, ~4x the cp) over-predicted GG bleed flow ~5x.
-#   LOX/RP-1  - unchanged 1050 K / 2100 / 1.13. Reproduces F-1 (~3.0%) and RD-0110
+#   LOX/RP-1  - tin_k 1050 K; cp/gamma 2735 / 1.126 from [SP-8110 Table III] since
+#               Round 0 (see the row's comment). Reproduces F-1 (~3.0%) and RD-0110
 #               (4.2%, [KBKhA Table 2]: 3.97 of 93.8 kg/s) GG bleed fractions.
 #   LOX/LH2   - H2-rich gas at GG MR ~0.9 (~47% H2 / ~53% H2O by mass -> cp ~8000,
 #               gamma ~1.36); tin_k = J-2 fuel-turbine inlet 1200 F = 922 K
-#               ([SP-8107 Table III], claude_lit/sources/nasa-sp8107). Spot-checked
+#               ([SP-8107 Table III], claude_lit/sources/nasa-sp8107), under the
+#               J-2 mainstage redline of 1,450 +-50 F = 1,061 K [J2-Man Fig 2-20
+#               sh.3]. Spot-checked
 #               in validate.py against the J-2 GG bleed and the [SP-8107 Table VI]
 #               GG Isp-loss band (1/3-1% at 1000 psia, proportional to Pc).
 #   storables - documented ENGINEERING ESTIMATE, not spot-checked (no storable GG
@@ -131,6 +138,12 @@ TAP_OFF_DUMP_ISP_FRACTION = 0.80
 # ([SP-8107]: "tapped near injector face where gas is relatively cool"). tin_k =
 # min(Tc * TAP_OFF_TEMP_FRACTION, TAP_OFF_TURBINE_LIMIT_K); cp/gamma from the real
 # combustion state (combustion.mixture_cp_j_kgk), NOT the fuel-rich GG_GAS_PROPERTIES.
+# Both legacy constants are UNSOURCED (Tier 3), and the one real LOX/LH2 tap-off
+# contradicts the scheme: the J-2S fuel turbine ran 1,200 F = 922 K at 889 psia, i.e.
+# 0.74 x its 1,200 psi Pc [SP-8110 Table I] (vs 0.855 here); its tap-off gas was
+# ~900 K at rated thrust, falling to ~700 K throttled [J2S-Restart], reached by
+# diluting chamber gas with extra cold H2 [Vilja-J2S] - a mixer, not a cooled tap.
+# The LOX/LH2 mixer is lit-batch Round 7 (plans/2026-10-18_lit_batch_followups.md).
 TAP_OFF_TEMP_FRACTION = 0.55
 TAP_OFF_TURBINE_LIMIT_K = 1150.0
 TAP_OFF_PRESSURE_RATIO = 18.0      # "slightly < GG" ([SP-8107 Table VI]); GG is 22. A CAP since

@@ -49,7 +49,10 @@ from .propellant_pairs import alias_variants
 # turbine-limited preburner.
 #   LOX/LH2 tin_k = 1113 K: SSME HPFTP turbine gas "~840 C / 1550 F H2-rich"
 #     [ch12-materials] (claude_lit/sources/ch12-materials-liquid-propulsion.md).
-#     SOURCED. (Was 950 K, an estimate.) cp/gamma remain Tier-3 estimates.
+#     SOURCED. (Was 950 K, an estimate.) It also sits on the LOX/LH2 fuel-rich
+#     Tin-vs-MR curve [CR135356-Preburner Fig. 111 p.165] at MR ~0.83-0.85
+#     (~904 K at 0.6, ~1280 K at 1.0; that report's own design point is 1053 K
+#     at MR 0.82 with 239 K fuel [Table 2 p.7]). cp/gamma remain Tier-3 estimates.
 #   everything else: Tier-3 estimates (unchanged).
 PREBURNER_GAS_PROPERTIES = {
     "LOX/LH2":         dict(tin_k=1113.0, cp=8500.0, gamma=1.37),

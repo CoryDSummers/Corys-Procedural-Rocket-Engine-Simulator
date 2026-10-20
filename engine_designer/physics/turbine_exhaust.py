@@ -130,6 +130,11 @@ EXHAUST_THRUST_EFFICIENCY = 0.868
 # ([H1-Man]/[F1-Man] describe the hardware, not a flow rate); the corpus F-1
 # uses 4 lb/s [F1-Man Fig 3-29]'s own test-evaluation input, not a derived
 # design flow.
+# Second anchors (not used to set the value): the S-II J-2 boils LOX in one coil at
+# 0.8-3.0 lb/s, out at 178-500 K (EMR 5.5) [J2-Man §2.1.9 Fig 2-14A]; the J-2S GOX
+# exchanger's design point is 361 K at 2 lb/s, envelope 208-608 K over 1-3 lb/s,
+# 600 K max [J2S-Boeing69 pp.4-18..4-25]. Both bracket the F-1's 516 K. Neither gives
+# a size, coil area or weight.
 LOX_TO_GOX_DH_J_KG = 6.0e5
 # Helium-coil pressurant heat exchanger (F-1 only source in claude_lit: BOTH
 # a LOX coil AND a He coil share one shell [F1-Man §1-71/1-72]) - real
@@ -137,7 +142,10 @@ LOX_TO_GOX_DH_J_KG = 6.0e5
 # 5,193 J/kg-K (He has no meaningful real-gas departure at this pressure/
 # temperature - CoolProp gives 1.75e6 J/kg, 1% off the ideal value below).
 # Tier 2, same anchor tier as the LOX coil. Allowed on ANY propellant pair
-# (helium is a pressurant, not tied to the propellants).
+# (helium is a pressurant, not tied to the propellants). Second anchors: the S-IVB
+# J-2 heats cold He (-410 F in) in two coils at 0.05-0.34 lb/s to 172-644 K
+# [J2-Man §2.1.9 Fig 2-13]; the J-2S He coil (22 K in) reaches 308-672 K over the
+# same flow range [J2S-Boeing69 Fig. 4.0-15]. Both bracket the F-1's 397 K.
 HE_HX_DH_J_KG = 5193.0 * (397.0 - 63.0)
 # Warn when the heat exchanger chills the exhaust below this: fuel-rich
 # hydrocarbon exhaust starts condensing heavy species / water well above
