@@ -220,6 +220,33 @@ Inconel-X 0.018 in tube wall, 2-pass `[SP-8087 Table I/III]`; J-2 and RL10 1½-p
 0.45 in, 100 psi; RL10B-2 253 psi `[Sutton Table 8-1 p.273]`; generic throat coolant
 velocity 6-24 m/s `[Sutton §8.3 p.292]`.
 
+**Measured RL10A-3-3A jacket boundary states** `[RL10-ROCETS Tables 1-5 pp.6-7, Fig. 1 p.8]`.
+These are five P&W test points, Pc 472-477 psia, MR 4.67-5.63.
+- Coolant inlet: tank LH2 21.4 K / 186 kPa; fuel pump discharge 7.3-7.9 MPa.
+- Jacket exit (cavitating-venturi inlet): 5.52-5.94 MPa at 205-244 K, taken as the turbine-inlet
+  temperature.
+- Pump discharge minus venturi inlet is **1.79-1.95 MPa (260-282 psi, 0.55-0.59 × Pc)**. That
+  span includes a calibrated orifice and the inlet manifold, so the real jacket ΔP is at most
+  ≈1.8-1.95 MPa. It agrees with Sutton's 253 psi for the RL10B-2.
+- No tube count or throat flux is given; P&W FR-15876, the RL10A-3-3A design report, would have
+  them (not held).
+- The report's own transient Bartz + Colburn 5-node jacket model missed turbine-inlet temperature
+  by up to **7 %**, vs 3 % for P&W's empirical heat-transfer map `[p.3]`. That is a real measure
+  of how accurate a Bartz/Colburn expander jacket model can be.
+
+**J-2 jacket-exit GH2 state** `[J2-Man Fig. 2-15/15A/15B p.2-31..2-34D, Fig. 3-32 sh.14,
+Fig. 3-71]`. This was measured at the tank-pressurization tap on the **forward fuel manifold**,
+which is the jacket outlet / injector feed:
+- −232 to −340 °F (67-127 K): 95-127 K at EMR 5.5, 78-111 K at EMR 4.8.
+- Zero-flow pressure 790-925 psia (5.4-6.4 MPa) at EMR 5.5, against Pc ≈787 psia.
+- So the fluid entering the J-2 injector is ≈100 K supercritical hydrogen gas, not liquid.
+
+**Preburner-gas injection raises chamber heat load** `[CR135356-Preburner p.200]`. A
+hot-preburner-gas main injector gave ≈40 % more chamber heat input than an ambient-GH2 injector.
+About 18 % is explained by calculable effects; the rest is attributed to injector turbulence
+and earlier combustion. A staged-combustion chamber should expect more flux than Bartz on
+cold-fuel properties gives.
+
 **Real heat-flux anchors, J-2-class vs. SSME design point** `[Wieseneck-J2 p.6, 12]`: current
 (~1970) O2/H2 engines (J-2, J-2S, M-1) run **17-35 Btu/in²·sec**; the Space Shuttle Main
 Engine design point is **72 Btu/in²·sec at 3000 psia Pc** ("four times as high" as J-2) —
@@ -383,7 +410,13 @@ propellant flow (uncoated 304 SS wall, 2000 °R flame-side limit); 6.9 % with 0.
   `[TN-Dump]` shows a real regen-style jacket ΔP of ~90–140 psi (0.6–1.0 MPa) for a small
   low-Pc engine; 1.6 MPa for a full-size high-Pc regen jacket is reasonable. `[Sutton
   Table 8-1]`: real jacket ΔP 100 psi (RS-27), 253 psi (RL10B-2), 540 psi (LE-7) — i.e.
-  0.7–3.7 MPa, so 1.6 MPa is mid-range. (The unsourced film 0.2 fraction was retired
+  0.7–3.7 MPa, so 1.6 MPa is mid-range.
+  - **Channels-mode LH2 over-prediction now has a measured bound.** The real RL10A-3-3A jacket
+    ΔP is ≤1.8-1.95 MPa `[RL10-ROCETS]`. The tool's channels-mode RL10 value of 12.1 MPa is ≥6×
+    too high (OPEN_QUESTIONS, channels-mode LH2 item).
+  - The `cooling_flux.py` RL10 validation band (0.5-8 MPa) is wider than the real bound.
+  - Report-only, no code changed.
+  - (The unsourced film 0.2 fraction was retired
   2026-09-23 — film stopped being a section method; see `topics/06b-cooling-methods-and-
   chemistry.md`'s film-overlay bullet.)
 - **`cooling_transition_eps` default 6.0**: directly `[Sutton §8.2 p.286]` — "radiation

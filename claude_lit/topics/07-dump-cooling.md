@@ -181,7 +181,25 @@ GOX-pressurization heat exchanger above (and Titan I's oxidizer superheater), no
 example, corroborating that a turbine-exhaust-duct heat exchanger for tank pressurization is a
 common feature across engine families, not a one-off — worth flagging as a possible future
 `turbine_exhaust.py` feature idea (a pressurization-gas heat-pickup mode) if that module is
-ever extended, though no citation exists yet for sizing one.
+ever extended, though no citation exists yet for sizing one. (Since 2026-09-25 the F-1's
+LOX + helium exchanger is modelled; see `[F1-Man]` above.)
+- **Correction (2026-10-18): the J-2 exchanger is NOT LOX-only. It depends on the stage**
+  `[J2-Man §2.1.9, Figs. 2-13/2-14A]`:
+  - **S-IVB:** two helium coils, 0.023-0.15 kg/s (0.05-0.34 lb/s), ≈−410 °F (27 K) in, up to
+    700 °F (644 K) out.
+  - **S-II:** one LOX boiler coil with a 0.184 in orifice, 0.36-1.36 kg/s (0.8-3.0 lb/s), out at
+    −298 to +440 °F (90-500 K), up to 1,175 psia.
+  - These are real second anchors for `turbine_exhaust.LOX_TO_GOX_DH_J_KG` / `HE_HX_DH_J_KG`
+    beside the F-1. Size and weight are still not given.
+- **J-2S:** the ox-tank repressurization exchanger sits in the ox-turbine exhaust duct
+  `[J2S-Restart leaf 167]`. Its 1968 spec envelopes `[J2S-Boeing69 pp.4-18..4-24, p.10-103]`:
+  - GOX design point 190 °F (361 K) at 2 lb/s (0.91 kg/s). Outlet ≈185-635 °F at 1 lb/s and
+    ≈−85 to 210 °F at 3 lb/s.
+  - Helium coil: 350 psia, 40 °R (22 K) helium at 0.05-0.34 lb/s, delivered at 95-750 °F.
+  - GOX outlet limits: 1,700 psia / 620 °F on the J-2S vs 1,100 psia / 440 °F on the J-2.
+  - The LOX turbopump exhaust hood is at ≈730 °F (661 K) at cutoff, vs 675 °F on the J-2
+    `[p.10-142]`.
+  - Still no exchanger weight or coil area.
 
 ## Caveats
 

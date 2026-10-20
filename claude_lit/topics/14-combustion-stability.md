@@ -149,6 +149,41 @@ tradeoffs at much finer granularity than `[Sutton]`'s Table 9-2 boundary data:
   hardware than a fuel-oxidizer-fuel triplet — a real materials/durability caution tied to
   triplet orientation, not just a stability one.
 
+**Hydrolox coaxial screech boundary vs Pc, flow per element and contraction ratio**
+`[TN-D4733]`. This is the primary source behind the 4.4 parameter above, from the same NASA Lewis
+program and a 10.77 in (27.36 cm) chamber. Stability is rated by the H2 injection temperature
+at the transition to screech: warmer, less dense H2 is more stable.
+- **The exact correlating parameter** `[TN-D4733 p.26-28, Figs. 14-15]`:
+  - W = (2g·ΔP_H/ρ_H)^½ · ρ_O · D_O^1.25 · (O/F)^−½.
+  - Stable above **4.4 lbm/(s·in^0.75)**, ≈31.4 kg/(s·m^0.75) (derived conversion; it agrees
+    with the figure's dual axis).
+  - Scatter is 9 % on this data and 17.5 % on the earlier data.
+  - It is an H2-injector-stiffness term times an O2-jet term: a denser or larger O2 jet also
+    helps.
+- **Transition H2 temperature scales as (Pc/ΔP_H)^½** `[eq. 2 p.33]`. The authors call H2
+  injector stiffness "the real determinant of the screech boundary".
+- **Pc alone does not move the boundary.** Throttling a fixed injector over 125-380 psia
+  (0.86-2.6 MPa) left it at ≈78 K (140 °R) at O/F 5 `[p.18, Figs. 6-8]`.
+- **Contraction ratio acts only through flow and ΔP_H.** CR 4.5 put the transition at 133 K
+  (240 °R) vs 66 K (118 °R) at CR 1.5. But CR "does not appear independently" in the
+  correlation `[p.33]`. Design rule: a larger throat at lower Pc for the same thrust is more
+  stable `[p.33]`.
+- **Real 1T/2T frequencies:** 1T calculated at 3000-3500 Hz and 2T at 5500-6000 Hz, at Pc
+  135-200 psia `[p.21]`. That implies a sound speed of ≈1400-1630 m/s (derived), which can
+  spot-check the `0.59·a/dc` estimate below.
+- **LOX temperature:** warming LOX from 78 to 133 K raised the transition ≈28 K `[p.21, Fig. 9]`.
+- **H2 densities at the boundary:** ≈3-10.5 kg/m³ at ~300 psia, over 61-197 K injection
+  temperatures `[Figs. 17-18]`.
+- **c\* cost of high CR:** CR 4.5 ran ≈94 % c\* efficiency, ≈5 points below CR 1.5/1.9. At
+  constant flow per element the CR-3.0 penalty was within data accuracy, so it is an injection-
+  velocity effect, not a CR effect `[p.24-26, Fig. 13]`.
+
+**Staged-combustion main-chamber cavities** `[CR135356-Preburner p.46, p.154, leaf 78]`
+(20 klbf LOX/LH2):
+- six quarter-wave cavities (11 % open area, 15.5 mm deep) tuned to the 1T mode at ≈16 kHz;
+- preburner oscillations under 4 % of Pc;
+- a chug power-transmission factor of 0.41 relative to the SSME.
+
 **Real complete Helmholtz-liner design geometry, applied to a real 750 Klbf engine**
 `[STBE-PW leaf 159, Table 4.1.2.4-2]`: a full applied design point complementing
 `[Sutton eq. 9-2]`'s general formula and `[NASA-TN-Acoustic]`'s parametric absorption-
@@ -263,6 +298,14 @@ with confidence" — stability testing, not calculation, closed the loop.
 - **`practical_min_throttle`** (demonstrated deep-throttle ability, separate from hydraulic
   stability): supported by `[Sutton §8.5]` — fixed-area injectors can't throttle deep;
   variable-area (pintle) injectors hold Δp across the range (LEM descent engine, 10:1).
+- **`injectors.min_stable_dp_ratio` (ASSUMPTIONS.md ~209)** has acoustic as well as chug
+  backing for its *direction*. In `[TN-D4733]`, higher H2-side ΔP/Pc is more screech-stable on
+  hydrolox coaxial injectors. Its transition rows sit at ΔP_H/Pc ≈10-12 % at CR 1.5-1.9 and
+  ≈3.5-4.7 % at CR 3.0-4.5 (derived from Table II). The limit combines ΔP_H, H2 temperature, O2
+  density and orifice size, so those rows do not back the coaxial 0.10 value as a number. If
+  acoustic screening is ever added for hydrolox, the `[TN-D4733]` parameter W ≥ 4.4 is the
+  ready-made criterion. It needs element D_O, ΔP_H, ρ_H at injection temperature, and O/F, all
+  of which `injectors.py` already derives.
 - **Acoustic modelling is not present** — if added, `[Huzel Fig 4-59]` (mode frequencies)
   and `[Sutton Table 9-2]` (frequency bands) are the starting point; a design could warn if
   the estimated first tangential frequency `0.59·a_e/dc` falls in a range that historically

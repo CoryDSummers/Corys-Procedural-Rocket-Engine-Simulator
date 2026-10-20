@@ -132,7 +132,9 @@ per firing) `[AEDC-J2S §4.2, leaf 17–19]`:
 
 Nominal design MR at main stage is 5.5 (null propellant-utilization-valve position ≈5.0 in
 these particular tests per text) — real test MRs cluster 4.6–5.1, i.e. these particular
-firings ran fuel-rich of the 5.5 design point. **Caveat on the Pc column**: 1182–1279 psia is
+firings ran fuel-rich of the 5.5 design point. **(Resolved 2026-10-18:** the J-2S rated Pc is
+1,200 psi `[Vilja-J2S p.1]`. "~700–850 psia" is the J-2's figure, so this Pc column is
+consistent. The original caveat is kept below for history.) **Caveat on the Pc column**: 1182–1279 psia is
 notably higher than the ~700–850 psia chamber pressure typically cited for J-2/J-2S in
 secondary literature; this note does not know whether the report's "PC-2P" tap is true
 nozzle-stagnation chamber pressure or a higher-pressure tap nearer the injector face (a

@@ -265,6 +265,17 @@ fraction.
 V_fuel = 9500 in/s (790 ft/s), injection momentum ratio Rm = (285.2·89.6)/(54.5·790) ≈ 0.6.
 Note the fuel is injected ~9× faster than the oxidizer here (heavily fuel-rich GG).
 
+**RL10A-3-3A measured injector ΔP** `[RL10-ROCETS Tables 1-5]`, derived from the manifold
+pressures and Pc. The fuel side runs 13-14 % of Pc on warm GH2, with the fuel manifold at
+3.68-3.75 MPa. The LOX side runs 11-13 % of Pc. Both are just under the 15-20 % rule, on a
+flight expander engine.
+
+**J-2S coaxial injector ΔP/Pc vs power** `[J2S-Restart leaves 179-182]`:
+- At rated: LOX ≈17 %, fuel ≈11 %.
+- At 10:1: LOX falls to ≈1.8 %, fuel rises to ≈14 %.
+- 3 % LOX was tested stable at 6:1, against a 5 % rule of thumb.
+See topic 15 for the deep-throttle discussion.
+
 ## Caveats
 
 - "15–20 % of Pc" is a rule of thumb for the *nominal* operating point; real engines run

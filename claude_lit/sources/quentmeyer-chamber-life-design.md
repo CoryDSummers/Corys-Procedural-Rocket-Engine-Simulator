@@ -54,7 +54,10 @@ finite beyond a generic "thermal cycling" statement.
 rocket rig (LOX/GH2, uncontoured cylindrical chamber, water-cooled centerbody forming the
 throat) ran a **throat heat flux of ~97.1 MW/m² (33 Btu/in²·sec) at Pc = 4.14 MPa
 (600 psia)**, with plans (as of 1990) to raise it to **250 MW/m² (85 Btu/in²·sec) at
-Pc = 13.8 MPa (2000 psia)**. Thermal-cycling capability: the chamber (separately LH2-cooled)
+Pc = 13.8 MPa (2000 psia)**. (Both pairs are verbatim from the source, but its own SI/imperial
+conversions disagree. 33 Btu/in²·s = 54 MW/m², and 85 Btu/in²·s = 139 MW/m². The same rig's
+throat runs 54-57 MW/m² in `[Quentmeyer-TMX73665]` and `[Quentmeyer-78-1034 Table II]`, so the
+Btu figures are the ones to trust. Flagged 2026-10-18.) Thermal-cycling capability: the chamber (separately LH2-cooled)
 can cycle from **28 K to a throat wall temperature of 800 K and back to LH2 temperature in
 3.5 sec** — i.e. this rig is purpose-built for rapid low-cycle-fatigue screening, not steady
 long-duration firing. Useful as a real reference heat-flux/Pc anchor point distinct from the

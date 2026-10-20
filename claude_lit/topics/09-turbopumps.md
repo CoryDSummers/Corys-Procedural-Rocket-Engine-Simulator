@@ -216,43 +216,9 @@ open item if ever needed.
 
 ## Real component data & design criteria (SP-8052 / 8110 / 8121 / 8125 / 8101 batch, 2026-09-26)
 
-**Turbines — fleet data, all total-to-static** `[SP-8110 Table I p.10]`:
-
-| Engine | Type | hp | rpm | Dm in | U ft/s | Tt1 °F | PR | U/C0 | η |
-|---|---|---|---|---|---|---|---|---|---|
-| F-1 | 2-row VC | 54,359 | 5,490 | 34.9 | 840 | 1550 | 16.3 | 0.20 | 60.5 % |
-| H-1 (geared) | 2-stage PC | 4,007 | 32,800 | 9.0 | 1290 | 1200 | 17.7 | 0.42 | 62.5 % |
-| J-2 fuel | 2-row VC | 8,749 | 26,052 | 12.5 | 1448 | 1200 | 6.35 | 0.18 | 60.1 % |
-| J-2 ox | 2-row VC | 2,604 | 8,650 | 15.5 | 585 | 740 | 3.16 | 0.11 | 48.4 % |
-| Atlas sustainer | 2-stage PC | 1,680 | 38,000 | 6.0 | 995 | 1075 | 25 | 0.39 | 46.3 % |
-| M-1 fuel | 2-row VC | 74,138 | 12,961 | 23.2 | 1310 | 1000 | 3.87 | 0.19 | 65.0 % |
-| RL10 A3-3 | 2-stage PC | 660 | 28,670 | 5.9 | 738 | −88 | 1.42 | 0.35 | 74.0 % |
-
-- **Staging is chosen by the ACHIEVABLE U/C0, not by propellant** `[SP-8110 §3.1.4 p.83]`:
-  - reaction above ~0.45
-  - single-row impulse / pressure-compounded at ~0.30–0.45
-  - 2-row velocity-compounded at ~0.20–0.30
-  - below ~0.15, one or two more rows are worth +10 / +23 points
-
-  U is capped by stress (fleet pitchline 1000–1500 ft/s). On a DIRECT-DRIVE shaft U is also
-  capped by the pump shaft speed × a practical wheel size. That is why the slow F-1 (5,490 rpm)
-  lands at 0.20, while the H-1's turbine is geared to 32,800 rpm and reaches 0.42.
-  `[SP-8101 p.3]`: the H-1 and RL10 turbopumps are geared.
-- **Idealized η vs U/C0 peaks** `[SP-8110 Fig 13 p.17]`: 1-row ~80 % at 0.42, 2-row ~69 % at
-  0.23, 3-row ~54 % at 0.13. Real hardware runs 5–10 points lower.
-- **Loss correlation** `[SP-8110 Fig 55]`: the 2-row VC η multiplier vs blade-size ratio
-  Dm/An (shrouded ≈ 1.076 − 0.0455·Dm/An). The monograph's worked example reproduces the J-2
-  fuel turbine's 60.1 %.
-- **Frozen turbine-gas properties** `[SP-8110 Table III p.16]`: LOX/RP-1 at 1300 / 1500 °F has
-  cp 0.648 / 0.656 Btu/lb·°R (≈ 2,710 / 2,750 J/kg·K) and γ 1.115 / 1.132. LOX/LH2 at
-  1200 °F has cp 1.91 Btu/lb·°R (≈ 8,000), γ 1.364.
-- **Structural criteria** `[SP-8110 §3.5-3.6]`:
-  - design speed 1.10× max
-  - burst ≥ 120 %, yield ≥ 105 %
-  - blades ±15 % off resonance; rotor ±20 % off criticals
-- **H-1 turbine η disagreement.** [SP-8110] gives 62.5 % T-S. [SP-8107 Table III] gives
-  70.2 % and [H1-Man Fig 1-47] 69.6 % for the same Mark 3 turbine. Unresolved; see
-  OPEN_QUESTIONS.
+**Turbines** — the SP-8110 fleet table, staging-by-U/C0 rule, loss correlations and the H-1
+η disagreement moved to **`09b-turbines.md`** on 2026-10-18, together with `[SP-290]`'s
+efficiency bookkeeping, partial-admission, tip-clearance and disk-friction correlations.
 
 **Inducers** `[SP-8052 Table I p.4]` (Ss measured in water at 10 % head drop):
 
@@ -326,7 +292,29 @@ open item if ever needed.
   - the purge must exceed the maximum drain back-pressure and come from a supply that cannot
     fail
   - F-1 and H-1 use a GN2 purge; hydrogen systems use helium only
-  - **No purge flow rates are given** (gap: OPEN_QUESTIONS)
+  - SP-8121 gives no purge flow rates. **One real design point** is the X-34 Fastrac
+    (single-shaft LOX/RP-1) inter-propellant-seal helium purge `[X34-MPS p.7-8, Figs. 13-14]`:
+    - ≈6.8 kg (15 lbm) total, ≈2 g/s steady (derived from the Fig. 13 slope);
+    - 5.03 MPa (730 psia) at the engine interface, regulated from 6.21 MPa (900 psia);
+    - flowing ~900 s before start, whenever propellant reaches the engine.
+    It has no seal geometry, so it is not yet scalable.
+  - **J-2 (LOX/LH2) purge envelope** `[J2-Man Figs. 2-1..2-4, §2.1.8]`:
+    - LOX-turbopump intermediate-seal helium at ≥600 psia, 2,600-7,000 SCIM (≈0.12-0.32 g/s,
+      derived);
+    - turbopump/GG purge 6 SCFM at 82-130 psia;
+    - ox-dome purge 230 SCFM;
+    - thrust-chamber jacket pre-chill 4.5-11 kg/min (10-25 lb/min) of helium at −420 to −300 °F.
+    The two engines together bracket a seal purge at ≈0.1-2 g/s.
+  - **J-2 start/inlet limits** `[J2-Man Figs. 2-5, 2-9, 2-20]`: NPSH minimum LOX 26 → 28-31.9 ft,
+    LH2 150 → 155-164 ft. Fuel-pump overspeed cutoff at 29,000 / 28,000 rpm.
+  - **J-2S spec suction requirements** `[J2S-Boeing69 Figs. 4.0-23/24/25, Table 4.0-III, p.10-464]`:
+    - NPSH required: LH2 164 ft (MR 4.5-5.0) rising to 176 ft (MR 5.5); LOX 31.9 rising to
+      42.3 ft. The criterion is ≤4 % head loss. The S-II section quotes 197/216 ft for LH2;
+      which set is current is unresolved.
+    - Engine inlet pressure: fuel 30 psia (207 kPa), oxidizer 39 psia (269 kPa).
+    - Start box: fuel 27-40 psia, oxidizer 33-45 psia. Those are real hydrolox tank-head values
+      to compare with `TANK_HEAD_PA`.
+    - LOX turbopump: 10,500 rpm nominal, 10,870 max, 12,000 overspeed.
 - **Leakage magnitudes:** primary-seal leakage is ~1e-5–1e-4 of pump flow, negligible. The
   real efficiency loss is the pressure-breakdown recirculation bleed.
 - **Relative leakage:** a labyrinth leaks ~5× a floating ring; a stepped labyrinth ~½ a
@@ -463,6 +451,24 @@ Full tables are in the source notes.
     note); F-1 LOX sits at 0.92 of the cap, J-2 LOX 0.88, J-2 LH2 0.86.
   - Still open (OPEN_QUESTIONS): TSH for CH4/N2O4, TSH speed scaling, storable vapor
     pressure, RD-180 boost pressures; the speed a designer CHOOSES below the cap (Round 2).
+  - **Real tank ullage pressures for a small LOX/RP-1 stage** `[X34-MPS p.5-6]`:
+    - LOX 448 ± 21 kPa (65 ± 3 psia).
+    - RP-1 345 ± 21 kPa. Pressurization is cut off at 82 s and the tank blows down to 179 kPa
+      (26 psia) by burnout.
+    - `TANK_HEAD_PA` (0.3 MPa, Tier 3) sits inside that range. It is a fair nominal, not a
+      conservative floor: the real RP-1 tank ends below it.
+    - Ullage-only NPSP is ≈31 m for LOX and ≈43→23 m for RP-1 (derived).
+    - The paper gives no feed-line losses, so `LINE_LOSS_PA` stays uncited. The companion
+      feed-system paper AIAA-98-3517 is not held.
+  - **J-2S Mk-29F fuel pump problems** `[J2S-Restart leaf 59]`: inducer suction and blade
+    fatigue, and pump-end bearing unloading. A cast titanium impeller was proposed for the
+    restart.
+  - **RL10A-3-3A (tank-head start, no boost pumps)** `[RL10-ROCETS p.2, Tables 1-5]`:
+    - Design speed 30,000 rpm fuel / 12,000 rpm LOX through a gearbox. Measured LOX pump speed
+      12,697-13,237 rpm.
+    - Fuel pump discharge 2.25-2.40 × Pc; LOX pump discharge 1.30-1.40 × Pc.
+    - During start the pump dissipates energy below 2,000 rpm with 0.23-0.68 kg/s
+      (0.5-1.5 lbm/s) flowing `[p.4]`.
 - **Bearing DN Tier-3 estimate now has a real citation**: `[SP-8048 §3.1.2]`'s 1.0×10⁶/
   3.0×10⁶ DN bands are noticeably **more permissive** than `turbopump_materials.py`'s current
   flagged-estimate `max_dn_mm_rpm` values (~1.2M–2.4M) — either the tool's numbers are

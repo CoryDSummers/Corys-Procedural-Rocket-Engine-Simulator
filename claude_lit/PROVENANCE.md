@@ -764,3 +764,101 @@ rendered at 90 dpi and read visually.
 - Two pending `ASSUMPTIONS.md` upgrades were added: the `narloy_z` properties and an LCF anchor.
   No engine_designer code changed.
 
+
+---
+
+## 2026-10-18 — 16 new PDFs in `literature/`: 12 distilled, 2 already done, 1 duplicate, 1 skipped
+
+Cory dropped 16 PDFs and asked for a digest under explicit rules:
+- the scanned J-2S Restart slides were to be converted to text with a Python library, reading
+  only the gap-relevant slides;
+- the two huge J-2/J-2S documents and the USAF hydrazine handbook were to be converted to text
+  and read only in the sections that answer `OPEN_QUESTIONS.md` gaps, with every other section
+  logged in the note's Section map as **"as-needed - not read (2026-10-18)"**;
+- the hybrid-propulsion report was to be ignored.
+
+**Method.**
+- Text: pymupdf from the project `v/` venv, one page-marked dump per document.
+- OCR: RapidOCR (`rapidocr` + `onnxruntime`, installed into `v/`; Python 3.14 wheels). It ran on
+  every page whose text layer was empty or garbage (<25 % word-like tokens). The J-2S Restart
+  slides were OCR'd at 0/90/270° and the most confident orientation kept.
+- `pdftotext` was not used, because it only re-reads the empty text layer. `marker` was not used,
+  because it needs torch and a working GPU, and the GPU driver was mismatched.
+- A keyword-hit indexer (gap keywords per source) chose the pages to read.
+- Every number put into a note was confirmed on a rendered page image when its text was OCR'd or
+  garbled.
+- The tools and dumps live in the git-excluded `.lit_work/`.
+- One `lit-integrator` agent per source wrote the `sources/*.md` note. The main session did the
+  topics / README / OPEN_QUESTIONS integration.
+- A mid-run session restart lost one scratch directory. Its extraction was re-run into
+  `.lit_work/`; no note was affected.
+
+**Housekeeping.**
+- `J-2S_Study_30_April_69 (1).pdf` is byte-identical (`cmp`) to `J-2S_Study_30_April_69.pdf`
+  and was moved to `literature/duplicates/`.
+- `19910000801.pdf` (Rocketdyne *Hybrid Propulsion Technology Program* Final Report Vol. IV,
+  RI/RD89-261, 1989) was **skipped by Cory's choice**. Do not re-diff it as "new".
+- `NASA CR-134806 …` and `NASA TM X-73665 …` were already distilled on 2026-10-16; only their
+  PDFs were untracked.
+- Renames from numeric NTRS/DTIC names:
+  - 19680021046 → `NASA TN D-4733 - …`
+  - 19780016336 → `NASA CR-135356 - …`
+  - 19940016798 → `Rocketdyne (c.1993) - J-2S Restart Study.pdf` (actually TA3-0337, April 1993)
+  - 19950015924 → `NASA SP-290 - …`
+  - 19950017370 → `NASA CR-190786 - …`
+  - 19980236000 → `AIAA 98-3519 - …`
+  - 20000083966 → `NASA TM-2000-210237 - …`
+  - AD507864 → `AFRPL-TR-69-149 - …`
+
+**Sources** (read in full unless marked targeted):
+- **`[TN-D4733]`** (NASA TN D-4733, 1968). The exact hydrolox screech correlating parameter;
+  `[NASA-TN-Acoustic]`'s "(some form)" placeholder is now filled.
+- **`[RL10-ROCETS]`** (NASA CR-190786, 1993). Five measured RL10A-3-3A test points: the jacket ΔP
+  bound (≤1.8-1.95 MPa vs the tool's 12.1) and jacket-exit H2 states.
+- **`[X34-MPS]`** (AIAA-98-3519). Fastrac ullage pressures, the first seal-purge flow, and the
+  helium spin start.
+- **`[Zhu-TBC]`** (NASA TM-2000-210237). Sprayed YSZ k ≈1.0-1.45 vs the tool's 2.0, plus the
+  sintering kinetics.
+- **`[Quentmeyer-78-1034]`** (AIAA 78-1034 / TM-78892).
+  - Primary 1978 coated-liner firings.
+  - **Correction:** this is *not* the source of `[Quentmeyer-CR185257]`'s 1450-cycle result.
+    That result is TM-100933 (1988, not held); topic 12's wording was fixed.
+  - The CR-185257 note's MW/m² conversions were flagged as wrong in the source itself.
+- **`[Vilja-J2S]`** (AIAA 93-2129).
+  - J-2S Pc is 1,200 psi, which resolves `[AEDC-J2S]`'s "Pc too high" caveat; the 700-850 psia
+    figure was the J-2's.
+  - Cold-H2 dilution of the tap-off gas and 6:1 tap-valve throttling.
+- **`[SP-290]`** (targeted: Ch.2-3, 7-8). Total-to-static / total-to-total bookkeeping, staging,
+  partial admission and Daily-Nece disk friction. A follow-up pass viewed the remaining figures
+  and confirmed `DISK_CM_COEFF` runs 1.4-1.8× high vs Daily-Nece regime IV (the ½ is dropped and the regime-III numerator is used; Cory to decide).
+- **`[USAF-Hydrazine]`** (targeted: property sections §2.3-2.6, thermal stability §5-6).
+  - N2H4/MMH/UDMH/A-50 property fits, heats of formation and regen-explosion history.
+  - A follow-up pass confirmed every equation on the page images; one A-50 vapor-pressure
+    constant was corrected.
+- **`[J2S-Restart]`** (OCR'd slides, gap slides read as images).
+  - Tap-off turbine inlet ≈900 K rated / ≈700 K throttled, and where the dilution enters.
+  - 10:1 throttle limited by LOX injector ΔP/Pc.
+  - The basic dry weight equals RO's J-2S mass; the `[Vilja-J2S]` caveat was withdrawn.
+- **`[CR135356-Preburner]`** (targeted). LOX/LH2 fuel-rich preburner Tin vs MR and the duct
+  temperature spread. No ox-rich data.
+- **`[J2-Man]`** (R-3825-1B, targeted).
+  - This is the operating-instructions volume. The hardware Data Manual (R-3825-1) is not held,
+    so the manifold-bore gap stays open.
+  - It gave the jacket-exit GH2 state, purge flows, heat-exchanger outputs and the 3,750 s life.
+- **`[J2S-Boeing69]`** (Boeing D5-15772-2, targeted: §2, §4, §5.0-5.2 and the stage-propulsion
+  subsections). The J-2S spec: Isp vs MR, weights, idle, NPSH, heat-exchanger envelopes. No
+  tap-off cycle data.
+
+**Topic-file splits** (40 KB cap): new `08b-tap-off-cycle.md` (from 08), `09b-turbines.md` (from
+09) and `12c-thermal-barrier-coatings.md` (from 12, which was already over cap). That makes 22
+topic files. The README index and the CLAUDE.md count were updated.
+
+**Closed or narrowed in OPEN_QUESTIONS:**
+- Closed: seal purge flows; storable vapor pressure (fuels); UDMH k; A-50 density; disk-friction
+  citation.
+- Largely closed: the J-2S tap-off temperature and warm-GH2 injector-feed states.
+- Narrowed: H-1 turbine η basis, channels-mode LH2 jacket ΔP, exhaust heat exchanger.
+- Recorded: a "documents to acquire" list and the J-2S data conflicts.
+
+No engine_designer code or `ASSUMPTIONS.md` changed. All constant implications are logged
+under OPEN_QUESTIONS "2026-10-18 batch — citation upgrades / code flags".

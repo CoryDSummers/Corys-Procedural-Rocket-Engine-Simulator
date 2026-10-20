@@ -108,6 +108,12 @@ then subtract the cone frustum to get the cylinder length — the pattern `geome
 - `contraction_ratio` default 1.6 and `CONTRACTION_RATIO_TYPICAL = (1.3, 6.0)`: the low end
   matches `[Huzel]`'s "1.3–2.5 for turbopump-fed"; the high end (6.0) matches LE-7's 6.0
   `[Sutton Table 8-1]` and Huzel's "2–5 for pressure-fed". Well-supported.
+  - Stability is **not** a reason to add a contraction-ratio warning. In hydrolox coaxial
+    tests a lower CR was more screech-stable, but only because it changes flow per unit throat
+    and so the H2 injector ΔP/Pc. CR "does not appear independently" `[TN-D4733 p.33]`.
+  - A high CR (4.5) also cost ≈5 points of c\*, through lower injection velocity rather than CR
+    itself `[TN-D4733 p.24-26]`.
+  - Details are in topic 14.
 - `CONVERGENT_HALF_ANGLE_DEG = 30.0` (Tier 3): inside `[Huzel]`'s cited 20°–45° convergent
   range; 20° would match the worked examples more closely but 30° is defensible.
 - The completeness curve (topic 03) is the mechanism by which L\* affects c\* in the tool;
