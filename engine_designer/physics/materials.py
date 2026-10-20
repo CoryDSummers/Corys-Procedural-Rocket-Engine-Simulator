@@ -618,29 +618,38 @@ LINER_MATERIALS = {
     "zirconia": LinerMaterial(
         key="zirconia",
         display_name="Zirconia (YSZ) Thermal-Barrier Liner",
-        thermal_conductivity_w_mk=2.0,   # standard bulk yttria-stabilized-zirconia
-                                          # figure (Tier 2) - NOT independently re-
-                                          # derived for this application; validated
-                                          # against a real regen-liner TBC result
-                                          # instead (see notes and ASSUMPTIONS.md)
+        thermal_conductivity_w_mk=1.3,   # Tier 2, CITED (2026-10-18; was 2.0, a bulk
+                                          # handbook figure): sintered plasma-sprayed
+                                          # YSZ - mid-plateau of 1.08 / 1.18 / 1.44 at
+                                          # 990 / 1100 / 1320 C surface [Zhu-TBC Fig. 4
+                                          # p.8], through-thickness <k> 1.17-1.28
+                                          # [Zhu-TBC Fig. 5b p.9]. Conservative for a
+                                          # fresh coat (~1.0 as-sprayed [Zhu-TBC p.5]);
+                                          # firing back-solves give 0.88-1.49 (derived,
+                                          # [Quentmeyer-78-1034 Table II])
         density_kg_m3=5700.0,            # Tier 2, standard YSZ figure
-        max_service_temp_k=1500.0,       # Tier 3, reasoned TBC-service figure - no
-                                          # citation found for this specific liner
-                                          # application; flagged honestly
+        max_service_temp_k=1500.0,       # Tier 3, plausible-to-conservative: sprayed
+                                          # coats ran 1263-1593 K surface for 30+ h
+                                          # without reported failure [Zhu-TBC]; a
+                                          # ~2900 K short-burn surface eroded rather
+                                          # than failed [Quentmeyer-78-1034 p.5]
         relative_cost_factor=1.3,
         max_practical_thickness_m=1.0e-3,  # Tier 3 - thick sprayed ceramic coats spall
                                             # on thermal-expansion mismatch. Real applied
                                             # thicknesses for context: flame-sprayed ZrO2
                                             # ~0.010 in (0.25 mm) [TN-D3836 p.22-25];
-                                            # 0.076 mm [Quentmeyer-CR185257]. 1 mm is
-                                            # ~4x the thickest cited, not a cited limit.
+                                            # 0.076 mm [Quentmeyer-CR185257]; 0.203 mm as
+                                            # built, eroding to a stable 0.061 mm within
+                                            # 80 cycles at a throat flux [Quentmeyer-78-
+                                            # 1034]. 1 mm is ~4x the thickest cited, not
+                                            # a cited limit.
         notes="Yttria-stabilized zirconia thermal-barrier liner between the hot gas "
               "and a radiative-cooled nozzle-extension's structural shell (e.g. "
               "titanium_6al4v, whose real Bell XLR81/Agena hardware used exactly this "
-              "construction). Real regen-chamber analog: [Quentmeyer-CR185257 Sec."
-              "Thermal Barrier Coatings p.3] - a ZrO2 (0.076mm) + NiCr bond coat on an "
-              "electroformed-Cu chamber liner cut heat flux ~50% vs. an uncoated liner "
-              "at the same geometry/conditions. That is a REGEN-liner TBC result, a "
+              "construction). Real regen-chamber analog: [Quentmeyer-78-1034 Table II] - a "
+              "plasma-sprayed ZrO2 + NiCr bond coat on an electroformed-Cu chamber "
+              "liner cut the throat heat flux 41% at 0.061 mm and 79% at 0.203 mm vs. "
+              "an uncoated liner (57.2 MW/m2). That is a REGEN-liner TBC result, a "
               "different cooling context from this radiative-shell application, so it "
               "is used here as a VALIDATION spot-check anchor on this liner's "
               "conductivity (physics/validate.py), not as the tuned input itself - see "

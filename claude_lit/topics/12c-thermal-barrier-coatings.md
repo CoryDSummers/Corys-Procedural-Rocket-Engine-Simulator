@@ -116,11 +116,14 @@ The liner is electroformed Cu with a ~0.013 mm Nichrome bond layer.
     would be ~0.075-0.11 mm at k 1.0-1.45.
   - Candidate re-cite: k ≈ 1.0 as-sprayed `[Zhu-TBC p.5]`, or ≈1.2-1.4 sintered for a long-life
     engine.
-  - Not changed here; logged under OPEN_QUESTIONS "Pending ASSUMPTIONS.md citation upgrades".
+  - **Adopted 2026-10-18 (lit-batch Round 2): k = 1.3 sintered** (Cory's choice). The C-103 coat
+    is now 0.099 mm.
 - **`validate.run_zirconia_liner_check` check (e)** compares against CR-185257's unqualified "~50 %".
   - `[Quentmeyer-78-1034 Table II]` is a better regen-boundary anchor: a documented −41 % at a
     stated 0.061 mm, and −79 % at 0.203 mm.
   - The check stays informational, because the regen vs radiative contexts differ (Key relations).
+  - **Re-anchored 2026-10-18 (Round 2).** At k 1.3 the tool's radiative liner cuts 8.4 % / 22.7 %
+    at 0.061 / 0.203 mm.
 - **`max_practical_thickness_m` (1.0 mm, Tier 3):** the cited rocket coats are 0.06-0.25 mm. A
   0.2 mm coat at a throat-like flux eroded back to 0.06 mm. 1 mm stays an uncited upper bound for a
   cooler nozzle-extension location.

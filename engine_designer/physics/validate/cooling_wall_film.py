@@ -268,13 +268,13 @@ def run_zirconia_liner_check():
           the shell on the target (margin ratio = THIN_MARGIN_THRESHOLD); where
           it isn't, the coat is capped and the thickness row warns.
       (d) INFORMATIONAL: the computed coat vs. real applied sprayed-ZrO2
-          thicknesses - 0.076 mm [Quentmeyer-CR185257], ~0.25 mm [TN-D3836
-          p.22-25].
-      (e) [Quentmeyer-CR185257 Sec.Thermal Barrier Coatings p.3] flux-cut
-          comparison (INFORMATIONAL, not gated): 0.076mm ZrO2 on a REGEN liner
-          cut flux ~50%; a radiative shell's T^4 re-radiation responds very
-          differently to a conduction resistance, so no close match is expected
-          (see ASSUMPTIONS.md).
+          thicknesses - 0.061 mm stable / 0.203 mm as built [Quentmeyer-78-1034],
+          0.076 mm [Quentmeyer-CR185257], ~0.25 mm [TN-D3836 p.22-25].
+      (e) [Quentmeyer-78-1034 Table II] flux-cut comparison (INFORMATIONAL,
+          not gated): ZrO2 on a REGEN Cu liner cut the throat flux 41% at
+          0.061 mm and 79% at 0.203 mm; a radiative shell's T^4 re-radiation
+          responds very differently to a conduction resistance, so no close
+          match is expected (see ASSUMPTIONS.md).
     """
     from ..cooling.radiation import radiative_wall_temperature
 
@@ -327,7 +327,8 @@ def run_zirconia_liner_check():
           f"needs {r_cap['nozzle_liner_required_thickness_m'] * 1e3:.0f} mm -> capped at "
           f"{zr_max * 1e3:.1f} mm + warned   [{'OK' if c_ok else 'FAIL'}]")
     print(f"  (d) informational: computed C-103 coat {fit_req * 1e3:.3f} mm vs. real sprayed ZrO2 "
-          f"0.076 mm [Quentmeyer-CR185257] / ~0.25 mm [TN-D3836]")
+          f"0.061-0.203 mm [Quentmeyer-78-1034] / 0.076 mm [Quentmeyer-CR185257] / "
+          f"~0.25 mm [TN-D3836]")
 
     all_ok = a_ok and b_ok and c_ok
 
@@ -337,16 +338,18 @@ def run_zirconia_liner_check():
     h_gc_rep, t_aw_rep, emis_rep = 5000.0, 3000.0, 0.85
     t_bare_rep = radiative_wall_temperature(h_gc_rep, t_aw_rep, emis_rep)
     q_bare_rep = h_gc_rep * (t_aw_rep - t_bare_rep)
-    resist_rep = 0.076e-3 / materials.LINER_MATERIALS["zirconia"].thermal_conductivity_w_mk
-    t_lined_rep = radiative_wall_temperature(h_gc_rep, t_aw_rep, emis_rep,
-                                             liner_resistance_m2k_w=resist_rep)
-    q_lined_rep = h_gc_rep * (t_aw_rep - t_lined_rep)
-    flux_cut_pct = 100.0 * (1.0 - q_lined_rep / q_bare_rep) if q_bare_rep > 0 else 0.0
-    print(f"  (e) [Quentmeyer-CR185257] 0.076mm ZrO2 cut regen-liner flux ~50% (informational, "
-          f"not gated): this radiative-shell liner cuts flux {flux_cut_pct:.1f}% at representative "
-          f"conditions - a real, honestly-reported gap (a radiative shell's T^4 term responds "
-          f"differently to a conduction resistance than a regen liner's coolant boundary; see "
-          f"ASSUMPTIONS.md)")
+    k_zr = materials.LINER_MATERIALS["zirconia"].thermal_conductivity_w_mk
+    cuts = []
+    for t_coat_m, real_cut_pct in ((0.061e-3, 41.0), (0.203e-3, 79.0)):  # [Quentmeyer-78-1034 Table II]
+        t_lined_rep = radiative_wall_temperature(h_gc_rep, t_aw_rep, emis_rep,
+                                                 liner_resistance_m2k_w=t_coat_m / k_zr)
+        q_lined_rep = h_gc_rep * (t_aw_rep - t_lined_rep)
+        flux_cut_pct = 100.0 * (1.0 - q_lined_rep / q_bare_rep) if q_bare_rep > 0 else 0.0
+        cuts.append(f"{t_coat_m * 1e3:.3f} mm: {flux_cut_pct:.1f}% (real regen {real_cut_pct:.0f}%)")
+    print(f"  (e) [Quentmeyer-78-1034 Table II] flux cut, informational, not gated - this "
+          f"radiative-shell liner at representative conditions: {'; '.join(cuts)}. A real, "
+          f"honestly-reported gap (a radiative shell's T^4 term responds differently to a "
+          f"conduction resistance than a regen liner's coolant boundary; see ASSUMPTIONS.md)")
 
     print()
     print("ALL ZIRCONIA-LINER CHECKS OK" if all_ok else
