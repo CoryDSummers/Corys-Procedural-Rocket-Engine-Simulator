@@ -359,7 +359,9 @@ into that and makes no claims about it.
       `DISK_METAL_TEMP_FRACTION` rests on the F-1 alone. SP-8110's unread materials sections
       or MMPDS elevated-temperature data would fix these.
   - **Pump meanline follow-ups (2026-09-26, turbopump Round 2).** Wanted:
-    - **Disk-friction coefficient — citation found 2026-10-18** `[SP-290 Ch.8 eq. 8-7/8-16]`.
+    - ~~**Disk-friction coefficient**~~ **Done 2026-10-20 (lit-batch Round 3):** eq. 8-16 at
+      s/a 0.05 + the eq. 8-17-8-22 throughflow factor on the front shroud face, `K_HYD` 1.79.
+      Kept for the record — citation found 2026-10-18 `[SP-290 Ch.8 eq. 8-7/8-16]`.
       These are the Daily & Nece 1960 regimes I-IV. In the turbulent separate-boundary-layer
       regime C_M = 0.102(s/a)^0.1/R^0.2, with P = C_M·ρω³a⁵/2. **Flag:** `DISK_CM_COEFF` 0.0622
       with R^−0.2 mixes the regime-III theoretical numerator with the regime-IV exponent and drops
@@ -369,10 +371,12 @@ into that and makes no claims about it.
       - **Cory's call:** either switch to eq. 8-16 with an assumed s/a (0.02-0.05 gives
         0.035-0.038), which cuts disk-friction power ≈35-45 % and needs a `K_HYD` refit; or keep
         0.0622 and label it an uncited roughness/leakage allowance.
-      - SP-290 covers smooth enclosed disks in water and oil; wear-ring leakage and roughness
-        are not covered.
+      - SP-290 covers smooth enclosed disks in water and oil. Leakage throughflow is covered
+        (eq. 8-17-8-22, now used); roughness is not.
     - **Small-pump size effect.** The meanline runs ~5-8 pts optimistic against SP-8109 Fig. 6
-      for 2-6 in impellers, pessimistic at 1 in. The wear-ring clearance floor is fitted to
+      for 2-6 in impellers, pessimistic at 1 in. **Margin thinner since 2026-10-20** (SP-290
+      disk friction): worst +9.4 pts at 4 in / Ns 800, −9.2 at 1 in / Ns 1000, vs the ±10 gate;
+      the old 0.0622 had been absorbing part of the low-Ns loss. The wear-ring clearance floor is fitted to
       Fig. 6. This is why the RL10 LOX pump is gated +-0.13. A per-size loss breakdown
       (relative roughness, blade blockage, clearances) from a pump-design text would fix it.
     - **Volute / vaned-diffuser loss coefficients.** SP-8109 gives none; Huzel gives "70-90 %
@@ -690,7 +694,7 @@ edits," so these are sitting in topic-file prose waiting for whoever next touche
   - **Turbine efficiency model** `[SP-290]`: η-vs-ν shape, partial-admission sector + pumping
     loss (could replace the fitted admission floor), and T-S vs T-T bookkeeping for the 0.76
     ceiling. See `topics/09b`.
-  - **`pump_meanline.DISK_CM_COEFF`** — confirmed 1.4-1.8× high vs `[SP-290]` regime IV; see the disk-friction item above.
+  - ~~**`pump_meanline.DISK_CM_COEFF`**~~ — done 2026-10-20 (lit-batch Round 3); see the disk-friction item above.
   - **`injectors.min_stable_dp_ratio` / `practical_min_throttle`.** There are real coaxial
     precedents: J-2S LOX ΔP/Pc 3 % tested stable at 6:1, 1.8 % at 10:1 `[J2S-Restart]`;
     hydrolox screech criterion W ≥ 4.4 `[TN-D4733]`. *Cited as context 2026-10-18 (Round 1),
