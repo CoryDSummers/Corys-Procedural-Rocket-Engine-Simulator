@@ -446,6 +446,33 @@ class EngineDesign:
     # Lab draw them and the pump inlet/discharge + turbine exhaust ports sit on their
     # flanges, so pump-connected line losses and the exhaust duct follow. Mass unchanged.
     turbopump_geometry_model: str = "envelope"
+    # Turbopump placement (roadmap E1, 2026-09-30; geometry3d.turbopump_placement - drawing
+    # + port positions, so pump-connected line losses / the exhaust duct follow; no mass):
+    # azimuth = clock round the engine axis (0 = +Y, toward +Z - the manifold attach-angle
+    # convention; the exhaust hardware and the default ring inlets clock with it); axial
+    # station = the assembly's midpoint / engine length (0 = auto: its forward end at
+    # TURBOPUMP_ORIGIN_X_LENGTH_FRACTION x length); standoff = the gap between the
+    # assembly's engine-side reach and the local contour/ring envelope, m (0 = auto,
+    # TURBOPUMP_STANDOFF_R_FRACTION x that local radius); shaft "axial" (parallel to the
+    # engine axis) | "tangential" (along the local circumference) | "radial" (along the
+    # outboard radial). Mount "side" (beside the contour, as above) | "head" (forward of
+    # the injector head, NK-33 / RD-170 style: standoff = the axial gap to the dome / head
+    # rings, the station is ignored) | "free" (placed BY HAND, no solve: the centre at
+    # height_m above the injector face (x = 0; + = forward / above the chamber, - = down
+    # beside it), any station / standoff ignored; a clash with the engine is a warn row,
+    # never moved). offset_m = the centre's distance off the engine axis toward the
+    # clock angle (head + free; 0 = on the axis). roll_deg spins the assembly about its
+    # own shaft (clocks its ports); shaft_flip reverses the shaft ends.
+    # (geometry3d.turbopump_placement / turbopump_rotation)
+    turbopump_azimuth_deg: float = 0.0
+    turbopump_axial_station_frac: float = 0.0
+    turbopump_standoff_m: float = 0.0
+    turbopump_shaft_orientation: str = "axial"
+    turbopump_mount: str = "side"
+    turbopump_roll_deg: float = 0.0
+    turbopump_shaft_flip: bool = False
+    turbopump_offset_m: float = 0.0
+    turbopump_height_m: float = 0.0
     # Regen coolant (fuel) jacket-inlet temperature: "computed" (default) = the fuel
     # pump's outlet (tank temperature + boost + main-pump heating, suction_stage.
     # pump_heating; applied on a second compute pass) - needs pump_model "meanline";
@@ -521,7 +548,18 @@ class EngineDesign:
     plume_mode: str = "host"
 
     # --- project-file (de)serialisation (gui/project_io.py) ---
-    SCHEMA_VERSION = 23  # 23 (2026-10-16): plume_mode ("host" | "generated" | "none") - no
+    SCHEMA_VERSION = 24  # 24 (2026-10-17; built 2026-09-30/10-01 as the unmerged "20"): turbopump
+                         # placement (turbopump_azimuth_deg, turbopump_axial_station_frac,
+                         # turbopump_standoff_m,
+                         # turbopump_shaft_orientation; + turbopump_mount / _roll_deg /
+                         # _shaft_flip / _offset_m / _height_m, "radial" shaft, "head" /
+                         # "free" mounts, 2026-10-01 - same
+                         # unreleased bump) - no key migration; an older file
+                         # takes the defaults = auto placement, which is the NEW span-aware
+                         # rule (standoff from the local contour/ring radius, not the bell
+                         # exit) - a deliberate geometry change: ports move, so a baked
+                         # pump-connected run's line loss moves with them.
+                         # 23 (2026-10-16): plume_mode ("host" | "generated" | "none") - no
                          # key migration; an older file takes "host" (the host's plume,
                          # recolored - before this, a standalone clone had NO plume).
                          # 22 (2026-10-16): TestFlight burn-time round - testflight_transfer_pct

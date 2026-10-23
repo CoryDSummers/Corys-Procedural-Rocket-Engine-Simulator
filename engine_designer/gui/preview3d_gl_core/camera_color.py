@@ -12,6 +12,8 @@ import matplotlib
 import matplotlib.colors as mcolors
 import numpy as np
 
+from ...physics import geometry3d
+
 def heat_flux_colors(q_w_m2, cmap_name="turbo"):
     """
     Per-station RGB from a wall-heat-flux profile (W/m^2), same convention as
@@ -42,7 +44,7 @@ def compute_bounds(result):
     xs = np.asarray(result["profile_xs_m"], dtype=float)
     rs = np.asarray(result["profile_rs_m"], dtype=float)
     chamber_head_r = float(rs[0]) if rs.size else 0.0
-    dome_depth = 0.42 * chamber_head_r if chamber_head_r > 0 else 0.0
+    dome_depth = geometry3d.injector_dome_depth_m(chamber_head_r)
 
     x_lo = float(xs.min()) if xs.size else 0.0
     if chamber_head_r > 0:
@@ -51,7 +53,16 @@ def compute_bounds(result):
     max_r = float(rs.max()) if rs.size else 0.0
 
     sizing = result.get("turbopump_sizing")
-    if sizing and sizing.get("bodies"):
+    placement = geometry3d.turbopump_placement_for_result(result) \
+        if result.get("turbopump_placement") else None
+    if placement and sizing and sizing.get("bodies"):
+        # the solved placement (E1): side, head-mounted, rolled - frame its real hull
+        pts = geometry3d.placed_box_corners(geometry3d.boxes_from_bodies(sizing["bodies"]),
+                                            placement)
+        x_lo = min(x_lo, float(pts[:, 0].min()))
+        x_hi = max(x_hi, float(pts[:, 0].max()))
+        max_r = max(max_r, float(np.hypot(pts[:, 1], pts[:, 2]).max()))
+    elif sizing and sizing.get("bodies"):
         y_offset = max_r + 0.5 * sizing["assembly_od_m"] + 0.04 * max_r
         max_r = max(max_r, y_offset + 0.5 * sizing["assembly_od_m"])
         tp_x_extent = x_hi
@@ -373,6 +384,15 @@ def self_test():
     dome_depth = 0.42 * float(rs_cyl[0])
     expected_x_lo = min(float(xs_cyl.min()), -dome_depth * 1.15)
     assert np.isclose(center[0], (float(xs_cyl.max()) + expected_x_lo) / 2.0)
+    # a head-mounted turbopump (E1, 2026-10-01) is framed wherever it sits: the bounds
+    # reach forward to its hull, not the legacy side-mount guess
+    bodies_f = [{"kind": "pump", "x0_m": 0.0, "length_m": 0.6, "od_m": 0.4, "center": 0}]
+    pl_head = geometry3d.turbopump_placement(geometry3d.boxes_from_bodies(bodies_f),
+                                             xs_cyl, rs_cyl, mount="head")
+    head_res = dict(fake_result, turbopump_sizing={"bodies": bodies_f, "assembly_od_m": 0.4},
+                    turbopump_placement=pl_head)
+    c_h, half_h = compute_bounds(head_res)
+    assert c_h[0] - half_h <= pl_head["x_span_m"][0] + 1e-9 and half_h > half
     print("compute_bounds self-check: OK")
 
     # --- gizmo_axis_lines: fixed unit X/Y/Z segments, paired colors ---

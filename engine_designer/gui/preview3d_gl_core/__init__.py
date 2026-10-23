@@ -197,6 +197,7 @@ from .turbopump_meshes import (
     flange_pieces,
     component_pieces,
     layout_pieces,
+    transform_pieces,
 )
 
 __all__ = [
@@ -339,4 +340,5 @@ __all__ = [
     "flange_pieces",
     "component_pieces",
     "layout_pieces",
+    "transform_pieces",
 ]

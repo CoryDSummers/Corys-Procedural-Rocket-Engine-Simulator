@@ -47,7 +47,7 @@ def layout_for_result(result):
     port bores - identical geometry either way. None without a turbopump."""
     placed = result.get("turbopump_layout")
     if placed:
-        return dict(placed, origin_xyz=(0.0, 0.0, 0.0))
+        return dict(placed, origin_xyz=(0.0, 0.0, 0.0), rotation=None)   # local frame
     ports = result.get("turbopump_ports")
     return turbopump_layout.build_layout(
         result.get("turbopump_sizing"),

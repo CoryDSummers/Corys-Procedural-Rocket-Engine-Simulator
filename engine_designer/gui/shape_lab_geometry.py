@@ -193,7 +193,7 @@ def ghost_turbopump_from_result(result):
                       n_theta=24, n_tube=12)
                   for p in pcs]
         return pieces, turbopump_layout.pump_points_from_layout(layout)
-    origin = geometry3d.turbopump_origin_for_result(result)
+    origin = geometry3d.turbopump_placement_for_result(result)
     pieces = [mesh_from_grid(Xt, Yt, Zt, GHOST_TURBOPUMP_RGB)
               for _kind, (Xt, Yt, Zt) in geometry3d.turbopump_assembly_meshes(sizing["bodies"], origin)]
     pieces.extend(mesh_builder.turbopump_port_stub_pieces(result, GHOST_TURBOPUMP_RGB))

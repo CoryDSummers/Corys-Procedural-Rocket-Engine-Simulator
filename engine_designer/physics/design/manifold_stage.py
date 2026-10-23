@@ -33,12 +33,18 @@ def injector_and_manifolds(self, s):
         self.ox_manifold_head_fraction, s.dp_injector_ox, s.rho_ox)
     # Each header ring's taper INLET follows the user's pipe: the first
     # plumbing run rooted on that host sets its inlet angle (else the
-    # defaults - fuel 0, ox 180, jacket 0).
+    # defaults, clocked with the turbopump (turbopump_azimuth_deg phi, E1) -
+    # fuel phi, ox phi + 180, jacket phi; 0 / 180 / 0 at the default phi = 0).
+    _phi = float(self.turbopump_azimuth_deg) % 360.0
     s._inlet_angles = {}
     for _rd in (self.plumbing_runs or []):
         _r0 = plumbing.run_from_dict(_rd)
         if _r0.pipes and _r0.host not in s._inlet_angles:
             s._inlet_angles[_r0.host] = float(_r0.attach_angle_deg)
+    if _phi != 0.0:
+        for _host, _ang in (("fuel", _phi), ("ox", (_phi + 180.0) % 360.0),
+                            ("jacket_inlet", _phi)):
+            s._inlet_angles.setdefault(_host, _ang)
     s.manifold_result = manifold.size_manifolds(
         s.mdot_fuel_kgs, s.mdot_ox_kgs, s.rho_fuel, s.rho_ox, s.pc_feed,
         s.dp_injector_fuel, s.dp_injector_ox, s.geo["chamber_dia_m"],
